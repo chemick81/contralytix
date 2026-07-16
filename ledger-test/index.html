@@ -463,6 +463,14 @@ function applyMyTraderDefaultFilters(){
   if(!state.filters.accounting.trader) state.filters.accounting.trader = t.id;
   if(!state.filters.bilan.trader) state.filters.bilan.trader = t.id;
 }
+// Applique le même trader sélectionné à TOUS les filtres "trader" de l'app
+// (Dashboard, Comptes, Comptabilité, Bilan), pour que le choix se propage partout.
+function setTraderFilterEverywhere(traderId){
+  state.filters.dashboard.trader = traderId;
+  state.filters.accounts.trader = traderId;
+  state.filters.accounting.trader = traderId;
+  state.filters.bilan.trader = traderId;
+}
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
 function isMine(item){ return item.createdBy === currentUserId(); }
 function canEdit(item){ return isAdmin() || isMine(item); }
@@ -565,6 +573,12 @@ async function loadProfilesAdmin(){
   const { data, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending:true });
   if(error){ showToast('Erreur de chargement des utilisateurs : ' + error.message, 'danger'); return; }
   state.profiles = data.map(fromRow);
+  // RLS bloque silencieusement (pas d'erreur renvoyée par Postgrest) : si un admin ne voit
+  // que sa propre ligne (ou aucune), c'est le signe qu'il manque une policy SELECT admin
+  // sur la table 'profiles' (idem sur 'subscriptions' plus bas).
+  if(state.profiles.length <= 1){
+    showToast("Seul ton propre profil est visible : il manque probablement une policy RLS SELECT pour les admins sur la table 'profiles' dans Supabase.", 'danger');
+  }
   const { data: subs, error: subsErr } = await supabaseClient.from('subscriptions').select('*');
   if(!subsErr && subs){
     state.allSubscriptions = subs.map(fromRow);
@@ -2629,7 +2643,7 @@ function viewAdmin(){
   const totalUsers = state.profiles.length;
   const premiumCount = state.profiles.filter(p=>p.role==='PREMIUM'||p.role==='ADMIN').length;
   const freeCount = totalUsers - premiumCount;
-  const lifetimeCount = activeSubs.filter(s=>s.billingCycle==='LIFETIME').length;
+  const lifetimeCount = activeSubs.filter(s=>s.billingCycle==='LIFETIME' && s.plan==='PREMIUM').length;
   const cancelledCount = subs.filter(s=>s.status==='CANCELLED').length;
 
   // Hypothèse de prix par défaut pour le calcul MRR/ARR — ajuste selon tes prix Stripe réels.
@@ -2693,7 +2707,7 @@ function viewAdmin(){
               state.profiles.map(p=>`<tr>
                 <td>${p.email||'—'}${p.id===currentUserId()?' <span class="text-faint">(toi)</span>':''}</td>
                 <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':'badge-slate'}">${p.role}</span></td>
-                <td class="text-dim">${p.subscription && p.subscription.billingCycle ? p.subscription.billingCycle : '—'}</td>
+                <td class="text-dim">${(p.role==='PREMIUM' && p.subscription && p.subscription.billingCycle) ? p.subscription.billingCycle : '—'}</td>
                 <td class="text-dim mono">${p.createdAt?fmtDate(p.createdAt.slice(0,10)):'—'}</td>
                 <td class="text-dim mono">${p.lastLogin?fmtDate(p.lastLogin.slice(0,10)):'—'}</td>
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -2738,7 +2752,10 @@ function viewSubscription(){
   const isPremium = role==='PREMIUM' || role==='ADMIN';
 
   const statusLabelFr = { ACTIVE:'Actif', CANCELLED:'Annulé', EXPIRED:'Expiré' }[sub.status] || sub.status || '—';
-  const cycleLabelFr = { MONTHLY:'Mensuel', YEARLY:'Annuel', LIFETIME:'Lifetime' }[sub.billingCycle] || '—';
+  // On n'affiche une formule/cycle de facturation que pour un compte réellement Premium/Admin.
+  // Ça évite d'afficher "Lifetime" pour un compte Free si une ligne "subscriptions" orpheline
+  // (billing_cycle non nettoyé) traîne encore en base pour cet utilisateur.
+  const cycleLabelFr = isPremium ? ({ MONTHLY:'Mensuel', YEARLY:'Annuel', LIFETIME:'Lifetime' }[sub.billingCycle] || '—') : '—';
 
   const currentPlanPanel = `
     <div class="panel" style="margin-bottom:16px;padding:20px;">
@@ -2750,7 +2767,7 @@ function viewSubscription(){
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Statut</div>${statusLabelFr}</div>
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Formule</div>${cycleLabelFr}</div>
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Début</div>${sub.startedAt ? fmtDate(sub.startedAt.slice(0,10)) : '—'}</div>
-        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Renouvellement</div>${sub.expiresAt ? fmtDate(sub.expiresAt.slice(0,10)) : (sub.billingCycle==='LIFETIME' ? 'Jamais (Lifetime)' : '—')}</div>
+        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Renouvellement</div>${(isPremium && sub.expiresAt) ? fmtDate(sub.expiresAt.slice(0,10)) : (isPremium && sub.billingCycle==='LIFETIME' ? 'Jamais (Lifetime)' : '—')}</div>
       </div>
       ${role!=='ADMIN' ? `
         <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -2861,10 +2878,14 @@ function bindViewEvents(){
     const el = document.getElementById(id);
     if(!el) return;
     const map = { 'fd-trader':'trader', 'fd-firm':'propfirm', 'fd-month':'month' };
-    el.addEventListener('change', ()=>{ state.filters.dashboard[map[id]] = el.value; renderView(); });
+    el.addEventListener('change', ()=>{
+      if(id==='fd-trader'){ setTraderFilterEverywhere(el.value); }
+      else { state.filters.dashboard[map[id]] = el.value; }
+      renderView();
+    });
   });
   const fdClearBtn = document.getElementById('fd-clear');
-  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:'',propfirm:'',month:''}; renderView(); };
+  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:'',propfirm:'',month:''}; setTraderFilterEverywhere(''); renderView(); };
   document.querySelectorAll('[data-alert-acc]').forEach(row=>row.onclick=()=>{
     const acc = getAccount(row.dataset.alertAcc);
     if(!acc) return;
@@ -2939,7 +2960,8 @@ function bindViewEvents(){
     if(!el) return;
     const map = { 'f-q':'q', 'f-trader':'trader', 'f-firm':'propfirm', 'f-type':'type', 'f-status':'status' };
     el.addEventListener(id==='f-q'?'input':'change', ()=>{
-      state.filters.accounts[map[id]] = el.value;
+      if(id==='f-trader'){ setTraderFilterEverywhere(el.value); }
+      else { state.filters.accounts[map[id]] = el.value; }
       if(id==='f-q'){
         const cursorPos = el.selectionStart;
         renderView();
@@ -2955,10 +2977,14 @@ function bindViewEvents(){
     const el = document.getElementById(id);
     if(!el) return;
     const map = { 'fa-month':'month', 'fa-type':'type', 'fa-trader':'trader', 'fa-firm':'propfirm' };
-    el.addEventListener('change', ()=>{ state.filters.accounting[map[id]] = el.value; renderView(); });
+    el.addEventListener('change', ()=>{
+      if(id==='fa-trader'){ setTraderFilterEverywhere(el.value); }
+      else { state.filters.accounting[map[id]] = el.value; }
+      renderView();
+    });
   });
   const clearBtn = document.getElementById('fa-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:'',propfirm:''}; renderView(); };
+  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:'',propfirm:''}; setTraderFilterEverywhere(''); renderView(); };
   document.querySelectorAll('[data-select-month]').forEach(row=>row.onclick=()=>{
     const mk = row.dataset.selectMonth;
     state.filters.accounting.month = (state.filters.accounting.month===mk) ? '' : mk; // re-clic = désélectionner
@@ -3016,10 +3042,14 @@ function bindViewEvents(){
     const el = document.getElementById(id);
     if(!el) return;
     const map = { 'fb-month':'month', 'fb-trader':'trader' };
-    el.addEventListener('change', ()=>{ state.filters.bilan[map[id]] = el.value; renderView(); });
+    el.addEventListener('change', ()=>{
+      if(id==='fb-trader'){ setTraderFilterEverywhere(el.value); }
+      else { state.filters.bilan[map[id]] = el.value; }
+      renderView();
+    });
   });
   const fbClearBtn = document.getElementById('fb-clear');
-  if(fbClearBtn) fbClearBtn.onclick = ()=>{ state.filters.bilan.trader = ''; renderView(); };
+  if(fbClearBtn) fbClearBtn.onclick = ()=>{ setTraderFilterEverywhere(''); renderView(); };
   document.querySelectorAll('[data-export-card]').forEach(b=>b.onclick=()=>{
     exportBilanCard(b.dataset.exportCard, b.dataset.exportName);
   });
