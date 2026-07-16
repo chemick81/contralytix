@@ -2969,7 +2969,7 @@ function bindViewEvents(){
    FORM: TRADER
 ============================================================ */
 function traderFormModal(existing){
-  const t = existing || { id: uid('trd'), firstName:'', lastName:'', pseudo:'', email:'', status:'ACTIF', isPublic:true, createdBy: currentUserId() };
+  const t = existing || { id: uid('trd'), firstName:'', lastName:'', pseudo:'', email: (state.session ? state.session.user.email : '') || '', status:'ACTIF', isPublic:true, createdBy: currentUserId() };
   openModal({
     title: existing ? 'Modifier le trader' : 'Nouveau trader',
     bodyHtml: `
@@ -2978,7 +2978,7 @@ function traderFormModal(existing){
         <div class="field"><label>Nom</label><input id="tf-last" value="${t.lastName}"/></div>
       </div>
       <div class="field"><label>Pseudo</label><input id="tf-pseudo" value="${t.pseudo}"/><div class="field-hint">Utilisé partout dans l'app pour identifier le trader.</div></div>
-      <div class="field"><label>Email (optionnel)</label><input id="tf-email" value="${t.email||''}"/></div>
+      <div class="field"><label>Email (optionnel)</label><input id="tf-email" value="${t.email||''}"/><div class="field-hint">Pré-rempli avec ton email de connexion pour rattacher ce trader à ton compte. Modifiable si besoin.</div></div>
       <div class="field"><label>Statut</label>
         <div class="radio-group">
           <div class="radio-chip ${t.status==='ACTIF'?'selected':''}" data-status="ACTIF">Actif</div>
