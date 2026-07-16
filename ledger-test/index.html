@@ -2827,15 +2827,12 @@ function bindViewEvents(){
   });
   document.querySelectorAll('[data-del-trader]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.delTrader;
-    const hasAccounts = state.accounts.some(a=>a.traderId===id);
-    confirmModal(hasAccounts ? 'Ce trader a des comptes liés. Supprime d\u2019abord ses comptes, ou continue pour tout supprimer en cascade. Continuer ?' : 'Supprimer ce trader ?', async ()=>{
-      if(hasAccounts){
-        // La suppression du trader entraîne une suppression en cascade côté base (accounts -> payouts).
-        // On met à jour l'état local immédiatement pour un rendu cohérent sans re-fetch.
-        const accIds = state.accounts.filter(a=>a.traderId===id).map(a=>a.id);
-        state.payouts = state.payouts.filter(p=>!accIds.includes(p.accountId));
-        state.accounts = state.accounts.filter(a=>a.traderId!==id);
-      }
+    const linkedAccounts = state.accounts.filter(a=>a.traderId===id);
+    if(linkedAccounts.length>0){
+      showToast(`Impossible de supprimer ce trader : ${linkedAccounts.length} compte(s) lié(s) (et leurs payouts/notes). Supprime ou réattribue d'abord ses comptes avant de supprimer le trader.`, 'danger');
+      return;
+    }
+    confirmModal('Supprimer ce trader ?', async ()=>{
       const trd = getTrader(id);
       await remove('traders', id);
       await logActivity('DELETE', 'trader', id, trd?trd.pseudo:'');
