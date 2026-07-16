@@ -1,9 +1,0 @@
-{
-  "name": "ledger-v19-functions",
-  "private": true,
-  "version": "1.0.0",
-  "dependencies": {
-    "stripe": "^16.0.0",
-    "@supabase/supabase-js": "^2.45.0"
-  }
-}
