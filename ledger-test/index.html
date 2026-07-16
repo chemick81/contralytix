@@ -127,6 +127,7 @@ tbody tr:hover{background:var(--surface-2);}
 /* EMPTY STATE */
 .empty{text-align:center;padding:50px 20px;color:var(--text-dim);}
 .empty svg{width:34px;height:34px;color:var(--text-faint);margin-bottom:10px;}
+.price-check svg{width:14px;height:14px;flex-shrink:0;}
 .empty-title{font-weight:600;color:var(--text);margin-bottom:4px;font-size:14px;}
 .empty-sub{font-size:12.5px;}
 
@@ -438,11 +439,30 @@ const state = {
     sessions: { q:'' },
     calendrier: { month: '' },
     classement: { month: '', allTime: false },
+    tarifs: { cycle: 'MONTHLY' },
   },
   numbersVisible: false,
 };
 
 function currentUserId(){ return state.session ? state.session.user.id : null; }
+// Trader dont l'email correspond à l'email de connexion de l'utilisateur actuel :
+// sert à caler automatiquement les filtres et la création de compte sur "son" trader.
+function myLinkedTrader(){
+  if(!state.session) return null;
+  const email = (state.session.user.email||'').toLowerCase();
+  if(!email) return null;
+  return state.traders.find(t=>t.email && t.email.toLowerCase()===email) || null;
+}
+// Applique ce trader par défaut sur tous les filtres "trader" existants, une seule fois
+// à la connexion (sans écraser un filtre déjà modifié manuellement par l'utilisateur).
+function applyMyTraderDefaultFilters(){
+  const t = myLinkedTrader();
+  if(!t) return;
+  if(!state.filters.dashboard.trader) state.filters.dashboard.trader = t.id;
+  if(!state.filters.accounts.trader) state.filters.accounts.trader = t.id;
+  if(!state.filters.accounting.trader) state.filters.accounting.trader = t.id;
+  if(!state.filters.bilan.trader) state.filters.bilan.trader = t.id;
+}
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
 function isMine(item){ return item.createdBy === currentUserId(); }
 function canEdit(item){ return isAdmin() || isMine(item); }
@@ -667,6 +687,14 @@ function computePermissions(){
 }
 function perms(){ return state.permissions || computePermissions(); }
 
+// ⚠️ VALEURS D'EXEMPLE — à remplacer par tes vrais tarifs (doivent correspondre aux prix
+// configurés côté Stripe / dans ta fonction /api/create-checkout-session).
+const PRICING = {
+  MONTHLY:  { amount: '9',   period: '/mois' },
+  YEARLY:   { amount: '90',  period: '/an', monthlyEquivalent: '7,50' },
+  LIFETIME: { amount: '199', period: ' paiement unique' },
+};
+
 // Ouvre Stripe Checkout pour la formule choisie (appelle la fonction Netlify)
 async function startCheckout(billingCycle){
   try{
@@ -708,18 +736,16 @@ function planBadgeHtml(){
   return `<span class="plan-badge ${b.cls}">${b.label}</span>`;
 }
 
-// Modale d'upsell affichée partout où une fonctionnalité Premium est verrouillée
+// Modale d'upsell affichée partout où une fonctionnalité Premium est verrouillée.
+// Renvoie vers l'onglet Tarifs plutôt que de dupliquer les choix de formule ici.
 function openUpgradeModal(featureLabel){
   openModal({
     title: '🚀 Passer à Premium',
     bodyHtml: `
       <div style="text-align:center;padding:8px 0 4px;">
         ${featureLabel ? `<div style="margin-bottom:14px;color:var(--text-dim);font-size:13px;">La fonctionnalité <b>${escapeHtml(featureLabel)}</b> est réservée aux comptes Premium.</div>` : ''}
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button class="btn" onclick="startCheckout('MONTHLY')">Mensuel — s'abonner</button>
-          <button class="btn" onclick="startCheckout('YEARLY')">Annuel — s'abonner (2 mois offerts)</button>
-          <button class="btn btn-primary" onclick="startCheckout('LIFETIME')">Lifetime — paiement unique</button>
-        </div>
+        <div style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Consulte les formules disponibles (Mensuel, Annuel, Lifetime) et choisis celle qui te convient.</div>
+        <button class="btn btn-primary" style="width:100%;" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
       </div>`,
     footHtml: `<button class="btn" onclick="closeModal()">Fermer</button>`
   });
@@ -1076,7 +1102,7 @@ function getNav(){
     { id:'comparatif', label:'Comparatif', icon:'barChart' },
     { id:'classement', label:'Classement', icon:'trophy' },
     { id:'changelog', label:'Nouveautés', icon:'sparkles' },
-    { id:'subscription', label:'Mon abonnement', icon:'wallet' },
+    { id:'subscription', label:'Tarifs', icon:'wallet' },
   ];
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
@@ -1153,6 +1179,7 @@ function topbarSub(){
     bilan: 'Cartes visuelles mensuelles, par trader et par propfirm',
     sessions: state.yt_sessions.length + ' session(s) enregistrée(s)',
     comparatif: 'Performance comparée des PropFirms',
+    subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
   };
   return map[state.route] || '';
@@ -2728,30 +2755,82 @@ function viewSubscription(){
       ${role!=='ADMIN' ? `
         <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
           ${sub.stripeCustomerId ? `<button class="btn btn-outline" onclick="openBillingPortal()">Portail Stripe (factures, résiliation, formule)</button>` : ''}
-          ${!isPremium ? `<button class="btn btn-primary upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>` : ''}
         </div>` : ''}
     </div>`;
 
-  const plansPanel = role==='ADMIN' ? '' : `
-    <div class="panel" style="padding:20px;">
-      <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
-        <div class="panel" style="padding:16px;">
-          <div style="font-weight:700;margin-bottom:6px;">Mensuel</div>
-          <div class="text-dim" style="font-size:12.5px;margin-bottom:12px;">Paiement automatique tous les mois. Résiliable à tout moment.</div>
-          <button class="btn btn-outline" style="width:100%;" onclick="startCheckout('MONTHLY')">Choisir</button>
-        </div>
-        <div class="panel" style="padding:16px;">
-          <div style="font-weight:700;margin-bottom:6px;">Annuel</div>
-          <div class="text-dim" style="font-size:12.5px;margin-bottom:12px;">Paiement une fois par an. 2 mois offerts par rapport au mensuel.</div>
-          <button class="btn btn-outline" style="width:100%;" onclick="startCheckout('YEARLY')">Choisir</button>
-        </div>
-        <div class="panel" style="padding:16px;border-color:var(--gold);">
-          <div style="font-weight:700;margin-bottom:6px;color:var(--gold);">Lifetime</div>
-          <div class="text-dim" style="font-size:12.5px;margin-bottom:12px;">Paiement unique. Accès Premium à vie, jamais de renouvellement.</div>
-          <button class="btn btn-primary" style="width:100%;" onclick="startCheckout('LIFETIME')">Choisir</button>
-        </div>
+  const cycle = state.filters.tarifs.cycle; // 'MONTHLY' | 'YEARLY'
+  const premiumPrice = cycle==='YEARLY' ? PRICING.YEARLY : PRICING.MONTHLY;
+  const currentCycle = sub.billingCycle;
+
+  const checkItem = (label) => `<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:4px 0;"><span class="price-check" style="color:var(--accent);flex-shrink:0;margin-top:1px;">${icon('check')}</span><span>${label}</span></div>`;
+
+  const freeFeatures = [
+    'Trader(s) illimités',
+    `${perms().maxFreeAccounts} comptes gratuits par trader`,
+    'Sessions live illimitées',
+    'Suivi des payouts',
+    'Support communautaire',
+  ];
+  const premiumFeatures = [
+    'Tout Free, plus :',
+    'Comptes illimités par trader',
+    'Import CSV / Excel',
+    'Exports Excel & PDF',
+    'Calendrier des mensualités',
+    'Bilan visuel & statistiques avancées',
+    'Classement',
+    'Sauvegarde (backup)',
+    'Support prioritaire',
+  ];
+
+  const planCard = ({ name, badge, price, priceNote, features, ctaLabel, ctaAction, highlight, gold, isCurrent }) => `
+    <div class="panel" style="padding:20px;position:relative;${highlight?`border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);`:''}${gold?`border-color:var(--gold);`:''}">
+      ${badge ? `<div style="position:absolute;top:-11px;left:20px;background:${gold?'var(--gold)':'var(--accent)'};color:${gold?'#1A130A':'var(--accent-text)'};font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;letter-spacing:.3px;">${badge}</div>` : ''}
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;${gold?'color:var(--gold);':''}">${name}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin:10px 0 2px;">
+        <span style="font-size:26px;font-weight:800;font-family:'Space Grotesk',sans-serif;">${price}</span>
+        <span class="text-faint" style="font-size:12px;">${priceNote||''}</span>
       </div>
+      <div style="height:14px;"></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:16px;">
+        ${features.map(checkItem).join('')}
+      </div>
+      ${isCurrent
+        ? `<div class="btn btn-outline" style="width:100%;text-align:center;opacity:.7;pointer-events:none;">✓ Formule actuelle</div>`
+        : `<button class="btn ${gold||highlight?'btn-primary':'btn-outline'}" style="width:100%;" onclick="${ctaAction}">${ctaLabel}</button>`}
+    </div>`;
+
+  const plansPanel = role==='ADMIN' ? '' : `
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
+      <div class="radio-group" style="display:inline-flex;">
+        <div class="radio-chip ${cycle==='MONTHLY'?'selected':''}" data-tarifs-cycle="MONTHLY">Mensuel</div>
+        <div class="radio-chip ${cycle==='YEARLY'?'selected':''}" data-tarifs-cycle="YEARLY">Annuel <span class="badge badge-accent" style="margin-left:4px;">-17%</span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:start;">
+      ${planCard({
+        name:'Free', price:'0€', priceNote:'/mois',
+        features: freeFeatures,
+        isCurrent: !isPremium,
+      })}
+      ${planCard({
+        name:'Premium', badge:'Populaire', highlight:true,
+        price: `${premiumPrice.amount}€`,
+        priceNote: premiumPrice.period + (cycle==='YEARLY' ? ` (soit ${PRICING.YEARLY.monthlyEquivalent}€/mois)` : ''),
+        features: premiumFeatures,
+        ctaLabel: cycle==='YEARLY' ? "S'abonner à l'année" : "S'abonner au mois",
+        ctaAction: `startCheckout('${cycle}')`,
+        isCurrent: isPremium && (currentCycle==='MONTHLY' || currentCycle==='YEARLY') && currentCycle===cycle,
+      })}
+      ${planCard({
+        name:'Lifetime', badge:'Accès à vie', gold:true,
+        price:`${PRICING.LIFETIME.amount}€`, priceNote: PRICING.LIFETIME.period,
+        features: [...premiumFeatures, 'Aucun renouvellement, jamais'],
+        ctaLabel:'Paiement unique',
+        ctaAction:"startCheckout('LIFETIME')",
+        isCurrent: currentCycle==='LIFETIME',
+      })}
     </div>`;
 
   return currentPlanPanel + plansPanel;
@@ -2814,6 +2893,8 @@ function bindViewEvents(){
   if(lbMonth) lbMonth.addEventListener('change', ()=>{ state.filters.classement.month = lbMonth.value; renderView(); });
   const lbAllTime = document.getElementById('lb-alltime');
   if(lbAllTime) lbAllTime.onclick = ()=>{ state.filters.classement.allTime = !state.filters.classement.allTime; renderView(); };
+  // Tarifs
+  document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
   document.querySelectorAll('[data-trader-badges]').forEach(b=>b.onclick=()=>traderBadgesModal(getTrader(b.dataset.traderBadges)));
@@ -3016,6 +3097,7 @@ function traderFormModal(existing){
         const dup = state.traders.find(x=>x.pseudo.toLowerCase()===pseudo.toLowerCase() && x.id!==t.id);
         if(dup){ document.getElementById('tf-error').textContent = 'Ce pseudo est déjà utilisé.'; return; }
         await upsert('traders', { ...t, firstName, lastName, pseudo, email, status, isPublic });
+        if(!existing) applyMyTraderDefaultFilters();
         await logActivity(existing?'UPDATE':'CREATE', 'trader', t.id, `${pseudo}${isPublic?'':' (privé)'}`);
         showToast(existing ? 'Trader mis à jour.' : 'Trader créé.');
         closeModal(); render();
@@ -3075,7 +3157,7 @@ function accountFormModal({ existing, type, parentChallenge }){
   // Voir la vérification faite dans af-save, juste avant l'enregistrement.
   const a = existing || {
     id: uid('acc'),
-    traderId: parentChallenge ? parentChallenge.traderId : '',
+    traderId: parentChallenge ? parentChallenge.traderId : (myLinkedTrader() ? myLinkedTrader().id : ''),
     propFirmId: parentChallenge ? parentChallenge.propFirmId : '',
     type: type || 'CHALLENGE',
     parentChallengeId: parentChallenge ? parentChallenge.id : null,
@@ -4080,6 +4162,7 @@ function exportGlobalBackup(){
     await loadSubscription();
     computePermissions();
     await loadAll();
+    applyMyTraderDefaultFilters();
     appStarted = true;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app-root').style.display = 'flex';
