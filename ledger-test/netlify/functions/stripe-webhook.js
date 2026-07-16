@@ -67,6 +67,18 @@ exports.handler = async (event) => {
     ? Buffer.from(event.body, 'base64')
     : event.body;
 
+  // --- DEBUG TEMPORAIRE : à retirer une fois le problème résolu ---
+  console.log('DEBUG sig header présent:', !!sig);
+  console.log('DEBUG sig header valeur:', sig);
+  console.log('DEBUG isBase64Encoded:', event.isBase64Encoded);
+  console.log('DEBUG typeof event.body:', typeof event.body);
+  console.log('DEBUG event.body length:', event.body ? event.body.length : 'null');
+  console.log('DEBUG rawBody length:', rawBody ? rawBody.length : 'null');
+  console.log('DEBUG STRIPE_WEBHOOK_SECRET défini:', !!process.env.STRIPE_WEBHOOK_SECRET);
+  console.log('DEBUG STRIPE_WEBHOOK_SECRET préfixe:', (process.env.STRIPE_WEBHOOK_SECRET || '').slice(0, 10));
+  console.log('DEBUG tous les headers:', JSON.stringify(event.headers));
+  // --- FIN DEBUG ---
+
   let stripeEvent;
 
   try {
