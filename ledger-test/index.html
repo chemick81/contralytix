@@ -1339,7 +1339,7 @@ function viewDashboard(){
   return `
     ${!perms().isPremium ? `
       <div class="panel" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-dim);border-color:rgba(217,166,90,0.3);">
-        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${state.accounts.length}/${perms().maxFreeAccounts} comptes). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
+        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
     ${filterBar}
@@ -3073,10 +3073,9 @@ function firmFormModal(existing){
 ============================================================ */
 function accountFormModal({ existing, type, parentChallenge }){
   const isEdit = !!existing;
-  if(!isEdit && !perms().canUnlimitedAccounts && state.accounts.length >= perms().maxFreeAccounts){
-    openUpgradeModal(`La création de plus de ${perms().maxFreeAccounts} comptes`);
-    return;
-  }
+  // La limite de comptes gratuits est désormais par trader (et par utilisateur créateur) :
+  // on ne peut plus la vérifier ici puisque le trader n'est pas encore choisi.
+  // Voir la vérification faite dans af-save, juste avant l'enregistrement.
   const a = existing || {
     id: uid('acc'),
     traderId: parentChallenge ? parentChallenge.traderId : '',
@@ -3246,6 +3245,14 @@ function accountFormModal({ existing, type, parentChallenge }){
         const accountNumber = document.getElementById('af-number').value.trim();
         const errorEl = document.getElementById('af-error');
         if(!traderId || !propFirmId || !accountNumber){ errorEl.textContent = 'Trader, PropFirm et numéro de compte sont obligatoires.'; return; }
+        if(!isEdit && !perms().canUnlimitedAccounts){
+          const ownAccountsForTrader = state.accounts.filter(x=>x.traderId===traderId && x.createdBy===currentUserId()).length;
+          if(ownAccountsForTrader >= perms().maxFreeAccounts){
+            closeModal();
+            openUpgradeModal(`La création de plus de ${perms().maxFreeAccounts} comptes pour ce trader`);
+            return;
+          }
+        }
         const trader = getTrader(traderId);
         if(curType==='CHALLENGE' && trader.status==='INACTIF' && !isEdit){
           errorEl.textContent = 'Impossible : ce trader est inactif. Réactive-le pour créer un nouveau challenge.'; return;
