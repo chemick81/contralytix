@@ -1745,7 +1745,10 @@ function viewDashboard(){
 
   const recent = [...accountsF].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
 
-  // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down
+  // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
+  // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
+  // souvent parce que la date d'ouverture/activation a été corrigée après coup) : on l'exclut de la
+  // moyenne mais on le laisse visible dans le détail, marqué comme anomalie.
   const paLiveAccs = accountsF.filter(a=>a.type==='PA'||a.type==='LIVE');
   const firstPayoutDetails = [];
   const payoutIntervalDetails = [];
@@ -1753,22 +1756,48 @@ function viewDashboard(){
     const payDates = state.payouts.filter(p=>p.accountId===a.id).map(p=>p.date).filter(Boolean).sort();
     if(payDates.length===0) return;
     const startDate = a.activationDate || a.purchaseDate;
-    if(startDate) firstPayoutDetails.push({ account:a, from:startDate, to:payDates[0], days:daysBetween(startDate, payDates[0]) });
-    for(let i=1;i<payDates.length;i++) payoutIntervalDetails.push({ account:a, from:payDates[i-1], to:payDates[i], days:daysBetween(payDates[i-1], payDates[i]) });
+    if(startDate){
+      const days = daysBetween(startDate, payDates[0]);
+      firstPayoutDetails.push({ account:a, from:startDate, to:payDates[0], days, anomaly:days<0 });
+    }
+    for(let i=1;i<payDates.length;i++){
+      const days = daysBetween(payDates[i-1], payDates[i]);
+      payoutIntervalDetails.push({ account:a, from:payDates[i-1], to:payDates[i], days, anomaly:days<0 });
+    }
   });
-  const avgDaysMetric = (arr)=> arr.length ? Math.round(arr.reduce((s,v)=>s+v,0)/arr.length) : null;
-  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDetails.map(d=>d.days));
-  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervalDetails.map(d=>d.days));
-  const breachDetails = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>({ account:a, from:a.purchaseDate, to:a.endDate, days:daysBetween(a.purchaseDate, a.endDate) }));
-  const avgBreachDays = avgDaysMetric(breachDetails.map(d=>d.days));
-  const passToPaDetails = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>({ account:a, from:a.purchaseDate, to:a.endDate, days:daysBetween(a.purchaseDate, a.endDate) }));
-  const avgPassToPaDays = avgDaysMetric(passToPaDetails.map(d=>d.days));
+  const avgDaysMetric = (items)=>{
+    const valid = items.filter(it=>!it.anomaly);
+    return valid.length ? Math.round(valid.reduce((s,it)=>s+it.days,0)/valid.length) : null;
+  };
+  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDetails);
+  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervalDetails);
+  const breachDetails = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>{
+    const days = daysBetween(a.purchaseDate, a.endDate);
+    return { account:a, from:a.purchaseDate, to:a.endDate, days, anomaly:days<0 };
+  });
+  const avgBreachDays = avgDaysMetric(breachDetails);
+  const passToPaDetails = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>{
+    const days = daysBetween(a.purchaseDate, a.endDate);
+    return { account:a, from:a.purchaseDate, to:a.endDate, days, anomaly:days<0 };
+  });
+  const avgPassToPaDays = avgDaysMetric(passToPaDetails);
+  const validCount = (items)=>items.filter(it=>!it.anomaly).length;
   dashboardDelayDetails = {
     firstPayout: { label:'1er payout après ouverture', fromLabel:'Ouverture', toLabel:'1er payout', items:firstPayoutDetails },
     payoutInterval: { label:'Entre 2 payouts (même compte)', fromLabel:'Payout précédent', toLabel:'Payout suivant', items:payoutIntervalDetails },
     breach: { label:'Challenge → breach', fromLabel:'Achat challenge', toLabel:'Breach', items:breachDetails },
     passToPa: { label:'Challenge → PA', fromLabel:'Achat challenge', toLabel:'Réussite / PA', items:passToPaDetails },
   };
+  const delaySubLabel = (items, unit)=>{
+    const valid = items.filter(it=>!it.anomaly).length;
+    const anomalies = items.length - valid;
+    let txt = `${valid} ${unit}${valid>1?'s':''}`;
+    if(anomalies>0) txt += ` · ${anomalies} exclu${anomalies>1?'s':''} (date incohérente)`;
+    if(items.length) txt += ' · voir le détail';
+    return txt;
+  };
+
+
 
   const filterBar = `
     <div class="filter-bar">
@@ -1820,10 +1849,10 @@ function viewDashboard(){
 
     <div class="section-title" style="margin-bottom:10px;">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div>
     <div class="stats-grid">
-      <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${firstPayoutDetails.length} compte(s) PA/Live avec payout${firstPayoutDetails.length?' · voir le détail':''}</div></div>
-      <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${payoutIntervalDetails.length} intervalle(s) mesuré(s)${payoutIntervalDetails.length?' · voir le détail':''}</div></div>
-      <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${breachDetails.length} challenge(s) breached avec date de clôture${breachDetails.length?' · voir le détail':''}</div></div>
-      <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${passToPaDetails.length} challenge(s) réussi(s) avec date de clôture${passToPaDetails.length?' · voir le détail':''}</div></div>
+      <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
+      <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
+      <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
+      <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
     </div>
 
     <div class="grid-2">
@@ -1858,24 +1887,25 @@ function viewDashboard(){
 function openDelayDetailModal(key){
   const d = dashboardDelayDetails[key];
   if(!d || !d.items.length) return;
+  const anomalyCount = d.items.filter(it=>it.anomaly).length;
   const rows = [...d.items].sort((a,b)=>b.days-a.days).map(it=>{
     const a = it.account;
     const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
-    return `<tr class="clickable-row" data-jump-acc="${a.id}">
+    return `<tr class="clickable-row" data-jump-acc="${a.id}" ${it.anomaly?'style="opacity:.75;"':''}>
       <td>${trader?trader.pseudo:'—'}</td>
       <td>${firm?firm.name:'—'}</td>
       <td>${TYPE_LABELS[a.type]} · ${sizeLabel(a)}</td>
       <td class="mono">${maskAccountNumber(a.accountNumber)}</td>
       <td class="mono text-dim">${fmtDate(it.from)}</td>
       <td class="mono text-dim">${fmtDate(it.to)}</td>
-      <td class="mono" style="font-weight:600;">${it.days} j</td>
+      <td class="mono" style="font-weight:600;${it.anomaly?'color:var(--danger);':''}">${it.days} j${it.anomaly?` <span class="badge badge-danger" style="margin-left:4px;" title="Le délai est négatif : la date de fin précède la date de départ, probablement suite à une correction de date. Exclu de la moyenne.">⚠ exclu</span>`:''}</td>
     </tr>`;
   }).join('');
   openModal({
     title: d.label,
     wide: 'wide',
     bodyHtml: `
-      <div class="field-hint" style="margin-bottom:10px;">${d.items.length} compte(s) pris en compte dans la moyenne. Clique une ligne pour ouvrir le compte.</div>
+      <div class="field-hint" style="margin-bottom:10px;">${d.items.length - anomalyCount} compte(s) pris en compte dans la moyenne.${anomalyCount?` ${anomalyCount} en plus, avec un délai négatif (date incohérente), sont affichés ci-dessous mais exclus du calcul.`:''} Clique une ligne pour ouvrir le compte.</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Trader</th><th>PropFirm</th><th>Type</th><th>N° compte</th><th>${d.fromLabel}</th><th>${d.toLabel}</th><th>Délai</th></tr></thead>
