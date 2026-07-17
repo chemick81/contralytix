@@ -671,8 +671,11 @@ async function fixTraderOwnership(traderId){
 // au compte utilisateur réel d'un ami/trader, en le retrouvant par email parmi
 // les utilisateurs déjà inscrits sur ce site (table profiles). Met à jour le
 // created_by du trader PUIS cascade automatiquement vers ses comptes/payouts/notes.
-function assignTraderOwnerModal(trader){
+async function assignTraderOwnerModal(trader){
   if(!isAdmin()) return;
+  if(!state.profiles || state.profiles.length === 0){
+    await loadProfilesAdmin();
+  }
   const candidates = state.profiles.filter(p=>p.email);
   const preselected = trader.email
     ? candidates.find(p=>p.email.toLowerCase()===trader.email.toLowerCase())
