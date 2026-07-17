@@ -847,6 +847,17 @@ function deleteTraderModal(trader){
   });
 }
 
+// Un compte PA référence son Challenge d'origine via parentChallengeId
+// (contrainte accounts_parent_challenge_id_fkey). Avant de supprimer un
+// compte, il faut détacher tout PA qui pointe encore vers lui, sinon la
+// suppression échoue en base.
+async function detachChildAccounts(accountId){
+  const children = state.accounts.filter(a=>a.parentChallengeId===accountId);
+  for(const c of children){
+    await upsert('accounts', { ...c, parentChallengeId: null });
+  }
+}
+
 async function runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, sessIdsToDetach){
   let nbPayouts=0, nbNotes=0;
   for(const accId of accIdsToDelete){
@@ -863,6 +874,7 @@ async function runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, s
       if(!ok) throw new Error(`Impossible de supprimer une note du compte ${acc?getFirm(acc.propFirmId)?.name||'':accId} (droits insuffisants ou erreur base de données). Suppression annulée pour ce compte.`);
       nbNotes++;
     }
+    await detachChildAccounts(accId);
     const ok = await remove('accounts', accId);
     if(!ok) throw new Error(`Impossible de supprimer le compte ${acc?getFirm(acc.propFirmId)?.name||'':accId}.`);
   }
@@ -3279,6 +3291,7 @@ function bindViewEvents(){
       const accDesc = accDel ? `${getTrader(accDel.traderId)?.pseudo||'—'} · ${getFirm(accDel.propFirmId)?.name||'—'}` : id;
       const paysToDelete = state.payouts.filter(p=>p.accountId===id);
       for(const p of paysToDelete){ await remove('payouts', p.id); }
+      await detachChildAccounts(id);
       await remove('accounts', id);
       await logActivity('DELETE', 'account', id, accDesc);
       showToast('Compte supprimé.'); render();
