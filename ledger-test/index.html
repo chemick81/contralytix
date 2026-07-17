@@ -452,6 +452,7 @@ const state = {
   yt_sessions: [],
   profiles: [],
   activityLog: [],
+  promo_codes: [],
   filters: {
     accounts: { q:'', trader:'', propfirm:'', type:'', status:'' },
     accounting: { month:'', type:'', trader:'', propfirm:'' },
@@ -460,7 +461,7 @@ const state = {
     sessions: { q:'' },
     calendrier: { month: '' },
     classement: { month: '', allTime: false },
-    tarifs: { cycle: 'MONTHLY' },
+    tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
   },
   numbersVisible: false,
 };
@@ -615,6 +616,16 @@ async function loadActivityLog(){
   const { data, error } = await supabaseClient.from('activity_log').select('*').order('created_at', { ascending:false }).limit(200);
   if(error){ showToast('Erreur de chargement du journal : ' + error.message, 'danger'); return; }
   state.activityLog = data.map(fromRow);
+}
+function getPromo(id){ return state.promo_codes.find(x=>x.id===id); }
+// Admin uniquement : liste complète des codes promo (RLS ne l'autorise qu'aux admins,
+// voir promo_codes_admin_all dans promo_codes.sql). Les utilisateurs normaux valident
+// un code via la fonction RPC validate_promo_code plutôt que de lire cette table.
+async function loadPromoCodesAdmin(){
+  if(!isAdmin()) return;
+  const { data, error } = await supabaseClient.from('promo_codes').select('*').order('created_at', { ascending:false });
+  if(error){ showToast('Erreur de chargement des codes promo : ' + error.message, 'danger'); return; }
+  state.promo_codes = data.map(fromRow);
 }
 // Admin : bascule un utilisateur en Premium / Free / Lifetime.
 // Met à jour profiles.role ET subscriptions en une seule action cohérente.
@@ -1041,14 +1052,49 @@ const PRICING = {
   LIFETIME: { amount: '199', period: ' paiement unique' },
 };
 
+// Parsing/format des prix affichés en français ("9,90" -> 9.9 -> "9,90")
+function parsePriceFr(str){ return parseFloat(String(str).replace(',', '.')) || 0; }
+function formatPriceFr(num){
+  const rounded = Math.round(num * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace('.', ',');
+}
+// Applique un code promo { discountType:'PERCENT'|'FIXED', discountValue } à un prix affiché
+function applyPromoToPrice(amountStr, promo){
+  const base = parsePriceFr(amountStr);
+  let discounted = promo.discountType === 'PERCENT' ? base * (1 - promo.discountValue/100) : base - promo.discountValue;
+  if(discounted < 0) discounted = 0;
+  return formatPriceFr(discounted);
+}
+// Valide un code promo via la fonction RPC Supabase (voir promo_codes.sql) : ne lit jamais
+// la table promo_codes directement pour un non-admin, donc n'expose pas la liste des codes.
+async function validatePromoCode(code){
+  if(!code || !code.trim()) return { valid:false, reason:'Entre un code.' };
+  const { data, error } = await supabaseClient.rpc('validate_promo_code', { p_code: code.trim() });
+  if(error) return { valid:false, reason: 'Erreur de vérification : ' + error.message };
+  const r = Array.isArray(data) ? data[0] : data;
+  if(!r) return { valid:false, reason:'Code introuvable.' };
+  return {
+    valid: r.valid,
+    reason: r.reason,
+    discountType: r.discount_type,
+    discountValue: r.discount_value,
+    appliesTo: r.applies_to || [],
+  };
+}
+
 // Ouvre Stripe Checkout pour la formule choisie (appelle la fonction Netlify)
 async function startCheckout(billingCycle){
   try{
     const { data: { session } } = await supabaseClient.auth.getSession();
+    const promo = state.filters.tarifs.promoResult;
+    const promoCode = (promo && promo.valid && promo.appliesTo.includes(billingCycle)) ? state.filters.tarifs.promoInput.trim().toUpperCase() : undefined;
     const res = await fetch('/api/create-checkout-session', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ billingCycle })
+      // ⚠️ promoCode est transmis pour info, mais la fonction Netlify /api/create-checkout-session
+      // doit être mise à jour pour vraiment appliquer la réduction Stripe (voir promo_codes.sql,
+      // section "backend"). Tant que ce n'est pas fait, le prix chargé par Stripe reste le plein tarif.
+      body: JSON.stringify({ billingCycle, promoCode })
     });
     const json = await res.json();
     if(json.url){ window.location.href = json.url; }
@@ -3114,6 +3160,13 @@ function viewSubscription(){
   const premiumPrice = cycle==='YEARLY' ? PRICING.YEARLY : PRICING.MONTHLY;
   const currentCycle = sub.billingCycle;
 
+  // Code promo actif (le cas échéant) saisi par l'utilisateur pour cette session
+  const promo = state.filters.tarifs.promoResult && state.filters.tarifs.promoResult.valid ? state.filters.tarifs.promoResult : null;
+  const promoAppliesTo = (cy) => promo && promo.appliesTo.includes(cy);
+  const priceHtml = (baseAmount, cy) => promoAppliesTo(cy)
+    ? `<span style="text-decoration:line-through;opacity:.5;font-size:15px;margin-right:6px;">${baseAmount}€</span>${applyPromoToPrice(baseAmount, promo)}€`
+    : `${baseAmount}€`;
+
   const checkItem = (label) => `<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:4px 0;"><span class="price-check" style="color:var(--accent);flex-shrink:0;margin-top:1px;">${icon('check')}</span><span>${label}</span></div>`;
 
   const freeFeatures = [
@@ -3168,7 +3221,7 @@ function viewSubscription(){
       })}
       ${planCard({
         name:'Premium', badge:'Populaire', highlight:true,
-        price: `${premiumPrice.amount}€`,
+        price: priceHtml(premiumPrice.amount, cycle),
         priceNote: premiumPrice.period + (cycle==='YEARLY' ? ` (soit ${PRICING.YEARLY.monthlyEquivalent}€/mois)` : ''),
         features: premiumFeatures,
         ctaLabel: cycle==='YEARLY' ? "S'abonner à l'année" : "S'abonner au mois",
@@ -3177,7 +3230,7 @@ function viewSubscription(){
       })}
       ${planCard({
         name:'Lifetime', badge:'Accès à vie', gold:true,
-        price:`${PRICING.LIFETIME.amount}€`, priceNote: PRICING.LIFETIME.period,
+        price: priceHtml(PRICING.LIFETIME.amount, 'LIFETIME'), priceNote: PRICING.LIFETIME.period,
         features: [...premiumFeatures, 'Aucun renouvellement, jamais'],
         ctaLabel:'Paiement unique',
         ctaAction:"startCheckout('LIFETIME')",
@@ -3185,7 +3238,49 @@ function viewSubscription(){
       })}
     </div>`;
 
-  return currentPlanPanel + plansPanel;
+  const promoResult = state.filters.tarifs.promoResult;
+  const promoPanel = role==='ADMIN' ? '' : `
+    <div class="panel" style="max-width:420px;margin:0 auto 20px;padding:14px 16px;">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);margin-bottom:8px;">Code promo</div>
+      <div style="display:flex;gap:8px;">
+        <input id="promo-code-input" placeholder="Entrer un code" value="${escapeHtml(state.filters.tarifs.promoInput||'')}" style="flex:1;text-transform:uppercase;"/>
+        <button class="btn btn-outline" id="promo-apply-btn">Appliquer</button>
+      </div>
+      ${promoResult ? (promoResult.valid
+        ? `<div style="margin-top:8px;font-size:12.5px;color:var(--accent);">✓ Code appliqué (${promoResult.discountType==='PERCENT' ? promoResult.discountValue+'%' : promoResult.discountValue+'€'} de réduction sur ${promoResult.appliesTo.map(c=>({MONTHLY:'Mensuel',YEARLY:'Annuel',LIFETIME:'Lifetime'}[c]||c)).join(', ')}).</div>`
+        : `<div style="margin-top:8px;font-size:12.5px;color:var(--danger,#e5484d);">${escapeHtml(promoResult.reason||'Code invalide.')}</div>`
+      ) : ''}
+    </div>`;
+
+  const promoAdminPanel = role!=='ADMIN' ? '' : `
+    <div class="panel" style="margin-bottom:16px;padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="section-title" style="margin:0;">Codes promo</div>
+        <button class="btn btn-primary btn-sm" id="promo-new-btn">+ Nouveau code</button>
+      </div>
+      ${state.promo_codes.length===0 ? `<div class="text-faint" style="font-size:13px;">Aucun code promo pour l'instant.</div>` : `
+      <table class="table">
+        <thead><tr><th>Code</th><th>Libellé</th><th>Réduction</th><th>Formules</th><th>Validité</th><th>Utilisations</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+          ${state.promo_codes.map(p=>`
+            <tr>
+              <td><b>${escapeHtml(p.code)}</b></td>
+              <td class="text-dim">${escapeHtml(p.label||'—')}</td>
+              <td>${p.discountType==='PERCENT' ? p.discountValue+'%' : p.discountValue+'€'}</td>
+              <td class="text-dim">${(p.appliesTo||[]).map(c=>({MONTHLY:'Mensuel',YEARLY:'Annuel',LIFETIME:'Lifetime'}[c]||c)).join(', ')||'—'}</td>
+              <td class="text-dim">${p.validFrom?fmtDate(p.validFrom):'…'} → ${p.validUntil?fmtDate(p.validUntil):'…'}</td>
+              <td class="text-dim">${p.usesCount||0}${p.maxUses?' / '+p.maxUses:''}</td>
+              <td>${p.active!==false ? `<span class="badge badge-accent">Actif</span>` : `<span class="badge">Désactivé</span>`}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn btn-ghost btn-sm" data-edit-promo="${p.id}" title="Modifier">${icon('edit')}</button>
+                <button class="btn btn-ghost btn-sm" data-del-promo="${p.id}" title="Supprimer">${icon('trash')}</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>`;
+
+  return currentPlanPanel + promoAdminPanel + promoPanel + plansPanel;
 }
 
 function lockedFeatureView(label){
@@ -3251,6 +3346,29 @@ function bindViewEvents(){
   if(lbAllTime) lbAllTime.onclick = ()=>{ state.filters.classement.allTime = !state.filters.classement.allTime; renderView(); };
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
+  const promoInput = document.getElementById('promo-code-input');
+  if(promoInput){
+    promoInput.addEventListener('input', ()=>{ state.filters.tarifs.promoInput = promoInput.value; });
+    promoInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('promo-apply-btn').click(); });
+  }
+  const promoApplyBtn = document.getElementById('promo-apply-btn');
+  if(promoApplyBtn) promoApplyBtn.onclick = async ()=>{
+    const code = state.filters.tarifs.promoInput || '';
+    promoApplyBtn.disabled = true; promoApplyBtn.textContent = '…';
+    state.filters.tarifs.promoResult = await validatePromoCode(code);
+    renderView();
+  };
+  const promoNewBtn = document.getElementById('promo-new-btn');
+  if(promoNewBtn) promoNewBtn.onclick = ()=>promoCodeFormModal();
+  document.querySelectorAll('[data-edit-promo]').forEach(b=>b.onclick=()=>promoCodeFormModal(getPromo(b.dataset.editPromo)));
+  document.querySelectorAll('[data-del-promo]').forEach(b=>b.onclick=()=>{
+    const p = getPromo(b.dataset.delPromo);
+    confirmModal(`Supprimer le code promo "${p ? p.code : ''}" ?`, async ()=>{
+      await remove('promo_codes', b.dataset.delPromo);
+      await loadPromoCodesAdmin();
+      showToast('Code promo supprimé.'); renderView();
+    });
+  });
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
   document.querySelectorAll('[data-trader-badges]').forEach(b=>b.onclick=()=>traderBadgesModal(getTrader(b.dataset.traderBadges)));
@@ -3405,6 +3523,93 @@ function bindViewEvents(){
       await logActivity('DELETE', 'yt_session', id, s?s.title:'');
       showToast('Session supprimée.'); render();
     });
+  });
+}
+
+/* ============================================================
+   FORM: PROMO CODE (admin)
+============================================================ */
+function promoCodeFormModal(existing){
+  const p = existing || {
+    id: uid('promo'), code:'', label:'', discountType:'PERCENT', discountValue:10,
+    appliesTo:['MONTHLY','YEARLY','LIFETIME'], active:true, validFrom:'', validUntil:'',
+    maxUses:'', usesCount:0, createdBy: currentUserId(),
+  };
+  openModal({
+    title: existing ? 'Modifier le code promo' : 'Nouveau code promo',
+    bodyHtml: `
+      <div class="field-row">
+        <div class="field"><label>Code</label><input id="pf-code" value="${p.code}" style="text-transform:uppercase;" placeholder="EX: WELCOME20"/></div>
+        <div class="field"><label>Libellé interne</label><input id="pf-label" value="${p.label||''}" placeholder="Ex: Lancement Instagram"/></div>
+      </div>
+      <div class="field"><label>Type de réduction</label>
+        <div class="radio-group">
+          <div class="radio-chip ${p.discountType==='PERCENT'?'selected':''}" data-disc-type="PERCENT">Pourcentage (%)</div>
+          <div class="radio-chip ${p.discountType==='FIXED'?'selected':''}" data-disc-type="FIXED">Montant fixe (€)</div>
+        </div>
+      </div>
+      <div class="field"><label>Valeur de la réduction</label><input id="pf-value" type="number" min="0" step="0.01" value="${p.discountValue}"/></div>
+      <div class="field"><label>Formules concernées</label>
+        <div class="radio-group">
+          <div class="radio-chip ${p.appliesTo.includes('MONTHLY')?'selected':''}" data-cycle="MONTHLY">Mensuel</div>
+          <div class="radio-chip ${p.appliesTo.includes('YEARLY')?'selected':''}" data-cycle="YEARLY">Annuel</div>
+          <div class="radio-chip ${p.appliesTo.includes('LIFETIME')?'selected':''}" data-cycle="LIFETIME">Lifetime</div>
+        </div>
+        <div class="field-hint">Clique pour activer/désactiver chaque formule.</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valide à partir du (optionnel)</label><input id="pf-from" type="date" value="${p.validFrom||''}"/></div>
+        <div class="field"><label>Valide jusqu'au (optionnel)</label><input id="pf-until" type="date" value="${p.validUntil||''}"/></div>
+      </div>
+      <div class="field"><label>Nombre d'utilisations max (optionnel)</label><input id="pf-maxuses" type="number" min="1" step="1" value="${p.maxUses||''}"/><div class="field-hint">Laisser vide = illimité. Utilisations actuelles : ${p.usesCount||0}.</div></div>
+      <div class="field"><label>Statut</label>
+        <div class="radio-group">
+          <div class="radio-chip ${p.active!==false?'selected':''}" data-active="1">Actif</div>
+          <div class="radio-chip ${p.active===false?'selected':''}" data-active="0">Désactivé</div>
+        </div>
+      </div>
+      <div id="pf-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="pf-cancel">Annuler</button><button class="btn btn-primary" id="pf-save">Enregistrer</button>`,
+    onMount(){
+      let discountType = p.discountType;
+      let appliesTo = [...p.appliesTo];
+      let active = p.active !== false;
+      document.querySelectorAll('[data-disc-type]').forEach(chip=>chip.onclick=()=>{
+        discountType = chip.dataset.discType;
+        document.querySelectorAll('[data-disc-type]').forEach(c=>c.classList.toggle('selected', c.dataset.discType===discountType));
+      });
+      document.querySelectorAll('[data-cycle]').forEach(chip=>chip.onclick=()=>{
+        const cy = chip.dataset.cycle;
+        if(appliesTo.includes(cy)) appliesTo = appliesTo.filter(x=>x!==cy); else appliesTo.push(cy);
+        chip.classList.toggle('selected', appliesTo.includes(cy));
+      });
+      document.querySelectorAll('[data-active]').forEach(chip=>chip.onclick=()=>{
+        active = chip.dataset.active==='1';
+        document.querySelectorAll('[data-active]').forEach(c=>c.classList.toggle('selected', (c.dataset.active==='1')===active));
+      });
+      document.getElementById('pf-cancel').onclick = closeModal;
+      document.getElementById('pf-save').onclick = async ()=>{
+        const code = document.getElementById('pf-code').value.trim().toUpperCase();
+        const label = document.getElementById('pf-label').value.trim();
+        const discountValue = parseFloat(document.getElementById('pf-value').value);
+        const validFrom = document.getElementById('pf-from').value || null;
+        const validUntil = document.getElementById('pf-until').value || null;
+        const maxUsesRaw = document.getElementById('pf-maxuses').value;
+        const maxUses = maxUsesRaw ? parseInt(maxUsesRaw, 10) : null;
+        const errEl = document.getElementById('pf-error');
+        if(!code){ errEl.textContent = 'Le code est obligatoire.'; return; }
+        if(!discountValue || discountValue <= 0){ errEl.textContent = 'La valeur de la réduction doit être supérieure à 0.'; return; }
+        if(discountType==='PERCENT' && discountValue > 100){ errEl.textContent = 'Un pourcentage ne peut pas dépasser 100.'; return; }
+        if(appliesTo.length===0){ errEl.textContent = 'Sélectionne au moins une formule.'; return; }
+        const dup = state.promo_codes.find(x=>x.code.toUpperCase()===code && x.id!==p.id);
+        if(dup){ errEl.textContent = 'Ce code existe déjà.'; return; }
+        await upsert('promo_codes', { ...p, code, label, discountType, discountValue, appliesTo, validFrom, validUntil, maxUses, active });
+        await loadPromoCodesAdmin();
+        showToast(existing ? 'Code promo mis à jour.' : 'Code promo créé.');
+        closeModal(); renderView();
+      };
+    }
   });
 }
 
@@ -4629,6 +4834,7 @@ async function runMigrationImport(json){
     await loadSubscription();
     computePermissions();
     await loadAll();
+    if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
     appStarted = true;
     document.getElementById('loading').style.display = 'none';
@@ -4642,7 +4848,7 @@ async function runMigrationImport(json){
     else if(!session){
       appStarted = false;
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
-      state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = [];
+      state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
       document.getElementById('app-root').style.display = 'none';
       renderAuthScreen();
     }
