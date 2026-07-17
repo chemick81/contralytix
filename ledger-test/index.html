@@ -765,7 +765,7 @@ function perms(){ return state.permissions || computePermissions(); }
 // ⚠️ VALEURS D'EXEMPLE — à remplacer par tes vrais tarifs (doivent correspondre aux prix
 // configurés côté Stripe / dans ta fonction /api/create-checkout-session).
 const PRICING = {
-  MONTHLY:  { amount: '9',   period: '/mois' },
+  MONTHLY:  { amount: '9,90', period: '/mois' },
   YEARLY:   { amount: '90',  period: '/an', monthlyEquivalent: '7,50' },
   LIFETIME: { amount: '199', period: ' paiement unique' },
 };
@@ -2711,7 +2711,7 @@ function viewAdmin(){
   const cancelledCount = subs.filter(s=>s.status==='CANCELLED').length;
 
   // Hypothèse de prix par défaut pour le calcul MRR/ARR — ajuste selon tes prix Stripe réels.
-  const PRICE_MONTHLY = 9;
+  const PRICE_MONTHLY = 9.9;
   const PRICE_YEARLY = 90;
   const mrr = activeSubs.reduce((sum,s)=>{
     if(s.billingCycle==='MONTHLY') return sum + PRICE_MONTHLY;
