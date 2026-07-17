@@ -542,14 +542,16 @@ async function remove(collection, id){
   const item = state[collection].find(x=>x.id===id);
   if(item && OWNED_TABLES.includes(collection) && !canEdit(item)){
     showToast("Vous n'êtes pas autorisé à supprimer cet enregistrement (créé par un autre utilisateur).", 'danger');
-    return;
+    return false;
   }
   state[collection] = state[collection].filter(x=>x.id!==id);
   const { error } = await supabaseClient.from(collection).delete().eq('id', id);
   if(error){
     await loadAll();
     showToast('Erreur de suppression : ' + error.message, 'danger');
+    return false;
   }
+  return true;
 }
 async function resetAllData(){
   for(const t of TABLES){
@@ -848,18 +850,29 @@ function deleteTraderModal(trader){
 async function runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, sessIdsToDetach){
   let nbPayouts=0, nbNotes=0;
   for(const accId of accIdsToDelete){
+    const acc = state.accounts.find(a=>a.id===accId);
     const pays = state.payouts.filter(p=>p.accountId===accId);
-    nbPayouts += pays.length;
-    state.payouts = state.payouts.filter(p=>p.accountId!==accId);
+    for(const p of pays){
+      const ok = await remove('payouts', p.id);
+      if(!ok) throw new Error(`Impossible de supprimer un payout du compte ${acc?getFirm(acc.propFirmId)?.name||'':accId} (droits insuffisants ou erreur base de données). Suppression annulée pour ce compte.`);
+      nbPayouts++;
+    }
     const notes = (state.account_notes||[]).filter(n=>n.accountId===accId);
-    nbNotes += notes.length;
-    for(const n of notes){ await remove('account_notes', n.id); }
-    await remove('accounts', accId);
+    for(const n of notes){
+      const ok = await remove('account_notes', n.id);
+      if(!ok) throw new Error(`Impossible de supprimer une note du compte ${acc?getFirm(acc.propFirmId)?.name||'':accId} (droits insuffisants ou erreur base de données). Suppression annulée pour ce compte.`);
+      nbNotes++;
+    }
+    const ok = await remove('accounts', accId);
+    if(!ok) throw new Error(`Impossible de supprimer le compte ${acc?getFirm(acc.propFirmId)?.name||'':accId}.`);
   }
   if(accIdsToDelete.length>0){
     await logActivity('DELETE', 'account', null, `${accIdsToDelete.length} compte(s) supprimé(s) (${nbPayouts} payout(s), ${nbNotes} note(s)) lors de la suppression du trader ${trader.pseudo}`);
   }
-  for(const sessId of sessIdsToDelete){ await remove('yt_sessions', sessId); }
+  for(const sessId of sessIdsToDelete){
+    const ok = await remove('yt_sessions', sessId);
+    if(!ok) throw new Error(`Impossible de supprimer une session live liée à ${trader.pseudo}.`);
+  }
   if(sessIdsToDelete.length>0){
     await logActivity('DELETE', 'yt_session', null, `${sessIdsToDelete.length} session(s) live supprimée(s) lors de la suppression du trader ${trader.pseudo}`);
   }
@@ -3264,7 +3277,8 @@ function bindViewEvents(){
     confirmModal('Supprimer ce compte et ses payouts associés ?', async ()=>{
       const accDel = getAccount(id);
       const accDesc = accDel ? `${getTrader(accDel.traderId)?.pseudo||'—'} · ${getFirm(accDel.propFirmId)?.name||'—'}` : id;
-      state.payouts = state.payouts.filter(p=>p.accountId!==id); // suppression en cascade gérée par la BDD
+      const paysToDelete = state.payouts.filter(p=>p.accountId===id);
+      for(const p of paysToDelete){ await remove('payouts', p.id); }
       await remove('accounts', id);
       await logActivity('DELETE', 'account', id, accDesc);
       showToast('Compte supprimé.'); render();
