@@ -120,6 +120,16 @@ tbody tr:hover{background:var(--surface-2);}
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
 .filter-bar input[type=text],.filter-bar select,.filter-bar input[type=month]{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:12.5px;font-family:inherit;}
 .filter-bar input[type=text]{min-width:200px;}
+.status-multiselect{position:relative;}
+.status-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.status-ms-btn:hover{border-color:var(--accent);}
+.status-ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:40;min-width:170px;flex-direction:column;gap:1px;}
+.status-ms-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+.status-ms-item:hover{background:var(--surface-2);}
+.status-ms-item input{accent-color:var(--accent);cursor:pointer;}
+.status-ms-clear{margin-top:3px;background:none;border:none;border-top:1px solid var(--border-soft);color:var(--text-faint);font-size:11.5px;padding:7px 8px 2px;cursor:pointer;text-align:left;font-family:inherit;}
+.status-ms-clear:hover{color:var(--text);}
+.filter-result-count{font-size:12px;color:var(--text-faint);white-space:nowrap;margin-left:2px;}
 .search-wrap{position:relative;}
 .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-faint);}
 .search-wrap input{padding-left:30px !important;}
@@ -454,7 +464,7 @@ const state = {
   activityLog: [],
   promo_codes: [],
   filters: {
-    accounts: { q:'', trader:'', propfirm:'', type:'', status:'' },
+    accounts: { q:'', trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false },
     accounting: { month:'', type:'', trader:'', propfirm:'' },
     dashboard: { trader:'', propfirm:'', month:'' },
     bilan: { month:'', trader:'' },
@@ -1730,6 +1740,25 @@ function viewDashboard(){
 
   const recent = [...accountsF].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
 
+  // Délais moyens (payouts, breach, passage en PA)
+  const paLiveAccs = accountsF.filter(a=>a.type==='PA'||a.type==='LIVE');
+  const firstPayoutDelays = [];
+  const payoutIntervals = [];
+  paLiveAccs.forEach(a=>{
+    const payDates = state.payouts.filter(p=>p.accountId===a.id).map(p=>p.date).filter(Boolean).sort();
+    if(payDates.length===0) return;
+    const startDate = a.activationDate || a.purchaseDate;
+    if(startDate) firstPayoutDelays.push(daysBetween(startDate, payDates[0]));
+    for(let i=1;i<payDates.length;i++) payoutIntervals.push(daysBetween(payDates[i-1], payDates[i]));
+  });
+  const avgDaysMetric = (arr)=> arr.length ? Math.round(arr.reduce((s,v)=>s+v,0)/arr.length) : null;
+  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDelays);
+  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervals);
+  const breachDelays = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>daysBetween(a.purchaseDate, a.endDate));
+  const avgBreachDays = avgDaysMetric(breachDelays);
+  const passToPaDelays = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>daysBetween(a.purchaseDate, a.endDate));
+  const avgPassToPaDays = avgDaysMetric(passToPaDelays);
+
   const filterBar = `
     <div class="filter-bar">
       <select id="fd-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
@@ -1776,6 +1805,14 @@ function viewDashboard(){
       <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${f.month?' (mois)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${f.month?' (mois)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
       <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:10px;">Délais moyens</div>
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${firstPayoutDelays.length} compte(s) PA/Live avec payout</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${payoutIntervals.length} intervalle(s) mesuré(s)</div></div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${breachDelays.length} challenge(s) breached avec date de clôture</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${passToPaDelays.length} challenge(s) réussi(s) avec date de clôture</div></div>
     </div>
 
     <div class="grid-2">
@@ -2332,6 +2369,8 @@ function viewClassement(){
    Journal des évolutions du site — à compléter à chaque itération.
 ============================================================ */
 const CHANGELOG = [
+  { type:'new', title:'Délais moyens (Dashboard)', desc:"Nouvelles cases sur le Dashboard : temps moyen avant le 1er payout après ouverture d'un compte, temps moyen entre deux payouts sur un même compte, temps moyen avant un breach, et temps moyen pour passer un Challenge en PA." },
+  { type:'improvement', title:'Filtre statut multichoix (Comptes)', desc:"Le filtre Statut de la page Comptes permet désormais de sélectionner plusieurs statuts à la fois, avec un compteur du nombre de comptes affichés selon les filtres actifs." },
   { type:'new', title:'Classement entre traders', desc:"Nouvel onglet Classement façon leaderboard : podium des 3 meilleurs traders (payouts + taux de réussite) sur le mois ou en tout temps, et tableau complet pour les suivants." },
   { type:'new', title:'Calendrier des mensualités', desc:"Nouvel onglet Calendrier : vue mensuelle des échéances de PA/Live en paiement mensuel, avec navigation mois par mois et détail par jour au clic." },
   { type:'new', title:'Badges & achievements', desc:"12 succès débloquables par trader (Premier Challenge, Premier Réussi, Premier Payout, paliers de payouts cumulés, Multi-Firms, Sans Faute, Trader régulier…), visibles et détaillés depuis l'onglet Traders." },
@@ -2378,8 +2417,17 @@ function viewAccounts(){
   if(f.trader) list = list.filter(a=>a.traderId===f.trader);
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
   if(f.type) list = list.filter(a=>a.type===f.type);
-  if(f.status) list = list.filter(a=>a.status===f.status);
+  if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status));
   list.sort((a,b)=>(b.purchaseDate||'').localeCompare(a.purchaseDate||''));
+
+  const statusOpts = [
+    { v:'REUSSI', l:'Réussi' }, { v:'ACTIF', l:'Actif' },
+    { v:'BREACHED', l:'Breached' }, { v:'FERME', l:'Fermé' },
+  ];
+  const statusBtnLabel = !f.status.length ? 'Tous statuts'
+    : f.status.length===1 ? STATUS_LABELS[f.status[0]]
+    : `${f.status.length} statuts`;
+  const anyFilterActive = !!(f.q || f.trader || f.propfirm || f.type || f.status.length);
 
   const filterBar = `
     <div class="filter-bar">
@@ -2387,12 +2435,18 @@ function viewAccounts(){
       <select id="f-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
       <select id="f-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
       <select id="f-type"><option value="">Tous types</option><option value="CHALLENGE" ${f.type==='CHALLENGE'?'selected':''}>Challenge</option><option value="PA" ${f.type==='PA'?'selected':''}>PA</option><option value="LIVE" ${f.type==='LIVE'?'selected':''}>Live</option></select>
-      <select id="f-status"><option value="">Tous statuts</option>
-        <option value="REUSSI" ${f.status==='REUSSI'?'selected':''}>Réussi</option>
-        <option value="ACTIF" ${f.status==='ACTIF'?'selected':''}>Actif</option>
-        <option value="BREACHED" ${f.status==='BREACHED'?'selected':''}>Breached</option>
-        <option value="FERME" ${f.status==='FERME'?'selected':''}>Fermé</option>
-      </select>
+      <div class="status-multiselect" id="f-status-wrap">
+        <button type="button" class="status-ms-btn" id="f-status-btn">${statusBtnLabel} <span style="opacity:.6;font-size:10px;">▾</span></button>
+        <div class="status-ms-menu" id="f-status-menu" style="display:${f.statusMenuOpen?'flex':'none'};">
+          ${statusOpts.map(s=>`
+            <label class="status-ms-item">
+              <input type="checkbox" data-status-opt="${s.v}" ${f.status.includes(s.v)?'checked':''}/>
+              ${s.l}
+            </label>`).join('')}
+          ${f.status.length ? `<button type="button" class="status-ms-clear" id="f-status-clear">Réinitialiser</button>` : ''}
+        </div>
+      </div>
+      <span class="filter-result-count">${list.length} compte${list.length>1?'s':''} affiché${list.length>1?'s':''}${anyFilterActive?` / ${state.accounts.length}`:''}</span>
     </div>`;
 
   if(state.accounts.length===0){
@@ -3320,7 +3374,7 @@ function bindViewEvents(){
     const acc = getAccount(row.dataset.alertAcc);
     if(!acc) return;
     state.route = 'accounts';
-    state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:'' };
+    state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
     render();
   });
   // Calendrier des mensualités
@@ -3400,10 +3454,10 @@ function bindViewEvents(){
     });
   });
   // Accounts filters
-  ['f-q','f-trader','f-firm','f-type','f-status'].forEach(id=>{
+  ['f-q','f-trader','f-firm','f-type'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'f-q':'q', 'f-trader':'trader', 'f-firm':'propfirm', 'f-type':'type', 'f-status':'status' };
+    const map = { 'f-q':'q', 'f-trader':'trader', 'f-firm':'propfirm', 'f-type':'type' };
     el.addEventListener(id==='f-q'?'input':'change', ()=>{
       if(id==='f-trader'){ setTraderFilterEverywhere(el.value); }
       else { state.filters.accounts[map[id]] = el.value; }
@@ -3417,6 +3471,44 @@ function bindViewEvents(){
       }
     });
   });
+  // Accounts filters — statut (multichoix)
+  const statusBtn = document.getElementById('f-status-btn');
+  if(statusBtn){
+    statusBtn.onclick = (e)=>{
+      e.stopPropagation();
+      state.filters.accounts.statusMenuOpen = !state.filters.accounts.statusMenuOpen;
+      renderView();
+    };
+    document.querySelectorAll('[data-status-opt]').forEach(cb=>{
+      cb.onclick = (e)=>e.stopPropagation();
+      cb.onchange = ()=>{
+        const v = cb.dataset.statusOpt;
+        const arr = state.filters.accounts.status;
+        const idx = arr.indexOf(v);
+        if(cb.checked && idx===-1) arr.push(v);
+        else if(!cb.checked && idx!==-1) arr.splice(idx,1);
+        renderView();
+      };
+    });
+    const statusMenu = document.getElementById('f-status-menu');
+    if(statusMenu) statusMenu.onclick = (e)=>e.stopPropagation();
+    const statusClear = document.getElementById('f-status-clear');
+    if(statusClear) statusClear.onclick = (e)=>{
+      e.stopPropagation();
+      state.filters.accounts.status = [];
+      renderView();
+    };
+    // Ferme le menu au clic ailleurs (une seule fois par ouverture de menu)
+    if(state.filters.accounts.statusMenuOpen){
+      setTimeout(()=>{
+        document.addEventListener('click', function closeStatusMenu(){
+          state.filters.accounts.statusMenuOpen = false;
+          renderView();
+          document.removeEventListener('click', closeStatusMenu);
+        }, { once:true });
+      }, 0);
+    }
+  }
   // Accounting filters
   ['fa-month','fa-type','fa-trader','fa-firm'].forEach(id=>{
     const el = document.getElementById(id);
@@ -4267,7 +4359,7 @@ function globalSearchModal(){
           const acc = getAccount(el.dataset.gsAccount);
           closeModal();
           state.route='accounts';
-          state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:'' };
+          state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
           render();
         });
       }
