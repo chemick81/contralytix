@@ -214,6 +214,26 @@ tbody tr:hover{background:var(--surface-2);}
 .import-acc-row.is-dup{opacity:.65;}
 .import-acc-main{flex:1;min-width:0;}
 .import-acc-sub{color:var(--text-faint);font-size:11px;margin-top:1px;}
+
+/* SUPPRESSION TRADER (sélection cascade) */
+.del-tr-warn{background:var(--danger-dim);border:1px solid var(--danger);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:var(--text);display:flex;gap:10px;align-items:flex-start;}
+.del-tr-warn svg{width:16px;height:16px;flex-shrink:0;color:var(--danger);margin-top:1px;}
+.del-tr-section{margin-bottom:16px;}
+.del-tr-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.del-tr-section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);}
+.del-tr-selectall{font-size:11.5px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;}
+.del-tr-list{border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.del-tr-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border-soft);font-size:12.5px;}
+.del-tr-row:last-child{border-bottom:none;}
+.del-tr-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--danger);cursor:pointer;flex-shrink:0;margin-top:2px;}
+.del-tr-row-main{flex:1;min-width:0;}
+.del-tr-row-title{font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.del-tr-row-sub{color:var(--text-faint);font-size:11px;margin-top:2px;}
+.del-tr-row-tag{font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--surface-2);color:var(--text-dim);}
+.del-tr-row.is-unchecked{opacity:.55;}
+.del-tr-status{font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:2px;}
+.del-tr-status.blocked{background:var(--gold-dim);color:var(--gold);}
+.del-tr-status.ready{background:var(--danger-dim);color:var(--danger);}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-soft);}
 .modal-head h3{margin:0;font-size:15px;}
 .modal-body{padding:18px 20px;}
@@ -665,6 +685,196 @@ async function fixTraderOwnership(traderId){
   }
   await logActivity('UPDATE', 'trader', traderId, `Propriété réattribuée pour ${trader.pseudo} : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s), ${fixedNotes} note(s).`);
   showToast(`Propriété corrigée : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s), ${fixedNotes} note(s).`);
+}
+
+/* ============================================================
+   SUPPRESSION D'UN TRADER AVEC DONNÉES LIÉES (comptes, payouts,
+   notes, sessions live). Un trader ne peut pas être supprimé tant
+   que des comptes lui sont rattachés (contrainte de clé étrangère).
+   Cette modale liste tout ce qui est lié et laisse l'utilisateur
+   sélectionner ce qu'il veut supprimer :
+   - Comptes : cochés par défaut, supprimés avec leurs payouts et
+     notes (cascade). Un compte non coché reste et bloque donc la
+     suppression du trader lui-même.
+   - Sessions live : cochées par défaut pour être supprimées ; si
+     décochées, elles sont simplement détachées (traderId remis à
+     vide) et conservées, car une session peut exister sans trader.
+   Le trader n'est réellement supprimé que si, après l'opération,
+   plus aucun compte ne lui est rattaché.
+============================================================ */
+function deleteTraderModal(trader){
+  if(!trader) return;
+  if(!canEdit(trader)){ showToast("Vous n'êtes pas autorisé à supprimer ce trader.", 'danger'); return; }
+
+  const accs = state.accounts.filter(a=>a.traderId===trader.id);
+  const sessions = state.yt_sessions.filter(s=>s.traderId===trader.id);
+
+  // Rien de lié : suppression simple, sans modale de sélection.
+  if(accs.length===0 && sessions.length===0){
+    confirmModal(`Supprimer définitivement le trader <strong>${escapeHtml(trader.pseudo)}</strong> ?`, async ()=>{
+      await remove('traders', trader.id);
+      await logActivity('DELETE', 'trader', trader.id, trader.pseudo);
+      showToast('Trader supprimé.'); render();
+    });
+    return;
+  }
+
+  const accRow = (a)=>{
+    const nbPayouts = state.payouts.filter(p=>p.accountId===a.id).length;
+    const nbNotes = (state.account_notes||[]).filter(n=>n.accountId===a.id).length;
+    const firm = getFirm(a.propFirmId);
+    return `<div class="del-tr-row" data-del-tr-acc-row="${a.id}">
+      <input type="checkbox" data-del-tr-acc="${a.id}" checked />
+      <div class="del-tr-row-main">
+        <div class="del-tr-row-title">
+          ${firm ? firm.name : 'PropFirm inconnue'}
+          <span class="del-tr-row-tag">${TYPE_LABELS[a.type]||a.type}</span>
+          <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
+        </div>
+        <div class="del-tr-row-sub">${nbPayouts} payout(s) · ${nbNotes} note(s) — seront supprimés avec ce compte</div>
+      </div>
+    </div>`;
+  };
+  const sessionRow = (s)=>`<div class="del-tr-row" data-del-tr-sess-row="${s.id}">
+      <input type="checkbox" data-del-tr-sess="${s.id}" checked />
+      <div class="del-tr-row-main">
+        <div class="del-tr-row-title">${escapeHtml(s.title||'Sans titre')}</div>
+        <div class="del-tr-row-sub" data-del-tr-sess-sub="${s.id}">${fmtDate(s.date)} — sera supprimée</div>
+      </div>
+    </div>`;
+
+  openModal({
+    title: `Supprimer ${escapeHtml(trader.pseudo)}`,
+    wide: true,
+    bodyHtml: `
+      <div class="del-tr-warn">
+        ${icon('alertTriangle')}
+        <div>Ce trader a des données liées. Sélectionne ci-dessous ce que tu veux supprimer.
+        Un compte décoché restera actif et empêchera la suppression du trader tant qu'il n'aura pas été retiré ou supprimé à son tour.</div>
+      </div>
+      ${accs.length>0 ? `
+      <div class="del-tr-section">
+        <div class="del-tr-section-head">
+          <div class="del-tr-section-title">Comptes liés (${accs.length})</div>
+          <button type="button" class="del-tr-selectall" id="del-tr-acc-toggle">Tout désélectionner</button>
+        </div>
+        <div class="del-tr-list">${accs.map(accRow).join('')}</div>
+      </div>` : ''}
+      ${sessions.length>0 ? `
+      <div class="del-tr-section">
+        <div class="del-tr-section-head">
+          <div class="del-tr-section-title">Sessions live liées (${sessions.length})</div>
+          <button type="button" class="del-tr-selectall" id="del-tr-sess-toggle">Tout désélectionner</button>
+        </div>
+        <div class="del-tr-list">${sessions.map(sessionRow).join('')}</div>
+        <div class="field-hint">Une session décochée est conservée mais détachée de ce trader (session publique) plutôt que supprimée.</div>
+      </div>` : ''}
+      <div id="del-tr-status" class="del-tr-status"></div>
+      <div id="del-tr-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="del-tr-cancel">Annuler</button><button class="btn btn-danger" id="del-tr-run">Supprimer la sélection</button>`,
+    onMount(){
+      const statusEl = document.getElementById('del-tr-status');
+      function accChecked(){ return accs.filter(a=>document.querySelector(`[data-del-tr-acc="${a.id}"]`)?.checked); }
+      function accUnchecked(){ return accs.filter(a=>!document.querySelector(`[data-del-tr-acc="${a.id}"]`)?.checked); }
+      function refreshStatus(){
+        accs.forEach(a=>{
+          const row = document.querySelector(`[data-del-tr-acc-row="${a.id}"]`);
+          const cb = document.querySelector(`[data-del-tr-acc="${a.id}"]`);
+          if(row && cb) row.classList.toggle('is-unchecked', !cb.checked);
+        });
+        sessions.forEach(s=>{
+          const row = document.querySelector(`[data-del-tr-sess-row="${s.id}"]`);
+          const cb = document.querySelector(`[data-del-tr-sess="${s.id}"]`);
+          const sub = document.querySelector(`[data-del-tr-sess-sub="${s.id}"]`);
+          if(row && cb) row.classList.toggle('is-unchecked', !cb.checked);
+          if(sub) sub.textContent = `${fmtDate(s.date)} — ${cb && cb.checked ? 'sera supprimée' : 'sera détachée du trader (conservée)'}`;
+        });
+        const remaining = accUnchecked().length;
+        const runBtn = document.getElementById('del-tr-run');
+        if(remaining>0){
+          statusEl.className = 'del-tr-status blocked';
+          statusEl.textContent = `${remaining} compte(s) resteront liés — le trader ne sera pas supprimé, seuls les éléments cochés le seront.`;
+          runBtn.textContent = 'Supprimer la sélection';
+        } else {
+          statusEl.className = 'del-tr-status ready';
+          statusEl.textContent = `Tous les comptes sont sélectionnés — le trader ${trader.pseudo} sera définitivement supprimé.`;
+          runBtn.textContent = `Supprimer le trader et la sélection`;
+        }
+      }
+      document.querySelectorAll('[data-del-tr-acc],[data-del-tr-sess]').forEach(cb=>cb.addEventListener('change', refreshStatus));
+      const accToggle = document.getElementById('del-tr-acc-toggle');
+      if(accToggle) accToggle.onclick = ()=>{
+        const all = accs.every(a=>document.querySelector(`[data-del-tr-acc="${a.id}"]`)?.checked);
+        accs.forEach(a=>{ const cb = document.querySelector(`[data-del-tr-acc="${a.id}"]`); if(cb) cb.checked = !all; });
+        accToggle.textContent = all ? 'Tout sélectionner' : 'Tout désélectionner';
+        refreshStatus();
+      };
+      const sessToggle = document.getElementById('del-tr-sess-toggle');
+      if(sessToggle) sessToggle.onclick = ()=>{
+        const all = sessions.every(s=>document.querySelector(`[data-del-tr-sess="${s.id}"]`)?.checked);
+        sessions.forEach(s=>{ const cb = document.querySelector(`[data-del-tr-sess="${s.id}"]`); if(cb) cb.checked = !all; });
+        sessToggle.textContent = all ? 'Tout sélectionner' : 'Tout désélectionner';
+        refreshStatus();
+      };
+      refreshStatus();
+
+      document.getElementById('del-tr-cancel').onclick = closeModal;
+      document.getElementById('del-tr-run').onclick = async ()=>{
+        const runBtn = document.getElementById('del-tr-run');
+        runBtn.disabled = true;
+        const prevLabel = runBtn.textContent;
+        runBtn.textContent = 'Suppression en cours…';
+        try{
+          const accIdsToDelete = accChecked().map(a=>a.id);
+          const sessIdsToDelete = sessions.filter(s=>document.querySelector(`[data-del-tr-sess="${s.id}"]`)?.checked).map(s=>s.id);
+          const sessIdsToDetach = sessions.filter(s=>!sessIdsToDelete.includes(s.id)).map(s=>s.id);
+          const result = await runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, sessIdsToDetach);
+          closeModal();
+          showToast(result.traderDeleted
+            ? `Trader supprimé avec ${result.nbAccounts} compte(s), ${result.nbPayouts} payout(s), ${result.nbNotes} note(s), ${result.nbSessionsDeleted} session(s).`
+            : `Éléments supprimés (${result.nbAccounts} compte(s)). Il reste des comptes liés à ${trader.pseudo} — retire-les pour pouvoir supprimer ce trader.`);
+          render();
+        }catch(e){
+          document.getElementById('del-tr-error').textContent = 'Erreur : ' + e.message;
+          runBtn.disabled = false;
+          runBtn.textContent = prevLabel;
+        }
+      };
+    }
+  });
+}
+
+async function runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, sessIdsToDetach){
+  let nbPayouts=0, nbNotes=0;
+  for(const accId of accIdsToDelete){
+    const pays = state.payouts.filter(p=>p.accountId===accId);
+    nbPayouts += pays.length;
+    state.payouts = state.payouts.filter(p=>p.accountId!==accId);
+    const notes = (state.account_notes||[]).filter(n=>n.accountId===accId);
+    nbNotes += notes.length;
+    for(const n of notes){ await remove('account_notes', n.id); }
+    await remove('accounts', accId);
+  }
+  if(accIdsToDelete.length>0){
+    await logActivity('DELETE', 'account', null, `${accIdsToDelete.length} compte(s) supprimé(s) (${nbPayouts} payout(s), ${nbNotes} note(s)) lors de la suppression du trader ${trader.pseudo}`);
+  }
+  for(const sessId of sessIdsToDelete){ await remove('yt_sessions', sessId); }
+  if(sessIdsToDelete.length>0){
+    await logActivity('DELETE', 'yt_session', null, `${sessIdsToDelete.length} session(s) live supprimée(s) lors de la suppression du trader ${trader.pseudo}`);
+  }
+  for(const sessId of sessIdsToDetach){
+    const s = state.yt_sessions.find(x=>x.id===sessId);
+    if(s) await upsert('yt_sessions', { ...s, traderId: null });
+  }
+  const remainingAccounts = state.accounts.filter(a=>a.traderId===trader.id).length;
+  let traderDeleted = false;
+  if(remainingAccounts===0){
+    await remove('traders', trader.id);
+    await logActivity('DELETE', 'trader', trader.id, trader.pseudo);
+    traderDeleted = true;
+  }
+  return { traderDeleted, nbAccounts: accIdsToDelete.length, nbPayouts, nbNotes, nbSessionsDeleted: sessIdsToDelete.length };
 }
 
 // Assigne un trader existant (fiche créée par l'admin, ex: lors d'une migration)
@@ -2995,18 +3205,7 @@ function bindViewEvents(){
     }, false);
   });
   document.querySelectorAll('[data-del-trader]').forEach(b=>b.onclick=()=>{
-    const id = b.dataset.delTrader;
-    const linkedAccounts = state.accounts.filter(a=>a.traderId===id);
-    if(linkedAccounts.length>0){
-      showToast(`Impossible de supprimer ce trader : ${linkedAccounts.length} compte(s) lié(s) (et leurs payouts/notes). Supprime ou réattribue d'abord ses comptes avant de supprimer le trader.`, 'danger');
-      return;
-    }
-    confirmModal('Supprimer ce trader ?', async ()=>{
-      const trd = getTrader(id);
-      await remove('traders', id);
-      await logActivity('DELETE', 'trader', id, trd?trd.pseudo:'');
-      showToast('Trader supprimé.'); render();
-    });
+    deleteTraderModal(getTrader(b.dataset.delTrader));
   });
   // Firms
   document.querySelectorAll('[data-edit-firm]').forEach(b=>b.onclick=()=>firmFormModal(getFirm(b.dataset.editFirm)));
