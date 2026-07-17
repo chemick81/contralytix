@@ -635,13 +635,13 @@ async function deleteUserProfile(userId, email){
   await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}`);
   showToast('Utilisateur supprimé de la liste.');
 }
-// Réattribue les comptes/payouts d'un trader (ex: créés par un admin lors d'un import)
+// Réattribue les comptes/payouts/notes d'un trader (ex: créés par un admin lors d'un import)
 // au propriétaire réel du trader, pour que ce dernier puisse les modifier.
 async function fixTraderOwnership(traderId){
   if(!isAdmin()) return;
   const trader = getTrader(traderId);
   if(!trader) return;
-  let fixedAccounts=0, fixedPayouts=0;
+  let fixedAccounts=0, fixedPayouts=0, fixedNotes=0;
   const accs = state.accounts.filter(a=>a.traderId===traderId);
   for(const acc of accs){
     if(acc.createdBy !== trader.createdBy){
@@ -655,9 +655,66 @@ async function fixTraderOwnership(traderId){
         fixedPayouts++;
       }
     }
+    const notes = (state.account_notes||[]).filter(n=>n.accountId===acc.id);
+    for(const n of notes){
+      if(n.createdBy !== trader.createdBy){
+        await upsert('account_notes', { ...n, createdBy: trader.createdBy });
+        fixedNotes++;
+      }
+    }
   }
-  await logActivity('UPDATE', 'trader', traderId, `Propriété réattribuée pour ${trader.pseudo} : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s).`);
-  showToast(`Propriété corrigée : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s).`);
+  await logActivity('UPDATE', 'trader', traderId, `Propriété réattribuée pour ${trader.pseudo} : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s), ${fixedNotes} note(s).`);
+  showToast(`Propriété corrigée : ${fixedAccounts} compte(s), ${fixedPayouts} payout(s), ${fixedNotes} note(s).`);
+}
+
+// Assigne un trader existant (fiche créée par l'admin, ex: lors d'une migration)
+// au compte utilisateur réel d'un ami/trader, en le retrouvant par email parmi
+// les utilisateurs déjà inscrits sur ce site (table profiles). Met à jour le
+// created_by du trader PUIS cascade automatiquement vers ses comptes/payouts/notes.
+function assignTraderOwnerModal(trader){
+  if(!isAdmin()) return;
+  const candidates = state.profiles.filter(p=>p.email);
+  const preselected = trader.email
+    ? candidates.find(p=>p.email.toLowerCase()===trader.email.toLowerCase())
+    : null;
+  openModal({
+    title: `Assigner "${trader.pseudo}" à un compte utilisateur`,
+    bodyHtml: `
+      <p class="field-hint">Choisis le compte (déjà inscrit sur ce site) qui correspond à ce trader. Ses comptes, payouts et notes seront automatiquement réattribués dans la foulée.</p>
+      <div class="field">
+        <label>Compte utilisateur</label>
+        <select id="ato-select">
+          <option value="">— Choisir —</option>
+          ${candidates.map(p=>`<option value="${p.id}" ${preselected && preselected.id===p.id ? 'selected':''}>${escapeHtml(p.email)}${p.id===trader.createdBy?' (propriétaire actuel)':''}</option>`).join('')}
+        </select>
+        ${candidates.length===0 ? `<div class="field-hint" style="color:var(--danger);">Aucun utilisateur inscrit pour l'instant. L'ami concerné doit d'abord créer son compte sur le site.</div>` : ''}
+      </div>
+      <div id="ato-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="ato-cancel">Annuler</button><button class="btn btn-primary" id="ato-confirm">Assigner</button>`,
+    onMount(){
+      document.getElementById('ato-cancel').onclick = closeModal;
+      document.getElementById('ato-confirm').onclick = async ()=>{
+        const userId = document.getElementById('ato-select').value;
+        if(!userId){ document.getElementById('ato-error').textContent = 'Choisis un compte utilisateur.'; return; }
+        document.getElementById('ato-confirm').disabled = true;
+        document.getElementById('ato-confirm').textContent = 'Assignation…';
+        try{
+          await upsert('traders', { ...trader, createdBy: userId });
+          await fixTraderOwnership(trader.id);
+          const email = candidates.find(p=>p.id===userId)?.email || userId;
+          await logActivity('UPDATE', 'trader', trader.id, `Trader ${trader.pseudo} assigné au compte ${email}.`);
+          closeModal();
+          showToast(`"${trader.pseudo}" assigné à ${email}.`);
+          renderView();
+        }catch(e){
+          document.getElementById('ato-error').textContent = 'Erreur : ' + e.message;
+          document.getElementById('ato-confirm').disabled = false;
+          document.getElementById('ato-confirm').textContent = 'Assigner';
+        }
+      };
+    }
+  });
 }
 
 /* ============================================================
@@ -1660,6 +1717,7 @@ function viewTraders(){
                 <td>
                   <div style="display:flex;gap:4px;justify-content:flex-end;">
                     <button class="btn btn-ghost btn-sm" data-trader-regularity="${t.id}" title="Régularité des payouts">${icon('clock')}</button>
+                    ${isAdmin() ? `<button class="btn btn-ghost btn-sm" data-assign-owner="${t.id}" title="Assigner ce trader à un compte utilisateur (par email)">${icon('users')}</button>` : ''}
                     ${isAdmin() && accs.some(a=>a.createdBy!==t.createdBy) ? `<button class="btn btn-ghost btn-sm" data-fix-ownership="${t.id}" title="Certains comptes de ce trader appartiennent à un autre utilisateur (ex: import) et sont donc en lecture seule pour son propriétaire. Cliquer pour les réattribuer.">${icon('link')}</button>` : ''}
                     ${canEdit(t) ? `<button class="btn btn-ghost btn-sm" data-edit-trader="${t.id}">${icon('edit')}</button>
                     <button class="btn btn-ghost btn-sm" data-del-trader="${t.id}" style="color:var(--danger)">${icon('trash')}</button>` : `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`}
@@ -2923,6 +2981,9 @@ function bindViewEvents(){
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
   document.querySelectorAll('[data-trader-badges]').forEach(b=>b.onclick=()=>traderBadgesModal(getTrader(b.dataset.traderBadges)));
   document.querySelectorAll('[data-trader-regularity]').forEach(b=>b.onclick=()=>traderRegularityModal(getTrader(b.dataset.traderRegularity)));
+  document.querySelectorAll('[data-assign-owner]').forEach(b=>b.onclick=()=>{
+    assignTraderOwnerModal(getTrader(b.dataset.assignOwner));
+  });
   document.querySelectorAll('[data-fix-ownership]').forEach(b=>b.onclick=()=>{
     const t = getTrader(b.dataset.fixOwnership);
     confirmModal(`Réattribuer tous les comptes et payouts de <strong>${t.pseudo}</strong> à son propriétaire (celui qui a créé sa fiche trader) ? Cela leur permettra de les modifier eux-mêmes.`, async ()=>{
