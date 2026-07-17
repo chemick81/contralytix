@@ -129,6 +129,10 @@ tbody tr:hover{background:var(--surface-2);}
 .status-ms-item input{accent-color:var(--accent);cursor:pointer;}
 .status-ms-clear{margin-top:3px;background:none;border:none;border-top:1px solid var(--border-soft);color:var(--text-faint);font-size:11.5px;padding:7px 8px 2px;cursor:pointer;text-align:left;font-family:inherit;}
 .status-ms-clear:hover{color:var(--text);}
+.stat-tile-clickable{cursor:pointer;transition:transform .1s ease,border-color .1s ease;}
+.stat-tile-clickable:hover{border-color:var(--rail,var(--accent));transform:translateY(-1px);}
+.clickable-row{cursor:pointer;}
+.clickable-row:hover{background:var(--surface-2);}
 .filter-result-count{font-size:12px;color:var(--text-faint);white-space:nowrap;margin-left:2px;}
 .search-wrap{position:relative;}
 .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-faint);}
@@ -1690,6 +1694,7 @@ function computeDashboardAlerts(accountsF){
 /* ============================================================
    VIEW: DASHBOARD
 ============================================================ */
+let dashboardDelayDetails = {};
 function viewDashboard(){
   const f = state.filters.dashboard;
   const accountsF = state.accounts.filter(a=>
@@ -1740,24 +1745,30 @@ function viewDashboard(){
 
   const recent = [...accountsF].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
 
-  // Délais moyens (payouts, breach, passage en PA)
+  // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down
   const paLiveAccs = accountsF.filter(a=>a.type==='PA'||a.type==='LIVE');
-  const firstPayoutDelays = [];
-  const payoutIntervals = [];
+  const firstPayoutDetails = [];
+  const payoutIntervalDetails = [];
   paLiveAccs.forEach(a=>{
     const payDates = state.payouts.filter(p=>p.accountId===a.id).map(p=>p.date).filter(Boolean).sort();
     if(payDates.length===0) return;
     const startDate = a.activationDate || a.purchaseDate;
-    if(startDate) firstPayoutDelays.push(daysBetween(startDate, payDates[0]));
-    for(let i=1;i<payDates.length;i++) payoutIntervals.push(daysBetween(payDates[i-1], payDates[i]));
+    if(startDate) firstPayoutDetails.push({ account:a, from:startDate, to:payDates[0], days:daysBetween(startDate, payDates[0]) });
+    for(let i=1;i<payDates.length;i++) payoutIntervalDetails.push({ account:a, from:payDates[i-1], to:payDates[i], days:daysBetween(payDates[i-1], payDates[i]) });
   });
   const avgDaysMetric = (arr)=> arr.length ? Math.round(arr.reduce((s,v)=>s+v,0)/arr.length) : null;
-  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDelays);
-  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervals);
-  const breachDelays = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>daysBetween(a.purchaseDate, a.endDate));
-  const avgBreachDays = avgDaysMetric(breachDelays);
-  const passToPaDelays = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>daysBetween(a.purchaseDate, a.endDate));
-  const avgPassToPaDays = avgDaysMetric(passToPaDelays);
+  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDetails.map(d=>d.days));
+  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervalDetails.map(d=>d.days));
+  const breachDetails = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>({ account:a, from:a.purchaseDate, to:a.endDate, days:daysBetween(a.purchaseDate, a.endDate) }));
+  const avgBreachDays = avgDaysMetric(breachDetails.map(d=>d.days));
+  const passToPaDetails = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>({ account:a, from:a.purchaseDate, to:a.endDate, days:daysBetween(a.purchaseDate, a.endDate) }));
+  const avgPassToPaDays = avgDaysMetric(passToPaDetails.map(d=>d.days));
+  dashboardDelayDetails = {
+    firstPayout: { label:'1er payout après ouverture', fromLabel:'Ouverture', toLabel:'1er payout', items:firstPayoutDetails },
+    payoutInterval: { label:'Entre 2 payouts (même compte)', fromLabel:'Payout précédent', toLabel:'Payout suivant', items:payoutIntervalDetails },
+    breach: { label:'Challenge → breach', fromLabel:'Achat challenge', toLabel:'Breach', items:breachDetails },
+    passToPa: { label:'Challenge → PA', fromLabel:'Achat challenge', toLabel:'Réussite / PA', items:passToPaDetails },
+  };
 
   const filterBar = `
     <div class="filter-bar">
@@ -1807,12 +1818,12 @@ function viewDashboard(){
       <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
     </div>
 
-    <div class="section-title" style="margin-bottom:10px;">Délais moyens</div>
+    <div class="section-title" style="margin-bottom:10px;">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div>
     <div class="stats-grid">
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${firstPayoutDelays.length} compte(s) PA/Live avec payout</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${payoutIntervals.length} intervalle(s) mesuré(s)</div></div>
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${breachDelays.length} challenge(s) breached avec date de clôture</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${passToPaDelays.length} challenge(s) réussi(s) avec date de clôture</div></div>
+      <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${firstPayoutDetails.length} compte(s) PA/Live avec payout${firstPayoutDetails.length?' · voir le détail':''}</div></div>
+      <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${payoutIntervalDetails.length} intervalle(s) mesuré(s)${payoutIntervalDetails.length?' · voir le détail':''}</div></div>
+      <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${breachDetails.length} challenge(s) breached avec date de clôture${breachDetails.length?' · voir le détail':''}</div></div>
+      <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${passToPaDetails.length} challenge(s) réussi(s) avec date de clôture${passToPaDetails.length?' · voir le détail':''}</div></div>
     </div>
 
     <div class="grid-2">
@@ -1843,6 +1854,45 @@ function viewDashboard(){
       </div>
     </div>
   `;
+}
+function openDelayDetailModal(key){
+  const d = dashboardDelayDetails[key];
+  if(!d || !d.items.length) return;
+  const rows = [...d.items].sort((a,b)=>b.days-a.days).map(it=>{
+    const a = it.account;
+    const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
+    return `<tr class="clickable-row" data-jump-acc="${a.id}">
+      <td>${trader?trader.pseudo:'—'}</td>
+      <td>${firm?firm.name:'—'}</td>
+      <td>${TYPE_LABELS[a.type]} · ${sizeLabel(a)}</td>
+      <td class="mono">${maskAccountNumber(a.accountNumber)}</td>
+      <td class="mono text-dim">${fmtDate(it.from)}</td>
+      <td class="mono text-dim">${fmtDate(it.to)}</td>
+      <td class="mono" style="font-weight:600;">${it.days} j</td>
+    </tr>`;
+  }).join('');
+  openModal({
+    title: d.label,
+    wide: 'wide',
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:10px;">${d.items.length} compte(s) pris en compte dans la moyenne. Clique une ligne pour ouvrir le compte.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Trader</th><th>PropFirm</th><th>Type</th><th>N° compte</th><th>${d.fromLabel}</th><th>${d.toLabel}</th><th>Délai</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`,
+    onMount(){
+      document.querySelectorAll('[data-jump-acc]').forEach(row=>row.onclick=()=>{
+        const acc = getAccount(row.dataset.jumpAcc);
+        if(!acc) return;
+        closeModal();
+        state.route = 'accounts';
+        state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
+        render();
+      });
+    }
+  });
 }
 function renderMiniChart(data, maxVal){
   const w=560,h=170,barW=22,gap=46,groupW=barW*2+8;
@@ -3370,6 +3420,9 @@ function bindViewEvents(){
   });
   const fdClearBtn = document.getElementById('fd-clear');
   if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:'',propfirm:'',month:''}; setTraderFilterEverywhere(''); renderView(); };
+  document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
+    tile.onclick = ()=>openDelayDetailModal(tile.dataset.delayDetail);
+  });
   document.querySelectorAll('[data-alert-acc]').forEach(row=>row.onclick=()=>{
     const acc = getAccount(row.dataset.alertAcc);
     if(!acc) return;
