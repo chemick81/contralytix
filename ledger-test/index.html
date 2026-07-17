@@ -350,6 +350,7 @@ tbody tr:hover{background:var(--surface-2);}
 <div id="modal-root"></div>
 <div id="toast-root"></div>
 <input type="file" id="propdesk-file-input" accept="application/json,.json" style="display:none;" />
+<input type="file" id="migration-file-input" accept="application/json,.json" style="display:none;" />
 
 <script>
 /* ============================================================
@@ -1209,6 +1210,7 @@ function renderTopbarActions(){
       <button class="btn btn-outline" id="export-accounting-pdf">${icon('receipt')}PDF récap</button>`;
   else if(state.route==='admin') el.innerHTML = `
       <button class="btn btn-outline" id="import-propdesk">${icon('upload')}Importer (PropDesk)</button>
+      <button class="btn btn-outline" id="import-migration">${icon('upload')}Importer migration (ancien site)</button>
       <button class="btn btn-outline" id="export-backup">${icon('download')}Sauvegarde JSON</button>`;
   else if(state.route==='bilan') el.innerHTML = `<button class="btn btn-primary" id="export-bilan-all">${icon('image')}Tout exporter (PNG)</button>`;
   else if(state.route==='sessions') el.innerHTML = `<button class="btn btn-primary" id="add-session">${icon('plus')}Nouvelle session</button>`;
@@ -1221,6 +1223,7 @@ function renderTopbarActions(){
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
   if(document.getElementById('export-backup')) document.getElementById('export-backup').onclick = exportGlobalBackup;
   if(document.getElementById('import-propdesk')) document.getElementById('import-propdesk').onclick = pickPropDeskFile;
+  if(document.getElementById('import-migration')) document.getElementById('import-migration').onclick = pickMigrationFile;
   if(document.getElementById('export-bilan-all')) document.getElementById('export-bilan-all').onclick = exportAllBilanCards;
   if(document.getElementById('add-session')) document.getElementById('add-session').onclick = ()=>sessionFormModal();
 }
@@ -4167,6 +4170,108 @@ function exportGlobalBackup(){
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   showToast('Sauvegarde JSON téléchargée.');
+}
+
+/* ============================================================
+   IMPORT DE MIGRATION (depuis l'ancien site) — Admin
+   Lit un fichier JSON généré par "Sauvegarde JSON" sur l'ancien
+   site (comptapropfirm.netlify.app) et upsert les 6 tables
+   métier dans ce projet Supabase, dans l'ordre qui respecte les
+   clés étrangères. Le champ created_by de CHAQUE ligne importée
+   est forcé sur ton propre UUID (l'admin qui fait l'import), afin
+   d'éviter tout created_by orphelin tant que les traders/associés
+   n'ont pas encore leur propre compte sur ce nouveau site. Une
+   fois qu'ils en ont un, réattribue via le bouton "🔗" prévu à
+   cet effet sur la fiche trader.
+============================================================ */
+function pickMigrationFile(){
+  if(!isAdmin()){ showToast("Réservé aux administrateurs.", 'danger'); return; }
+  const input = document.getElementById('migration-file-input');
+  input.value = '';
+  input.onchange = ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      let json;
+      try{ json = JSON.parse(reader.result); }
+      catch(e){ showToast('Fichier JSON invalide : ' + e.message, 'danger'); return; }
+      if(!json || !Array.isArray(json.traders) || !Array.isArray(json.accounts)){
+        showToast("Ce fichier ne ressemble pas à une sauvegarde de migration (clés attendues : traders, propfirms, accounts, payouts, account_notes, yt_sessions).", 'danger');
+        return;
+      }
+      openMigrationImportModal(json);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function openMigrationImportModal(json){
+  const counts = {
+    propfirms: (json.propfirms||[]).length,
+    traders: (json.traders||[]).length,
+    accounts: (json.accounts||[]).length,
+    payouts: (json.payouts||[]).length,
+    account_notes: (json.account_notes||[]).length,
+    yt_sessions: (json.yt_sessions||[]).length,
+  };
+  openModal({
+    title: 'Importer la sauvegarde de migration',
+    bodyHtml: `
+      <p>Fichier généré le ${json.exportedAt ? new Date(json.exportedAt).toLocaleString() : 'date inconnue'}.</p>
+      <ul>
+        <li>${counts.propfirms} PropFirm(s)</li>
+        <li>${counts.traders} trader(s)</li>
+        <li>${counts.accounts} compte(s)</li>
+        <li>${counts.payouts} payout(s)</li>
+        <li>${counts.account_notes} note(s) de compte</li>
+        <li>${counts.yt_sessions} session(s) YouTube</li>
+      </ul>
+      <p class="field-hint">Toutes ces lignes seront rattachées (created_by) à <strong>ton compte</strong> (${escapeHtml(state.session.user.email)}). Tu pourras réattribuer chaque trader plus tard, une fois qu'il aura son propre compte sur ce site.</p>
+      <p class="field-hint">Les lignes existantes (même id) seront mises à jour, pas dupliquées — tu peux relancer l'import sans risque si une erreur survient en cours de route.</p>
+      <div id="mi-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="mi-cancel">Annuler</button><button class="btn btn-primary" id="mi-run">Lancer l'import</button>`,
+    onMount(){
+      document.getElementById('mi-cancel').onclick = closeModal;
+      document.getElementById('mi-run').onclick = async ()=>{
+        document.getElementById('mi-run').disabled = true;
+        document.getElementById('mi-run').textContent = 'Import en cours…';
+        try{
+          const result = await runMigrationImport(json);
+          closeModal();
+          showToast(`Migration terminée : ${result.total} ligne(s) importée(s).`);
+          await loadAll();
+          render();
+        }catch(e){
+          document.getElementById('mi-error').textContent = 'Erreur : ' + e.message;
+          document.getElementById('mi-run').disabled = false;
+          document.getElementById('mi-run').textContent = "Lancer l'import";
+        }
+      };
+    }
+  });
+}
+
+// Ordre important : les tables parentes avant les tables qui les référencent.
+const MIGRATION_TABLE_ORDER = ['propfirms', 'traders', 'accounts', 'payouts', 'account_notes', 'yt_sessions'];
+
+async function runMigrationImport(json){
+  const myId = currentUserId();
+  let total = 0;
+  for(const table of MIGRATION_TABLE_ORDER){
+    const items = Array.isArray(json[table]) ? json[table] : [];
+    if(items.length === 0) continue;
+    const rows = items.map(item => toRow({ ...item, createdBy: myId }));
+    const { error } = await supabaseClient.from(table).upsert(rows, { onConflict: 'id' });
+    if(error){
+      throw new Error(`table "${table}" (${items.length} ligne(s)) : ${error.message}`);
+    }
+    total += items.length;
+    await logActivity('IMPORT_MIGRATION', table, null, `${items.length} ligne(s) importée(s) depuis l'ancien site`);
+  }
+  return { total };
 }
 
 /* ============================================================
