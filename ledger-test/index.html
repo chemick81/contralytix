@@ -847,6 +847,16 @@ function deleteTraderModal(trader){
   });
 }
 
+// account_status_history n'est pas chargée dans `state` (juste consultée à la
+// demande), donc remove() ne peut pas la nettoyer. Contrainte
+// account_status_history_account_id_fkey : il faut purger ces lignes
+// nous-mêmes avant de supprimer le compte.
+async function purgeStatusHistory(accountId){
+  const { error } = await supabaseClient.from('account_status_history').delete().eq('account_id', accountId);
+  if(error){ console.warn('account_status_history delete failed:', error.message); return false; }
+  return true;
+}
+
 // Un compte PA référence son Challenge d'origine via parentChallengeId
 // (contrainte accounts_parent_challenge_id_fkey). Avant de supprimer un
 // compte, il faut détacher tout PA qui pointe encore vers lui, sinon la
@@ -875,6 +885,7 @@ async function runTraderCascadeDelete(trader, accIdsToDelete, sessIdsToDelete, s
       nbNotes++;
     }
     await detachChildAccounts(accId);
+    await purgeStatusHistory(accId);
     const ok = await remove('accounts', accId);
     if(!ok) throw new Error(`Impossible de supprimer le compte ${acc?getFirm(acc.propFirmId)?.name||'':accId}.`);
   }
@@ -3292,6 +3303,7 @@ function bindViewEvents(){
       const paysToDelete = state.payouts.filter(p=>p.accountId===id);
       for(const p of paysToDelete){ await remove('payouts', p.id); }
       await detachChildAccounts(id);
+      await purgeStatusHistory(id);
       await remove('accounts', id);
       await logActivity('DELETE', 'account', id, accDesc);
       showToast('Compte supprimé.'); render();
