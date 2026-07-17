@@ -852,8 +852,33 @@ function deleteTraderModal(trader){
 // account_status_history_account_id_fkey : il faut purger ces lignes
 // nous-mêmes avant de supprimer le compte.
 async function purgeStatusHistory(accountId){
-  const { error } = await supabaseClient.from('account_status_history').delete().eq('account_id', accountId);
-  if(error){ console.warn('account_status_history delete failed:', error.message); return false; }
+  // On compte d'abord les lignes existantes : avec RLS, un DELETE qui ne matche
+  // aucune policy renvoie "succès" (error === null) mais supprime 0 ligne.
+  // Sans ce contrôle, l'appelant croit la purge faite et la suppression du
+  // compte plante ensuite sur la contrainte de clé étrangère.
+  const { count: before, error: countErr } = await supabaseClient
+    .from('account_status_history')
+    .select('id', { count:'exact', head:true })
+    .eq('account_id', accountId);
+  if(countErr){ console.warn('account_status_history count failed:', countErr.message); }
+  if(!before){ return true; } // rien à purger
+
+  const { data: deleted, error } = await supabaseClient
+    .from('account_status_history')
+    .delete()
+    .eq('account_id', accountId)
+    .select('id');
+  if(error){
+    throw new Error("Purge de l'historique de statut impossible : " + error.message);
+  }
+  if(!deleted || deleted.length < before){
+    throw new Error(
+      "La suppression de l'historique de statut (account_status_history) a été bloquée silencieusement, "
+      + "probablement par une policy RLS Supabase manquante (DELETE). "
+      + `${deleted ? deleted.length : 0}/${before} ligne(s) supprimée(s). `
+      + "Il faut ajouter une policy DELETE pour les admins sur cette table."
+    );
+  }
   return true;
 }
 
@@ -3298,15 +3323,20 @@ function bindViewEvents(){
   document.querySelectorAll('[data-del-account]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.delAccount;
     confirmModal('Supprimer ce compte et ses payouts associés ?', async ()=>{
-      const accDel = getAccount(id);
-      const accDesc = accDel ? `${getTrader(accDel.traderId)?.pseudo||'—'} · ${getFirm(accDel.propFirmId)?.name||'—'}` : id;
-      const paysToDelete = state.payouts.filter(p=>p.accountId===id);
-      for(const p of paysToDelete){ await remove('payouts', p.id); }
-      await detachChildAccounts(id);
-      await purgeStatusHistory(id);
-      await remove('accounts', id);
-      await logActivity('DELETE', 'account', id, accDesc);
-      showToast('Compte supprimé.'); render();
+      try{
+        const accDel = getAccount(id);
+        const accDesc = accDel ? `${getTrader(accDel.traderId)?.pseudo||'—'} · ${getFirm(accDel.propFirmId)?.name||'—'}` : id;
+        const paysToDelete = state.payouts.filter(p=>p.accountId===id);
+        for(const p of paysToDelete){ await remove('payouts', p.id); }
+        await detachChildAccounts(id);
+        await purgeStatusHistory(id);
+        const ok = await remove('accounts', id);
+        if(!ok) return; // remove() a déjà affiché le toast d'erreur
+        await logActivity('DELETE', 'account', id, accDesc);
+        showToast('Compte supprimé.'); render();
+      }catch(e){
+        showToast('Erreur de suppression : ' + e.message, 'danger');
+      }
     });
   });
   document.querySelectorAll('[data-mark]').forEach(b=>b.onclick=()=>statusChangeModal(getAccount(b.dataset.acc), b.dataset.mark));
