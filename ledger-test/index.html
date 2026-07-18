@@ -303,9 +303,10 @@ tbody tr:hover{background:var(--surface-2);}
 .cal-daynum{font-size:11.5px;font-weight:600;color:var(--text-dim);}
 .cal-day-items{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
 .cal-chip{font-size:10px;padding:2px 5px;border-radius:5px;background:var(--slate-dim);color:var(--slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cal-chip-upcoming{background:var(--gold-dim);color:var(--gold);}
-.cal-chip-today{background:var(--danger-dim);color:var(--danger);}
-.cal-chip-past{background:var(--slate-dim);color:var(--text-faint);}
+.cal-chip-accent{background:var(--accent-dim);color:var(--accent);}
+.cal-chip-gold{background:var(--gold-dim);color:var(--gold);}
+.cal-chip-danger{background:var(--danger-dim);color:var(--danger);}
+.cal-chip-slate{background:var(--slate-dim);color:var(--slate);}
 .cal-chip-more{font-size:10px;color:var(--text-faint);}
 .cal-day-total{margin-top:3px;font-size:10px;font-weight:700;color:var(--text-dim);}
 @media (max-width:760px){
@@ -1625,7 +1626,7 @@ function renderView(){
   else if(state.route==='traders') el.innerHTML = viewTraders();
   else if(state.route==='propfirms') el.innerHTML = viewPropfirms();
   else if(state.route==='accounts') el.innerHTML = viewAccounts();
-  else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier des mensualités');
+  else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier');
   else if(state.route==='accounting') el.innerHTML = viewAccounting();
   else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
@@ -2275,6 +2276,45 @@ function computeMonthlyDueItems(monthKeyStr){
   items.sort((x,y)=>x.date.localeCompare(y.date));
   return items;
 }
+const CAL_EVENT_META = {
+  ACHAT:      { label:'Achat compte',      short:'Achat',    icon:'🛒', color:'slate'  },
+  ACTIVATION: { label:'Frais d\u2019activation', short:'Activation', icon:'⚡', color:'slate' },
+  MENSUALITE: { label:'Mensualité due',    short:'Mensu.',   icon:'💳', color:'gold'   },
+  PAYOUT:     { label:'Payout reçu',       short:'Payout',   icon:'💵', color:'accent' },
+  REUSSI:     { label:'Challenge réussi',  short:'Réussi',   icon:'🏆', color:'accent' },
+  BREACHED:   { label:'Breach',            short:'Breach',   icon:'💥', color:'danger' },
+  FERME:      { label:'Compte fermé',      short:'Fermé',    icon:'⏹️', color:'slate'  },
+};
+// Tous les événements liés aux comptes/traders pour un mois donné : achats, mensualités dues,
+// frais d'activation, payouts reçus, et issues de compte (réussi / breach / fermé) via endDate.
+function computeCalendarEvents(monthKeyStr){
+  const events = [];
+  const pushEvt = (date, type, acc, amount)=>{
+    if(!date || monthKey(date)!==monthKeyStr) return;
+    events.push({ date, type, amount, account:acc, trader:getTrader(acc.traderId), firm:getFirm(acc.propFirmId) });
+  };
+  state.accounts.forEach(acc=>{
+    if(acc.paymentType==='UNIQUE' && acc.purchasePrice){
+      pushEvt(acc.purchaseDate, 'ACHAT', acc, Number(acc.purchasePrice));
+    }
+    if((acc.type==='PA'||acc.type==='LIVE') && acc.activationFee){
+      pushEvt(acc.activationDate || acc.purchaseDate, 'ACTIVATION', acc, Number(acc.activationFee));
+    }
+    if(acc.status!=='ACTIF' && acc.endDate){
+      pushEvt(acc.endDate, acc.status, acc, null);
+    }
+  });
+  computeMonthlyDueItems(monthKeyStr).forEach(it=>{
+    pushEvt(it.date, 'MENSUALITE', getAccount(it.accountId), Number(it.amount));
+  });
+  state.payouts.forEach(p=>{
+    const acc = getAccount(p.accountId);
+    if(!acc) return;
+    pushEvt(p.date, 'PAYOUT', acc, Number(p.amount));
+  });
+  events.sort((a,b)=> a.date.localeCompare(b.date) || (a.type||'').localeCompare(b.type||''));
+  return events;
+}
 // Grille de cases pour un mois (semaines commençant le lundi), null = case vide de calage
 function buildCalendarGrid(monthKeyStr){
   const [y,m] = monthKeyStr.split('-').map(Number);
@@ -2288,26 +2328,43 @@ function buildCalendarGrid(monthKeyStr){
   return cells;
 }
 function calendarDayModal(dateStr){
-  const items = computeMonthlyDueItems(monthKey(dateStr)).filter(it=>it.date===dateStr);
-  const total = items.reduce((s,it)=>s+Number(it.amount),0);
+  const items = computeCalendarEvents(monthKey(dateStr)).filter(it=>it.date===dateStr);
+  const total = items.reduce((s,it)=>s+(it.amount||0),0);
+  const hasAmounts = items.some(it=>it.amount);
   openModal({
-    title: `Échéances du ${fmtDate(dateStr)}`,
+    title: `Événements du ${fmtDate(dateStr)}`,
     bodyHtml: `
       <div style="display:flex;flex-direction:column;">
-        ${items.map(it=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);">
-            <div>
-              <div style="font-weight:600;font-size:13px;">${it.trader?it.trader.pseudo:'—'}</div>
-              <div class="text-faint" style="font-size:11.5px;">${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.type]}</div>
+        ${items.map(it=>{
+          const meta = CAL_EVENT_META[it.type] || { label:it.type, icon:'•', color:'slate' };
+          return `
+          <div class="clickable-row" data-jump-acc="${it.account.id}" style="display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border-soft);border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:15px;">${meta.icon}</span>
+              <div>
+                <div style="font-weight:600;font-size:13px;">${it.trader?it.trader.pseudo:'—'} <span class="badge badge-${meta.color}" style="margin-left:4px;">${meta.label}</span></div>
+                <div class="text-faint" style="font-size:11.5px;">${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}</div>
+              </div>
             </div>
-            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${fmtMoney(it.amount)}</div>
-          </div>`).join('')}
-        ${items.length>1 ? `<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700;">
+            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoney(it.amount):''}</div>
+          </div>`;
+        }).join('')}
+        ${hasAmounts ? `<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700;">
           <span>Total</span><span>${fmtMoney(total)}</span>
         </div>` : ''}
       </div>`,
     footHtml: `<button class="btn btn-outline" id="cal-modal-close">Fermer</button>`,
-    onMount(){ document.getElementById('cal-modal-close').onclick = closeModal; }
+    onMount(){
+      document.getElementById('cal-modal-close').onclick = closeModal;
+      document.querySelectorAll('[data-jump-acc]').forEach(row=>row.onclick=()=>{
+        const acc = getAccount(row.dataset.jumpAcc);
+        if(!acc) return;
+        closeModal();
+        state.route = 'accounts';
+        state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
+        render();
+      });
+    }
   });
 }
 const MONTH_NAMES_LONG = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -2315,37 +2372,45 @@ function viewCalendrier(){
   const f = state.filters.calendrier;
   const today = todayISO();
   const mk = f.month || today.slice(0,7);
-  const items = computeMonthlyDueItems(mk);
-  const totalMonth = items.reduce((s,it)=>s+Number(it.amount),0);
+  const items = computeCalendarEvents(mk);
   const byDay = {};
   items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
   const cells = buildCalendarGrid(mk);
   const [y,m] = mk.split('-').map(Number);
-  const upcoming = items.find(it=>it.date>=today);
-  const activesMensuel = state.accounts.filter(a=>a.paymentType==='MENSUEL' && (
-    a.status==='ACTIF'
-  )).length;
+
+  const payoutsMonth = items.filter(it=>it.type==='PAYOUT');
+  const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
+  const reussisMonth = items.filter(it=>it.type==='REUSSI');
+  const breachesMonth = items.filter(it=>it.type==='BREACHED');
+  const totalPayouts = payoutsMonth.reduce((s,it)=>s+it.amount,0);
+  const totalDepenses = depensesMonth.reduce((s,it)=>s+it.amount,0);
 
   const dayCell = (dateStr)=>{
     if(!dateStr) return `<div class="cal-cell cal-cell-empty"></div>`;
     const dayItems = byDay[dateStr]||[];
     const dayNum = Number(dateStr.slice(8,10));
     const isToday = dateStr===today;
-    const isPast = dateStr<today;
-    const daySum = dayItems.reduce((s,it)=>s+Number(it.amount),0);
+    const daySum = dayItems.reduce((s,it)=>s+(it.amount||0),0);
     return `<div class="cal-cell ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${dayItems.length?'Voir le détail':''}">
       <div class="cal-daynum">${dayNum}</div>
       ${dayItems.length?`<div class="cal-day-items">
-        ${dayItems.slice(0,2).map(it=>`<div class="cal-chip ${isPast?'cal-chip-past':(isToday?'cal-chip-today':'cal-chip-upcoming')}">${it.trader?it.trader.pseudo:'—'}</div>`).join('')}
-        ${dayItems.length>2?`<div class="cal-chip-more">+${dayItems.length-2}</div>`:''}
-      </div><div class="cal-day-total">${fmtMoney(daySum)}</div>`:''}
+        ${dayItems.slice(0,3).map(it=>{
+          const meta = CAL_EVENT_META[it.type] || { icon:'•', color:'slate', short:it.type };
+          return `<div class="cal-chip cal-chip-${meta.color}">${meta.icon} ${it.trader?it.trader.pseudo:'—'}</div>`;
+        }).join('')}
+        ${dayItems.length>3?`<div class="cal-chip-more">+${dayItems.length-3}</div>`:''}
+      </div>${daySum?`<div class="cal-day-total">${fmtMoney(daySum)}</div>`:''}`:''}
     </div>`;
   };
+
+  const legend = Object.entries(CAL_EVENT_META).map(([k,meta])=>
+    `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);"><span class="cal-chip cal-chip-${meta.color}" style="padding:2px 6px;">${meta.icon}</span>${meta.label}</div>`
+  ).join('');
 
   return `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('calendar')}Calendrier des mensualités</div>
+        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('calendar')}Calendrier</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="btn btn-ghost btn-sm" id="cal-prev">${icon('chevLeft')}</button>
           <div style="font-weight:600;font-size:13.5px;min-width:130px;text-align:center;">${MONTH_NAMES_LONG[m-1]} ${y}</div>
@@ -2354,6 +2419,7 @@ function viewCalendrier(){
         </div>
       </div>
       <div class="panel-body">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;">${legend}</div>
         <div class="cal-grid cal-grid-head">
           ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-head-cell">${d}</div>`).join('')}
         </div>
@@ -2362,10 +2428,11 @@ function viewCalendrier(){
         </div>
       </div>
     </div>
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Total mensualités du mois</div><div class="stat-value">${fmtMoney(totalMonth)}</div><div class="stat-sub">${items.length} échéance(s)</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Comptes en mensuel actifs</div><div class="stat-value">${activesMensuel}</div><div class="stat-sub">tous traders confondus</div></div>
-      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Prochaine échéance</div><div class="stat-value" style="font-size:15px;">${upcoming?fmtDate(upcoming.date):'—'}</div><div class="stat-sub">à partir d\u2019aujourd\u2019hui</div></div>
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts reçus</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsMonth.length} payout(s) ce mois</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois</div><div class="stat-value">${fmtMoney(totalDepenses)}</div><div class="stat-sub">achats, mensualités, activations</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Challenges réussis</div><div class="stat-value">${reussisMonth.length}</div><div class="stat-sub">passages en PA ce mois</div></div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Breaches</div><div class="stat-value">${breachesMonth.length}</div><div class="stat-sub">comptes breached ce mois</div></div>
     </div>
   `;
 }
@@ -2449,6 +2516,7 @@ function viewClassement(){
    Journal des évolutions du site — à compléter à chaque itération.
 ============================================================ */
 const CHANGELOG = [
+  { type:'improvement', title:'Calendrier complet', desc:"Le Calendrier affiche maintenant tous les événements liés aux comptes et aux traders : payouts reçus, achats, mensualités dues, frais d'activation, challenges réussis et breaches — avec une légende, un code couleur par type d'événement, et un détail par jour au clic." },
   { type:'new', title:'Délais moyens (Dashboard)', desc:"Nouvelles cases sur le Dashboard : temps moyen avant le 1er payout après ouverture d'un compte, temps moyen entre deux payouts sur un même compte, temps moyen avant un breach, et temps moyen pour passer un Challenge en PA." },
   { type:'improvement', title:'Filtre statut multichoix (Comptes)', desc:"Le filtre Statut de la page Comptes permet désormais de sélectionner plusieurs statuts à la fois, avec un compteur du nombre de comptes affichés selon les filtres actifs." },
   { type:'new', title:'Classement entre traders', desc:"Nouvel onglet Classement façon leaderboard : podium des 3 meilleurs traders (payouts + taux de réussite) sur le mois ou en tout temps, et tableau complet pour les suivants." },
@@ -3315,7 +3383,7 @@ function viewSubscription(){
     'Comptes illimités par trader',
     'Import CSV / Excel',
     'Exports Excel & PDF',
-    'Calendrier des mensualités',
+    'Calendrier (payouts, breach, échéances…)',
     'Bilan visuel & statistiques avancées',
     'Classement',
     'Sauvegarde (backup)',
@@ -3460,7 +3528,7 @@ function bindViewEvents(){
     state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
     render();
   });
-  // Calendrier des mensualités
+  // Calendrier
   document.querySelectorAll('[data-cal-day]').forEach(c=>c.onclick=()=>calendarDayModal(c.dataset.calDay));
   const calPrev = document.getElementById('cal-prev');
   if(calPrev) calPrev.onclick = ()=>{
