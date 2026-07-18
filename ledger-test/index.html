@@ -1975,8 +1975,14 @@ function openDelayDetailModal(key){
     }
   });
 }
+function fmtMoneyShort(n){
+  const v = Number(n)||0;
+  if(v===0) return '0';
+  if(Math.abs(v)>=1000) return (v/1000).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'k';
+  return Math.round(v).toLocaleString('fr-FR');
+}
 function renderMiniChart(data, maxVal){
-  const w=560,h=170,barW=22,gap=46,groupW=barW*2+8;
+  const w=560,h=190,barW=22,gap=46,groupW=barW*2+8;
   let bars='';
   data.forEach((d,i)=>{
     const x = 30 + i*gap*2.4;
@@ -1984,9 +1990,11 @@ function renderMiniChart(data, maxVal){
     const hPay = (d.pay/maxVal)*130;
     bars += `<rect x="${x}" y="${150-hExp}" width="${barW}" height="${hExp}" rx="3" fill="var(--danger)" opacity="0.85"/>`;
     bars += `<rect x="${x+barW+4}" y="${150-hPay}" width="${barW}" height="${hPay}" rx="3" fill="var(--accent)" opacity="0.9"/>`;
+    if(d.exp>0) bars += `<text x="${x+barW/2}" y="${Math.max(10,150-hExp-4)}" text-anchor="middle" font-size="9.5" fill="var(--danger)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.exp)}</text>`;
+    if(d.pay>0) bars += `<text x="${x+barW+4+barW/2}" y="${Math.max(10,150-hPay-4)}" text-anchor="middle" font-size="9.5" fill="var(--accent)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.pay)}</text>`;
     bars += `<text x="${x+barW+2}" y="166" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`;
   });
-  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:180px;overflow:visible;">${bars}</svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">${bars}</svg>`;
 }
 
 /* ============================================================
