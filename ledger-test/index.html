@@ -469,12 +469,12 @@ const state = {
   activityLog: [],
   promo_codes: [],
   filters: {
-    accounts: { q:'', trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false },
-    accounting: { month:'', type:'', trader:'', propfirm:'' },
-    dashboard: { trader:'', propfirm:'', month:'' },
-    bilan: { month:'', trader:'' },
+    accounts: { q:'', trader:[], propfirm:'', type:'', status:[], statusMenuOpen:false, traderMenuOpen:false },
+    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false },
+    dashboard: { trader:[], propfirm:'', month:'', traderMenuOpen:false },
+    bilan: { month:'', trader:[], traderMenuOpen:false },
     sessions: { q:'' },
-    calendrier: { month: '' },
+    calendrier: { month: '', trader:[], traderMenuOpen:false },
     classement: { month: '', allTime: false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
   },
@@ -495,18 +495,21 @@ function myLinkedTrader(){
 function applyMyTraderDefaultFilters(){
   const t = myLinkedTrader();
   if(!t) return;
-  if(!state.filters.dashboard.trader) state.filters.dashboard.trader = t.id;
-  if(!state.filters.accounts.trader) state.filters.accounts.trader = t.id;
-  if(!state.filters.accounting.trader) state.filters.accounting.trader = t.id;
-  if(!state.filters.bilan.trader) state.filters.bilan.trader = t.id;
+  if(!state.filters.dashboard.trader.length) state.filters.dashboard.trader = [t.id];
+  if(!state.filters.accounts.trader.length) state.filters.accounts.trader = [t.id];
+  if(!state.filters.accounting.trader.length) state.filters.accounting.trader = [t.id];
+  if(!state.filters.bilan.trader.length) state.filters.bilan.trader = [t.id];
+  if(!state.filters.calendrier.trader.length) state.filters.calendrier.trader = [t.id];
 }
-// Applique le même trader sélectionné à TOUS les filtres "trader" de l'app
-// (Dashboard, Comptes, Comptabilité, Bilan), pour que le choix se propage partout.
-function setTraderFilterEverywhere(traderId){
-  state.filters.dashboard.trader = traderId;
-  state.filters.accounts.trader = traderId;
-  state.filters.accounting.trader = traderId;
-  state.filters.bilan.trader = traderId;
+// Applique la même sélection de trader(s) à TOUS les filtres "trader" de l'app
+// (Dashboard, Comptes, Comptabilité, Bilan, Calendrier), pour que le choix se propage partout.
+function setTraderFilterEverywhere(traderIds){
+  const ids = Array.isArray(traderIds) ? traderIds : (traderIds ? [traderIds] : []);
+  state.filters.dashboard.trader = ids;
+  state.filters.accounts.trader = ids;
+  state.filters.accounting.trader = ids;
+  state.filters.bilan.trader = ids;
+  state.filters.calendrier.trader = ids;
 }
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
 function isMine(item){ return item.createdBy === currentUserId(); }
@@ -1464,6 +1467,53 @@ function showToast(msg, type=''){
    MODAL SYSTEM
 ============================================================ */
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+// Composant générique de filtre à choix multiple (case à cocher) — dropdown à bouton.
+// options: [{v,l}], selected: array de valeurs, filterObj/openField: pour mémoriser l'état ouvert/fermé.
+function renderMultiSelect(idPrefix, options, selected, placeholder, open){
+  const label = !selected.length ? placeholder
+    : selected.length===1 ? ((options.find(o=>o.v===selected[0])||{}).l || placeholder)
+    : `${selected.length} sélectionnés`;
+  return `
+    <div class="status-multiselect" id="${idPrefix}-wrap">
+      <button type="button" class="status-ms-btn" id="${idPrefix}-btn">${label} <span style="opacity:.6;font-size:10px;">▾</span></button>
+      <div class="status-ms-menu" id="${idPrefix}-menu" style="display:${open?'flex':'none'};">
+        ${options.map(o=>`<label class="status-ms-item"><input type="checkbox" data-ms-opt="${idPrefix}" value="${o.v}" ${selected.includes(o.v)?'checked':''}/>${o.l}</label>`).join('')}
+        ${selected.length?`<button type="button" class="status-ms-clear" id="${idPrefix}-clear">Réinitialiser</button>`:''}
+      </div>
+    </div>`;
+}
+// Câble les interactions d'un renderMultiSelect() : filterObj[arrField] est le tableau de valeurs
+// sélectionnées, filterObj[openField] mémorise l'état ouvert/fermé du menu entre les rendus.
+function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onChange){
+  const btn = document.getElementById(idPrefix+'-btn');
+  if(!btn) return;
+  btn.onclick = (e)=>{ e.stopPropagation(); filterObj[openField] = !filterObj[openField]; renderView(); };
+  document.querySelectorAll(`[data-ms-opt="${idPrefix}"]`).forEach(cb=>{
+    cb.onclick = e=>e.stopPropagation();
+    cb.onchange = ()=>{
+      const arr = filterObj[arrField];
+      const idx = arr.indexOf(cb.value);
+      if(cb.checked && idx===-1) arr.push(cb.value);
+      else if(!cb.checked && idx!==-1) arr.splice(idx,1);
+      if(onChange) onChange(arr.slice());
+      renderView();
+    };
+  });
+  const menu = document.getElementById(idPrefix+'-menu');
+  if(menu) menu.onclick = e=>e.stopPropagation();
+  const clearBtn = document.getElementById(idPrefix+'-clear');
+  if(clearBtn) clearBtn.onclick = (e)=>{ e.stopPropagation(); filterObj[arrField] = []; if(onChange) onChange([]); renderView(); };
+  if(filterObj[openField]){
+    setTimeout(()=>{
+      document.addEventListener('click', function closeMs(){
+        filterObj[openField] = false;
+        renderView();
+        document.removeEventListener('click', closeMs);
+      }, { once:true });
+    }, 0);
+  }
+}
 function openModal({ title, bodyHtml, footHtml, wide, onMount }){
   const root = document.getElementById('modal-root');
   root.innerHTML = `
@@ -1699,7 +1749,7 @@ let dashboardDelayDetails = {};
 function viewDashboard(){
   const f = state.filters.dashboard;
   const accountsF = state.accounts.filter(a=>
-    (!f.trader || a.traderId===f.trader) &&
+    (!f.trader.length || f.trader.includes(a.traderId)) &&
     (!f.propfirm || a.propFirmId===f.propfirm)
   );
   const accIds = new Set(accountsF.map(a=>a.id));
@@ -1802,10 +1852,10 @@ function viewDashboard(){
 
   const filterBar = `
     <div class="filter-bar">
-      <select id="fd-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
+      ${renderMultiSelect('fd-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <select id="fd-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
       <input type="month" id="fd-month" value="${f.month}"/>
-      ${(f.trader||f.propfirm||f.month) ? `<button class="btn btn-ghost btn-sm" id="fd-clear">Réinitialiser filtres</button>` : ''}
+      ${(f.trader.length||f.propfirm||f.month) ? `<button class="btn btn-ghost btn-sm" id="fd-clear">Réinitialiser filtres</button>` : ''}
     </div>`;
 
   const alertsPanel = `
@@ -2372,7 +2422,8 @@ function viewCalendrier(){
   const f = state.filters.calendrier;
   const today = todayISO();
   const mk = f.month || today.slice(0,7);
-  const items = computeCalendarEvents(mk);
+  let items = computeCalendarEvents(mk);
+  if(f.trader.length) items = items.filter(it=>it.trader && f.trader.includes(it.trader.id));
   const byDay = {};
   items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
   const cells = buildCalendarGrid(mk);
@@ -2419,7 +2470,12 @@ function viewCalendrier(){
         </div>
       </div>
       <div class="panel-body">
-        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;">${legend}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${renderMultiSelect('cal-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;">${legend}</div>
+        </div>
         <div class="cal-grid cal-grid-head">
           ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-head-cell">${d}</div>`).join('')}
         </div>
@@ -2516,6 +2572,7 @@ function viewClassement(){
    Journal des évolutions du site — à compléter à chaque itération.
 ============================================================ */
 const CHANGELOG = [
+  { type:'improvement', title:'Filtre trader multichoix partout', desc:"Le filtre Trader (Dashboard, Comptes, Comptabilité, Bilan, Calendrier) permet désormais de sélectionner plusieurs traders à la fois, et la sélection se synchronise automatiquement entre toutes ces pages." },
   { type:'improvement', title:'Calendrier complet', desc:"Le Calendrier affiche maintenant tous les événements liés aux comptes et aux traders : payouts reçus, achats, mensualités dues, frais d'activation, challenges réussis et breaches — avec une légende, un code couleur par type d'événement, et un détail par jour au clic." },
   { type:'new', title:'Délais moyens (Dashboard)', desc:"Nouvelles cases sur le Dashboard : temps moyen avant le 1er payout après ouverture d'un compte, temps moyen entre deux payouts sur un même compte, temps moyen avant un breach, et temps moyen pour passer un Challenge en PA." },
   { type:'improvement', title:'Filtre statut multichoix (Comptes)', desc:"Le filtre Statut de la page Comptes permet désormais de sélectionner plusieurs statuts à la fois, avec un compteur du nombre de comptes affichés selon les filtres actifs." },
@@ -2562,7 +2619,7 @@ function viewAccounts(){
       return (t&&t.pseudo.toLowerCase().includes(q)) || a.accountNumber.toLowerCase().includes(q) || (pf&&pf.name.toLowerCase().includes(q));
     });
   }
-  if(f.trader) list = list.filter(a=>a.traderId===f.trader);
+  if(f.trader.length) list = list.filter(a=>f.trader.includes(a.traderId));
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
   if(f.type) list = list.filter(a=>a.type===f.type);
   if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status));
@@ -2575,12 +2632,12 @@ function viewAccounts(){
   const statusBtnLabel = !f.status.length ? 'Tous statuts'
     : f.status.length===1 ? STATUS_LABELS[f.status[0]]
     : `${f.status.length} statuts`;
-  const anyFilterActive = !!(f.q || f.trader || f.propfirm || f.type || f.status.length);
+  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.status.length);
 
   const filterBar = `
     <div class="filter-bar">
       <div class="search-wrap">${icon('search')}<input type="text" id="f-q" placeholder="Rechercher trader, n° compte, propfirm…" value="${f.q}"/></div>
-      <select id="f-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
+      ${renderMultiSelect('f-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <select id="f-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
       <select id="f-type"><option value="">Tous types</option><option value="CHALLENGE" ${f.type==='CHALLENGE'?'selected':''}>Challenge</option><option value="PA" ${f.type==='PA'?'selected':''}>PA</option><option value="LIVE" ${f.type==='LIVE'?'selected':''}>Live</option></select>
       <div class="status-multiselect" id="f-status-wrap">
@@ -2702,7 +2759,7 @@ function exportAccountingCSV(){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
   }
-  if(f.trader) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).traderId===f.trader);
+  if(f.trader.length) all = all.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   all.sort((a,b)=>a.date.localeCompare(b.date));
 
@@ -2741,7 +2798,7 @@ function buildAccountingRows(){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
   }
-  if(f.trader) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).traderId===f.trader);
+  if(f.trader.length) all = all.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   all.sort((a,b)=>a.date.localeCompare(b.date));
   return all.map(x=>{
@@ -2788,7 +2845,7 @@ function exportAccountingPDF(){
 
   const filterParts = [];
   if(f.month){ const [yy,mm]=f.month.split('-'); filterParts.push(`Mois : ${mm}/${yy}`); } else filterParts.push('Période : toutes dates');
-  if(f.trader) filterParts.push(`Trader : ${getTrader(f.trader)?.pseudo||''}`);
+  if(f.trader.length) filterParts.push(`Trader : ${f.trader.map(id=>getTrader(id)?.pseudo).filter(Boolean).join(', ')}`);
   if(f.propfirm) filterParts.push(`PropFirm : ${getFirm(f.propfirm)?.name||''}`);
   if(f.type) filterParts.push(`Type : ${f.type==='PAYOUT'?'Payouts':f.type}`);
   doc.setFontSize(10); doc.setTextColor(90);
@@ -2866,7 +2923,7 @@ function viewAccounting(){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
   }
-  if(f.trader) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).traderId===f.trader);
+  if(f.trader.length) all = all.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   all.sort((a,b)=>b.date.localeCompare(a.date));
 
@@ -2880,7 +2937,7 @@ function viewAccounting(){
     if(f.type==='PAYOUT') recapSource = recapSource.filter(x=>x.kind==='payout');
     else recapSource = recapSource.filter(x=>x.kind==='expense' && x.type===f.type);
   }
-  if(f.trader) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).traderId===f.trader);
+  if(f.trader.length) recapSource = recapSource.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   const recapGroups = {};
   recapSource.forEach(x=>{
@@ -2903,9 +2960,9 @@ function viewAccounting(){
         <option value="ACTIVATION" ${f.type==='ACTIVATION'?'selected':''}>Activation</option>
         <option value="PAYOUT" ${f.type==='PAYOUT'?'selected':''}>Payout</option>
       </select>
-      <select id="fa-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
+      ${renderMultiSelect('fa-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <select id="fa-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
-      ${(f.month||f.type||f.trader||f.propfirm) ? `<button class="btn btn-ghost btn-sm" id="fa-clear">Réinitialiser filtres</button>` : ''}
+      ${(f.month||f.type||f.trader.length||f.propfirm) ? `<button class="btn btn-ghost btn-sm" id="fa-clear">Réinitialiser filtres</button>` : ''}
     </div>`;
 
   const rows = all.length===0 ? `<tr><td colspan="6"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune ligne pour ces filtres.</div></td></tr>` :
@@ -2967,7 +3024,7 @@ function viewAccounting(){
    VIEW: BILAN VISUEL (cartes mensuelles par trader / propfirm,
    pensées pour être exportées en PNG pour les vidéos YouTube)
 ============================================================ */
-function computeBilanData(month, traderId){
+function computeBilanData(month, traderIds){
   const lines = computeAllExpenses().filter(e=>monthKey(e.date)===month);
   const pays = state.payouts.filter(p=>monthKey(p.date)===month);
   const map = new Map();
@@ -2979,13 +3036,13 @@ function computeBilanData(month, traderId){
   lines.forEach(e=>{
     const acc = getAccount(e.accountId);
     if(!acc) return;
-    if(traderId && acc.traderId!==traderId) return;
+    if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
     entryFor(acc.traderId, acc.propFirmId).expense += e.amount;
   });
   pays.forEach(p=>{
     const acc = getAccount(p.accountId);
     if(!acc) return;
-    if(traderId && acc.traderId!==traderId) return;
+    if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
     entryFor(acc.traderId, acc.propFirmId).payout += Number(p.amount);
   });
   return Array.from(map.values())
@@ -3057,8 +3114,8 @@ function viewBilanVisuel(){
   const filterBar = `
     <div class="filter-bar">
       <input type="month" id="fb-month" value="${month}"/>
-      <select id="fb-trader"><option value="">Tous les traders</option>${state.traders.map(t=>`<option value="${t.id}" ${f.trader===t.id?'selected':''}>${t.pseudo}</option>`).join('')}</select>
-      ${f.trader ? `<button class="btn btn-ghost btn-sm" id="fb-clear">Réinitialiser filtres</button>` : ''}
+      ${renderMultiSelect('fb-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      ${f.trader.length ? `<button class="btn btn-ghost btn-sm" id="fb-clear">Réinitialiser filtres</button>` : ''}
     </div>`;
 
   const grid = entries.length===0
@@ -3506,18 +3563,18 @@ function emptyState(iconName, title, sub){
 ============================================================ */
 function bindViewEvents(){
   // Dashboard filters
-  ['fd-trader','fd-firm','fd-month'].forEach(id=>{
+  ['fd-firm','fd-month'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fd-trader':'trader', 'fd-firm':'propfirm', 'fd-month':'month' };
+    const map = { 'fd-firm':'propfirm', 'fd-month':'month' };
     el.addEventListener('change', ()=>{
-      if(id==='fd-trader'){ setTraderFilterEverywhere(el.value); }
-      else { state.filters.dashboard[map[id]] = el.value; }
+      state.filters.dashboard[map[id]] = el.value;
       renderView();
     });
   });
+  bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fdClearBtn = document.getElementById('fd-clear');
-  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:'',propfirm:'',month:''}; setTraderFilterEverywhere(''); renderView(); };
+  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:[],propfirm:'',month:'',traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
     tile.onclick = ()=>openDelayDetailModal(tile.dataset.delayDetail);
   });
@@ -3530,6 +3587,7 @@ function bindViewEvents(){
   });
   // Calendrier
   document.querySelectorAll('[data-cal-day]').forEach(c=>c.onclick=()=>calendarDayModal(c.dataset.calDay));
+  bindMultiSelectDropdown('cal-trader', state.filters.calendrier, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const calPrev = document.getElementById('cal-prev');
   if(calPrev) calPrev.onclick = ()=>{
     const mk = state.filters.calendrier.month || todayISO().slice(0,7);
@@ -3605,13 +3663,12 @@ function bindViewEvents(){
     });
   });
   // Accounts filters
-  ['f-q','f-trader','f-firm','f-type'].forEach(id=>{
+  ['f-q','f-firm','f-type'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'f-q':'q', 'f-trader':'trader', 'f-firm':'propfirm', 'f-type':'type' };
+    const map = { 'f-q':'q', 'f-firm':'propfirm', 'f-type':'type' };
     el.addEventListener(id==='f-q'?'input':'change', ()=>{
-      if(id==='f-trader'){ setTraderFilterEverywhere(el.value); }
-      else { state.filters.accounts[map[id]] = el.value; }
+      state.filters.accounts[map[id]] = el.value;
       if(id==='f-q'){
         const cursorPos = el.selectionStart;
         renderView();
@@ -3622,6 +3679,7 @@ function bindViewEvents(){
       }
     });
   });
+  bindMultiSelectDropdown('f-trader', state.filters.accounts, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   // Accounts filters — statut (multichoix)
   const statusBtn = document.getElementById('f-status-btn');
   if(statusBtn){
@@ -3661,18 +3719,18 @@ function bindViewEvents(){
     }
   }
   // Accounting filters
-  ['fa-month','fa-type','fa-trader','fa-firm'].forEach(id=>{
+  ['fa-month','fa-type','fa-firm'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fa-month':'month', 'fa-type':'type', 'fa-trader':'trader', 'fa-firm':'propfirm' };
+    const map = { 'fa-month':'month', 'fa-type':'type', 'fa-firm':'propfirm' };
     el.addEventListener('change', ()=>{
-      if(id==='fa-trader'){ setTraderFilterEverywhere(el.value); }
-      else { state.filters.accounting[map[id]] = el.value; }
+      state.filters.accounting[map[id]] = el.value;
       renderView();
     });
   });
+  bindMultiSelectDropdown('fa-trader', state.filters.accounting, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const clearBtn = document.getElementById('fa-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:'',propfirm:''}; setTraderFilterEverywhere(''); renderView(); };
+  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-select-month]').forEach(row=>row.onclick=()=>{
     const mk = row.dataset.selectMonth;
     state.filters.accounting.month = (state.filters.accounting.month===mk) ? '' : mk; // re-clic = désélectionner
@@ -3734,18 +3792,18 @@ function bindViewEvents(){
   });
 
   // Bilan Visuel filters
-  ['fb-month','fb-trader'].forEach(id=>{
+  ['fb-month'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fb-month':'month', 'fb-trader':'trader' };
+    const map = { 'fb-month':'month' };
     el.addEventListener('change', ()=>{
-      if(id==='fb-trader'){ setTraderFilterEverywhere(el.value); }
-      else { state.filters.bilan[map[id]] = el.value; }
+      state.filters.bilan[map[id]] = el.value;
       renderView();
     });
   });
+  bindMultiSelectDropdown('fb-trader', state.filters.bilan, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fbClearBtn = document.getElementById('fb-clear');
-  if(fbClearBtn) fbClearBtn.onclick = ()=>{ setTraderFilterEverywhere(''); renderView(); };
+  if(fbClearBtn) fbClearBtn.onclick = ()=>{ setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-export-card]').forEach(b=>b.onclick=()=>{
     exportBilanCard(b.dataset.exportCard, b.dataset.exportName);
   });
