@@ -1555,7 +1555,6 @@ function confirmModal(message, onConfirm, danger=true){
 function getNav(){
   const nav = [
     { id:'dashboard', label:'Dashboard', icon:'grid' },
-    { id:'meteo', label:'Météo NQ', icon:'bolt' },
     { id:'traders', label:'Traders', icon:'users' },
     { id:'propfirms', label:'PropFirms', icon:'building' },
     { id:'accounts', label:'Comptes', icon:'card' },
@@ -1563,6 +1562,7 @@ function getNav(){
     { id:'accounting', label:'Comptabilité', icon:'book' },
     { id:'bilan', label:'Bilan Visuel', icon:'camera' },
     { id:'sessions', label:'Sessions Live', icon:'video' },
+    { id:'meteo', label:'Préparation séance', icon:'bolt' },
     { id:'comparatif', label:'Comparatif', icon:'barChart' },
     { id:'classement', label:'Classement', icon:'trophy' },
     { id:'changelog', label:'Nouveautés', icon:'sparkles' },
@@ -3316,7 +3316,7 @@ function calendarsPanelHtml(){
         </div>
       </div>
       <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
-        <div class="field-hint">Source : <a href="https://www.nasdaq.com/market-activity/earnings" target="_blank" rel="noopener">nasdaq.com/market-activity/earnings</a>, via une fonction serveur (nécessite le déploiement Netlify — ne fonctionne pas en ouvrant le fichier HTML en local).</div>
+        <div class="field-hint">Source : <a href="https://www.nasdaq.com/market-activity/earnings" target="_blank" rel="noopener">nasdaq.com/market-activity/earnings</a>.</div>
         <div id="nsdq-result" style="margin-top:12px;"></div>
       </div>
     </div>`;
