@@ -448,7 +448,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions'];
+const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 const state = {
   route: 'dashboard',
@@ -465,6 +465,7 @@ const state = {
   payouts: [],
   account_notes: [],
   yt_sessions: [],
+  market_prep: [],
   profiles: [],
   activityLog: [],
   promo_codes: [],
@@ -538,7 +539,7 @@ async function loadAll(){
   }
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 async function upsert(collection, item){
   const arr = state[collection];
@@ -1549,6 +1550,7 @@ function confirmModal(message, onConfirm, danger=true){
 function getNav(){
   const nav = [
     { id:'dashboard', label:'Dashboard', icon:'grid' },
+    { id:'meteo', label:'Météo NQ', icon:'bolt' },
     { id:'traders', label:'Traders', icon:'users' },
     { id:'propfirms', label:'PropFirms', icon:'building' },
     { id:'accounts', label:'Comptes', icon:'card' },
@@ -1629,6 +1631,7 @@ function render(){
 function topbarSub(){
   const map = {
     dashboard: 'Vue d\u2019ensemble de l\u2019activité',
+    meteo: 'Prépa de séance — niveaux, régime de marché, biais du jour',
     traders: state.traders.length + ' trader(s) enregistré(s)',
     propfirms: state.propfirms.length + ' propfirm(s) enregistrée(s)',
     accounts: state.accounts.length + ' compte(s) au total',
@@ -1643,7 +1646,8 @@ function topbarSub(){
 }
 function renderTopbarActions(){
   const el = document.getElementById('topbar-actions');
-  if(state.route==='traders') el.innerHTML = `<button class="btn btn-primary" id="add-trader">${icon('plus')}Nouveau trader</button>`;
+  if(state.route==='meteo') el.innerHTML = `<button class="btn btn-primary" id="add-prep">${icon('plus')}Nouvelle prépa</button>`;
+  else if(state.route==='traders') el.innerHTML = `<button class="btn btn-primary" id="add-trader">${icon('plus')}Nouveau trader</button>`;
   else if(state.route==='propfirms') el.innerHTML = `<button class="btn btn-primary" id="add-firm">${icon('plus')}Nouvelle PropFirm</button>`;
   else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
@@ -1657,6 +1661,7 @@ function renderTopbarActions(){
   else if(state.route==='bilan') el.innerHTML = `<button class="btn btn-primary" id="export-bilan-all">${icon('image')}Tout exporter (PNG)</button>`;
   else if(state.route==='sessions') el.innerHTML = `<button class="btn btn-primary" id="add-session">${icon('plus')}Nouvelle session</button>`;
   else el.innerHTML = '';
+  if(document.getElementById('add-prep')) document.getElementById('add-prep').onclick = ()=>prepFormModal();
   if(document.getElementById('add-trader')) document.getElementById('add-trader').onclick = ()=>traderFormModal();
   if(document.getElementById('add-firm')) document.getElementById('add-firm').onclick = ()=>firmFormModal();
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
@@ -1673,6 +1678,7 @@ function renderTopbarActions(){
 function renderView(){
   const el = document.getElementById('view-root');
   if(state.route==='dashboard') el.innerHTML = viewDashboard();
+  else if(state.route==='meteo') el.innerHTML = viewMeteo();
   else if(state.route==='traders') el.innerHTML = viewTraders();
   else if(state.route==='propfirms') el.innerHTML = viewPropfirms();
   else if(state.route==='accounts') el.innerHTML = viewAccounts();
@@ -3210,6 +3216,201 @@ function sessionCardHtml(s){
     </div>`;
 }
 
+/* ============================================================
+   VIEW: MÉTÉO NQ (prépa de séance — niveaux, régime, biais)
+   ------------------------------------------------------------
+   Important : ceci n'est PAS un modèle de probabilité calibré par
+   ML. Aucune source gratuite/fiable de gamma exposure réel n'est
+   branchée ici — les niveaux (Zero Gamma, Call Wall, Put Wall, IV)
+   sont saisis manuellement par le trader depuis ATAS / Trade With
+   Me. Le "zonage" ci-dessous est un calcul à règles basé sur la
+   théorie standard du dealer positioning (long gamma = amorti,
+   short gamma = amplifié) — pas une proba statistiquement vérifiée.
+============================================================ */
+function fmtPts(n){ return Number(n).toLocaleString('fr-FR', {maximumFractionDigits:2}); }
+
+function meteoZone(prep){
+  const spot = Number(prep.spot), flip = Number(prep.zeroGamma);
+  const callWall = (prep.callWall!==null && prep.callWall!=='') ? Number(prep.callWall) : null;
+  const putWall = (prep.putWall!==null && prep.putWall!=='') ? Number(prep.putWall) : null;
+  if(!isFinite(spot) || !isFinite(flip) || !spot || !flip){
+    return { label:'Données incomplètes', cls:'badge-slate', detail:'Renseigne au minimum le prix spot et le Zero Gamma.', wallNote:'' };
+  }
+  const dist = spot - flip;
+  const distPct = Math.abs(dist / flip * 100);
+  let label, cls, detail;
+  if(dist < 0){
+    label = 'Sous le flip — risque d\u2019amplification';
+    cls = 'badge-danger';
+    detail = 'Prix sous le Zero Gamma : les dealers sont probablement short gamma \u2014 leurs couvertures tendent à amplifier le mouvement en cours (achats si ça monte, ventes si ça baisse). Stops plus larges, taille réduite recommandée.';
+  } else if(distPct < 15){
+    label = 'Proche du flip — zone de transition';
+    cls = 'badge-gold';
+    detail = 'Prix juste au-dessus du Zero Gamma : régime instable, un simple aller-retour sous le flip peut faire basculer le comportement du marché en cours de séance. Vigilance accrue.';
+  } else {
+    label = 'Au-dessus du flip — régime plutôt calme';
+    cls = 'badge-accent';
+    detail = 'Prix confortablement au-dessus du Zero Gamma : les dealers sont probablement long gamma \u2014 leurs couvertures amortissent le mouvement (effet de "pin"). Moins de suivi de tendance, plus de retour à la moyenne attendu.';
+  }
+  let wallNote = '';
+  if(callWall!==null && putWall!==null){
+    if(spot > callWall) wallNote = 'Prix déjà au-dessus du Call Wall : résistance franchie, risque de breakout / extension si le volume confirme.';
+    else if(spot < putWall) wallNote = 'Prix déjà sous le Put Wall : support cassé, risque d\u2019extension baissière.';
+    else wallNote = `Prix dans le corridor Put Wall → Call Wall (${fmtPts(putWall)} – ${fmtPts(callWall)}) : zone où le prix a tendance à osciller tant que ces murs tiennent.`;
+  }
+  return { label, cls, detail, wallNote, dist, distPct };
+}
+
+function prepCardHtml(p){
+  const z = meteoZone(p);
+  return `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-head">
+        <div class="section-title mono">${p.date}${p.spot?` · Spot ${fmtPts(p.spot)}`:''}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="badge ${z.cls}">${z.label}</span>
+          ${canEdit(p) ? `<button class="btn btn-ghost btn-sm" data-edit-prep="${p.id}">${icon('edit')}</button><button class="btn btn-ghost btn-sm" data-del-prep="${p.id}">${icon('trash')}</button>` : ''}
+        </div>
+      </div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
+          <div><div class="stat-label">Zero Gamma</div><div class="mono">${p.zeroGamma?fmtPts(p.zeroGamma):'—'}</div></div>
+          <div><div class="stat-label">Call Wall</div><div class="mono">${p.callWall?fmtPts(p.callWall):'—'}</div></div>
+          <div><div class="stat-label">Put Wall</div><div class="mono">${p.putWall?fmtPts(p.putWall):'—'}</div></div>
+          <div><div class="stat-label">IV du jour</div><div class="mono">${p.iv?p.iv+'%':'—'}</div></div>
+        </div>
+        <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:6px;">${z.detail}</div>
+        ${z.wallNote ? `<div style="font-size:12.5px;color:var(--text-dim);margin-bottom:6px;">${z.wallNote}</div>` : ''}
+        ${p.biasNote ? `<div class="field-hint" style="margin-top:8px;"><strong>Biais du jour :</strong> ${p.biasNote}</div>` : ''}
+        ${p.aiSummary ? `<div class="field-hint" style="margin-top:8px;padding:10px;border-radius:8px;background:var(--surface-2);"><strong>Synthèse IA :</strong> ${p.aiSummary}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function viewMeteo(){
+  const list = [...state.market_prep].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const today = todayISO();
+  const todayEntry = list.find(p=>p.date===today);
+  const intro = `
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
+        Prépa de séance à règles claires, pas une fausse proba ML : les niveaux (Zero Gamma, Call Wall, Put Wall, IV) sont
+        saisis à la main depuis ATAS / Trade With Me chaque matin. Le zonage calme / transition / violente suit la théorie
+        standard du dealer positioning — long gamma = régime amorti, short gamma = régime amplifié.
+      </div>
+    </div>`;
+  if(!todayEntry){
+    return intro + emptyState('bolt', 'Pas encore de prépa pour aujourd\u2019hui', 'Clique sur "Nouvelle prépa" pour saisir les niveaux du jour et voir le régime de marché estimé.') + (list.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${list.map(prepCardHtml).join('')}</div>` : '');
+  }
+  const rest = list.filter(p=>p.id!==todayEntry.id);
+  return intro + prepCardHtml(todayEntry) + (rest.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${rest.map(prepCardHtml).join('')}</div>` : '');
+}
+
+async function callGeminiSynthesis(prep){
+  const key = localStorage.getItem('meteo_gemini_key');
+  if(!key){ showToast('Ajoute d\u2019abord ta clé API Gemini (champ dédié dans le formulaire).', 'danger'); return null; }
+  const z = meteoZone(prep);
+  const prompt = `Tu es un assistant de prépa de séance pour un trader NQ (Nasdaq futures) de style contrarian (méthode EPB : Extension, Poussée, Blocage). Rédige une synthèse courte (4-5 phrases max, en français, ton direct sans blabla) à partir de ces données du jour :
+- Prix spot : ${prep.spot}
+- Zero Gamma (flip) : ${prep.zeroGamma}
+- Call Wall : ${prep.callWall || 'non renseigné'}
+- Put Wall : ${prep.putWall || 'non renseigné'}
+- IV du jour : ${prep.iv || 'non renseignée'}%
+- Zone estimée : ${z.label}
+- Note du trader : ${prep.biasNote || 'aucune'}
+Ne donne pas de conseil financier générique, reste concret sur les niveaux et le régime de volatilité attendu.`;
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error?.message || 'Erreur API Gemini');
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+  } catch(e){
+    showToast('Erreur Gemini : ' + e.message, 'danger');
+    return null;
+  }
+}
+
+function prepFormModal(existing){
+  const p = existing || { id: uid('mp'), date: todayISO(), spot:'', zeroGamma:'', callWall:'', putWall:'', iv:'', biasNote:'', aiSummary:'', createdBy: currentUserId() };
+  const savedKey = localStorage.getItem('meteo_gemini_key') || '';
+  openModal({
+    title: existing ? 'Modifier la prépa' : 'Nouvelle prépa de séance',
+    bodyHtml: `
+      <div class="field-row">
+        <div class="field"><label>Date</label><input id="mp-date" type="date" value="${p.date}"/></div>
+        <div class="field"><label>Prix spot NQ</label><input id="mp-spot" type="number" step="0.25" value="${p.spot}" placeholder="Ex : 21450"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Zero Gamma (flip)</label><input id="mp-flip" type="number" step="0.25" value="${p.zeroGamma}" placeholder="Ex : 21300"/></div>
+        <div class="field"><label>IV du jour (%, optionnel)</label><input id="mp-iv" type="number" step="0.1" value="${p.iv}" placeholder="Ex : 14.2"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Call Wall (optionnel)</label><input id="mp-callwall" type="number" step="0.25" value="${p.callWall}" placeholder="Ex : 21600"/></div>
+        <div class="field"><label>Put Wall (optionnel)</label><input id="mp-putwall" type="number" step="0.25" value="${p.putWall}" placeholder="Ex : 21100"/></div>
+      </div>
+      <div class="field"><label>Biais du jour / notes EPB</label><textarea id="mp-bias" rows="3" placeholder="Ex : extension haussière depuis 3 séances, on cherche un blocage pour jouer le retournement…">${p.biasNote||''}</textarea></div>
+      <div class="field" style="border-top:1px solid var(--border-soft);padding-top:12px;margin-top:4px;">
+        <label>Clé API Gemini (optionnel, stockée uniquement dans ton navigateur)</label>
+        <input id="mp-gemini-key" type="password" value="${savedKey}" placeholder="AIza…"/>
+        <div class="field-hint">Sert uniquement à générer la synthèse ci-dessous, en local. Jamais envoyée à Supabase.</div>
+      </div>
+      <div class="field"><label>Synthèse IA (optionnel)</label><textarea id="mp-ai" rows="3" placeholder="Clique sur \u00abGénérer\u00bb après avoir rempli les niveaux ci-dessus.">${p.aiSummary||''}</textarea>
+        <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer synthèse IA</button>
+      </div>
+      <div id="mp-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="mp-cancel">Annuler</button><button class="btn btn-primary" id="mp-save">Enregistrer</button>`,
+    onMount(){
+      document.getElementById('mp-cancel').onclick = closeModal;
+      document.getElementById('mp-generate').onclick = async ()=>{
+        const key = document.getElementById('mp-gemini-key').value.trim();
+        if(key) localStorage.setItem('meteo_gemini_key', key);
+        const draft = {
+          spot: document.getElementById('mp-spot').value,
+          zeroGamma: document.getElementById('mp-flip').value,
+          callWall: document.getElementById('mp-callwall').value,
+          putWall: document.getElementById('mp-putwall').value,
+          iv: document.getElementById('mp-iv').value,
+          biasNote: document.getElementById('mp-bias').value,
+        };
+        if(!draft.spot || !draft.zeroGamma){
+          document.getElementById('mp-error').textContent = 'Renseigne au moins le prix spot et le Zero Gamma avant de générer.'; return;
+        }
+        const btn = document.getElementById('mp-generate');
+        btn.disabled = true; btn.textContent = 'Génération…';
+        const text = await callGeminiSynthesis(draft);
+        btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer synthèse IA`;
+        if(text) document.getElementById('mp-ai').value = text;
+      };
+      document.getElementById('mp-save').onclick = async ()=>{
+        const key = document.getElementById('mp-gemini-key').value.trim();
+        if(key) localStorage.setItem('meteo_gemini_key', key);
+        const date = document.getElementById('mp-date').value;
+        const spot = document.getElementById('mp-spot').value;
+        const zeroGamma = document.getElementById('mp-flip').value;
+        if(!date || !spot || !zeroGamma){
+          document.getElementById('mp-error').textContent = 'Date, prix spot et Zero Gamma sont obligatoires.'; return;
+        }
+        const item = {
+          ...p, date, spot: Number(spot), zeroGamma: Number(zeroGamma),
+          callWall: document.getElementById('mp-callwall').value ? Number(document.getElementById('mp-callwall').value) : null,
+          putWall: document.getElementById('mp-putwall').value ? Number(document.getElementById('mp-putwall').value) : null,
+          iv: document.getElementById('mp-iv').value ? Number(document.getElementById('mp-iv').value) : null,
+          biasNote: document.getElementById('mp-bias').value.trim(),
+          aiSummary: document.getElementById('mp-ai').value.trim(),
+        };
+        await upsert('market_prep', item);
+        await logActivity(existing?'UPDATE':'CREATE', 'market_prep', item.id, item.date);
+        showToast(existing ? 'Prépa mise à jour.' : 'Prépa enregistrée.');
+        closeModal(); render();
+      };
+    }
+  });
+}
+
 function viewSessions(){
   const f = state.filters.sessions;
   let list = [...state.yt_sessions];
@@ -3592,6 +3793,17 @@ function bindViewEvents(){
     state.route = 'accounts';
     state.filters.accounts = { q: acc.accountNumber, trader:'', propfirm:'', type:'', status:[], statusMenuOpen:false };
     render();
+  });
+  // Météo NQ
+  document.querySelectorAll('[data-edit-prep]').forEach(b=>b.onclick=()=>{
+    const p = state.market_prep.find(x=>x.id===b.dataset.editPrep);
+    if(p) prepFormModal(p);
+  });
+  document.querySelectorAll('[data-del-prep]').forEach(b=>b.onclick=()=>{
+    confirmModal('Supprimer cette prépa de séance ?', async ()=>{
+      const ok = await remove('market_prep', b.dataset.delPrep);
+      if(ok){ showToast('Prépa supprimée.'); renderView(); }
+    });
   });
   // Calendrier
   document.querySelectorAll('[data-cal-day]').forEach(c=>c.onclick=()=>calendarDayModal(c.dataset.calDay));
