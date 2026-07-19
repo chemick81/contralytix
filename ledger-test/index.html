@@ -3303,15 +3303,68 @@ function calendarsPanelHtml(){
       </div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
-      <div class="panel-head"><div class="section-title">Résultats d'entreprises</div></div>
+      <div class="panel-head"><div class="section-title">Résultats d'entreprises (7 prochains jours)</div></div>
       <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
-        Pas de widget d'earnings calendar embarquable fiable trouvé à ce jour — voici un lien direct plutôt qu'un embed cassé.
-        <div style="margin-top:10px;">
-          <a class="btn btn-outline btn-sm" href="https://www.investing.com/earnings-calendar/" target="_blank" rel="noopener">${icon('link')}Calendrier des résultats — Investing.com</a>
+        <div class="field-row" style="align-items:flex-end;">
+          <div class="field" style="flex:1;"><label>Clé API Financial Modeling Prep</label><input id="fmp-key" type="password" value="${localStorage.getItem('meteo_fmp_key')||''}" placeholder="Ta clé FMP…"/></div>
+          <button class="btn btn-outline btn-sm" id="fmp-load" type="button" style="margin-bottom:1px;">${icon('download')}Charger</button>
         </div>
+        <div class="field-hint">Stockée uniquement dans ton navigateur, jamais envoyée à Supabase. Source : <a href="https://site.financialmodelingprep.com/" target="_blank" rel="noopener">financialmodelingprep.com</a> (endpoint stable).</div>
+        <div id="fmp-result" style="margin-top:12px;"></div>
       </div>
     </div>`;
 }
+
+function addDaysISO(dateStr, n){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+
+async function loadEarningsCalendar(){
+  const resultEl = document.getElementById('fmp-result');
+  const key = document.getElementById('fmp-key').value.trim();
+  if(!key){ resultEl.innerHTML = `<div style="color:var(--danger);">Renseigne ta clé API FMP.</div>`; return; }
+  localStorage.setItem('meteo_fmp_key', key);
+  resultEl.innerHTML = `<div style="color:var(--text-faint);">Chargement…</div>`;
+  const from = todayISO();
+  const to = addDaysISO(from, 7);
+  try{
+    const res = await fetch(`https://financialmodelingprep.com/stable/earnings-calendar?from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if(!res.ok){
+      const msg = (data && (data.error || data['Error Message'])) || `Erreur HTTP ${res.status}`;
+      resultEl.innerHTML = `<div style="color:var(--danger);">Erreur FMP : ${msg}. Vérifie ta clé sur ton dashboard FMP.</div>`;
+      return;
+    }
+    if(!Array.isArray(data) || data.length===0){
+      resultEl.innerHTML = `<div style="color:var(--text-faint);">Aucun résultat d'entreprise trouvé sur cette période.</div>`;
+      return;
+    }
+    const rows = data
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+      .slice(0, 60)
+      .map(e=>`
+        <tr>
+          <td class="mono">${e.date||'—'}</td>
+          <td><strong>${e.symbol||'—'}</strong></td>
+          <td class="num mono">${e.epsEstimated!=null?e.epsEstimated:'—'}</td>
+          <td class="num mono">${e.eps!=null?e.eps:'—'}</td>
+          <td class="num mono">${e.revenueEstimated!=null?fmtMoneyShort(e.revenueEstimated):'—'}</td>
+        </tr>`).join('');
+    resultEl.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Ticker</th><th>EPS est.</th><th>EPS réel</th><th>CA estimé</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-faint);margin-top:8px;">${data.length} résultat(s) sur ${from} → ${to}.</div>`;
+  } catch(e){
+    resultEl.innerHTML = `<div style="color:var(--danger);">Erreur réseau : ${e.message}</div>`;
+  }
+}
+
 
 function viewMeteo(){
   const list = [...state.market_prep].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -3822,6 +3875,7 @@ function bindViewEvents(){
     render();
   });
   // Météo NQ
+  if(document.getElementById('fmp-load')) document.getElementById('fmp-load').onclick = loadEarningsCalendar;
   document.querySelectorAll('[data-edit-prep]').forEach(b=>b.onclick=()=>{
     const p = state.market_prep.find(x=>x.id===b.dataset.editPrep);
     if(p) prepFormModal(p);
