@@ -3375,10 +3375,10 @@ function viewMeteo(){
     </div>`;
   const calendars = calendarsPanelHtml();
   if(!todayEntry){
-    return intro + calendars + emptyState('bolt', 'Pas encore de prépa pour aujourd\u2019hui', 'Clique sur "Nouvelle prépa" pour saisir les niveaux du jour et voir le régime de marché estimé.') + (list.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${list.map(prepCardHtml).join('')}</div>` : '');
+    return intro + emptyState('bolt', 'Pas encore de prépa pour aujourd\u2019hui', 'Clique sur "Nouvelle prépa" pour saisir les niveaux du jour et voir le régime de marché estimé.') + calendars + (list.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${list.map(prepCardHtml).join('')}</div>` : '');
   }
   const rest = list.filter(p=>p.id!==todayEntry.id);
-  return intro + calendars + prepCardHtml(todayEntry) + (rest.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${rest.map(prepCardHtml).join('')}</div>` : '');
+  return intro + prepCardHtml(todayEntry) + calendars + (rest.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${rest.map(prepCardHtml).join('')}</div>` : '');
 }
 
 async function callGeminiSynthesis(prep){
