@@ -448,6 +448,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Clé API Gemini — en dur à la demande, mais ATTENTION : ce repo est public sur GitHub,
+// donc cette clé est visible par n'importe qui (dépôt + "view source" du site déployé).
+// Remplace la valeur ci-dessous par ta vraie clé, et surveille/régénère-la si besoin.
+const GEMINI_API_KEY = 'REMPLACE_PAR_TA_CLE_GEMINI';
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 const state = {
@@ -3303,63 +3308,53 @@ function calendarsPanelHtml(){
       </div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
-      <div class="panel-head"><div class="section-title">Résultats d'entreprises (7 prochains jours)</div></div>
-      <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
-        <div class="field-row" style="align-items:flex-end;">
-          <div class="field" style="flex:1;"><label>Clé API Financial Modeling Prep</label><input id="fmp-key" type="password" value="${localStorage.getItem('meteo_fmp_key')||''}" placeholder="Ta clé FMP…"/></div>
-          <button class="btn btn-outline btn-sm" id="fmp-load" type="button" style="margin-bottom:1px;">${icon('download')}Charger</button>
+      <div class="panel-head">
+        <div class="section-title">Résultats d'entreprises — Nasdaq</div>
+        <div class="field-row" style="margin:0;">
+          <input id="nsdq-date" type="date" value="${todayISO()}" style="padding:6px 8px;font-size:12.5px;"/>
+          <button class="btn btn-outline btn-sm" id="nsdq-load" type="button">${icon('download')}Charger</button>
         </div>
-        <div class="field-hint">Stockée uniquement dans ton navigateur, jamais envoyée à Supabase. Source : <a href="https://site.financialmodelingprep.com/" target="_blank" rel="noopener">financialmodelingprep.com</a> (endpoint stable).</div>
-        <div id="fmp-result" style="margin-top:12px;"></div>
+      </div>
+      <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
+        <div class="field-hint">Source : <a href="https://www.nasdaq.com/market-activity/earnings" target="_blank" rel="noopener">nasdaq.com/market-activity/earnings</a>, via une fonction serveur (nécessite le déploiement Netlify — ne fonctionne pas en ouvrant le fichier HTML en local).</div>
+        <div id="nsdq-result" style="margin-top:12px;"></div>
       </div>
     </div>`;
 }
 
-function addDaysISO(dateStr, n){
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
-}
-
-async function loadEarningsCalendar(){
-  const resultEl = document.getElementById('fmp-result');
-  const key = document.getElementById('fmp-key').value.trim();
-  if(!key){ resultEl.innerHTML = `<div style="color:var(--danger);">Renseigne ta clé API FMP.</div>`; return; }
-  localStorage.setItem('meteo_fmp_key', key);
+async function loadNasdaqEarnings(){
+  const resultEl = document.getElementById('nsdq-result');
+  const date = document.getElementById('nsdq-date').value || todayISO();
   resultEl.innerHTML = `<div style="color:var(--text-faint);">Chargement…</div>`;
-  const from = todayISO();
-  const to = addDaysISO(from, 7);
   try{
-    const res = await fetch(`https://financialmodelingprep.com/stable/earnings-calendar?from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`);
+    const res = await fetch(`/.netlify/functions/nasdaq-earnings?date=${date}`);
     const data = await res.json();
     if(!res.ok){
-      const msg = (data && (data.error || data['Error Message'])) || `Erreur HTTP ${res.status}`;
-      resultEl.innerHTML = `<div style="color:var(--danger);">Erreur FMP : ${msg}. Vérifie ta clé sur ton dashboard FMP.</div>`;
+      resultEl.innerHTML = `<div style="color:var(--danger);">Erreur : ${data.error||'requête échouée'}.</div>`;
       return;
     }
-    if(!Array.isArray(data) || data.length===0){
-      resultEl.innerHTML = `<div style="color:var(--text-faint);">Aucun résultat d'entreprise trouvé sur cette période.</div>`;
+    const list = data.rows || [];
+    if(list.length===0){
+      resultEl.innerHTML = `<div style="color:var(--text-faint);">Aucun résultat d'entreprise trouvé pour cette date (marché fermé ou pas de publication ce jour-là).</div>`;
       return;
     }
-    const rows = data
-      .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
-      .slice(0, 60)
-      .map(e=>`
+    const timeLabel = t => t==='time-pre-market' ? 'Avant ouverture' : t==='time-after-hours' ? 'Après clôture' : '—';
+    const rows = list.slice(0, 80).map(e=>`
         <tr>
-          <td class="mono">${e.date||'—'}</td>
           <td><strong>${e.symbol||'—'}</strong></td>
-          <td class="num mono">${e.epsEstimated!=null?e.epsEstimated:'—'}</td>
-          <td class="num mono">${e.eps!=null?e.eps:'—'}</td>
-          <td class="num mono">${e.revenueEstimated!=null?fmtMoneyShort(e.revenueEstimated):'—'}</td>
+          <td>${e.name||'—'}</td>
+          <td>${timeLabel(e.time)}</td>
+          <td class="num mono">${e.epsForecast||'—'}</td>
+          <td class="num mono">${e.marketCap?fmtMoneyShort(Number(e.marketCap)):'—'}</td>
         </tr>`).join('');
     resultEl.innerHTML = `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Ticker</th><th>EPS est.</th><th>EPS réel</th><th>CA estimé</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Société</th><th>Horaire</th><th>EPS prévu</th><th>Cap. marché</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div style="font-size:10.5px;color:var(--text-faint);margin-top:8px;">${data.length} résultat(s) sur ${from} → ${to}.</div>`;
+      <div style="font-size:10.5px;color:var(--text-faint);margin-top:8px;">${list.length} résultat(s) le ${date}.</div>`;
   } catch(e){
     resultEl.innerHTML = `<div style="color:var(--danger);">Erreur réseau : ${e.message}</div>`;
   }
@@ -3387,8 +3382,8 @@ function viewMeteo(){
 }
 
 async function callGeminiSynthesis(prep){
-  const key = localStorage.getItem('meteo_gemini_key');
-  if(!key){ showToast('Ajoute d\u2019abord ta clé API Gemini (champ dédié dans le formulaire).', 'danger'); return null; }
+  const key = GEMINI_API_KEY;
+  if(!key || key.includes('REMPLACE')){ showToast('Clé Gemini non configurée dans le code (constante GEMINI_API_KEY).', 'danger'); return null; }
   const z = meteoZone(prep);
   const prompt = `Tu es un assistant de prépa de séance pour un trader NQ (Nasdaq futures) de style contrarian (méthode EPB : Extension, Poussée, Blocage). Rédige une synthèse courte (4-5 phrases max, en français, ton direct sans blabla) à partir de ces données du jour :
 - Prix spot : ${prep.spot}
@@ -3415,7 +3410,6 @@ Ne donne pas de conseil financier générique, reste concret sur les niveaux et 
 
 function prepFormModal(existing){
   const p = existing || { id: uid('mp'), date: todayISO(), spot:'', zeroGamma:'', callWall:'', putWall:'', iv:'', biasNote:'', aiSummary:'', createdBy: currentUserId() };
-  const savedKey = localStorage.getItem('meteo_gemini_key') || '';
   openModal({
     title: existing ? 'Modifier la prépa' : 'Nouvelle prépa de séance',
     bodyHtml: `
@@ -3432,11 +3426,6 @@ function prepFormModal(existing){
         <div class="field"><label>Put Wall (optionnel)</label><input id="mp-putwall" type="number" step="0.25" value="${p.putWall}" placeholder="Ex : 21100"/></div>
       </div>
       <div class="field"><label>Biais du jour / notes EPB</label><textarea id="mp-bias" rows="3" placeholder="Ex : extension haussière depuis 3 séances, on cherche un blocage pour jouer le retournement…">${p.biasNote||''}</textarea></div>
-      <div class="field" style="border-top:1px solid var(--border-soft);padding-top:12px;margin-top:4px;">
-        <label>Clé API Gemini (optionnel, stockée uniquement dans ton navigateur)</label>
-        <input id="mp-gemini-key" type="password" value="${savedKey}" placeholder="AIza…"/>
-        <div class="field-hint">Sert uniquement à générer la synthèse ci-dessous, en local. Jamais envoyée à Supabase.</div>
-      </div>
       <div class="field"><label>Synthèse IA (optionnel)</label><textarea id="mp-ai" rows="3" placeholder="Clique sur \u00abGénérer\u00bb après avoir rempli les niveaux ci-dessus.">${p.aiSummary||''}</textarea>
         <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer synthèse IA</button>
       </div>
@@ -3446,8 +3435,6 @@ function prepFormModal(existing){
     onMount(){
       document.getElementById('mp-cancel').onclick = closeModal;
       document.getElementById('mp-generate').onclick = async ()=>{
-        const key = document.getElementById('mp-gemini-key').value.trim();
-        if(key) localStorage.setItem('meteo_gemini_key', key);
         const draft = {
           spot: document.getElementById('mp-spot').value,
           zeroGamma: document.getElementById('mp-flip').value,
@@ -3466,8 +3453,6 @@ function prepFormModal(existing){
         if(text) document.getElementById('mp-ai').value = text;
       };
       document.getElementById('mp-save').onclick = async ()=>{
-        const key = document.getElementById('mp-gemini-key').value.trim();
-        if(key) localStorage.setItem('meteo_gemini_key', key);
         const date = document.getElementById('mp-date').value;
         const spot = document.getElementById('mp-spot').value;
         const zeroGamma = document.getElementById('mp-flip').value;
@@ -3875,7 +3860,7 @@ function bindViewEvents(){
     render();
   });
   // Météo NQ
-  if(document.getElementById('fmp-load')) document.getElementById('fmp-load').onclick = loadEarningsCalendar;
+  if(document.getElementById('nsdq-load')) document.getElementById('nsdq-load').onclick = loadNasdaqEarnings;
   document.querySelectorAll('[data-edit-prep]').forEach(b=>b.onclick=()=>{
     const p = state.market_prep.find(x=>x.id===b.dataset.editPrep);
     if(p) prepFormModal(p);
