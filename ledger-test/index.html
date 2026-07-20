@@ -449,14 +449,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// La clé API Gemini n'est pas stockée en dur côté client : l'appel passe par la
-// fonction serverless Netlify /.netlify/functions/gemini-synthesis, qui lit la
-// clé depuis la variable d'environnement Netlify GEMINI_API_KEY. Si cette clé
-// enregistrée sur le site échoue (quota, clé invalide, etc.), l'utilisateur peut
-// saisir sa propre clé Gemini dans le formulaire de prépa de séance : elle est
-// alors envoyée avec la requête (et uniquement stockée dans son navigateur, via
-// localStorage) pour servir de repli.
-const GEMINI_USER_KEY_STORAGE = 'ledger_gemini_user_api_key';
+// La clé API Groq n'est pas stockée en dur côté client : l'appel passe par la
+// fonction serverless Netlify /.netlify/functions/ai-synthesis, qui lit la
+// clé depuis la variable d'environnement Netlify GROQ_API_KEY. Groq tourne sur
+// du matériel dédié (LPU) et son niveau gratuit est nettement plus fiable que
+// celui de Gemini (pas de "high demand"). Si cette clé échoue quand même,
+// l'utilisateur peut saisir sa propre clé Groq dans le formulaire de prépa de
+// séance : elle est alors envoyée avec la requête (et uniquement stockée dans
+// son navigateur, via localStorage) pour servir de repli.
+const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 const state = {
@@ -3246,7 +3247,7 @@ function sessionCardHtml(s){
    ------------------------------------------------------------
    Plus de niveaux GEx saisis à la main (spot, Zero Gamma, Call
    Wall, Put Wall, IV) : la prépa se résume désormais à un brief
-   généré par Gemini (contexte du jour, texture du carnet,
+   généré par IA (contexte du jour, texture du carnet,
    dynamique récente, feu vert/rouge) + les notes libres du trader.
 ============================================================ */
 function fmtPts(n){ return Number(n).toLocaleString('fr-FR', {maximumFractionDigits:2}); }
@@ -3373,24 +3374,24 @@ const DEFAULT_AI_PROMPT = `Fais-moi un brief météo pour ma session de scalping
 4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 50 ticks aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)`;
 
 // apiKey est optionnel : si absent, la fonction Netlify utilise la clé du site
-// (variable d'environnement GEMINI_API_KEY) ; si fourni, elle l'utilise à la
+// (variable d'environnement GROQ_API_KEY) ; si fourni, elle l'utilise à la
 // place (repli avec la clé personnelle de l'utilisateur).
-async function callGeminiSynthesis(promptText, apiKey){
+async function callAiSynthesis(promptText, apiKey){
   try{
-    const res = await fetch('/.netlify/functions/gemini-synthesis', {
+    const res = await fetch('/.netlify/functions/ai-synthesis', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(apiKey ? { prompt: promptText, apiKey } : { prompt: promptText })
     });
     const data = await res.json();
     if(!res.ok){
       if(data.overloaded){
-        throw new Error('Gemini est actuellement saturé côté Google (indépendant de la clé utilisée) — réessaie dans quelques minutes.');
+        throw new Error('Le service IA est temporairement surchargé — réessaie dans quelques minutes.');
       }
-      throw new Error(data.error || 'Erreur API Gemini');
+      throw new Error(data.error || 'Erreur API');
     }
     return data.text || null;
   } catch(e){
-    showToast('Erreur Gemini' + (apiKey ? ' (clé personnelle)' : '') + ' : ' + e.message, 'danger');
+    showToast('Erreur IA' + (apiKey ? ' (clé personnelle)' : '') + ' : ' + e.message, 'danger');
     return null;
   }
 }
@@ -3413,17 +3414,17 @@ function prepFormModal(existing){
         <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer brief météo</button>
       </div>
       <div class="field" id="mp-key-field">
-        <label>Clé API Gemini personnelle (optionnelle)</label>
-        <input id="mp-gemini-key" type="password" placeholder="Uniquement si la génération échoue avec la clé enregistrée sur le site" autocomplete="off"/>
-        <div class="field-hint">Si le brief ne se génère pas avec la clé du site (ex : clé invalide ou quota atteint), renseigne ici ta propre clé API Gemini (aistudio.google.com/apikey), puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur. Note : une erreur « high demand / surcharge » vient de Google, pas de la clé — dans ce cas, réessaie plutôt un peu plus tard.</div>
+        <label>Clé API Groq personnelle (optionnelle)</label>
+        <input id="mp-ai-key" type="password" placeholder="Uniquement si la génération échoue avec la clé enregistrée sur le site" autocomplete="off"/>
+        <div class="field-hint">Si le brief ne se génère pas avec la clé du site (ex : clé invalide ou quota atteint), renseigne ici ta propre clé API Groq — gratuite, sans carte bancaire, à créer sur console.groq.com/keys — puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur.</div>
       </div>
       <div id="mp-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="mp-cancel">Annuler</button><button class="btn btn-primary" id="mp-save">Enregistrer</button>`,
     onMount(){
       document.getElementById('mp-cancel').onclick = closeModal;
-      const keyInput = document.getElementById('mp-gemini-key');
-      keyInput.value = localStorage.getItem(GEMINI_USER_KEY_STORAGE) || '';
+      const keyInput = document.getElementById('mp-ai-key');
+      keyInput.value = localStorage.getItem(AI_USER_KEY_STORAGE) || '';
       document.getElementById('mp-generate').onclick = async ()=>{
         const promptText = document.getElementById('mp-prompt').value.trim();
         if(!promptText){
@@ -3432,15 +3433,15 @@ function prepFormModal(existing){
         const btn = document.getElementById('mp-generate');
         const userKey = keyInput.value.trim();
         btn.disabled = true; btn.textContent = 'Génération…';
-        let text = await callGeminiSynthesis(promptText);
+        let text = await callAiSynthesis(promptText);
         if(!text && userKey){
           btn.textContent = 'Nouvel essai avec ta clé…';
-          text = await callGeminiSynthesis(promptText, userKey);
+          text = await callAiSynthesis(promptText, userKey);
         }
         btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer brief météo`;
         if(text){
           document.getElementById('mp-ai').value = text;
-          if(userKey) localStorage.setItem(GEMINI_USER_KEY_STORAGE, userKey);
+          if(userKey) localStorage.setItem(AI_USER_KEY_STORAGE, userKey);
         }
       };
       document.getElementById('mp-save').onclick = async ()=>{
