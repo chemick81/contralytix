@@ -3366,7 +3366,12 @@ async function callGeminiSynthesis(promptText, apiKey){
       body: JSON.stringify(apiKey ? { prompt: promptText, apiKey } : { prompt: promptText })
     });
     const data = await res.json();
-    if(!res.ok) throw new Error(data.error || 'Erreur API Gemini');
+    if(!res.ok){
+      if(data.overloaded){
+        throw new Error('Gemini est actuellement saturé côté Google (indépendant de la clé utilisée) — réessaie dans quelques minutes.');
+      }
+      throw new Error(data.error || 'Erreur API Gemini');
+    }
     return data.text || null;
   } catch(e){
     showToast('Erreur Gemini' + (apiKey ? ' (clé personnelle)' : '') + ' : ' + e.message, 'danger');
@@ -3394,7 +3399,7 @@ function prepFormModal(existing){
       <div class="field" id="mp-key-field">
         <label>Clé API Gemini personnelle (optionnelle)</label>
         <input id="mp-gemini-key" type="password" placeholder="Uniquement si la génération échoue avec la clé enregistrée sur le site" autocomplete="off"/>
-        <div class="field-hint">Si le brief ne se génère pas avec la clé du site, renseigne ici ta propre clé API Gemini (aistudio.google.com/apikey), puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur.</div>
+        <div class="field-hint">Si le brief ne se génère pas avec la clé du site (ex : clé invalide ou quota atteint), renseigne ici ta propre clé API Gemini (aistudio.google.com/apikey), puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur. Note : une erreur « high demand / surcharge » vient de Google, pas de la clé — dans ce cas, réessaie plutôt un peu plus tard.</div>
       </div>
       <div id="mp-error" class="error-text"></div>
     `,
