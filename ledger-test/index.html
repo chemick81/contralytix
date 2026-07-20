@@ -3222,72 +3222,27 @@ function sessionCardHtml(s){
 }
 
 /* ============================================================
-   VIEW: MÉTÉO NQ (prépa de séance — niveaux, régime, biais)
+   VIEW: MÉTÉO NQ (prépa de séance — brief IA quotidien)
    ------------------------------------------------------------
-   Important : ceci n'est PAS un modèle de probabilité calibré par
-   ML. Aucune source gratuite/fiable de gamma exposure réel n'est
-   branchée ici — les niveaux (Zero Gamma, Call Wall, Put Wall, IV)
-   sont saisis manuellement par le trader depuis ATAS / Trade With
-   Me. Le "zonage" ci-dessous est un calcul à règles basé sur la
-   théorie standard du dealer positioning (long gamma = amorti,
-   short gamma = amplifié) — pas une proba statistiquement vérifiée.
+   Plus de niveaux GEx saisis à la main (spot, Zero Gamma, Call
+   Wall, Put Wall, IV) : la prépa se résume désormais à un brief
+   généré par Gemini (contexte du jour, texture du carnet,
+   dynamique récente, feu vert/rouge) + les notes libres du trader.
 ============================================================ */
 function fmtPts(n){ return Number(n).toLocaleString('fr-FR', {maximumFractionDigits:2}); }
 
-function meteoZone(prep){
-  const spot = Number(prep.spot), flip = Number(prep.zeroGamma);
-  const callWall = (prep.callWall!==null && prep.callWall!=='') ? Number(prep.callWall) : null;
-  const putWall = (prep.putWall!==null && prep.putWall!=='') ? Number(prep.putWall) : null;
-  if(!isFinite(spot) || !isFinite(flip) || !spot || !flip){
-    return { label:'Données incomplètes', cls:'badge-slate', detail:'Renseigne au minimum le prix spot et le Zero Gamma.', wallNote:'' };
-  }
-  const dist = spot - flip;
-  const distPct = Math.abs(dist / flip * 100);
-  let label, cls, detail;
-  if(dist < 0){
-    label = 'Sous le flip — risque d\u2019amplification';
-    cls = 'badge-danger';
-    detail = 'Prix sous le Zero Gamma : les dealers sont probablement short gamma \u2014 leurs couvertures tendent à amplifier le mouvement en cours (achats si ça monte, ventes si ça baisse). Stops plus larges, taille réduite recommandée.';
-  } else if(distPct < 15){
-    label = 'Proche du flip — zone de transition';
-    cls = 'badge-gold';
-    detail = 'Prix juste au-dessus du Zero Gamma : régime instable, un simple aller-retour sous le flip peut faire basculer le comportement du marché en cours de séance. Vigilance accrue.';
-  } else {
-    label = 'Au-dessus du flip — régime plutôt calme';
-    cls = 'badge-accent';
-    detail = 'Prix confortablement au-dessus du Zero Gamma : les dealers sont probablement long gamma \u2014 leurs couvertures amortissent le mouvement (effet de "pin"). Moins de suivi de tendance, plus de retour à la moyenne attendu.';
-  }
-  let wallNote = '';
-  if(callWall!==null && putWall!==null){
-    if(spot > callWall) wallNote = 'Prix déjà au-dessus du Call Wall : résistance franchie, risque de breakout / extension si le volume confirme.';
-    else if(spot < putWall) wallNote = 'Prix déjà sous le Put Wall : support cassé, risque d\u2019extension baissière.';
-    else wallNote = `Prix dans le corridor Put Wall → Call Wall (${fmtPts(putWall)} – ${fmtPts(callWall)}) : zone où le prix a tendance à osciller tant que ces murs tiennent.`;
-  }
-  return { label, cls, detail, wallNote, dist, distPct };
-}
-
 function prepCardHtml(p){
-  const z = meteoZone(p);
   return `
     <div class="panel" style="margin-bottom:14px;">
       <div class="panel-head">
-        <div class="section-title mono">${p.date}${p.spot?` · Spot ${fmtPts(p.spot)}`:''}</div>
+        <div class="section-title mono">${p.date}</div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <span class="badge ${z.cls}">${z.label}</span>
           ${canEdit(p) ? `<button class="btn btn-ghost btn-sm" data-edit-prep="${p.id}">${icon('edit')}</button><button class="btn btn-ghost btn-sm" data-del-prep="${p.id}">${icon('trash')}</button>` : ''}
         </div>
       </div>
       <div class="panel-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
-          <div><div class="stat-label">Zero Gamma</div><div class="mono">${p.zeroGamma?fmtPts(p.zeroGamma):'—'}</div></div>
-          <div><div class="stat-label">Call Wall</div><div class="mono">${p.callWall?fmtPts(p.callWall):'—'}</div></div>
-          <div><div class="stat-label">Put Wall</div><div class="mono">${p.putWall?fmtPts(p.putWall):'—'}</div></div>
-          <div><div class="stat-label">IV du jour</div><div class="mono">${p.iv?p.iv+'%':'—'}</div></div>
-        </div>
-        <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:6px;">${z.detail}</div>
-        ${z.wallNote ? `<div style="font-size:12.5px;color:var(--text-dim);margin-bottom:6px;">${z.wallNote}</div>` : ''}
         ${p.biasNote ? `<div class="field-hint" style="margin-top:8px;"><strong>Biais du jour :</strong> ${p.biasNote}</div>` : ''}
-        ${p.aiSummary ? `<div class="field-hint" style="margin-top:8px;padding:10px;border-radius:8px;background:var(--surface-2);"><strong>Synthèse IA :</strong> ${p.aiSummary}</div>` : ''}
+        ${p.aiSummary ? `<div class="field-hint" style="margin-top:8px;padding:10px;border-radius:8px;background:var(--surface-2);"><strong>Brief météo IA :</strong> ${p.aiSummary}</div>` : ''}
       </div>
     </div>`;
 }
@@ -3374,9 +3329,8 @@ function viewMeteo(){
   const intro = `
     <div class="panel" style="margin-bottom:18px;">
       <div class="panel-body" style="font-size:12.5px;color:var(--text-dim);">
-        Prépa de séance à règles claires, pas une fausse proba ML : les niveaux (Zero Gamma, Call Wall, Put Wall, IV) sont
-        saisis à la main depuis ATAS / Trade With Me chaque matin. Le zonage calme / transition / violente suit la théorie
-        standard du dealer positioning — long gamma = régime amorti, short gamma = régime amplifié.
+        Prépa de séance quotidienne : génère un brief météo IA (contexte du jour, texture du carnet, dynamique récente,
+        feu vert/rouge) pour ta session de scalping sur le MNQ, et ajoute tes propres notes de biais si besoin.
       </div>
     </div>`;
   const calendars = calendarsPanelHtml();
@@ -3390,16 +3344,12 @@ function viewMeteo(){
 async function callGeminiSynthesis(prep){
   const key = GEMINI_API_KEY;
   if(!key || key.includes('REMPLACE')){ showToast('Clé Gemini non configurée dans le code (constante GEMINI_API_KEY).', 'danger'); return null; }
-  const z = meteoZone(prep);
-  const prompt = `Tu es un assistant de prépa de séance pour un trader NQ (Nasdaq futures) de style contrarian (méthode EPB : Extension, Poussée, Blocage). Rédige une synthèse courte (4-5 phrases max, en français, ton direct sans blabla) à partir de ces données du jour :
-- Prix spot : ${prep.spot}
-- Zero Gamma (flip) : ${prep.zeroGamma}
-- Call Wall : ${prep.callWall || 'non renseigné'}
-- Put Wall : ${prep.putWall || 'non renseigné'}
-- IV du jour : ${prep.iv || 'non renseignée'}%
-- Zone estimée : ${z.label}
-- Note du trader : ${prep.biasNote || 'aucune'}
-Ne donne pas de conseil financier générique, reste concret sur les niveaux et le régime de volatilité attendu.`;
+  const prompt = `Fais-moi un brief météo pour ma session de scalping d'aujourd'hui (${prep.date}) sur le MNQ (ATAS / Carnet d'ordres). Va droit au but, pas de blabla inutile, donne-moi juste les faits à travers ces 4 points précis :
+1. LE CONTEXTE DU JOUR : Y a-t-il des annonces économiques majeures, des échéances techniques sur les contrats ou les options, ou une actualité exceptionnelle qui impacte le secteur de la Tech ?
+2. TEXTURE DU CARNET : À quoi doit-on s'attendre pour l'Open à 15h30 ? Un carnet "lourd" avec des absorptions logiques, ou un carnet "creux/fin" instable et propice au slippage ?
+3. LA DYNAMIQUE DU MOMENT : Quel est le comportement dominant des derniers jours à l'Open (range, tendance rectiligne, rotation sectorielle...) ?
+4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 150 $ aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)${prep.biasNote ? `
+Note du trader : ${prep.biasNote}` : ''}`;
   try{
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -3415,25 +3365,16 @@ Ne donne pas de conseil financier générique, reste concret sur les niveaux et 
 }
 
 function prepFormModal(existing){
-  const p = existing || { id: uid('mp'), date: todayISO(), spot:'', zeroGamma:'', callWall:'', putWall:'', iv:'', biasNote:'', aiSummary:'', createdBy: currentUserId() };
+  const p = existing || { id: uid('mp'), date: todayISO(), biasNote:'', aiSummary:'', createdBy: currentUserId() };
   openModal({
     title: existing ? 'Modifier la prépa' : 'Nouvelle prépa de séance',
     bodyHtml: `
       <div class="field-row">
         <div class="field"><label>Date</label><input id="mp-date" type="date" value="${p.date}"/></div>
-        <div class="field"><label>Prix spot NQ</label><input id="mp-spot" type="number" step="0.25" value="${p.spot}" placeholder="Ex : 21450"/></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Zero Gamma (flip)</label><input id="mp-flip" type="number" step="0.25" value="${p.zeroGamma}" placeholder="Ex : 21300"/></div>
-        <div class="field"><label>IV du jour (%, optionnel)</label><input id="mp-iv" type="number" step="0.1" value="${p.iv}" placeholder="Ex : 14.2"/></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Call Wall (optionnel)</label><input id="mp-callwall" type="number" step="0.25" value="${p.callWall}" placeholder="Ex : 21600"/></div>
-        <div class="field"><label>Put Wall (optionnel)</label><input id="mp-putwall" type="number" step="0.25" value="${p.putWall}" placeholder="Ex : 21100"/></div>
       </div>
       <div class="field"><label>Biais du jour / notes EPB</label><textarea id="mp-bias" rows="3" placeholder="Ex : extension haussière depuis 3 séances, on cherche un blocage pour jouer le retournement…">${p.biasNote||''}</textarea></div>
-      <div class="field"><label>Synthèse IA (optionnel)</label><textarea id="mp-ai" rows="3" placeholder="Clique sur \u00abGénérer\u00bb après avoir rempli les niveaux ci-dessus.">${p.aiSummary||''}</textarea>
-        <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer synthèse IA</button>
+      <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="6" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
+        <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer brief météo</button>
       </div>
       <div id="mp-error" class="error-text"></div>
     `,
@@ -3442,34 +3383,22 @@ function prepFormModal(existing){
       document.getElementById('mp-cancel').onclick = closeModal;
       document.getElementById('mp-generate').onclick = async ()=>{
         const draft = {
-          spot: document.getElementById('mp-spot').value,
-          zeroGamma: document.getElementById('mp-flip').value,
-          callWall: document.getElementById('mp-callwall').value,
-          putWall: document.getElementById('mp-putwall').value,
-          iv: document.getElementById('mp-iv').value,
+          date: document.getElementById('mp-date').value || todayISO(),
           biasNote: document.getElementById('mp-bias').value,
         };
-        if(!draft.spot || !draft.zeroGamma){
-          document.getElementById('mp-error').textContent = 'Renseigne au moins le prix spot et le Zero Gamma avant de générer.'; return;
-        }
         const btn = document.getElementById('mp-generate');
         btn.disabled = true; btn.textContent = 'Génération…';
         const text = await callGeminiSynthesis(draft);
-        btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer synthèse IA`;
+        btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer brief météo`;
         if(text) document.getElementById('mp-ai').value = text;
       };
       document.getElementById('mp-save').onclick = async ()=>{
         const date = document.getElementById('mp-date').value;
-        const spot = document.getElementById('mp-spot').value;
-        const zeroGamma = document.getElementById('mp-flip').value;
-        if(!date || !spot || !zeroGamma){
-          document.getElementById('mp-error').textContent = 'Date, prix spot et Zero Gamma sont obligatoires.'; return;
+        if(!date){
+          document.getElementById('mp-error').textContent = 'La date est obligatoire.'; return;
         }
         const item = {
-          ...p, date, spot: Number(spot), zeroGamma: Number(zeroGamma),
-          callWall: document.getElementById('mp-callwall').value ? Number(document.getElementById('mp-callwall').value) : null,
-          putWall: document.getElementById('mp-putwall').value ? Number(document.getElementById('mp-putwall').value) : null,
-          iv: document.getElementById('mp-iv').value ? Number(document.getElementById('mp-iv').value) : null,
+          ...p, date,
           biasNote: document.getElementById('mp-bias').value.trim(),
           aiSummary: document.getElementById('mp-ai').value.trim(),
         };
