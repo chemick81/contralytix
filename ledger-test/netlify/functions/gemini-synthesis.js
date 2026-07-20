@@ -28,7 +28,10 @@ exports.handler = async (event) => {
 
   // En cas de surcharge (erreurs 503/429 "high demand"), on retente une fois
   // sur le même modèle, puis on bascule sur un modèle de repli si besoin.
-  const MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'];
+  // gemini-2.5-flash a été retiré pour les nouveaux utilisateurs/projets :
+  // on utilise gemini-3.5-flash (GA) puis l'alias gemini-flash-latest, qui
+  // pointera toujours vers le modèle Flash stable courant de Google.
+  const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
   const MAX_ATTEMPTS_PER_MODEL = 2;
   const RETRY_DELAY_MS = 1000;
 
