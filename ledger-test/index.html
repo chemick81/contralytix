@@ -449,9 +449,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// La clé API Gemini n'est plus stockée ni exposée côté client : l'appel passe
-// par la fonction serverless Netlify /.netlify/functions/gemini-synthesis,
-// qui lit la clé depuis la variable d'environnement Netlify GEMINI_API_KEY.
+// La clé API Gemini n'est pas stockée en dur côté client : l'appel passe par la
+// fonction serverless Netlify /.netlify/functions/gemini-synthesis, qui lit la
+// clé depuis la variable d'environnement Netlify GEMINI_API_KEY. Si cette clé
+// enregistrée sur le site échoue (quota, clé invalide, etc.), l'utilisateur peut
+// saisir sa propre clé Gemini dans le formulaire de prépa de séance : elle est
+// alors envoyée avec la requête (et uniquement stockée dans son navigateur, via
+// localStorage) pour servir de repli.
+const GEMINI_USER_KEY_STORAGE = 'ledger_gemini_user_api_key';
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 const state = {
@@ -3343,29 +3348,34 @@ function viewMeteo(){
   return intro + prepCardHtml(todayEntry) + calendars + (rest.length ? `<div style="margin-top:22px;"><div class="section-title" style="margin-bottom:10px;">Historique</div>${rest.map(prepCardHtml).join('')}</div>` : '');
 }
 
-async function callGeminiSynthesis(prep){
-  const prompt = `Fais-moi un brief météo pour ma session de scalping d'aujourd'hui (${prep.date}) sur le MNQ (ATAS / Carnet d'ordres). Va droit au but, pas de blabla inutile, donne-moi juste les faits à travers ces 4 points précis :
+// Prompt par défaut proposé dans le formulaire de prépa de séance : l'utilisateur
+// peut le modifier librement avant de générer le brief (voir prepFormModal).
+const DEFAULT_AI_PROMPT = `Fais-moi un brief météo pour ma session de scalping d'aujourd'hui sur le MNQ (ATAS / Carnet d'ordres). Va droit au but, pas de blabla inutile, donne-moi juste les faits à travers ces 4 points précis :
 1. LE CONTEXTE DU JOUR : Y a-t-il des annonces économiques majeures, des échéances techniques sur les contrats ou les options, ou une actualité exceptionnelle qui impacte le secteur de la Tech ?
 2. TEXTURE DU CARNET : À quoi doit-on s'attendre pour l'Open à 15h30 ? Un carnet "lourd" avec des absorptions logiques, ou un carnet "creux/fin" instable et propice au slippage ?
 3. LA DYNAMIQUE DU MOMENT : Quel est le comportement dominant des derniers jours à l'Open (range, tendance rectiligne, rotation sectorielle...) ?
-4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 150 $ aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)${prep.biasNote ? `
-Note du trader : ${prep.biasNote}` : ''}`;
+4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 50 ticks aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)`;
+
+// apiKey est optionnel : si absent, la fonction Netlify utilise la clé du site
+// (variable d'environnement GEMINI_API_KEY) ; si fourni, elle l'utilise à la
+// place (repli avec la clé personnelle de l'utilisateur).
+async function callGeminiSynthesis(promptText, apiKey){
   try{
     const res = await fetch('/.netlify/functions/gemini-synthesis', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify(apiKey ? { prompt: promptText, apiKey } : { prompt: promptText })
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Erreur API Gemini');
     return data.text || null;
   } catch(e){
-    showToast('Erreur Gemini : ' + e.message, 'danger');
+    showToast('Erreur Gemini' + (apiKey ? ' (clé personnelle)' : '') + ' : ' + e.message, 'danger');
     return null;
   }
 }
 
 function prepFormModal(existing){
-  const p = existing || { id: uid('mp'), date: todayISO(), biasNote:'', aiSummary:'', createdBy: currentUserId() };
+  const p = existing || { id: uid('mp'), date: todayISO(), biasNote:'', aiSummary:'', aiPrompt: DEFAULT_AI_PROMPT, createdBy: currentUserId() };
   openModal({
     title: existing ? 'Modifier la prépa' : 'Nouvelle prépa de séance',
     bodyHtml: `
@@ -3373,24 +3383,44 @@ function prepFormModal(existing){
         <div class="field"><label>Date</label><input id="mp-date" type="date" value="${p.date}"/></div>
       </div>
       <div class="field"><label>Biais du jour / notes EPB</label><textarea id="mp-bias" rows="3" placeholder="Ex : extension haussière depuis 3 séances, on cherche un blocage pour jouer le retournement…">${p.biasNote||''}</textarea></div>
+      <div class="field">
+        <label>Prompt du brief météo IA (modifiable)</label>
+        <textarea id="mp-prompt" rows="8" style="line-height:1.5;font-size:12.5px;">${escapeHtml(p.aiPrompt || DEFAULT_AI_PROMPT)}</textarea>
+        <div class="field-hint">C'est le prompt envoyé à l'IA. Le texte ci-dessus est l'exemple par défaut : modifie-le si besoin avant de générer.</div>
+      </div>
       <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="10" style="line-height:1.6;" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
         <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer brief météo</button>
+      </div>
+      <div class="field" id="mp-key-field">
+        <label>Clé API Gemini personnelle (optionnelle)</label>
+        <input id="mp-gemini-key" type="password" placeholder="Uniquement si la génération échoue avec la clé enregistrée sur le site" autocomplete="off"/>
+        <div class="field-hint">Si le brief ne se génère pas avec la clé du site, renseigne ici ta propre clé API Gemini (aistudio.google.com/apikey), puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur.</div>
       </div>
       <div id="mp-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="mp-cancel">Annuler</button><button class="btn btn-primary" id="mp-save">Enregistrer</button>`,
     onMount(){
       document.getElementById('mp-cancel').onclick = closeModal;
+      const keyInput = document.getElementById('mp-gemini-key');
+      keyInput.value = localStorage.getItem(GEMINI_USER_KEY_STORAGE) || '';
       document.getElementById('mp-generate').onclick = async ()=>{
-        const draft = {
-          date: document.getElementById('mp-date').value || todayISO(),
-          biasNote: document.getElementById('mp-bias').value,
-        };
+        const promptText = document.getElementById('mp-prompt').value.trim();
+        if(!promptText){
+          showToast('Le prompt ne peut pas être vide.', 'danger'); return;
+        }
         const btn = document.getElementById('mp-generate');
+        const userKey = keyInput.value.trim();
         btn.disabled = true; btn.textContent = 'Génération…';
-        const text = await callGeminiSynthesis(draft);
+        let text = await callGeminiSynthesis(promptText);
+        if(!text && userKey){
+          btn.textContent = 'Nouvel essai avec ta clé…';
+          text = await callGeminiSynthesis(promptText, userKey);
+        }
         btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer brief météo`;
-        if(text) document.getElementById('mp-ai').value = text;
+        if(text){
+          document.getElementById('mp-ai').value = text;
+          if(userKey) localStorage.setItem(GEMINI_USER_KEY_STORAGE, userKey);
+        }
       };
       document.getElementById('mp-save').onclick = async ()=>{
         const date = document.getElementById('mp-date').value;
@@ -3400,6 +3430,7 @@ function prepFormModal(existing){
         const item = {
           ...p, date,
           biasNote: document.getElementById('mp-bias').value.trim(),
+          aiPrompt: document.getElementById('mp-prompt').value.trim(),
           aiSummary: document.getElementById('mp-ai').value.trim(),
         };
         await upsert('market_prep', item);
