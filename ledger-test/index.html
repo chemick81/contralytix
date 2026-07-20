@@ -3241,7 +3241,10 @@ function prepCardHtml(p){
       </div>
       <div class="panel-body">
         ${p.biasNote ? `<div class="field-hint" style="margin-top:8px;"><strong>Biais du jour :</strong> ${p.biasNote}</div>` : ''}
-        ${p.aiSummary ? `<div class="field-hint" style="margin-top:8px;padding:10px;border-radius:8px;background:var(--surface-2);"><strong>Brief météo IA :</strong> ${p.aiSummary}</div>` : ''}
+        ${p.aiSummary ? `<div style="margin-top:10px;padding:14px 16px;border-radius:10px;background:var(--surface-2);">
+          <div class="section-title" style="margin-bottom:8px;">Brief météo IA</div>
+          <div style="white-space:pre-wrap;font-size:13.5px;line-height:1.65;color:var(--text);">${escapeHtml(p.aiSummary)}</div>
+        </div>` : ''}
       </div>
     </div>`;
 }
@@ -3370,7 +3373,7 @@ function prepFormModal(existing){
         <div class="field"><label>Date</label><input id="mp-date" type="date" value="${p.date}"/></div>
       </div>
       <div class="field"><label>Biais du jour / notes EPB</label><textarea id="mp-bias" rows="3" placeholder="Ex : extension haussière depuis 3 séances, on cherche un blocage pour jouer le retournement…">${p.biasNote||''}</textarea></div>
-      <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="6" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
+      <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="10" style="line-height:1.6;" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
         <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer brief météo</button>
       </div>
       <div id="mp-error" class="error-text"></div>
