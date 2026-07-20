@@ -29,14 +29,15 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY non configurée sur Netlify (Site configuration > Environment variables), et aucune clé personnelle fournie.' }) };
   }
 
-  // En cas de surcharge (erreurs 503/429 "high demand"), on retente une fois
-  // sur le même modèle, puis on bascule sur un modèle de repli si besoin.
-  // gemini-2.5-flash a été retiré pour les nouveaux utilisateurs/projets :
-  // on utilise gemini-3.5-flash (GA) puis l'alias gemini-flash-latest, qui
-  // pointera toujours vers le modèle Flash stable courant de Google.
+  // En cas de surcharge (erreurs 503/429 "high demand"), on retente sur le même
+  // modèle avec un délai croissant, puis on bascule sur un modèle de repli.
+  // Important : ce type d'erreur vient de la capacité globale du modèle chez
+  // Google, pas de la clé utilisée — retenter avec une clé différente (perso)
+  // ne contourne donc pas une vraie saturation, mais peut aider si la clé du
+  // site a atteint son propre quota alors que le modèle n'est pas saturé.
   const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
-  const MAX_ATTEMPTS_PER_MODEL = 2;
-  const RETRY_DELAY_MS = 1000;
+  const MAX_ATTEMPTS_PER_MODEL = 3;
+  const BASE_RETRY_DELAY_MS = 900;
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -44,6 +45,7 @@ exports.handler = async (event) => {
     status === 503 || status === 429 || /overload|high demand|unavailable/i.test(message || '');
 
   let lastError = 'Erreur API Gemini';
+  let lastWasOverload = false;
 
   for (const model of MODELS) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
@@ -66,16 +68,17 @@ exports.handler = async (event) => {
         }
 
         lastError = data.error?.message || 'Erreur API Gemini';
+        lastWasOverload = isOverloaded(res.status, lastError);
 
-        if (isOverloaded(res.status, lastError) && attempt < MAX_ATTEMPTS_PER_MODEL) {
-          await sleep(RETRY_DELAY_MS);
+        if (lastWasOverload && attempt < MAX_ATTEMPTS_PER_MODEL) {
+          await sleep(BASE_RETRY_DELAY_MS * attempt); // 900ms, puis 1800ms
           continue; // retente sur le même modèle
         }
-        if (isOverloaded(res.status, lastError)) {
+        if (lastWasOverload) {
           break; // passe au modèle de repli suivant
         }
         // Erreur non liée à la surcharge (ex: clé invalide) : inutile d'insister
-        return { statusCode: res.status, body: JSON.stringify({ error: lastError }) };
+        return { statusCode: res.status, body: JSON.stringify({ error: lastError, overloaded: false }) };
       } catch (err) {
         console.error('gemini-synthesis error:', err);
         lastError = 'Erreur serveur lors de la requête vers Gemini';
@@ -83,5 +86,5 @@ exports.handler = async (event) => {
     }
   }
 
-  return { statusCode: 503, body: JSON.stringify({ error: lastError }) };
+  return { statusCode: 503, body: JSON.stringify({ error: lastError, overloaded: lastWasOverload }) };
 };
