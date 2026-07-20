@@ -3338,14 +3338,20 @@ async function loadNasdaqEarnings(){
       resultEl.innerHTML = `<div style="color:var(--text-faint);">Aucun résultat d'entreprise trouvé pour cette date (marché fermé ou pas de publication ce jour-là).</div>`;
       return;
     }
-    const timeLabel = t => t==='time-pre-market' ? 'Avant ouverture' : t==='time-after-hours' ? 'Après clôture' : '—';
+    const timeIcon = t => t==='time-pre-market'
+        ? `<span title="Avant ouverture" style="display:inline-flex;color:var(--warning, #e6b800);width:15px;height:15px;vertical-align:-3px;">${icon('sun')}</span>`
+        : t==='time-after-hours'
+        ? `<span title="Après clôture" style="display:inline-flex;color:var(--text-faint);width:15px;height:15px;vertical-align:-3px;">${icon('moon')}</span>`
+        : '<span style="color:var(--text-faint);">—</span>';
+    const parseCap = v => { if(v===null||v===undefined||v==='') return 0; const n = Number(String(v).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
+    const fmtCap = v => { const n = parseCap(v); if(!n) return '—'; if(n>=1e9) return '$'+(n/1e9).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'B'; if(n>=1e6) return '$'+(n/1e6).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M'; return '$'+n.toLocaleString('fr-FR'); };
     const rows = list.slice(0, 80).map(e=>`
         <tr>
           <td><strong>${e.symbol||'—'}</strong></td>
           <td>${e.name||'—'}</td>
-          <td>${timeLabel(e.time)}</td>
+          <td style="text-align:center;">${timeIcon(e.time)}</td>
           <td class="num mono">${e.epsForecast||'—'}</td>
-          <td class="num mono">${e.marketCap?fmtMoneyShort(Number(e.marketCap)):'—'}</td>
+          <td class="num mono">${fmtCap(e.marketCap)}</td>
         </tr>`).join('');
     resultEl.innerHTML = `
       <div class="table-wrap">
