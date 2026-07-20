@@ -449,10 +449,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// Clé API Gemini — en dur à la demande, mais ATTENTION : ce repo est public sur GitHub,
-// donc cette clé est visible par n'importe qui (dépôt + "view source" du site déployé).
-// Remplace la valeur ci-dessous par ta vraie clé, et surveille/régénère-la si besoin.
-const GEMINI_API_KEY = 'REMPLACE_PAR_TA_CLE_GEMINI';
+// La clé API Gemini n'est plus stockée ni exposée côté client : l'appel passe
+// par la fonction serverless Netlify /.netlify/functions/gemini-synthesis,
+// qui lit la clé depuis la variable d'environnement Netlify GEMINI_API_KEY.
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
 
 const state = {
@@ -3342,8 +3341,6 @@ function viewMeteo(){
 }
 
 async function callGeminiSynthesis(prep){
-  const key = GEMINI_API_KEY;
-  if(!key || key.includes('REMPLACE')){ showToast('Clé Gemini non configurée dans le code (constante GEMINI_API_KEY).', 'danger'); return null; }
   const prompt = `Fais-moi un brief météo pour ma session de scalping d'aujourd'hui (${prep.date}) sur le MNQ (ATAS / Carnet d'ordres). Va droit au but, pas de blabla inutile, donne-moi juste les faits à travers ces 4 points précis :
 1. LE CONTEXTE DU JOUR : Y a-t-il des annonces économiques majeures, des échéances techniques sur les contrats ou les options, ou une actualité exceptionnelle qui impacte le secteur de la Tech ?
 2. TEXTURE DU CARNET : À quoi doit-on s'attendre pour l'Open à 15h30 ? Un carnet "lourd" avec des absorptions logiques, ou un carnet "creux/fin" instable et propice au slippage ?
@@ -3351,13 +3348,13 @@ async function callGeminiSynthesis(prep){
 4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 150 $ aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)${prep.biasNote ? `
 Note du trader : ${prep.biasNote}` : ''}`;
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    const res = await fetch('/.netlify/functions/gemini-synthesis', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
+      body: JSON.stringify({ prompt })
     });
     const data = await res.json();
-    if(!res.ok) throw new Error(data.error?.message || 'Erreur API Gemini');
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    if(!res.ok) throw new Error(data.error || 'Erreur API Gemini');
+    return data.text || null;
   } catch(e){
     showToast('Erreur Gemini : ' + e.message, 'danger');
     return null;
