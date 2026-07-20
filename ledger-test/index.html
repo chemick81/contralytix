@@ -560,9 +560,25 @@ async function upsert(collection, item){
     return;
   }
   if(idx>=0) arr[idx] = item; else arr.push(item);
-  const { error } = await supabaseClient.from(collection).upsert(toRow(item));
+  const row = toRow(item);
+  let { error } = await supabaseClient.from(collection).upsert(row);
   if(error){
-    // Repli si le serveur (RLS) refuse l'opération malgré la vérification côté interface
+    // Repli : si Supabase signale une colonne manquante (schéma pas encore migré,
+    // ex. "ai_prompt" absent de la table market_prep), on retente sans ce champ
+    // plutôt que de perdre toute la sauvegarde — le reste des données est conservé.
+    const missingColMatch = /Could not find the '([a-z0-9_]+)' column/i.exec(error.message || '');
+    if(missingColMatch && missingColMatch[1] in row){
+      const missingCol = missingColMatch[1];
+      const rowWithoutCol = { ...row };
+      delete rowWithoutCol[missingCol];
+      const retry = await supabaseClient.from(collection).upsert(rowWithoutCol);
+      if(!retry.error){
+        showToast(`Enregistré, mais le champ "${missingCol}" n'a pas pu être sauvegardé : cette colonne n'existe pas encore dans la table Supabase "${collection}" (il faut l'ajouter via une migration SQL).`);
+        return;
+      }
+      error = retry.error;
+    }
+    // Autre repli si le serveur (RLS) refuse l'opération malgré la vérification côté interface
     if(idx>=0) await loadAll();
     showToast('Erreur de sauvegarde : ' + error.message, 'danger');
   }
