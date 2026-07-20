@@ -9,21 +9,24 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Méthode non autorisée' }) };
   }
 
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY non configurée sur Netlify (Site configuration > Environment variables).' }) };
-  }
-
-  let prompt;
+  let prompt, userApiKey;
   try {
     const body = JSON.parse(event.body || '{}');
     prompt = body.prompt;
+    userApiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
   } catch (err) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Corps de requête JSON invalide' }) };
   }
 
   if (!prompt || typeof prompt !== 'string') {
     return { statusCode: 400, body: JSON.stringify({ error: 'Le champ "prompt" est requis' }) };
+  }
+
+  // Si le client fournit sa propre clé (repli quand la clé du site échoue), on
+  // l'utilise à sa place. Sinon on retombe sur la clé configurée sur Netlify.
+  const key = userApiKey || process.env.GEMINI_API_KEY;
+  if (!key) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY non configurée sur Netlify (Site configuration > Environment variables), et aucune clé personnelle fournie.' }) };
   }
 
   // En cas de surcharge (erreurs 503/429 "high demand"), on retente une fois
