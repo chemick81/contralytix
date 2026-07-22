@@ -33,17 +33,37 @@ async function upsertSubscription({ userId, plan, status, billingCycle, stripeCu
   if (error) throw error;
 
   // Le rôle profiles reste synchro avec le plan (sauf ADMIN, jamais touché)
+  const newRole = plan === 'PREMIUM' && status === 'ACTIVE' ? 'PREMIUM' : 'FREE';
+
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .maybeSingle();
 
-  if (profile && profile.role !== 'ADMIN') {
-    await supabaseAdmin
+  if (profile) {
+    if (profile.role !== 'ADMIN') {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+    }
+  } else {
+    // Aucune ligne profiles pour cet utilisateur (ex: trigger de création de profil
+    // qui a échoué ou compte créé avant sa mise en place). On la crée ici pour ne
+    // pas laisser l'utilisateur bloqué en FREE alors qu'il a payé.
+    console.warn(`Aucun profile trouvé pour user_id=${userId}, création à la volée.`);
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const { error: insertErr } = await supabaseAdmin
       .from('profiles')
-      .update({ role: plan === 'PREMIUM' && status === 'ACTIVE' ? 'PREMIUM' : 'FREE' })
-      .eq('id', userId);
+      .insert({
+        id: userId,
+        email: authUser?.user?.email || null,
+        role: newRole,
+      });
+    if (insertErr) {
+      console.error('Échec création profile de secours:', insertErr);
+    }
   }
 }
 
