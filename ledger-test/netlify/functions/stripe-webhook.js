@@ -47,6 +47,17 @@ async function upsertSubscription({ userId, plan, status, billingCycle, stripeCu
   }
 }
 
+// Depuis les versions récentes de l'API Stripe (facturation flexible),
+// `current_period_end` n'existe plus forcément à la racine de l'objet Subscription :
+// il faut aller le chercher dans le premier item de l'abonnement.
+// Ce helper gère les deux cas pour ne jamais planter sur une date invalide.
+function getCurrentPeriodEnd(subscription) {
+  const ts =
+    subscription.current_period_end ||
+    subscription.items?.data?.[0]?.current_period_end;
+  return ts ? new Date(ts * 1000).toISOString() : null;
+}
+
 async function findUserIdByCustomer(stripeCustomerId) {
   const { data } = await supabaseAdmin
     .from('subscriptions')
@@ -111,7 +122,7 @@ exports.handler = async (event) => {
             billingCycle,
             stripeCustomerId: session.customer,
             stripeSubscriptionId: subscription.id,
-            expiresAt: new Date(subscription.current_period_end * 1000).toISOString(),
+            expiresAt: getCurrentPeriodEnd(subscription),
           });
         }
         break;
@@ -133,7 +144,7 @@ exports.handler = async (event) => {
           billingCycle: subscription.metadata?.billing_cycle || undefined,
           stripeCustomerId: invoice.customer,
           stripeSubscriptionId: subscription.id,
-          expiresAt: new Date(subscription.current_period_end * 1000).toISOString(),
+          expiresAt: getCurrentPeriodEnd(subscription),
         });
         break;
       }
@@ -190,7 +201,7 @@ exports.handler = async (event) => {
           billingCycle: subscription.metadata?.billing_cycle || undefined,
           stripeCustomerId: subscription.customer,
           stripeSubscriptionId: subscription.id,
-          expiresAt: new Date(subscription.current_period_end * 1000).toISOString(),
+          expiresAt: getCurrentPeriodEnd(subscription),
         });
         break;
       }
