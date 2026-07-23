@@ -154,6 +154,29 @@ tbody tr:hover{background:var(--surface-2);}
 .modal.xwide{max-width:960px;}
 
 /* CHANGELOG */
+.manual-toc{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 18px;}
+.manual-toc a{display:flex;gap:8px;padding:6px 8px;border-radius:7px;color:var(--text-dim);font-size:13px;}
+.manual-toc a:hover{background:var(--surface-2);color:var(--text);}
+.manual-toc a span.mn{color:var(--text-faint);font-family:'JetBrains Mono',monospace;font-size:11.5px;min-width:20px;}
+.manual-chapter{padding:22px 0;border-bottom:1px solid var(--border-soft);scroll-margin-top:80px;}
+.manual-chapter:last-child{border-bottom:none;}
+.manual-chapter h2{font-size:16.5px;margin:0 0 10px;display:flex;align-items:center;gap:9px;}
+.manual-chapter h2 .mn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--accent-dim);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;flex-shrink:0;}
+.manual-chapter h3{font-size:13.5px;margin:16px 0 6px;color:var(--text);}
+.manual-chapter p{font-size:13px;color:var(--text-dim);line-height:1.65;margin:0 0 10px;}
+.manual-chapter ul{margin:0 0 10px;padding-left:18px;}
+.manual-chapter li{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:5px;}
+.manual-chapter li b, .manual-chapter p b{color:var(--text);font-weight:600;}
+.manual-back-top{position:fixed;bottom:22px;right:28px;z-index:6;}
+.rgpd-block{padding:18px 0;border-bottom:1px solid var(--border-soft);}
+.rgpd-block:last-child{border-bottom:none;}
+.rgpd-block h2{font-size:15px;margin:0 0 8px;}
+.rgpd-block p{font-size:13px;color:var(--text-dim);line-height:1.65;margin:0 0 10px;}
+.rgpd-block ul{margin:0 0 10px;padding-left:18px;}
+.rgpd-block li{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:5px;}
+.rgpd-table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0;}
+.rgpd-table th{text-align:left;padding:8px 10px;background:var(--surface-2);color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.rgpd-table td{padding:8px 10px;border-bottom:1px solid var(--border-soft);color:var(--text-dim);vertical-align:top;}
 .changelog-list{display:flex;flex-direction:column;gap:4px;}
 .changelog-row{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border-soft);}
 .changelog-row:last-child{border-bottom:none;}
@@ -430,6 +453,7 @@ const ICONS = {
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5a1.5 1.5 0 0 0-2.1 0L4 19"/></svg>',
   video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10l4.3-2.8a.8.8 0 0 1 1.2.7v8.2a.8.8 0 0 1-1.2.7L16.5 14"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
+  help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2 1c0 1.7-2.5 1.9-2.5 3.6"/><path d="M12 17.5h.01"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -1237,8 +1261,15 @@ function renderAuthScreen(){
         <div style="flex:1;height:1px;background:#232D38;"></div>OU<div style="flex:1;height:1px;background:#232D38;"></div>
       </div>
       <button id="auth-google" style="width:100%;padding:10px;border:1px solid #232D38;border-radius:7px;background:transparent;color:#E8EDF2;font-weight:600;font-size:13px;cursor:pointer;">Continuer avec Google</button>
+      <div style="text-align:center;margin-top:16px;">
+        <a id="auth-privacy-link" href="#" style="font-size:11.5px;color:#5B6673;text-decoration:underline;">Confidentialité &amp; RGPD</a>
+      </div>
     </div>
   `;
+  document.getElementById('auth-privacy-link').onclick = (e)=>{
+    e.preventDefault();
+    openModal({ title:'Confidentialité & RGPD', bodyHtml: viewConfidentialite(), wide:true });
+  };
   document.getElementById('tab-login').onclick = ()=>{ state.authMode='login'; state.authError=''; renderAuthScreen(); };
   document.getElementById('tab-signup').onclick = ()=>{ state.authMode='signup'; state.authError=''; renderAuthScreen(); };
   document.getElementById('auth-submit').onclick = ()=>{
@@ -1588,6 +1619,8 @@ function getNav(){
     { id:'classement', label:'Classement', icon:'trophy' },
     { id:'changelog', label:'Nouveautés', icon:'sparkles' },
     { id:'subscription', label:'Tarifs', icon:'wallet' },
+    { id:'manuel', label:'Manuel', icon:'help' },
+    { id:'confidentialite', label:'Confidentialité', icon:'lock' },
   ];
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
@@ -1667,6 +1700,8 @@ function topbarSub(){
     comparatif: 'Performance comparée des PropFirms',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
+    manuel: 'Guide complet de l\u2019application, section par section',
+    confidentialite: 'Données personnelles, RGPD et vos droits',
   };
   return map[state.route] || '';
 }
@@ -1716,6 +1751,8 @@ function renderView(){
   else if(state.route==='classement') el.innerHTML = perms().canClassement ? viewClassement() : lockedFeatureView('Le classement');
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
+  else if(state.route==='manuel') el.innerHTML = viewManuel();
+  else if(state.route==='confidentialite') el.innerHTML = viewConfidentialite();
   else if(state.route==='admin') { el.innerHTML = emptyState('shield','Chargement…',''); loadAdminView(); return; }
   bindViewEvents();
 }
@@ -2642,6 +2679,290 @@ function viewChangelog(){
             <div class="changelog-desc">${c.desc}</div>
           </div>
         </div>`).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: MANUEL D'UTILISATION
+   Contenu issu du manuel officiel (Contralytix_Manuel_Utilisation.docx)
+============================================================ */
+const MANUAL_CHAPTERS = [
+  { n:'1', id:'m-intro', title:"Introduction", html:`
+    <p>Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, compte financé PA, compte Live). Il centralise le suivi de l'activité PropFirm d'un ou plusieurs traders : comptes en Challenge, comptes financés, comptes Live, dépenses, payouts, comptabilité, calendrier des échéances, préparation de séance et statistiques. L'outil est pensé aussi bien pour un trader indépendant que pour une équipe suivant plusieurs traders à la fois.</p>
+    <h3>À qui s'adresse ce manuel</h3>
+    <p>Ce manuel s'adresse à toute personne utilisant Contralytix au quotidien : trader indépendant suivant ses propres comptes, gestionnaire suivant une équipe de traders, ou administrateur du site.</p>
+    <h3>Formules disponibles</h3>
+    <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 15 « Abonnement et tarifs »).</p>` },
+  { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
+    <h3>Connexion et inscription</h3>
+    <p>L'écran d'accueil propose deux onglets : « Connexion » pour un compte existant, et « Inscription » pour créer un nouveau compte. Une adresse e-mail et un mot de passe suffisent.</p>
+    <h3>Interface générale</h3>
+    <p>Une fois connecté, l'application se compose de deux zones principales :</p>
+    <ul>
+      <li><b>La barre latérale</b> (à gauche) — logo, menu de navigation vers toutes les sections, adresse e-mail du compte connecté, formule en cours, et boutons d'action rapide.</li>
+      <li><b>La zone principale</b> (à droite) — titre de la section active, barre d'actions contextuelle (boutons « Nouveau… », exports, etc.) et contenu de la page.</li>
+    </ul>
+    <p>En bas de la barre latérale se trouvent les commandes suivantes :</p>
+    <ul>
+      <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
+      <li><b>Mode clair / Mode sombre</b> — bascule le thème visuel de l'application.</li>
+      <li><b>Réinitialiser</b> (administrateurs uniquement) — supprime définitivement toutes les données pour l'ensemble des utilisateurs du site. Action irréversible.</li>
+      <li><b>Déconnexion</b> — ferme la session en cours.</li>
+    </ul>
+    <h3>Recherche globale</h3>
+    <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
+    <h3>Menu de navigation</h3>
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Sessions Live, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+  { n:'3', id:'m-dashboard', title:"Dashboard", html:`
+    <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
+    <h3>Filtres</h3>
+    <p>En haut de la page, trois filtres permettent d'affiner la vue : trader (sélection multiple), PropFirm, et mois. Un bouton « Réinitialiser filtres » apparaît dès qu'un filtre est actif.</p>
+    <h3>Alertes</h3>
+    <p>Un panneau « Alertes » signale les situations à surveiller (par exemple des échéances proches). Cliquer sur une alerte ouvre directement le compte concerné.</p>
+    <h3>Indicateurs clés</h3>
+    <ul>
+      <li><b>Traders actifs</b> — nombre de traders au statut Actif, sur le total enregistré.</li>
+      <li><b>Challenges en cours</b> — nombre de comptes Challenge actuellement actifs.</li>
+      <li><b>PA actifs</b> — nombre de comptes financés (PA) actuellement actifs.</li>
+      <li><b>Taux de réussite</b> — part des Challenges déjà tranchés (réussis ou breached) soldés par une réussite.</li>
+      <li><b>Comptes Live actifs</b> — nombre de comptes Live actuellement actifs.</li>
+      <li><b>Dépenses</b> — somme des achats, mensualités et frais d'activation, sur la période filtrée.</li>
+      <li><b>Payouts</b> — somme des versements reçus, sur la période filtrée.</li>
+      <li><b>Résultat net</b> — payouts moins dépenses, sur la période filtrée.</li>
+    </ul>
+    <h3>Délais moyens</h3>
+    <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
+    <h3>Graphique et comptes récents</h3>
+    <p>Un graphique compare les dépenses et les payouts sur les 6 derniers mois. À côté, un encart liste les comptes créés le plus récemment, avec leur statut.</p>` },
+  { n:'4', id:'m-traders', title:"Traders", html:`
+    <p>La section Traders liste l'ensemble des traders suivis, avec leurs statistiques et leurs badges.</p>
+    <h3>Le tableau des traders</h3>
+    <p>Pour chaque trader : nom et pseudo, e-mail, statut (Actif / Inactif), badges débloqués, nombre de comptes, total des dépenses et total des payouts.</p>
+    <h3>Créer ou modifier un trader</h3>
+    <p>Le bouton « Nouveau trader » ouvre un formulaire de création. Un trader peut être marqué « Privé » : il n'est alors visible que par son créateur et les administrateurs.</p>
+    <h3>Badges et régularité</h3>
+    <ul>
+      <li><b>Badges</b> — affiche la liste des succès débloqués et à débloquer pour ce trader.</li>
+      <li><b>Régularité</b> — affiche une analyse de la régularité des payouts dans le temps (fréquence des mois avec au moins un payout, plus longue série active, plus longue interruption).</li>
+    </ul>
+    <h3>Droits d'édition</h3>
+    <p>Seul le créateur d'un trader (ou un administrateur) peut le modifier ou le supprimer. Un trader appartenant à un autre utilisateur s'affiche en lecture seule, avec un badge « Lecture seule ».</p>` },
+  { n:'5', id:'m-propfirms', title:"PropFirms", html:`
+    <p>La section PropFirms recense les sociétés de prop trading utilisées par les traders suivis. Pour chaque PropFirm, le tableau affiche son logo (chargé automatiquement), son nom, son site web, des notes libres, et le nombre de comptes qui lui sont rattachés.</p>
+    <p>Le bouton « Nouvelle PropFirm » permet d'en ajouter une. Comme pour les traders, seul le créateur d'une PropFirm (ou un administrateur) peut la modifier ou la supprimer ; les autres utilisateurs la voient en lecture seule.</p>` },
+  { n:'6', id:'m-comptes', title:"Comptes", html:`
+    <p>La section Comptes est le cœur de l'application : elle regroupe tous les comptes Challenge, PA et Live de tous les traders, sous forme de cartes détaillées.</p>
+    <h3>Cycle de vie d'un compte</h3>
+    <ul>
+      <li>Un Challenge est créé et passe en statut Actif.</li>
+      <li>Il est ensuite marqué « Réussi » ou « Breached » (échoué) depuis sa carte.</li>
+      <li>Un Challenge réussi permet de créer directement le compte PA associé (bouton « Créer le PA ») — le lien entre les deux comptes est conservé.</li>
+      <li>Un compte PA actif peut être converti en compte Live (bouton « Passer en Live ») : l'historique est conservé, seul le type change.</li>
+      <li>Un compte PA ou Live peut être fermé, ou marqué Breached, à tout moment depuis sa carte.</li>
+    </ul>
+    <h3>Statuts possibles</h3>
+    <ul>
+      <li><b>Actif</b> — le compte est en cours.</li>
+      <li><b>Réussi</b> — un Challenge mené à bien.</li>
+      <li><b>Breached</b> — le compte a échoué / violé les règles de la PropFirm.</li>
+      <li><b>Fermé</b> — le compte a été volontairement fermé.</li>
+    </ul>
+    <h3>Filtrer et rechercher</h3>
+    <p>Une barre de filtres permet de rechercher un compte par trader, numéro de compte ou nom de PropFirm, et de filtrer par trader (choix multiple), PropFirm, type de compte et statut (choix multiple).</p>
+    <h3>Créer un compte</h3>
+    <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
+    <h3>La carte d'un compte</h3>
+    <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
+    <h3>Payouts</h3>
+    <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, date, note), de le modifier ou le supprimer, et de générer un reçu PDF pour chaque payout.</p>
+    <h3>Notes / journal et historique</h3>
+    <p>Chaque compte dispose d'un journal de notes horodatées et attribuées à leur auteur, ainsi que d'un historique complet des changements de statut avec date et motif.</p>
+    <h3>Droits d'édition</h3>
+    <p>Un compte n'est modifiable ou supprimable que par son créateur ou un administrateur ; sinon il s'affiche en lecture seule, avec un accès conservé à la consultation des payouts.</p>` },
+  { n:'7', id:'m-calendrier', title:"Calendrier", html:`
+    <p>Le Calendrier affiche, mois par mois, tous les événements liés aux comptes et aux traders : payouts reçus, achats, mensualités dues, frais d'activation, challenges réussis et breaches. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    <p>Les flèches en haut permettent de passer au mois précédent ou suivant ; un bouton « Aujourd'hui » ramène au mois en cours. Un filtre par trader (choix multiple) restreint les événements affichés, et une légende rappelle la signification de chaque icône et couleur.</p>
+    <p>Chaque case contenant des événements est cliquable et ouvre le détail complet de la journée. En bas de page, quatre indicateurs résument le mois : payouts reçus, dépenses, challenges réussis et breaches.</p>` },
+  { n:'8', id:'m-comptabilite', title:"Comptabilité", html:`
+    <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports.</p>
+    <h3>Filtres</h3>
+    <p>Il est possible de filtrer les lignes par mois, par type de mouvement, par trader (choix multiple) et par PropFirm.</p>
+    <h3>Exports</h3>
+    <ul>
+      <li><b>CSV</b> — fichier tableur brut, disponible dans toutes les formules.</li>
+      <li><b>Excel (.xlsx)</b> — fichier tableur mis en forme, réservé aux formules Premium et Lifetime.</li>
+      <li><b>PDF récapitulatif</b> — indicateurs clés puis détail ligne par ligne, réservé aux formules Premium et Lifetime.</li>
+    </ul>` },
+  { n:'9', id:'m-bilan', title:"Bilan visuel", html:`
+    <p>Le Bilan visuel présente des cartes récapitulatives mensuelles, par trader et par PropFirm, destinées à être partagées. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    <p>Un filtre permet de choisir le mois et un ou plusieurs traders. Chaque carte affiche les dépenses, les payouts et le résultat net du mois pour un trader donné, et peut être exportée individuellement en image PNG, ou en une fois via « Tout exporter (PNG) ».</p>` },
+  { n:'10', id:'m-sessions', title:"Sessions Live", html:`
+    <p>La section Sessions Live conserve les enregistrements vidéo (YouTube) des sessions de trading, avec vignette, notes et lien.</p>
+    <p>Le bouton « Nouvelle session » permet d'ajouter une session : titre, lien YouTube (vignette générée automatiquement), date, notes libres, et association optionnelle à un trader. Si la session est associée à un trader marqué « Privé », elle hérite de cette confidentialité. Chaque session peut être ouverte sur YouTube, modifiée ou supprimée par son créateur (ou un administrateur).</p>` },
+  { n:'11', id:'m-meteo', title:"Préparation de séance", html:`
+    <p>Cette section (« Météo ») génère une prépa de séance quotidienne à l'aide d'une IA, avec en complément un calendrier économique et les résultats d'entreprises du jour.</p>
+    <h3>Brief météo IA</h3>
+    <p>Le bouton « Nouvelle prépa » envoie un prompt (personnalisable) à un moteur d'intelligence artificielle pour générer un brief structuré autour de quatre axes : le contexte du jour, la texture attendue du carnet d'ordres à l'ouverture, la dynamique récente du marché, et une recommandation « feu vert / feu rouge » sur la taille de position. Un champ « Biais du jour » permet d'ajouter une note manuelle libre. La prépa du jour s'affiche en tête de page ; les prépas précédentes restent consultables sous « Historique ».</p>
+    <h3>Calendrier économique et résultats d'entreprises</h3>
+    <p>Un widget affiche le calendrier économique de la semaine. Un second panneau permet de charger, pour une date donnée, la liste des entreprises publiant leurs résultats ce jour-là (ticker, société, horaire, EPS prévu, capitalisation).</p>` },
+  { n:'12', id:'m-comparatif', title:"Comparatif PropFirms", html:`
+    <p>Le Comparatif met en regard les performances de chaque PropFirm utilisée : nombre de comptes, nombre de Challenges, taux de réussite (calculé sur les Challenges déjà tranchés), total des dépenses, total des payouts et résultat net — trié par résultat net décroissant.</p>` },
+  { n:'13', id:'m-classement', title:"Classement", html:`
+    <p>Le Classement met en avant les traders les plus performants, façon leaderboard. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    <h3>Podium et tableau</h3>
+    <p>Les trois meilleurs traders (par total de payouts, puis taux de réussite) sont mis en avant sous forme de podium. Les suivants apparaissent dans un tableau avec total des payouts, nombre de versements, taux de réussite et nombre de badges débloqués.</p>
+    <h3>Période</h3>
+    <p>Le classement peut être calculé sur un mois donné, ou en cumul « Tout temps ».</p>
+    <h3>Badges et succès</h3>
+    <p>Un système de succès valorise les étapes marquantes du parcours de chaque trader (premier Challenge, premier payout, paliers de payouts cumulés, régularité, absence d'échec « Sans faute »…), consultables depuis la section Traders.</p>` },
+  { n:'14', id:'m-nouveautes', title:"Nouveautés", html:`
+    <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>` },
+  { n:'15', id:'m-abonnement', title:"Abonnement et tarifs", html:`
+    <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
+    <h3>Formule actuelle</h3>
+    <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
+    <h3>Comparatif des formules</h3>
+    <ul>
+      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, sessions live illimitées, suivi des payouts, support communautaire.</li>
+      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, import CSV/Excel, exports Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, sauvegarde, support prioritaire.</li>
+      <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
+    </ul>
+    <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
+  { n:'16', id:'m-admin', title:"Espace Admin", html:`
+    <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
+    <h3>Tableau de bord Admin</h3>
+    <p>Un ensemble d'indicateurs résume l'activité du site : nombre total d'utilisateurs, répartition Premium / Free, nombre de Lifetime, MRR, ARR, revenus cumulés et nombre de résiliations, ainsi que les dernières inscriptions.</p>
+    <h3>Gestion des utilisateurs</h3>
+    <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès.</p>
+    <h3>Journal d'activité</h3>
+    <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
+    <h3>Import de données et sauvegarde</h3>
+    <p>Deux outils d'import sont disponibles : « Importer (PropDesk) », qui lit un export JSON de PropDesk et fait correspondre automatiquement traders et PropFirms avant un aperçu détaillé et sélectif ; et « Importer migration (ancien site) », pour une sauvegarde JSON issue d'une ancienne version. Le bouton « Sauvegarde JSON » exporte l'intégralité des données du site pour archivage ou migration.</p>` },
+  { n:'17', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
+    <p>Contralytix distingue plusieurs niveaux de droits sur les données, applicables à tous les enregistrements (traders, PropFirms, comptes, sessions, prépas de séance).</p>
+    <h3>Propriété des enregistrements</h3>
+    <p>Chaque enregistrement appartient à l'utilisateur qui l'a créé. Seuls ce créateur et les administrateurs peuvent le modifier ou le supprimer ; les autres utilisateurs le voient en lecture seule, signalé par un badge « Lecture seule ».</p>
+    <h3>Traders et sessions privés</h3>
+    <p>Un trader peut être marqué « Privé » à sa création ou lors de sa modification : il n'est alors visible que par son créateur et les administrateurs. Toute session live associée à un trader privé hérite automatiquement de cette confidentialité.</p>
+    <h3>Masquage des numéros de compte</h3>
+    <p>Par défaut, les numéros de compte affichés sont partiellement masqués (seuls les 4 derniers chiffres sont visibles). L'affichage complet peut être activé depuis la barre latérale, par exemple pour un usage individuel en toute confidentialité de son propre écran.</p>
+    <p style="margin-top:14px;">Pour le détail complet sur les données personnelles traitées, leurs finalités et vos droits, consultez la page <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a>.</p>` },
+];
+function viewManuel(){
+  return `
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-body">
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Manuel d'utilisation — Contralytix</div>
+        <div class="field-hint" style="margin:0 0 14px;">Version du document : juillet 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 14).</div>
+        <div class="manual-toc">
+          ${MANUAL_CHAPTERS.map(c=>`<a href="#${c.id}" data-manual-anchor="${c.id}"><span class="mn">${c.n}</span>${c.title}</a>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        ${MANUAL_CHAPTERS.map(c=>`
+          <div class="manual-chapter" id="${c.id}">
+            <h2><span class="mn">${c.n}</span>${c.title}</h2>
+            ${c.html}
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: CONFIDENTIALITÉ / RGPD
+============================================================ */
+function viewConfidentialite(){
+  return `
+    <div class="panel">
+      <div class="panel-body">
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Politique de confidentialité &amp; RGPD</div>
+        <div class="field-hint" style="margin:0 0 6px;">Dernière mise à jour : ${fmtDate(todayISO())}. Cette page explique quelles données Contralytix traite, pourquoi, avec qui elles sont partagées et quels sont vos droits.</div>
+
+        <div class="rgpd-block">
+          <h2>1. Responsable du traitement</h2>
+          <p>Contralytix (contralityx.netlify.app) est l'outil de gestion PropFirm décrit dans le manuel d'utilisation. Le responsable du traitement des données est l'éditeur du site. Pour toute question relative à vos données personnelles, un point de contact dédié doit être renseigné ici par l'éditeur (adresse e-mail de contact « Délégué à la protection des données » ou support).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>2. Données collectées</h2>
+          <table class="rgpd-table">
+            <tr><th>Catégorie</th><th>Exemples</th><th>Origine</th></tr>
+            <tr><td>Compte</td><td>Adresse e-mail, mot de passe (haché), date d'inscription, dernière connexion</td><td>Renseignées à l'inscription</td></tr>
+            <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
+            <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
+            <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
+            <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
+          </table>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>3. Finalités et base légale</h2>
+          <ul>
+            <li><b>Fourniture du service</b> (authentification, stockage et affichage de vos données PropFirm) — exécution du contrat liant l'éditeur et l'utilisateur.</li>
+            <li><b>Gestion de l'abonnement et de la facturation</b> — exécution du contrat et obligations légales (comptabilité).</li>
+            <li><b>Génération de la préparation de séance par IA</b> — exécution du contrat, à votre initiative, lorsque vous déclenchez cette fonctionnalité.</li>
+            <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
+            <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
+          </ul>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>4. Destinataires et sous-traitants</h2>
+          <p>Vos données ne sont jamais vendues. Elles peuvent être transmises aux prestataires techniques suivants, strictement pour permettre le fonctionnement du service :</p>
+          <table class="rgpd-table">
+            <tr><th>Prestataire</th><th>Rôle</th><th>Données concernées</th></tr>
+            <tr><td>Supabase</td><td>Authentification et base de données</td><td>Compte, données d'activité PropFirm</td></tr>
+            <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
+            <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
+            <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
+          </table>
+          <p>Ces prestataires sont soumis à leurs propres conditions et politiques de confidentialité, et n'utilisent vos données que pour exécuter la prestation demandée.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>5. Durée de conservation</h2>
+          <p>Les données de votre compte et de votre activité sont conservées tant que votre compte reste actif. En cas de suppression de compte, les données sont supprimées ou anonymisées dans un délai raisonnable, sous réserve des durées de conservation imposées par la loi (notamment les données de facturation, conservées le temps requis par les obligations comptables).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>6. Vos droits</h2>
+          <p>Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants sur vos données personnelles :</p>
+          <ul>
+            <li><b>Droit d'accès</b> — obtenir une copie des données vous concernant.</li>
+            <li><b>Droit de rectification</b> — corriger des données inexactes ou incomplètes.</li>
+            <li><b>Droit à l'effacement</b> — demander la suppression de votre compte et de vos données.</li>
+            <li><b>Droit à la portabilité</b> — récupérer vos données dans un format structuré (le bouton « Sauvegarde JSON » de l'espace Admin permet un export complet pour les administrateurs ; un export individuel peut être demandé au support).</li>
+            <li><b>Droit d'opposition et de limitation</b> — vous opposer à certains traitements ou en demander la limitation.</li>
+            <li><b>Droit de retirer votre consentement</b> à tout moment, lorsque le traitement en dépend.</li>
+          </ul>
+          <p>Pour exercer ces droits, contactez l'éditeur du site via l'adresse de support renseignée dans l'application. Vous disposez également du droit d'introduire une réclamation auprès de votre autorité de contrôle (en France, la CNIL — <a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>7. Sécurité</h2>
+          <p>L'accès aux données est protégé par une authentification par e-mail et mot de passe, et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 17 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>8. Cookies et stockage local</h2>
+          <p>Contralytix utilise le stockage nécessaire au fonctionnement de la session de connexion (maintien de votre session applicative) et n'utilise pas de cookies publicitaires ou de traceurs tiers à des fins de suivi commercial.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>9. Modifications de cette politique</h2>
+          <p>Cette politique peut évoluer pour refléter des changements dans l'application ou la réglementation. La date de dernière mise à jour figure en haut de cette page ; les évolutions notables de l'application sont par ailleurs consultables dans l'onglet « Nouveautés ».</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>10. Contact</h2>
+          <p>Pour toute question relative à cette politique ou à vos données personnelles, contactez l'éditeur du site via l'adresse de support à renseigner ici par l'éditeur.</p>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -3824,6 +4145,17 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
+  // Manuel: sommaire (scroll fluide) + lien vers la page confidentialité
+  document.querySelectorAll('[data-manual-anchor]').forEach(a=>{
+    a.onclick = (e)=>{
+      e.preventDefault();
+      const target = document.getElementById(a.dataset.manualAnchor);
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+  });
+  document.querySelectorAll('#view-root [data-nav]').forEach(a=>{
+    a.onclick = (e)=>{ e.preventDefault(); state.route = a.dataset.nav; render(); };
+  });
   // Dashboard filters
   ['fd-firm','fd-month'].forEach(id=>{
     const el = document.getElementById(id);
