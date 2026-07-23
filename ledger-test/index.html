@@ -167,6 +167,9 @@ tbody tr:hover{background:var(--surface-2);}
 .manual-chapter ul{margin:0 0 10px;padding-left:18px;}
 .manual-chapter li{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:5px;}
 .manual-chapter li b, .manual-chapter p b{color:var(--text);font-weight:600;}
+.manual-shot{margin:12px 0 16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface-2);}
+.manual-shot img{display:block;width:100%;height:auto;cursor:zoom-in;}
+.manual-shot-cap{padding:8px 12px;font-size:11.5px;color:var(--text-faint);border-top:1px solid var(--border-soft);}
 .manual-back-top{position:fixed;bottom:22px;right:28px;z-index:6;}
 .rgpd-block{padding:18px 0;border-bottom:1px solid var(--border-soft);}
 .rgpd-block:last-child{border-bottom:none;}
@@ -2687,6 +2690,9 @@ function viewChangelog(){
    VIEW: MANUEL D'UTILISATION
    Contenu issu du manuel officiel (Contralytix_Manuel_Utilisation.docx)
 ============================================================ */
+function manualShot(src, caption){
+  return `<div class="manual-shot"><img src="assets/manuel/${src}" alt="${escapeHtml(caption)}" loading="lazy"/><div class="manual-shot-cap">${caption}</div></div>`;
+}
 const MANUAL_CHAPTERS = [
   { n:'1', id:'m-intro', title:"Introduction", html:`
     <p>Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, compte financé PA, compte Live). Il centralise le suivi de l'activité PropFirm d'un ou plusieurs traders : comptes en Challenge, comptes financés, comptes Live, dépenses, payouts, comptabilité, calendrier des échéances, préparation de séance et statistiques. L'outil est pensé aussi bien pour un trader indépendant que pour une équipe suivant plusieurs traders à la fois.</p>
@@ -2697,6 +2703,7 @@ const MANUAL_CHAPTERS = [
   { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
     <h3>Connexion et inscription</h3>
     <p>L'écran d'accueil propose deux onglets : « Connexion » pour un compte existant, et « Inscription » pour créer un nouveau compte. Une adresse e-mail et un mot de passe suffisent.</p>
+    ${manualShot('02-connexion.jpg', "Écran de connexion / inscription.")}
     <h3>Interface générale</h3>
     <p>Une fois connecté, l'application se compose de deux zones principales :</p>
     <ul>
@@ -2716,6 +2723,7 @@ const MANUAL_CHAPTERS = [
     <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Sessions Live, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
+    ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
     <h3>Filtres</h3>
     <p>En haut de la page, trois filtres permettent d'affiner la vue : trader (sélection multiple), PropFirm, et mois. Un bouton « Réinitialiser filtres » apparaît dès qu'un filtre est actif.</p>
     <h3>Alertes</h3>
@@ -2737,6 +2745,7 @@ const MANUAL_CHAPTERS = [
     <p>Un graphique compare les dépenses et les payouts sur les 6 derniers mois. À côté, un encart liste les comptes créés le plus récemment, avec leur statut.</p>` },
   { n:'4', id:'m-traders', title:"Traders", html:`
     <p>La section Traders liste l'ensemble des traders suivis, avec leurs statistiques et leurs badges.</p>
+    ${manualShot('04-traders.jpg', "Liste des traders, avec badges débloqués et statistiques.")}
     <h3>Le tableau des traders</h3>
     <p>Pour chaque trader : nom et pseudo, e-mail, statut (Actif / Inactif), badges débloqués, nombre de comptes, total des dépenses et total des payouts.</p>
     <h3>Créer ou modifier un trader</h3>
@@ -2750,6 +2759,7 @@ const MANUAL_CHAPTERS = [
     <p>Seul le créateur d'un trader (ou un administrateur) peut le modifier ou le supprimer. Un trader appartenant à un autre utilisateur s'affiche en lecture seule, avec un badge « Lecture seule ».</p>` },
   { n:'5', id:'m-propfirms', title:"PropFirms", html:`
     <p>La section PropFirms recense les sociétés de prop trading utilisées par les traders suivis. Pour chaque PropFirm, le tableau affiche son logo (chargé automatiquement), son nom, son site web, des notes libres, et le nombre de comptes qui lui sont rattachés.</p>
+    ${manualShot('05-propfirms.jpg', "Liste des PropFirms, avec logo et nombre de comptes liés.")}
     <p>Le bouton « Nouvelle PropFirm » permet d'en ajouter une. Comme pour les traders, seul le créateur d'une PropFirm (ou un administrateur) peut la modifier ou la supprimer ; les autres utilisateurs la voient en lecture seule.</p>` },
   { n:'6', id:'m-comptes', title:"Comptes", html:`
     <p>La section Comptes est le cœur de l'application : elle regroupe tous les comptes Challenge, PA et Live de tous les traders, sous forme de cartes détaillées.</p>
@@ -2773,8 +2783,10 @@ const MANUAL_CHAPTERS = [
     <h3>Créer un compte</h3>
     <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
     <h3>La carte d'un compte</h3>
+    ${manualShot('06-comptes.jpg', "Liste des comptes, avec filtres et cartes détaillées par compte.")}
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
     <h3>Payouts</h3>
+    ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — ajout, historique et reçu PDF.")}
     <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, date, note), de le modifier ou le supprimer, et de générer un reçu PDF pour chaque payout.</p>
     <h3>Notes / journal et historique</h3>
     <p>Chaque compte dispose d'un journal de notes horodatées et attribuées à leur auteur, ainsi que d'un historique complet des changements de statut avec date et motif.</p>
@@ -2782,10 +2794,12 @@ const MANUAL_CHAPTERS = [
     <p>Un compte n'est modifiable ou supprimable que par son créateur ou un administrateur ; sinon il s'affiche en lecture seule, avec un accès conservé à la consultation des payouts.</p>` },
   { n:'7', id:'m-calendrier', title:"Calendrier", html:`
     <p>Le Calendrier affiche, mois par mois, tous les événements liés aux comptes et aux traders : payouts reçus, achats, mensualités dues, frais d'activation, challenges réussis et breaches. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    ${manualShot('07-calendrier.jpg', "Vue calendrier mensuelle des événements (achats, mensualités, payouts, issues de compte).")}
     <p>Les flèches en haut permettent de passer au mois précédent ou suivant ; un bouton « Aujourd'hui » ramène au mois en cours. Un filtre par trader (choix multiple) restreint les événements affichés, et une légende rappelle la signification de chaque icône et couleur.</p>
     <p>Chaque case contenant des événements est cliquable et ouvre le détail complet de la journée. En bas de page, quatre indicateurs résument le mois : payouts reçus, dépenses, challenges réussis et breaches.</p>` },
   { n:'8', id:'m-comptabilite', title:"Comptabilité", html:`
     <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports.</p>
+    ${manualShot('08-comptabilite.jpg', "Registre comptable — dépenses et payouts, avec filtres et exports CSV / Excel / PDF.")}
     <h3>Filtres</h3>
     <p>Il est possible de filtrer les lignes par mois, par type de mouvement, par trader (choix multiple) et par PropFirm.</p>
     <h3>Exports</h3>
@@ -2796,20 +2810,25 @@ const MANUAL_CHAPTERS = [
     </ul>` },
   { n:'9', id:'m-bilan', title:"Bilan visuel", html:`
     <p>Le Bilan visuel présente des cartes récapitulatives mensuelles, par trader et par PropFirm, destinées à être partagées. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    ${manualShot('09-bilan.jpg', "Cartes de bilan visuel mensuelles, exportables en image PNG.")}
     <p>Un filtre permet de choisir le mois et un ou plusieurs traders. Chaque carte affiche les dépenses, les payouts et le résultat net du mois pour un trader donné, et peut être exportée individuellement en image PNG, ou en une fois via « Tout exporter (PNG) ».</p>` },
   { n:'10', id:'m-sessions', title:"Sessions Live", html:`
     <p>La section Sessions Live conserve les enregistrements vidéo (YouTube) des sessions de trading, avec vignette, notes et lien.</p>
+    ${manualShot('10-sessions.jpg', "Galerie des sessions live enregistrées, avec vignette YouTube et notes.")}
     <p>Le bouton « Nouvelle session » permet d'ajouter une session : titre, lien YouTube (vignette générée automatiquement), date, notes libres, et association optionnelle à un trader. Si la session est associée à un trader marqué « Privé », elle hérite de cette confidentialité. Chaque session peut être ouverte sur YouTube, modifiée ou supprimée par son créateur (ou un administrateur).</p>` },
   { n:'11', id:'m-meteo', title:"Préparation de séance", html:`
     <p>Cette section (« Météo ») génère une prépa de séance quotidienne à l'aide d'une IA, avec en complément un calendrier économique et les résultats d'entreprises du jour.</p>
+    ${manualShot('11-meteo.jpg', "Prépa de séance générée par IA, avec calendrier économique et résultats d'entreprises.")}
     <h3>Brief météo IA</h3>
     <p>Le bouton « Nouvelle prépa » envoie un prompt (personnalisable) à un moteur d'intelligence artificielle pour générer un brief structuré autour de quatre axes : le contexte du jour, la texture attendue du carnet d'ordres à l'ouverture, la dynamique récente du marché, et une recommandation « feu vert / feu rouge » sur la taille de position. Un champ « Biais du jour » permet d'ajouter une note manuelle libre. La prépa du jour s'affiche en tête de page ; les prépas précédentes restent consultables sous « Historique ».</p>
     <h3>Calendrier économique et résultats d'entreprises</h3>
     <p>Un widget affiche le calendrier économique de la semaine. Un second panneau permet de charger, pour une date donnée, la liste des entreprises publiant leurs résultats ce jour-là (ticker, société, horaire, EPS prévu, capitalisation).</p>` },
   { n:'12', id:'m-comparatif', title:"Comparatif PropFirms", html:`
-    <p>Le Comparatif met en regard les performances de chaque PropFirm utilisée : nombre de comptes, nombre de Challenges, taux de réussite (calculé sur les Challenges déjà tranchés), total des dépenses, total des payouts et résultat net — trié par résultat net décroissant.</p>` },
+    <p>Le Comparatif met en regard les performances de chaque PropFirm utilisée : nombre de comptes, nombre de Challenges, taux de réussite (calculé sur les Challenges déjà tranchés), total des dépenses, total des payouts et résultat net — trié par résultat net décroissant.</p>
+    ${manualShot('12-comparatif.jpg', "Comparatif des PropFirms — dépenses, payouts, taux de réussite et résultat net.")}` },
   { n:'13', id:'m-classement', title:"Classement", html:`
     <p>Le Classement met en avant les traders les plus performants, façon leaderboard. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    ${manualShot('13-classement.jpg', "Classement des traders — podium et tableau détaillé.")}
     <h3>Podium et tableau</h3>
     <p>Les trois meilleurs traders (par total de payouts, puis taux de réussite) sont mis en avant sous forme de podium. Les suivants apparaissent dans un tableau avec total des payouts, nombre de versements, taux de réussite et nombre de badges débloqués.</p>
     <h3>Période</h3>
@@ -2822,6 +2841,7 @@ const MANUAL_CHAPTERS = [
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
+    ${manualShot('15-abonnement.jpg', "Comparatif des formules Free, Premium et Lifetime.")}
     <h3>Comparatif des formules</h3>
     <ul>
       <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, sessions live illimitées, suivi des payouts, support communautaire.</li>
@@ -2831,6 +2851,7 @@ const MANUAL_CHAPTERS = [
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
   { n:'16', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
+    ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
     <p>Un ensemble d'indicateurs résume l'activité du site : nombre total d'utilisateurs, répartition Premium / Free, nombre de Lifetime, MRR, ARR, revenus cumulés et nombre de résiliations, ainsi que les dernières inscriptions.</p>
     <h3>Gestion des utilisateurs</h3>
