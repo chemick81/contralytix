@@ -223,6 +223,7 @@ th.th-sort-active svg{opacity:1;}
 .changelog-row .badge{flex-shrink:0;margin-top:2px;min-width:88px;text-align:center;}
 .changelog-title{font-weight:600;font-size:13.5px;margin-bottom:3px;}
 .changelog-desc{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.changelog-admin-actions{display:flex;gap:4px;flex-shrink:0;}
 
 /* BADGES / ACHIEVEMENTS */
 .badge-mini-row{display:flex;align-items:center;gap:3px;cursor:pointer;}
@@ -548,6 +549,7 @@ const state = {
   profiles: [],
   activityLog: [],
   promo_codes: [],
+  changelog_entries: [],
   // Réglages globaux gérés depuis l'espace Admin (visibilité des pages, message d'annonce),
   // partagés entre tous les utilisateurs — voir loadAppSettings()/saveAppSettings() et app_settings.sql.
   appSettings: {
@@ -810,6 +812,18 @@ async function loadPromoCodesAdmin(){
   const { data, error } = await supabaseClient.from('promo_codes').select('*').order('created_at', { ascending:false });
   if(error){ showToast('Erreur de chargement des codes promo : ' + error.message, 'danger'); return; }
   state.promo_codes = data.map(fromRow);
+}
+// Journal des nouveautés (page "Nouveautés") : lecture publique pour tout utilisateur connecté,
+// écriture réservée aux admins (voir changelog_entries.sql). Chargé pour TOUT le monde, pas
+// seulement les admins, car la page Nouveautés doit rester accessible à tous.
+async function loadChangelog(){
+  if(!SUPABASE_CONFIGURED) return;
+  const { data, error } = await supabaseClient.from('changelog_entries').select('*').order('created_at', { ascending:false });
+  if(error){
+    if(isAdmin()) console.warn('changelog_entries introuvable ou inaccessible :', error.message);
+    return;
+  }
+  state.changelog_entries = data.map(fromRow);
 }
 // Admin : bascule un utilisateur en Premium / Free / Lifetime.
 // Met à jour profiles.role ET subscriptions en une seule action cohérente.
@@ -2813,40 +2827,36 @@ function viewClassement(){
    VIEW: NOUVEAUTÉS (changelog)
    Journal des évolutions du site — à compléter à chaque itération.
 ============================================================ */
-const CHANGELOG = [
-  { type:'improvement', title:'Filtre trader multichoix partout', desc:"Le filtre Trader (Dashboard, Comptes, Comptabilité, Bilan, Calendrier) permet désormais de sélectionner plusieurs traders à la fois, et la sélection se synchronise automatiquement entre toutes ces pages." },
-  { type:'improvement', title:'Calendrier complet', desc:"Le Calendrier affiche maintenant tous les événements liés aux comptes et aux traders : payouts reçus, achats, mensualités dues, frais d'activation, challenges réussis et breaches — avec une légende, un code couleur par type d'événement, et un détail par jour au clic." },
-  { type:'new', title:'Délais moyens (Dashboard)', desc:"Nouvelles cases sur le Dashboard : temps moyen avant le 1er payout après ouverture d'un compte, temps moyen entre deux payouts sur un même compte, temps moyen avant un breach, et temps moyen pour passer un Challenge en PA." },
-  { type:'improvement', title:'Filtre statut multichoix (Comptes)', desc:"Le filtre Statut de la page Comptes permet désormais de sélectionner plusieurs statuts à la fois, avec un compteur du nombre de comptes affichés selon les filtres actifs." },
-  { type:'new', title:'Classement entre traders', desc:"Nouvel onglet Classement façon leaderboard : podium des 3 meilleurs traders (payouts + taux de réussite) sur le mois ou en tout temps, et tableau complet pour les suivants." },
-  { type:'new', title:'Calendrier des mensualités', desc:"Nouvel onglet Calendrier : vue mensuelle des échéances de PA/Live en paiement mensuel, avec navigation mois par mois et détail par jour au clic." },
-  { type:'new', title:'Badges & achievements', desc:"12 succès débloquables par trader (Premier Challenge, Premier Réussi, Premier Payout, paliers de payouts cumulés, Multi-Firms, Sans Faute, Trader régulier…), visibles et détaillés depuis l'onglet Traders." },
-  { type:'new', title:'Export PDF récapitulatif', desc:"Génération d'un récapitulatif comptable en PDF (KPIs + détail des lignes, multi-pages), en plus des exports CSV et Excel déjà existants." },
-  { type:'new', title:'Journal / notes par compte', desc:"Possibilité d'ajouter des notes horodatées sur chaque compte (contexte d'un trade, raison d'un breach, rappel…)." },
-  { type:'new', title:'Logos des PropFirms', desc:"Affichage automatique du logo de chaque PropFirm (cartes de comptes, liste PropFirms, comparatif) et sélecteur visuel avec logos dans le formulaire de création de compte." },
-  { type:'improvement', title:'Lien manuel Challenge ↔ PA / Live', desc:"Possibilité de relier après coup un compte PA ou Live à son Challenge d'origine — utile notamment après un import où le lien n'était pas détecté automatiquement." },
-  { type:'fix', title:"Droits d'édition après import", desc:"Les comptes importés et rattachés à un trader existant héritent désormais des droits du propriétaire du trader, avec un outil de réattribution rétroactive pour corriger les imports déjà effectués." },
-  { type:'new', title:"Suppression d'utilisateurs (Admin)", desc:"Possibilité de retirer un utilisateur de la liste des accès depuis l'onglet Admin." },
-  { type:'improvement', title:"Sélection fine à l'import PropDesk", desc:"L'import n'est plus tout-ou-rien : liste à cocher par trader et par compte, détection des doublons probables, et rattachement manuel à un trader existant du site même si le pseudo diffère." },
-  { type:'new', title:"Outil d'import PropDesk (Admin)", desc:"Nouvel écran, réservé aux administrateurs, qui lit un export JSON de l'app PropDesk, fait correspondre traders et PropFirms existants, et importe comptes/payouts après un aperçu avec avertissements." },
-  { type:'new', title:'Gestion des pages (Admin)', desc:"Les administrateurs peuvent désormais masquer ou réafficher chaque page du menu pour l'ensemble des utilisateurs, directement depuis l'espace Admin." },
-  { type:'new', title:'Message global (Admin)', desc:"Possibilité d'afficher une bannière d'information, d'avertissement ou d'urgence en haut de l'application pour tous les utilisateurs, activable et modifiable à tout moment depuis l'espace Admin." },
-  { type:'improvement', title:'Tri des colonnes (Comparatif)', desc:"Le tableau du Comparatif PropFirms peut désormais être trié en cliquant sur n'importe quelle colonne (PropFirm, Comptes, Challenges, Taux de réussite, Dépenses, Payouts, Net), dans un sens puis dans l'autre." },
-  { type:'new', title:'Filtre taille et regroupement par type (Comptes)', desc:"La page Comptes permet désormais de filtrer par taille de compte, et d'activer un regroupement visuel par type (Challenges, PA, Live rassemblés en blocs distincts) plutôt qu'une liste unique triée par date." },
-];
 const CHANGELOG_TYPE_LABELS = { new:'Nouveau', improvement:'Amélioration', fix:'Correction' };
 const CHANGELOG_TYPE_CLASS = { new:'badge-accent', improvement:'badge-gold', fix:'badge-danger' };
 function viewChangelog(){
+  const entries = state.changelog_entries;
+  const adminBar = isAdmin() ? `
+    <div style="margin-bottom:16px;">
+      <button class="btn btn-primary btn-sm" id="cl-add">${icon('plus')}Ajouter une nouveauté</button>
+    </div>` : '';
+
+  if(entries.length===0){
+    return adminBar + emptyState('sparkles', 'Aucune nouveauté publiée', isAdmin() ? 'Ajoute la première entrée de ce journal.' : 'Reviens un peu plus tard.');
+  }
+
+  const lastUpdate = entries[0].createdAt ? fmtDate(entries[0].createdAt.slice(0,10)) : fmtDate(todayISO());
   return `
-    <div class="field-hint" style="margin-bottom:16px;">Dernière mise à jour de ce journal : ${fmtDate(todayISO())}. Cette page liste les évolutions et corrections apportées au site au fil du temps.</div>
+    ${adminBar}
+    <div class="field-hint" style="margin-bottom:16px;">Dernière mise à jour de ce journal : ${lastUpdate}. Cette page liste les évolutions et corrections apportées au site au fil du temps.</div>
     <div class="changelog-list">
-      ${CHANGELOG.map(c=>`
+      ${entries.map(c=>`
         <div class="changelog-row">
           <span class="badge ${CHANGELOG_TYPE_CLASS[c.type]}">${CHANGELOG_TYPE_LABELS[c.type]}</span>
-          <div>
-            <div class="changelog-title">${c.title}</div>
-            <div class="changelog-desc">${c.desc}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="changelog-title">${escapeHtml(c.title)}</div>
+            <div class="changelog-desc">${escapeHtml(c.description)}</div>
           </div>
+          ${isAdmin() ? `
+          <div class="changelog-admin-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-changelog="${c.id}" title="Modifier">${icon('edit')}</button>
+            <button class="btn btn-ghost btn-sm" data-del-changelog="${c.id}" style="color:var(--danger)" title="Supprimer">${icon('trash')}</button>
+          </div>` : ''}
         </div>`).join('')}
     </div>
   `;
@@ -3006,7 +3016,9 @@ const MANUAL_CHAPTERS = [
     <h3>Badges et succès</h3>
     <p>Un système de succès valorise les étapes marquantes du parcours de chaque trader (premier Challenge, premier payout, paliers de payouts cumulés, régularité, absence d'échec « Sans faute »…), consultables depuis la section Traders.</p>` },
   { n:'14', id:'m-nouveautes', title:"Nouveautés", html:`
-    <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>` },
+    <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
+    <h3>Gestion depuis l'espace Admin</h3>
+    <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
   { n:'15', id:'m-abonnement', title:"Abonnement et tarifs", html:`
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
@@ -4656,6 +4668,21 @@ function bindViewEvents(){
     else { f.sortKey = key; f.sortDir = key==='name' ? 'asc' : 'desc'; }
     renderView();
   });
+  // Nouveautés : gestion depuis l'interface (Admin uniquement)
+  const clAddBtn = document.getElementById('cl-add');
+  if(clAddBtn) clAddBtn.onclick = ()=>changelogEntryFormModal();
+  document.querySelectorAll('[data-edit-changelog]').forEach(b=>b.onclick=()=>{
+    const c = state.changelog_entries.find(x=>x.id===b.dataset.editChangelog);
+    if(c) changelogEntryFormModal(c);
+  });
+  document.querySelectorAll('[data-del-changelog]').forEach(b=>b.onclick=()=>{
+    const id = b.dataset.delChangelog;
+    const c = state.changelog_entries.find(x=>x.id===id);
+    confirmModal(`Supprimer la nouveauté "${c?c.title:''}" ? Elle disparaîtra définitivement de la page Nouveautés.`, async ()=>{
+      const ok = await remove('changelog_entries', id);
+      if(ok){ await logActivity('DELETE', 'changelog_entry', id, c?`Nouveauté supprimée : "${c.title}"`:''); showToast('Nouveauté supprimée.'); renderView(); }
+    }, true);
+  });
   // Admin : gestion des pages visibles
   document.querySelectorAll('[data-toggle-page]').forEach(cb=>cb.onclick=()=>{
     toggleHiddenPage(cb.dataset.togglePage);
@@ -4719,6 +4746,48 @@ function bindViewEvents(){
 /* ============================================================
    FORM: PROMO CODE (admin)
 ============================================================ */
+// Formulaire Admin : ajout / modification d'une entrée du journal des nouveautés
+// (table changelog_entries, voir changelog_entries.sql).
+function changelogEntryFormModal(existing){
+  if(!isAdmin()) return;
+  const c = existing || { id: uid('cl'), type:'new', title:'', description:'', createdAt: new Date().toISOString(), createdBy: currentUserId() };
+  openModal({
+    title: existing ? 'Modifier la nouveauté' : 'Ajouter une nouveauté',
+    bodyHtml: `
+      <div class="field"><label>Type</label>
+        <div class="radio-group">
+          <div class="radio-chip ${c.type==='new'?'selected':''}" data-cl-type="new">Nouveau</div>
+          <div class="radio-chip ${c.type==='improvement'?'selected':''}" data-cl-type="improvement">Amélioration</div>
+          <div class="radio-chip ${c.type==='fix'?'selected':''}" data-cl-type="fix">Correction</div>
+        </div>
+      </div>
+      <div class="field"><label>Titre</label><input id="cl-title" value="${escapeHtml(c.title)}" placeholder="Ex : Filtre taille de compte"/></div>
+      <div class="field"><label>Description</label><textarea id="cl-desc" rows="4" style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;" placeholder="Décris ce qui a changé pour l'utilisateur.">${escapeHtml(c.description)}</textarea></div>
+      <div id="cl-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="cl-cancel">Annuler</button><button class="btn btn-primary" id="cl-save">Enregistrer</button>`,
+    onMount(){
+      let type = c.type;
+      document.querySelectorAll('[data-cl-type]').forEach(chip=>chip.onclick=()=>{
+        type = chip.dataset.clType;
+        document.querySelectorAll('[data-cl-type]').forEach(ch=>ch.classList.toggle('selected', ch.dataset.clType===type));
+      });
+      document.getElementById('cl-cancel').onclick = closeModal;
+      document.getElementById('cl-save').onclick = async ()=>{
+        const title = document.getElementById('cl-title').value.trim();
+        const description = document.getElementById('cl-desc').value.trim();
+        const errEl = document.getElementById('cl-error');
+        if(!title){ errEl.textContent = 'Le titre est obligatoire.'; return; }
+        if(!description){ errEl.textContent = 'La description est obligatoire.'; return; }
+        await upsert('changelog_entries', { ...c, type, title, description, createdAt: existing ? c.createdAt : new Date().toISOString() });
+        await logActivity(existing ? 'UPDATE' : 'CREATE', 'changelog_entry', c.id, `Nouveauté ${existing?'modifiée':'ajoutée'} : "${title}"`);
+        state.changelog_entries.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+        showToast(existing ? 'Nouveauté mise à jour.' : 'Nouveauté publiée.');
+        closeModal(); renderView();
+      };
+    }
+  });
+}
 function promoCodeFormModal(existing){
   const p = existing || {
     id: uid('promo'), code:'', label:'', discountType:'PERCENT', discountValue:10,
@@ -6025,6 +6094,7 @@ async function runMigrationImport(json){
     computePermissions();
     await loadAll();
     await loadAppSettings();
+    await loadChangelog();
     if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
     appStarted = true;
@@ -6040,6 +6110,7 @@ async function runMigrationImport(json){
       appStarted = false;
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
+      state.changelog_entries = [];
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
       renderAuthScreen();
