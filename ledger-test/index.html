@@ -107,6 +107,38 @@ tr:last-child td{border-bottom:none;}
 tbody tr:hover{background:var(--surface-2);}
 .num{font-family:'JetBrains Mono',monospace;text-align:right;}
 
+/* SORTABLE TABLE HEADERS (Comparatif, etc.) */
+th.th-sortable{cursor:pointer;user-select:none;transition:color .12s;}
+th.th-sortable:hover{color:var(--text);}
+th.th-sortable .th-sort-inner{display:inline-flex;align-items:center;gap:4px;}
+th.th-sortable.num .th-sort-inner{flex-direction:row-reverse;}
+th.th-sortable svg{width:11px;height:11px;flex-shrink:0;opacity:.55;}
+th.th-sort-active{color:var(--accent);}
+th.th-sort-active svg{opacity:1;}
+
+/* ANNOUNCEMENT BANNER (Admin > message global) */
+.announce-banner{display:flex;align-items:center;gap:10px;padding:10px 28px;font-size:13px;font-weight:500;border-bottom:1px solid var(--border);}
+.announce-banner svg{width:16px;height:16px;flex-shrink:0;}
+.announce-info{background:var(--accent-dim);color:var(--accent);}
+.announce-warning{background:var(--gold-dim);color:var(--gold);}
+.announce-danger{background:var(--danger-dim);color:var(--danger);}
+
+/* NAV: masked-page indicator (visible only to admins) */
+.nav-item-hidden{opacity:.55;}
+.nav-hidden-badge{margin-left:auto;padding:3px 5px !important;display:inline-flex;}
+.nav-hidden-badge svg{width:11px;height:11px;}
+
+/* TOGGLE SWITCH (Admin panels) */
+.switch{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.switch-track{position:absolute;inset:0;background:var(--surface-3);border:1px solid var(--border);border-radius:22px;transition:background .15s,border-color .15s;cursor:pointer;}
+.switch-track::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--text-dim);border-radius:50%;transition:transform .15s,background .15s;}
+.switch input:checked + .switch-track{background:var(--accent-dim);border-color:var(--accent);}
+.switch input:checked + .switch-track::before{transform:translateX(16px);background:var(--accent);}
+.page-visibility-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border-soft);}
+.page-visibility-row:last-child{border-bottom:none;}
+.page-visibility-left{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;}
+.page-visibility-left svg{width:16px;height:16px;color:var(--text-dim);flex-shrink:0;}
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap;}
 .badge svg{width:11px;height:11px;flex-shrink:0;}
@@ -457,6 +489,11 @@ const ICONS = {
   video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10l4.3-2.8a.8.8 0 0 1 1.2.7v8.2a.8.8 0 0 1-1.2.7L16.5 14"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2 1c0 1.7-2.5 1.9-2.5 3.6"/><path d="M12 17.5h.01"/></svg>',
+  arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M18 13l-6 6-6-6"/></svg>',
+  arrowUpDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15V3M4 6l3-3 3 3"/><path d="M17 9v12M14 18l3 3 3-3"/></svg>',
+  megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4a1 1 0 0 0 1 1h2l4.5 4V5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M15 8.5a4 4 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>',
+  layout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="1.8"/><path d="M3.5 9.5h17M9 9.5V21"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -506,6 +543,12 @@ const state = {
   profiles: [],
   activityLog: [],
   promo_codes: [],
+  // Réglages globaux gérés depuis l'espace Admin (visibilité des pages, message d'annonce),
+  // partagés entre tous les utilisateurs — voir loadAppSettings()/saveAppSettings() et app_settings.sql.
+  appSettings: {
+    hiddenPages: [],
+    announcement: { enabled:false, message:'', type:'info' },
+  },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', status:[], statusMenuOpen:false, traderMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false },
@@ -515,6 +558,7 @@ const state = {
     calendrier: { month: '', trader:[], traderMenuOpen:false },
     classement: { month: '', allTime: false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
+    comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
   numbersVisible: false,
 };
@@ -577,6 +621,69 @@ async function loadAll(){
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
 const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
+
+/* ============================================================
+   RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
+   Stockés dans la table Supabase 'app_settings' (une ligne, key='global',
+   value=jsonb). Lecture libre pour tout utilisateur connecté (RLS SELECT),
+   écriture réservée aux admins (RLS UPDATE/INSERT). Voir app_settings.sql.
+============================================================ */
+// Chargée pour TOUT utilisateur connecté (pas seulement les admins) car elle
+// pilote ce que chacun voit dans la navigation et la bannière d'annonce.
+async function loadAppSettings(){
+  if(!SUPABASE_CONFIGURED) return;
+  const { data, error } = await supabaseClient.from('app_settings').select('*').eq('key','global').maybeSingle();
+  if(error){
+    // Table absente ou policy manquante : on reste sur les valeurs par défaut, en silence
+    // pour les non-admins ; on prévient l'admin pour qu'il pense à créer la table.
+    if(isAdmin()) console.warn('app_settings introuvable ou inaccessible :', error.message);
+    return;
+  }
+  if(data && data.value){
+    state.appSettings = {
+      hiddenPages: Array.isArray(data.value.hiddenPages) ? data.value.hiddenPages : [],
+      announcement: { enabled:false, message:'', type:'info', ...(data.value.announcement||{}) },
+    };
+  }
+}
+async function saveAppSettings(successMessage){
+  if(!isAdmin()) return false;
+  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement }, updated_at: new Date().toISOString() };
+  const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
+  if(error){
+    showToast("Impossible d'enregistrer les réglages : " + error.message + " — la table 'app_settings' existe-t-elle bien dans Supabase ? Voir app_settings.sql.", 'danger');
+    return false;
+  }
+  if(successMessage) showToast(successMessage);
+  return true;
+}
+// Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
+// toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','manuel','confidentialite'];
+async function toggleHiddenPage(pageId){
+  if(!isAdmin() || !HIDEABLE_PAGE_IDS.includes(pageId)) return;
+  const hidden = new Set(state.appSettings.hiddenPages);
+  const willHide = !hidden.has(pageId);
+  if(willHide) hidden.add(pageId); else hidden.delete(pageId);
+  const prev = state.appSettings.hiddenPages;
+  state.appSettings.hiddenPages = [...hidden];
+  const ok = await saveAppSettings();
+  if(!ok){ state.appSettings.hiddenPages = prev; renderView(); return; }
+  const label = (BASE_NAV.find(n=>n.id===pageId)||{}).label || pageId;
+  await logActivity('SETTINGS', 'app_settings', pageId, `Page "${label}" ${willHide?'masquée pour':'réaffichée à'} tous les utilisateurs non-admin`);
+  showToast(`Page « ${label} » ${willHide?'masquée':'réaffichée'}.`);
+  render();
+}
+async function saveAnnouncement(enabled, message, type){
+  if(!isAdmin()) return;
+  const prev = state.appSettings.announcement;
+  state.appSettings.announcement = { enabled, message: (message||'').trim(), type: type||'info' };
+  const ok = await saveAppSettings();
+  if(!ok){ state.appSettings.announcement = prev; render(); return; }
+  await logActivity('SETTINGS', 'app_settings', 'announcement', enabled ? `Bannière d\u2019annonce activée : "${state.appSettings.announcement.message}"` : 'Bannière d\u2019annonce désactivée');
+  showToast('Message global mis à jour.');
+  render(); // la bannière est rendue par render(), pas renderView()
+}
 
 async function upsert(collection, item){
   const arr = state[collection];
@@ -1607,30 +1714,43 @@ function confirmModal(message, onConfirm, danger=true){
 /* ============================================================
    RENDER: SHELL
 ============================================================ */
+// Liste complète des pages (hors Admin) — référence unique utilisée par la navigation
+// ET par le panneau "Gestion des pages" de l'espace Admin.
+const BASE_NAV = [
+  { id:'dashboard', label:'Dashboard', icon:'grid' },
+  { id:'traders', label:'Traders', icon:'users' },
+  { id:'propfirms', label:'PropFirms', icon:'building' },
+  { id:'accounts', label:'Comptes', icon:'card' },
+  { id:'calendrier', label:'Calendrier', icon:'calendar' },
+  { id:'accounting', label:'Comptabilité', icon:'book' },
+  { id:'bilan', label:'Bilan Visuel', icon:'camera' },
+  { id:'sessions', label:'Sessions Live', icon:'video' },
+  { id:'meteo', label:'Préparation séance', icon:'bolt' },
+  { id:'comparatif', label:'Comparatif', icon:'barChart' },
+  { id:'classement', label:'Classement', icon:'trophy' },
+  { id:'changelog', label:'Nouveautés', icon:'sparkles' },
+  { id:'subscription', label:'Tarifs', icon:'wallet' },
+  { id:'manuel', label:'Manuel', icon:'help' },
+  { id:'confidentialite', label:'Confidentialité', icon:'lock' },
+];
+// Navigation effective : les pages masquées par un admin (voir Admin > Gestion des pages)
+// disparaissent du menu pour tout le monde SAUF les admins, qui les voient grisées avec
+// un badge "Masquée" afin de pouvoir les réactiver.
 function getNav(){
-  const nav = [
-    { id:'dashboard', label:'Dashboard', icon:'grid' },
-    { id:'traders', label:'Traders', icon:'users' },
-    { id:'propfirms', label:'PropFirms', icon:'building' },
-    { id:'accounts', label:'Comptes', icon:'card' },
-    { id:'calendrier', label:'Calendrier', icon:'calendar' },
-    { id:'accounting', label:'Comptabilité', icon:'book' },
-    { id:'bilan', label:'Bilan Visuel', icon:'camera' },
-    { id:'sessions', label:'Sessions Live', icon:'video' },
-    { id:'meteo', label:'Préparation séance', icon:'bolt' },
-    { id:'comparatif', label:'Comparatif', icon:'barChart' },
-    { id:'classement', label:'Classement', icon:'trophy' },
-    { id:'changelog', label:'Nouveautés', icon:'sparkles' },
-    { id:'subscription', label:'Tarifs', icon:'wallet' },
-    { id:'manuel', label:'Manuel', icon:'help' },
-    { id:'confidentialite', label:'Confidentialité', icon:'lock' },
-  ];
+  const hidden = new Set(state.appSettings ? state.appSettings.hiddenPages : []);
+  const nav = BASE_NAV
+    .filter(n => !hidden.has(n.id) || isAdmin())
+    .map(n => hidden.has(n.id) ? { ...n, hiddenForOthers:true } : n);
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
 }
 
 function render(){
+  // Si la page courante vient d'être masquée (ou n'est plus dans le menu pour ce rôle),
+  // on retombe sur le Dashboard plutôt que d'afficher une page inaccessible.
+  if(!getNav().find(n=>n.id===state.route)) state.route = 'dashboard';
   const root = document.getElementById('app-root');
+  const ann = state.appSettings && state.appSettings.announcement;
   root.innerHTML = `
     <aside class="sidebar">
       <div class="brand">
@@ -1642,8 +1762,8 @@ function render(){
       </div>
       <nav class="nav">
         ${getNav().map(n=>`
-          <div class="nav-item ${state.route===n.id?'active':''}" data-nav="${n.id}">
-            ${icon(n.icon)}<span class="nav-label">${n.label}</span>
+          <div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${n.hiddenForOthers?'Masquée pour les autres utilisateurs':''}">
+            ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}
           </div>`).join('')}
       </nav>
       <div class="nav-foot">
@@ -1658,6 +1778,10 @@ function render(){
       </div>
     </aside>
     <div class="main">
+      ${(ann && ann.enabled && ann.message) ? `
+        <div class="announce-banner announce-${ann.type}">
+          ${icon('megaphone')}<span>${escapeHtml(ann.message)}</span>
+        </div>` : ''}
       <div class="topbar">
         <div>
           <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
@@ -2339,11 +2463,36 @@ function viewPropfirms(){
 /* ============================================================
    VIEW: COMPARATIF PROPFIRMS
 ============================================================ */
+// Colonnes triables du tableau Comparatif : clé -> comment extraire la valeur d'une ligne.
+// 'name' est traité à part (comparaison alphabétique) ; le reste est numérique, avec les
+// valeurs null (taux de réussite non calculable) systématiquement repoussées en fin de liste.
+const COMPARATIF_COLUMNS = [
+  { key:'name',         label:'PropFirm',         numeric:false },
+  { key:'nbComptes',    label:'Comptes',          numeric:true },
+  { key:'nbChallenges', label:'Challenges',       numeric:true },
+  { key:'tauxReussite', label:'Taux de réussite', numeric:true },
+  { key:'totalExp',     label:'Dépenses',         numeric:true },
+  { key:'totalPay',     label:'Payouts',          numeric:true },
+  { key:'net',          label:'Net',              numeric:true },
+];
+function sortComparatifRows(rows, sortKey, sortDir){
+  const mul = sortDir==='asc' ? 1 : -1;
+  return [...rows].sort((a,b)=>{
+    if(sortKey==='name'){
+      return a.firm.name.localeCompare(b.firm.name, 'fr', { sensitivity:'base' }) * mul;
+    }
+    const va = a[sortKey], vb = b[sortKey];
+    if(va===null && vb===null) return 0;
+    if(va===null) return 1;   // valeurs non calculables toujours en dernier
+    if(vb===null) return -1;
+    return (va - vb) * mul;
+  });
+}
 function viewComparatif(){
   if(state.propfirms.length===0){
     return emptyState('barChart','Aucune donnée','Ajoute des PropFirms et des comptes pour voir le comparatif.');
   }
-  const rows = sortedFirms().map(f=>{
+  let rows = sortedFirms().map(f=>{
     const accs = state.accounts.filter(a=>a.propFirmId===f.id);
     const challenges = accs.filter(a=>a.type==='CHALLENGE');
     const reussis = challenges.filter(a=>a.status==='REUSSI').length;
@@ -2354,15 +2503,23 @@ function viewComparatif(){
     const totalPay = state.payouts.filter(p=>accIds.has(p.accountId)).reduce((s,p)=>s+Number(p.amount),0);
     const net = totalPay - totalExp;
     return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net };
-  }).sort((a,b)=>b.net-a.net);
+  });
+
+  const { sortKey, sortDir } = state.filters.comparatif;
+  rows = sortComparatifRows(rows, sortKey, sortDir);
+
+  const thSort = (col)=>{
+    const active = sortKey===col.key;
+    const arrow = active ? icon(sortDir==='asc' ? 'arrowUp' : 'arrowDown') : icon('arrowUpDown');
+    return `<th class="th-sortable ${col.numeric?'num':''} ${active?'th-sort-active':''}" data-sort-comparatif="${col.key}"><span class="th-sort-inner">${col.label}${arrow}</span></th>`;
+  };
 
   return `
     <div class="panel">
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>PropFirm</th><th class="num">Comptes</th><th class="num">Challenges</th>
-            <th class="num">Taux de réussite</th><th class="num">Dépenses</th><th class="num">Payouts</th><th class="num">Net</th>
+            ${COMPARATIF_COLUMNS.map(thSort).join('')}
           </tr></thead>
           <tbody>
             ${rows.map(r=>`<tr>
@@ -2378,7 +2535,7 @@ function viewComparatif(){
         </table>
       </div>
     </div>
-    <div class="field-hint" style="margin-top:12px;">Le taux de réussite ne compte que les challenges déjà tranchés (réussis ou breached).</div>
+    <div class="field-hint" style="margin-top:12px;">Le taux de réussite ne compte que les challenges déjà tranchés (réussis ou breached). Clique sur une colonne pour trier.</div>
   `;
 }
 
@@ -2667,6 +2824,9 @@ const CHANGELOG = [
   { type:'new', title:"Suppression d'utilisateurs (Admin)", desc:"Possibilité de retirer un utilisateur de la liste des accès depuis l'onglet Admin." },
   { type:'improvement', title:"Sélection fine à l'import PropDesk", desc:"L'import n'est plus tout-ou-rien : liste à cocher par trader et par compte, détection des doublons probables, et rattachement manuel à un trader existant du site même si le pseudo diffère." },
   { type:'new', title:"Outil d'import PropDesk (Admin)", desc:"Nouvel écran, réservé aux administrateurs, qui lit un export JSON de l'app PropDesk, fait correspondre traders et PropFirms existants, et importe comptes/payouts après un aperçu avec avertissements." },
+  { type:'new', title:'Gestion des pages (Admin)', desc:"Les administrateurs peuvent désormais masquer ou réafficher chaque page du menu pour l'ensemble des utilisateurs, directement depuis l'espace Admin." },
+  { type:'new', title:'Message global (Admin)', desc:"Possibilité d'afficher une bannière d'information, d'avertissement ou d'urgence en haut de l'application pour tous les utilisateurs, activable et modifiable à tout moment depuis l'espace Admin." },
+  { type:'improvement', title:'Tri des colonnes (Comparatif)', desc:"Le tableau du Comparatif PropFirms peut désormais être trié en cliquant sur n'importe quelle colonne (PropFirm, Comptes, Challenges, Taux de réussite, Dépenses, Payouts, Net), dans un sens puis dans l'autre." },
 ];
 const CHANGELOG_TYPE_LABELS = { new:'Nouveau', improvement:'Amélioration', fix:'Correction' };
 const CHANGELOG_TYPE_CLASS = { new:'badge-accent', improvement:'badge-gold', fix:'badge-danger' };
@@ -2824,8 +2984,10 @@ const MANUAL_CHAPTERS = [
     <h3>Calendrier économique et résultats d'entreprises</h3>
     <p>Un widget affiche le calendrier économique de la semaine. Un second panneau permet de charger, pour une date donnée, la liste des entreprises publiant leurs résultats ce jour-là (ticker, société, horaire, EPS prévu, capitalisation).</p>` },
   { n:'12', id:'m-comparatif', title:"Comparatif PropFirms", html:`
-    <p>Le Comparatif met en regard les performances de chaque PropFirm utilisée : nombre de comptes, nombre de Challenges, taux de réussite (calculé sur les Challenges déjà tranchés), total des dépenses, total des payouts et résultat net — trié par résultat net décroissant.</p>
-    ${manualShot('12-comparatif.jpg', "Comparatif des PropFirms — dépenses, payouts, taux de réussite et résultat net.")}` },
+    <p>Le Comparatif met en regard les performances de chaque PropFirm utilisée : nombre de comptes, nombre de Challenges, taux de réussite (calculé sur les Challenges déjà tranchés), total des dépenses, total des payouts et résultat net — trié par résultat net décroissant par défaut.</p>
+    ${manualShot('12-comparatif.jpg', "Comparatif des PropFirms — dépenses, payouts, taux de réussite et résultat net.")}
+    <h3>Trier le tableau</h3>
+    <p>Un clic sur l'en-tête d'une colonne (PropFirm, Comptes, Challenges, Taux de réussite, Dépenses, Payouts, Net) trie le tableau selon cette colonne ; un second clic sur la même colonne inverse le sens du tri (croissant / décroissant). La flèche affichée dans l'en-tête indique la colonne et le sens de tri actifs.</p>` },
   { n:'13', id:'m-classement', title:"Classement", html:`
     <p>Le Classement met en avant les traders les plus performants, façon leaderboard. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
     ${manualShot('13-classement.jpg', "Classement des traders — podium et tableau détaillé.")}
@@ -2854,6 +3016,10 @@ const MANUAL_CHAPTERS = [
     ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
     <p>Un ensemble d'indicateurs résume l'activité du site : nombre total d'utilisateurs, répartition Premium / Free, nombre de Lifetime, MRR, ARR, revenus cumulés et nombre de résiliations, ainsi que les dernières inscriptions.</p>
+    <h3>Gestion des pages</h3>
+    <p>Un panneau « Gestion des pages » liste toutes les pages du menu et permet, pour chacune, de la masquer ou de la réafficher pour l'ensemble des utilisateurs non-admin d'un simple interrupteur. Une page masquée disparaît du menu de tout le monde sauf des administrateurs, qui continuent à la voir (grisée, avec un badge « Masquée ») afin de pouvoir la réactiver à tout moment. Le Dashboard et l'espace Admin ne peuvent pas être masqués, pour éviter de bloquer l'accès à l'application.</p>
+    <h3>Message global</h3>
+    <p>Un panneau « Message global » permet d'afficher une bannière en haut de l'application, visible par tous les utilisateurs tant qu'elle est activée (par exemple pour annoncer une maintenance ou une nouveauté). Le message et son style (information, avertissement, urgent) sont modifiables à tout moment ; désactiver l'interrupteur masque immédiatement la bannière pour tout le monde.</p>
     <h3>Gestion des utilisateurs</h3>
     <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès.</p>
     <h3>Journal d'activité</h3>
@@ -3968,6 +4134,50 @@ function viewAdmin(){
       </div>
     </div>`;
 
+  const ann = state.appSettings.announcement || { enabled:false, message:'', type:'info' };
+  const settingsPanel = `
+    <div class="panel-grid" style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('layout')}Gestion des pages</div></div>
+        <div class="field-hint" style="margin:0 0 4px;">Masque une page du menu pour tous les utilisateurs non-admin. Le Dashboard et l\u2019Admin restent toujours accessibles.</div>
+        <div>
+          ${BASE_NAV.filter(n=>HIDEABLE_PAGE_IDS.includes(n.id)).map(n=>{
+            const isHidden = state.appSettings.hiddenPages.includes(n.id);
+            return `
+            <div class="page-visibility-row">
+              <div class="page-visibility-left">${icon(n.icon)}${n.label}${isHidden?`<span class="badge badge-slate">Masquée</span>`:''}</div>
+              <label class="switch" title="${isHidden?'Réafficher cette page':'Masquer cette page'}">
+                <input type="checkbox" data-toggle-page="${n.id}" ${isHidden?'':'checked'}/>
+                <span class="switch-track"></span>
+              </label>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('megaphone')}Message global</div></div>
+        <div class="field-hint" style="margin:0 0 10px;">Affiche une bannière en haut de l\u2019application, pour tous les utilisateurs, tant qu\u2019elle est activée.</div>
+        <div class="field" style="margin-bottom:10px;">
+          <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;">
+            <label class="switch"><input type="checkbox" id="ann-enabled" ${ann.enabled?'checked':''}/><span class="switch-track"></span></label>
+            Activer la bannière
+          </label>
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <textarea id="ann-message" rows="3" placeholder="Ex : Maintenance prévue ce soir de 22h à 23h." style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;">${escapeHtml(ann.message||'')}</textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+          <span class="field-hint" style="margin:0;">Style :</span>
+          <select id="ann-type" style="background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 8px;font-size:13px;">
+            <option value="info" ${ann.type==='info'?'selected':''}>Information</option>
+            <option value="warning" ${ann.type==='warning'?'selected':''}>Avertissement</option>
+            <option value="danger" ${ann.type==='danger'?'selected':''}>Urgent</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" id="ann-save">${icon('check')}Enregistrer</button>
+      </div>
+    </div>`;
+
   const logPanel = `
     <div class="panel">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('clock')}Journal d\u2019activité (${state.activityLog.length})</div></div>
@@ -3987,7 +4197,7 @@ function viewAdmin(){
       </div>
     </div>`;
 
-  return dashboard + usersTable + logPanel;
+  return dashboard + settingsPanel + usersTable + logPanel;
 }
 
 function viewSubscription(){
@@ -4407,6 +4617,28 @@ function bindViewEvents(){
       renderView();
     }, true);
   });
+  // Comparatif : tri des colonnes au clic sur l'en-tête (même clé -> inverse le sens,
+  // nouvelle clé -> tri descendant par défaut, sauf pour le nom de PropFirm -> croissant).
+  document.querySelectorAll('[data-sort-comparatif]').forEach(th=>th.onclick=()=>{
+    const key = th.dataset.sortComparatif;
+    const f = state.filters.comparatif;
+    if(f.sortKey===key){ f.sortDir = f.sortDir==='asc' ? 'desc' : 'asc'; }
+    else { f.sortKey = key; f.sortDir = key==='name' ? 'asc' : 'desc'; }
+    renderView();
+  });
+  // Admin : gestion des pages visibles
+  document.querySelectorAll('[data-toggle-page]').forEach(cb=>cb.onclick=()=>{
+    toggleHiddenPage(cb.dataset.togglePage);
+  });
+  // Admin : message global (bannière d'annonce)
+  const annSaveBtn = document.getElementById('ann-save');
+  if(annSaveBtn) annSaveBtn.onclick = ()=>{
+    const enabled = document.getElementById('ann-enabled').checked;
+    const message = document.getElementById('ann-message').value;
+    const type = document.getElementById('ann-type').value;
+    if(enabled && !message.trim()){ showToast('Ajoute un message avant d\u2019activer la bannière.', 'danger'); return; }
+    saveAnnouncement(enabled, message, type);
+  };
   document.querySelectorAll('[data-jump-to]').forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
     const targetId = b.dataset.jumpTo;
@@ -5762,6 +5994,7 @@ async function runMigrationImport(json){
     await loadSubscription();
     computePermissions();
     await loadAll();
+    await loadAppSettings();
     if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
     appStarted = true;
@@ -5777,6 +6010,7 @@ async function runMigrationImport(json){
       appStarted = false;
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
+      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
       renderAuthScreen();
     }
