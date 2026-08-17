@@ -147,6 +147,8 @@ th.th-sort-active svg{opacity:1;}
 .badge-danger{background:var(--danger-dim);color:var(--danger);}
 .badge-gold{background:var(--gold-dim);color:var(--gold);}
 .badge-slate{background:var(--slate-dim);color:var(--slate);}
+.type-pill{display:inline-flex;align-items:center;padding:3px 11px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+.size-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;}
 
 /* FILTER BAR — bulles façon comparateur (résultats, filtres, tri, réinitialiser) */
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
@@ -1505,6 +1507,24 @@ function sizeLabel(acc){ return acc.size==='AUTRE' ? (fmtMoney(acc.customSize)) 
 const STATUS_LABELS = { REUSSI:'Réussi', BREACHED:'Breached', ACTIF:'Actif', FERME:'Fermé' };
 const STATUS_OPTIONS_BY_TYPE = { CHALLENGE:['ACTIF','REUSSI','BREACHED'], PA:['ACTIF','BREACHED','FERME'], LIVE:['ACTIF','BREACHED','FERME'] };
 const TYPE_LABELS = { CHALLENGE:'Challenge', PA:'PA', LIVE:'Live' };
+// Couleurs dédiées au type de compte (Challenge / PA / Live), distinctes des couleurs de statut,
+// pour rendre le type immédiatement identifiable sur les cartes de la page Comptes.
+const TYPE_COLORS = { CHALLENGE:'#5B8DEF', PA:'#6C5CE7', LIVE:'#E84393' };
+// Couleurs dédiées à la taille de compte, en bulle sur chaque carte (échelle du plus petit au plus grand).
+const SIZE_COLORS = { S25K:'#7C8B9A', S50K:'#5B8DEF', S100K:'#2EC4B6', S150K:'#D9A65A', S250K:'#E84393', AUTRE:'#9AA5B1' };
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function typeBadgeHtml(type){
+  const c = TYPE_COLORS[type] || '#7C8B9A';
+  return `<span class="type-pill" style="background:${hexToRgba(c,0.16)};color:${c};">${TYPE_LABELS[type]||type}</span>`;
+}
+function sizeBadgeHtml(acc){
+  const c = SIZE_COLORS[acc.size] || '#7C8B9A';
+  return `<span class="size-pill" style="background:${hexToRgba(c,0.16)};color:${c};">${sizeLabel(acc)}</span>`;
+}
 
 // Palette dédiée aux vignettes de lien Challenge -> PA (distincte des couleurs de statut de l'app)
 const LINK_PALETTE = ['#6C5CE7','#00B4D8','#E84393','#F9A826','#2EC4B6','#EE6C4D','#5B8DEF','#B8860B'];
@@ -3350,7 +3370,7 @@ function accountCard(a){
         <div>
           <div class="acc-title">
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
-            ${TYPE_LABELS[a.type]} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${firm?firm.name:'—'}</span>
+            ${typeBadgeHtml(a.type)} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${firm?firm.name:'—'}</span>
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
             ${linkTag}
           </div>
@@ -3359,7 +3379,7 @@ function accountCard(a){
         <div class="acc-actions">${actions}</div>
       </div>
       <div class="acc-grid">
-        <div><div class="acc-field-label">Taille</div><div class="acc-field-value">${sizeLabel(a)}</div></div>
+        <div><div class="acc-field-label">Taille</div><div class="acc-field-value">${sizeBadgeHtml(a)}</div></div>
         <div><div class="acc-field-label">Achat</div><div class="acc-field-value">${fmtDate(a.purchaseDate)}</div></div>
         <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoney(exp)}</div></div>
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoney(pay)}</div></div>
