@@ -27,15 +27,40 @@
 <meta name="twitter:description" content="Suivi de comptes prop firm (Challenge, PA, Live), dépenses, payouts et comptabilité pour traders, en un seul endroit." />
 <meta name="twitter:image" content="https://contralytix.fr/og-image.png" />
 
+<!-- Données structurées (schema.org) pour aider Google à comprendre la nature du site
+     dans les résultats de recherche (rich snippets potentiels : prix, note, catégorie). -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Contralytix",
+  "alternateName": "Contralytix — Gestion Propfirm",
+  "url": "https://contralytix.fr/",
+  "description": "Contralytix est l'outil de gestion de comptes prop firm pour traders : suivi des comptes Challenge, PA et Live, des dépenses, des payouts, de la comptabilité et du bilan de performance, en un seul endroit.",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "fr-FR",
+  "offers": [
+    { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "EUR" },
+    { "@type": "Offer", "name": "Premium", "priceCurrency": "EUR" }
+  ],
+  "publisher": {
+    "@type": "Organization",
+    "name": "Contralytix",
+    "url": "https://contralytix.fr/"
+  }
+}
+</script>
+
 <link id="favicon" rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <style>
 :root[data-theme="dark"]{
   --bg:#0B0F14; --surface:#12181F; --surface-2:#1A222C; --surface-3:#212A34;
@@ -481,6 +506,38 @@ th.th-sort-active svg{opacity:1;}
 .mt-2{margin-top:8px}
 .flex-between{display:flex;justify-content:space-between;align-items:center;}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px;color:var(--text-dim);font-size:13px;}
+
+/* MARKETING LANDING — contenu statique visible avant connexion (SEO) */
+.marketing-landing{max-width:1080px;margin:0 auto;padding:0 24px;}
+.ml-topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0;}
+.ml-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
+.ml-hero{padding:56px 0 46px;text-align:center;}
+.ml-hero h1{font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;}
+.ml-hero .ml-sub{font-size:16px;color:var(--text-dim);max-width:660px;margin:0 auto 30px;line-height:1.65;}
+.ml-hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ml-features{padding:36px 0 56px;border-top:1px solid var(--border-soft);}
+.ml-features h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:25px;margin:0 0 8px;}
+.ml-features-sub{text-align:center;color:var(--text-faint);font-size:13.5px;margin:0 0 34px;}
+.ml-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
+.ml-feature-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.ml-feature-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 8px;}
+.ml-feature-card p{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0;}
+.ml-pricing{padding:48px 0 54px;border-top:1px solid var(--border-soft);}
+.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 28px;}
+.ml-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:780px;margin:0 auto;}
+.ml-pricing-card{border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface);}
+.ml-pricing-card.ml-pricing-highlight{border-color:var(--accent);}
+.ml-pricing-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 4px;}
+.ml-pricing-tagline{font-size:11.5px;color:var(--text-faint);margin:0;}
+.ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:14px 0 0;font-size:12px;color:var(--text-dim);}
+.ml-pricing-card li{padding:4px 0;}
+.ml-pricing-note{text-align:center;font-size:11.5px;color:var(--text-faint);margin:20px 0 0;}
+.ml-final-cta{text-align:center;padding:10px 0 56px;}
+.ml-footer{border-top:1px solid var(--border);padding:24px 0 36px;text-align:center;font-size:11px;color:var(--text-faint);}
+@media (max-width:600px){
+  .ml-hero h1{font-size:27px;}
+  .ml-hero .ml-sub{font-size:14.5px;}
+}
 .spinner{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -506,6 +563,113 @@ th.th-sort-active svg{opacity:1;}
 </head>
 <body>
 
+<div id="marketing-landing" class="marketing-landing">
+  <header class="ml-topbar">
+    <div class="ml-brand">
+      <img src="/favicon.png" alt="Contralytix" width="28" height="28" style="border-radius:6px;" onerror="this.style.display='none'"/>
+      <span>Contralytix</span>
+    </div>
+    <a href="#loading" class="btn btn-outline btn-sm">Se connecter</a>
+  </header>
+
+  <main>
+    <section class="ml-hero">
+      <h1>Contralytix — la gestion de comptes Prop Firm, enfin centralisée</h1>
+      <p class="ml-sub">
+        Contralytix est l'outil de gestion propfirm pensé pour les traders financés : suivez tous vos comptes
+        Challenge, PA (compte financé) et Live, toutes PropFirms confondues, avec vos dépenses, vos payouts et
+        votre comptabilité de trading réunis dans un seul tableau de bord clair.
+      </p>
+      <div class="ml-hero-ctas">
+        <a href="#signup" class="btn btn-primary">Créer un compte gratuit</a>
+        <a href="#loading" class="btn btn-outline">Se connecter</a>
+      </div>
+    </section>
+
+    <section class="ml-features">
+      <h2>Tout ce qu'il faut pour piloter tes comptes Prop Firm</h2>
+      <p class="ml-features-sub">Une seule application pour remplacer le tableur Excel, le carnet de notes et les captures d'écran éparpillées.</p>
+      <div class="ml-feature-grid">
+        <article class="ml-feature-card">
+          <h3>Suivi multi-comptes Challenge, PA, Live</h3>
+          <p>Centralisez tous vos comptes prop firm, toutes tailles et toutes PropFirms confondues, avec statut, historique et liens entre un Challenge réussi et son compte financé.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Comptabilité automatique</h3>
+          <p>Achats, mensualités, frais d'activation et payouts sont calculés et classés automatiquement, exportables en CSV, Excel ou PDF pour votre suivi comptable.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Calendrier des échéances</h3>
+          <p>Visualisez en un coup d'œil vos prochaines mensualités et vos payouts reçus, mois par mois, pour ne plus jamais rater une échéance.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Bilan visuel partageable</h3>
+          <p>Générez des cartes de résultats mensuelles, par trader et par PropFirm, prêtes à exporter en image pour vos vidéos ou vos réseaux sociaux.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Comparatif entre PropFirms</h3>
+          <p>Comparez vos performances — taux de réussite, dépenses, payouts, résultat net — selon chaque PropFirm que vous utilisez.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Suivi multi-traders</h3>
+          <p>Gérez plusieurs traders sous un même compte : idéal pour les équipes, les formateurs ou les clubs de trading qui suivent plusieurs comptes à la fois.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Classement &amp; badges de progression</h3>
+          <p>Suivez la régularité de vos payouts, débloquez des badges et comparez-vous aux autres traders de votre équipe.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Sessions live &amp; prépa de séance</h3>
+          <p>Archivez vos sessions de trading YouTube avec vos notes, et générez une prépa de séance quotidienne assistée par IA avant l'ouverture.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="ml-pricing">
+      <h2>Des formules simples, à commencer gratuitement</h2>
+      <div class="ml-pricing-grid">
+        <div class="ml-pricing-card">
+          <h3>Free</h3>
+          <p class="ml-pricing-tagline">Pour démarrer sans engagement</p>
+          <ul>
+            <li>✓ Traders illimités</li>
+            <li>✓ Comptes gratuits par trader</li>
+            <li>✓ Suivi des payouts</li>
+            <li>✓ Sessions live illimitées</li>
+          </ul>
+        </div>
+        <div class="ml-pricing-card ml-pricing-highlight">
+          <h3>Premium</h3>
+          <p class="ml-pricing-tagline">Mensuel ou annuel</p>
+          <ul>
+            <li>✓ Comptes illimités par trader</li>
+            <li>✓ Exports Excel &amp; PDF</li>
+            <li>✓ Calendrier des échéances</li>
+            <li>✓ Bilan visuel &amp; classement</li>
+          </ul>
+        </div>
+        <div class="ml-pricing-card">
+          <h3>Lifetime</h3>
+          <p class="ml-pricing-tagline">Paiement unique</p>
+          <ul>
+            <li>✓ Accès à vie à toutes les fonctionnalités Premium</li>
+            <li>✓ Aucun renouvellement</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ml-pricing-note">Tarifs détaillés et code promo disponibles une fois connecté.</p>
+    </section>
+
+    <section class="ml-final-cta">
+      <a href="#signup" class="btn btn-primary">Rejoindre Contralytix gratuitement</a>
+    </section>
+  </main>
+
+  <footer class="ml-footer">
+    © <span id="ml-year"></span> Contralytix — Gestion propfirm pour traders. Suivi Challenge, PA, Live, comptabilité et payouts.
+  </footer>
+</div>
+
 <div id="loading" class="loading-screen"><div class="spinner"></div><div>Chargement du grand livre…</div></div>
 <div id="app-root" class="app" style="display:none;"></div>
 <div id="modal-root"></div>
@@ -515,6 +679,10 @@ th.th-sort-active svg{opacity:1;}
 <input type="file" id="migration-file-input" accept="application/json,.json" style="display:none;" />
 
 <script>
+// Section marketing statique (SEO) : remplit l'année du footer immédiatement,
+// avant même l'initialisation de Supabase / de l'app — aucune dépendance.
+(function(){ const y = document.getElementById('ml-year'); if(y) y.textContent = new Date().getFullYear(); })();
+
 /* ============================================================
    ICONS (inline SVG, minimal set)
 ============================================================ */
@@ -613,7 +781,7 @@ const state = {
   profile: null,
   subscription: null,
   permissions: null,
-  authMode: 'login',
+  authMode: (typeof location!=='undefined' && location.hash==='#signup') ? 'signup' : 'login',
   authError: '',
   traders: [],
   propfirms: [],
@@ -6673,6 +6841,8 @@ async function runMigrationImport(json){
     if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
     appStarted = true;
+    const ml = document.getElementById('marketing-landing');
+    if(ml) ml.style.display = 'none';
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app-root').style.display = 'flex';
     render();
@@ -6690,6 +6860,8 @@ async function runMigrationImport(json){
       state.support_messages = [];
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
+      const ml = document.getElementById('marketing-landing');
+      if(ml) ml.style.display = '';
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
       renderAuthScreen();
