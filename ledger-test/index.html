@@ -736,7 +736,7 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','manuel','confidentialite'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','manuel','confidentialite','mentions-legales','cgv'];
 async function toggleHiddenPage(pageId){
   if(!isAdmin() || !HIDEABLE_PAGE_IDS.includes(pageId)) return;
   const hidden = new Set(state.appSettings.hiddenPages);
@@ -1858,6 +1858,13 @@ function openContactModal(){
           createdAt: new Date().toISOString(),
         };
         await upsert('support_messages', item);
+        // Notification email (Brevo) : envoyée en tâche de fond, sans bloquer ni faire
+        // échouer l'envoi si la config Brevo est absente ou en erreur — le message est
+        // de toute façon déjà enregistré dans Supabase à ce stade.
+        fetch('/.netlify/functions/notify-support-message', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ subject: CONTACT_SUBJECTS[subject] || subject, message, userEmail: item.userEmail })
+        }).catch(()=>{});
         showToast('Message envoyé, merci ! On te répond au plus vite.');
         closeModal();
       };
@@ -1886,6 +1893,8 @@ const BASE_NAV = [
   { id:'subscription', label:'Tarifs', icon:'wallet' },
   { id:'manuel', label:'Manuel', icon:'help' },
   { id:'confidentialite', label:'Confidentialité', icon:'lock' },
+  { id:'mentions-legales', label:'Mentions légales', icon:'book' },
+  { id:'cgv', label:'CGV / CGU', icon:'book' },
 ];
 // Navigation effective : les pages masquées par un admin (voir Admin > Gestion des pages)
 // disparaissent du menu pour tout le monde SAUF les admins, qui les voient grisées avec
@@ -1986,6 +1995,8 @@ function topbarSub(){
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
     manuel: 'Guide complet de l\u2019application, section par section',
     confidentialite: 'Données personnelles, RGPD et vos droits',
+    'mentions-legales': 'Éditeur, hébergeur et propriété intellectuelle',
+    cgv: 'Conditions générales de vente et d\u2019utilisation',
   };
   return map[state.route] || '';
 }
@@ -2037,6 +2048,8 @@ function renderView(){
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
   else if(state.route==='manuel') el.innerHTML = viewManuel();
   else if(state.route==='confidentialite') el.innerHTML = viewConfidentialite();
+  else if(state.route==='mentions-legales') el.innerHTML = viewMentionsLegales();
+  else if(state.route==='cgv') el.innerHTML = viewCGV();
   else if(state.route==='admin') { el.innerHTML = emptyState('shield','Chargement…',''); loadAdminView(); return; }
   bindViewEvents();
 }
@@ -3308,6 +3321,143 @@ function viewConfidentialite(){
         <div class="rgpd-block">
           <h2>10. Contact</h2>
           <p>Pour toute question relative à cette politique ou à vos données personnelles, contactez l'éditeur du site via l'adresse de support à renseigner ici par l'éditeur.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: MENTIONS LÉGALES
+============================================================ */
+function viewMentionsLegales(){
+  return `
+    <div class="panel">
+      <div class="panel-body">
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Mentions légales</div>
+        <div class="field-hint" style="margin:0 0 6px;">Dernière mise à jour : ${fmtDate(todayISO())}. Conformément à la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), voici les informations légales relatives à l'édition et à l'hébergement du site Contralytix (contralytix.fr).</div>
+
+        <div class="rgpd-block">
+          <h2>1. Éditeur du site</h2>
+          <table class="rgpd-table">
+            <tr><th>Nom / raison sociale</th><td>[À COMPLÉTER : ex. « Prénom NOM », ou dénomination de société si applicable]</td></tr>
+            <tr><th>Statut</th><td>[À COMPLÉTER : personne physique / micro-entrepreneur / société — préciser la forme juridique le cas échéant]</td></tr>
+            <tr><th>SIRET / RCS</th><td>[À COMPLÉTER si une activité est déclarée — sinon indiquer « Non applicable, activité non commerciale déclarée »]</td></tr>
+            <tr><th>Adresse</th><td>[À COMPLÉTER]</td></tr>
+            <tr><th>Contact</th><td>Via le formulaire « Contact » de l'application, ou [À COMPLÉTER : adresse e-mail de contact]</td></tr>
+            <tr><th>Directeur de la publication</th><td>[À COMPLÉTER : même personne que l'éditeur, sauf mention contraire]</td></tr>
+          </table>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>2. Hébergement</h2>
+          <p>Le site et l'application Contralytix sont hébergés par :</p>
+          <table class="rgpd-table">
+            <tr><th>Hébergeur</th><td>Netlify, Inc.</td></tr>
+            <tr><th>Adresse</th><td>44 Montgomery Street, Suite 300, San Francisco, CA 94104, États-Unis</td></tr>
+            <tr><th>Site web</th><td><a href="https://www.netlify.com" target="_blank" rel="noopener">www.netlify.com</a></td></tr>
+          </table>
+          <p>La base de données et l'authentification sont assurées par <b>Supabase</b> (Supabase Inc.), et les paiements par abonnement sont traités par <b>Stripe</b> — voir la page <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a> pour le détail des sous-traitants et des données transmises à chacun.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>3. Propriété intellectuelle</h2>
+          <p>L'ensemble des éléments de Contralytix (structure, logo, charte graphique, textes, code source) est protégé par le droit d'auteur et le droit des marques, sauf mention contraire. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation préalable de l'éditeur, est interdite.</p>
+          <p>Les données que vous saisissez dans l'application (traders, comptes, dépenses, payouts, notes...) restent votre propriété. L'éditeur n'en revendique aucun droit d'usage au-delà de ce qui est nécessaire au fonctionnement du service, tel que décrit dans la page <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a>.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>4. Accès et disponibilité du site</h2>
+          <p>L'éditeur s'efforce de permettre l'accès à Contralytix 24h/24, 7j/7, sauf cas de force majeure, interruption programmée pour maintenance, ou panne indépendante de sa volonté. L'éditeur ne saurait être tenu responsable des conséquences d'une indisponibilité temporaire du service.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>5. Responsabilité</h2>
+          <p>Contralytix est un outil de suivi et d'organisation ; il ne constitue en aucun cas un conseil en investissement, ni une garantie de résultat de trading. Les informations saisies ou générées dans l'application (y compris via la fonctionnalité de préparation de séance assistée par IA) sont fournies à titre informatif et relèvent de la seule responsabilité de l'utilisateur dans leur usage et leurs décisions de trading.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>6. Données personnelles</h2>
+          <p>Le traitement des données personnelles est décrit en détail dans la page <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a>, incluant les finalités, les destinataires et vos droits (accès, rectification, effacement, portabilité, opposition).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>7. Droit applicable et litiges</h2>
+          <p>Les présentes mentions légales sont soumises au droit français. En cas de litige, et à défaut d'accord amiable, les tribunaux français compétents seront seuls saisis.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: CGV / CGU
+============================================================ */
+function viewCGV(){
+  return `
+    <div class="panel">
+      <div class="panel-body">
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Conditions générales de vente et d'utilisation (CGV / CGU)</div>
+        <div class="field-hint" style="margin:0 0 6px;">Dernière mise à jour : ${fmtDate(todayISO())}. En créant un compte ou en souscrivant à une formule payante de Contralytix, vous acceptez sans réserve les présentes conditions.</div>
+
+        <div class="rgpd-block">
+          <h2>1. Objet</h2>
+          <p>Les présentes conditions générales régissent l'utilisation de l'application Contralytix (contralytix.fr), un outil de gestion et de suivi de comptes prop firm (Challenge, PA, Live) : dépenses, payouts, comptabilité, calendrier, bilan de performance et fonctionnalités associées, ci-après « le Service ». Elles s'appliquent à tout utilisateur créant un compte, ci-après « l'Utilisateur ».</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>2. Description du Service</h2>
+          <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités d'aide à la préparation de séance assistées par IA fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>3. Formules et tarifs</h2>
+          <p>Contralytix propose une formule gratuite (fonctionnalités de base) et une ou plusieurs formules payantes (mensuelle, annuelle ou accès à vie « Lifetime »), dont le détail et les tarifs en vigueur sont affichés sur la page <a href="#" data-nav="subscription">Abonnement</a> de l'application. Les tarifs sont indiqués toutes taxes comprises lorsque la TVA est applicable, et peuvent évoluer ; toute évolution tarifaire ne s'applique pas rétroactivement à un abonnement déjà souscrit à un tarif antérieur, sauf renouvellement à un tarif alors en vigueur.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>4. Souscription et paiement</h2>
+          <p>Le paiement des formules payantes est traité par notre prestataire <b>Stripe</b>, qui gère de façon sécurisée les informations de carte bancaire ; Contralytix ne stocke jamais vos coordonnées bancaires. La souscription est confirmée dès validation du paiement. L'accès Lifetime est un paiement unique donnant un accès permanent aux fonctionnalités Premium telles qu'elles existent au moment de l'achat et de leurs évolutions ultérieures, sauf interruption du Service dans les conditions prévues à l'article 8.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>5. Durée, renouvellement et résiliation</h2>
+          <p>Les formules mensuelle et annuelle se renouvellent automatiquement à échéance, sauf résiliation par l'Utilisateur avant la date de renouvellement, depuis l'espace de gestion d'abonnement (portail Stripe accessible depuis l'application). La résiliation prend effet à la fin de la période déjà payée : aucun remboursement au prorata n'est effectué pour la période en cours, sauf disposition légale contraire ou décision commerciale exceptionnelle de l'éditeur.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>6. Droit de rétractation</h2>
+          <p>Conformément à l'article L221-28 du Code de la consommation, le droit de rétractation ne s'applique pas aux contenus numériques fournis sur un support immatériel dont l'exécution a commencé avec l'accord préalable exprès du consommateur, qui a renoncé à son droit de rétractation. En souscrivant à une formule payante, l'Utilisateur reconnaît que l'accès au Service est immédiat et renonce expressément à son droit de rétractation de 14 jours pour la partie du Service déjà fournie.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>7. Compte utilisateur</h2>
+          <p>L'Utilisateur est responsable de la confidentialité de ses identifiants de connexion et de toute activité effectuée depuis son compte. Il s'engage à fournir des informations exactes lors de son inscription et à ne pas partager son accès avec un tiers non autorisé, sauf les cas d'accès partagé expressément prévus par l'éditeur (ex. comptes associés).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>8. Disponibilité et évolution du Service</h2>
+          <p>L'éditeur s'efforce d'assurer la disponibilité du Service 24h/24, 7j/7, sans garantie absolue, notamment en cas de maintenance, de panne d'un prestataire tiers (hébergement, base de données, paiement) ou de force majeure. L'éditeur se réserve le droit de faire évoluer, suspendre ou interrompre tout ou partie du Service, y compris définitivement, moyennant, dans la mesure du possible, une information préalable des utilisateurs actifs et le respect des engagements de durée déjà souscrits (notamment pour les accès Lifetime déjà payés).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>9. Responsabilité</h2>
+          <p>L'éditeur met en œuvre les moyens raisonnables pour assurer l'exactitude et la disponibilité du Service, sans garantie de résultat. L'éditeur ne saurait être tenu responsable des pertes financières résultant de décisions de trading de l'Utilisateur, ni des conséquences d'une saisie erronée de données par l'Utilisateur lui-même. La responsabilité de l'éditeur, si elle est établie, est limitée au montant effectivement versé par l'Utilisateur au titre de son abonnement au cours des douze derniers mois.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>10. Propriété intellectuelle et données personnelles</h2>
+          <p>Voir les pages <a href="#" data-nav="mentions-legales">Mentions légales</a> et <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a>, qui font partie intégrante des présentes conditions.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>11. Modification des CGV / CGU</h2>
+          <p>L'éditeur peut modifier les présentes conditions à tout moment, notamment pour refléter une évolution du Service ou de la réglementation. La date de dernière mise à jour figure en haut de cette page. En cas de modification substantielle affectant un abonnement en cours, les utilisateurs concernés en seront informés par un moyen raisonnable (message dans l'application ou e-mail).</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>12. Droit applicable et litiges</h2>
+          <p>Les présentes conditions sont soumises au droit français. En cas de litige, l'Utilisateur est invité à contacter l'éditeur via le formulaire de contact de l'application afin de rechercher une solution amiable avant toute action judiciaire. À défaut d'accord amiable, les tribunaux français compétents seront seuls saisis.</p>
         </div>
       </div>
     </div>
