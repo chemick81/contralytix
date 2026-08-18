@@ -409,6 +409,24 @@ th.th-sort-active svg{opacity:1;}
 
 /* TOASTS */
 #toast-root{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200;}
+/* CHATBOT IA — bulle flottante + panneau de discussion (assistant Contralytix) */
+.chat-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-text);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.35);z-index:150;transition:transform .12s ease;}
+.chat-fab:hover{transform:scale(1.06);}
+.chat-fab svg{width:23px;height:23px;}
+.chat-panel{position:fixed;bottom:86px;right:22px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 120px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;z-index:150;animation:fadeIn .12s ease;}
+.chat-panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.chat-panel-head .icon-btn-plain{background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px;display:flex;}
+.chat-panel-head .icon-btn-plain svg{width:16px;height:16px;}
+.chat-panel-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.chat-empty{font-size:12.5px;color:var(--text-faint);line-height:1.5;padding:6px 2px;}
+.chat-msg{max-width:85%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;white-space:pre-wrap;}
+.chat-msg-user{align-self:flex-end;background:var(--accent-dim);color:var(--text);border-bottom-right-radius:3px;}
+.chat-msg-assistant{align-self:flex-start;background:var(--surface-2);color:var(--text);border-bottom-left-radius:3px;}
+.chat-typing{opacity:.6;font-style:italic;}
+.chat-panel-foot{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+.chat-panel-foot input{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:999px;font-size:13px;font-family:inherit;}
+.chat-panel-foot button{flex-shrink:0;width:36px;height:36px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.chat-panel-foot button svg{width:16px;height:16px;}
 .toast{background:var(--surface-3);border:1px solid var(--border);border-left:3px solid var(--accent);color:var(--text);padding:11px 16px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);min-width:220px;animation:slideIn .15s ease;}
 .toast.danger{border-left-color:var(--danger);}
 .plan-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:99px;}
@@ -461,6 +479,7 @@ th.th-sort-active svg{opacity:1;}
 <div id="app-root" class="app" style="display:none;"></div>
 <div id="modal-root"></div>
 <div id="toast-root"></div>
+<div id="chat-widget-root"></div>
 <input type="file" id="propdesk-file-input" accept="application/json,.json" style="display:none;" />
 <input type="file" id="migration-file-input" accept="application/json,.json" style="display:none;" />
 
@@ -513,6 +532,9 @@ const ICONS = {
   arrowUpDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15V3M4 6l3-3 3 3"/><path d="M17 9v12M14 18l3 3 3-3"/></svg>',
   megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4a1 1 0 0 0 1 1h2l4.5 4V5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M15 8.5a4 4 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>',
   layout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="1.8"/><path d="M3.5 9.5h17M9 9.5V21"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4.5 4v-4H6a2 2 0 0 1-2-2v-9Z"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3 3 10.5l7.5 3M21 3l-7.5 18-3-7.5M21 3 10.5 13.5"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -573,6 +595,7 @@ const state = {
   activityLog: [],
   promo_codes: [],
   changelog_entries: [],
+  support_messages: [],
   // Réglages globaux gérés depuis l'espace Admin (visibilité des pages, message d'annonce),
   // partagés entre tous les utilisateurs — voir loadAppSettings()/saveAppSettings() et app_settings.sql.
   appSettings: {
@@ -847,6 +870,15 @@ async function loadChangelog(){
     return;
   }
   state.changelog_entries = data.map(fromRow);
+}
+// Messages du formulaire de contact : n'importe quel utilisateur connecté peut en écrire
+// un (INSERT), mais seuls les admins peuvent les lire (SELECT), voir support_messages.sql.
+// Chargé uniquement pour les admins, depuis l'espace Admin.
+async function loadSupportMessagesAdmin(){
+  if(!SUPABASE_CONFIGURED || !isAdmin()) return;
+  const { data, error } = await supabaseClient.from('support_messages').select('*').order('created_at', { ascending:false });
+  if(error){ console.warn('support_messages introuvable ou inaccessible :', error.message); return; }
+  state.support_messages = data.map(fromRow);
 }
 // Admin : bascule un utilisateur en Premium / Free / Lifetime.
 // Met à jour profiles.role ET subscriptions en une seule action cohérente.
@@ -1771,6 +1803,44 @@ function confirmModal(message, onConfirm, danger=true){
   });
 }
 
+// Formulaire de contact : accessible à tout utilisateur connecté depuis la barre latérale.
+// Écrit dans la table Supabase 'support_messages' (INSERT autorisé pour tout utilisateur
+// connecté, lecture réservée aux admins — voir support_messages.sql et loadSupportMessagesAdmin()).
+const CONTACT_SUBJECTS = { BUG:'Bug / problème technique', QUESTION:'Question', SUGGESTION:'Suggestion', FACTURATION:'Facturation / abonnement', AUTRE:'Autre' };
+function openContactModal(){
+  openModal({
+    title: 'Nous contacter',
+    bodyHtml: `
+      <div class="field-hint" style="margin:0 0 12px;">On te répond par email, à l'adresse de ton compte (${escapeHtml(state.session.user.email)}).</div>
+      <div class="field"><label>Sujet</label>
+        <select id="ct-subject">${Object.entries(CONTACT_SUBJECTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Message</label><textarea id="ct-message" rows="5" style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;" placeholder="Décris ta question, ton problème ou ta suggestion…"></textarea></div>
+      <div id="ct-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="ct-cancel">Annuler</button><button class="btn btn-primary" id="ct-send">Envoyer</button>`,
+    onMount(){
+      document.getElementById('ct-cancel').onclick = closeModal;
+      document.getElementById('ct-send').onclick = async ()=>{
+        const subject = document.getElementById('ct-subject').value;
+        const message = document.getElementById('ct-message').value.trim();
+        const errEl = document.getElementById('ct-error');
+        if(!message){ errEl.textContent = 'Le message ne peut pas être vide.'; return; }
+        const item = {
+          id: uid('sm'),
+          userId: currentUserId(),
+          userEmail: state.session.user.email,
+          subject, message, status:'nouveau',
+          createdAt: new Date().toISOString(),
+        };
+        await upsert('support_messages', item);
+        showToast('Message envoyé, merci ! On te répond au plus vite.');
+        closeModal();
+      };
+    }
+  });
+}
+
 /* ============================================================
    RENDER: SHELL
 ============================================================ */
@@ -1834,6 +1904,7 @@ function render(){
         <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
         <button class="icon-btn" id="theme-toggle">${icon(state.theme==='dark'?'sun':'moon')}<span class="nav-label">${state.theme==='dark'?'Mode clair':'Mode sombre'}</span></button>
         ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
+        <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
         <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
         <div class="app-version nav-label">Contralytix v${currentAppVersion()}</div>
       </div>
@@ -1864,6 +1935,7 @@ function render(){
   document.getElementById('theme-toggle').onclick = ()=>{ state.theme = state.theme==='dark'?'light':'dark'; render(); };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
+  document.getElementById('contact-btn').onclick = openContactModal;
   const resetBtn = document.getElementById('reset-data');
   if(resetBtn) resetBtn.onclick = ()=>{
     confirmModal('Cette action supprime définitivement toutes les données (traders, propfirms, comptes, payouts) pour TOUT LE MONDE utilisant ce site. Continuer ?', async ()=>{
@@ -1945,7 +2017,7 @@ function renderView(){
   bindViewEvents();
 }
 async function loadAdminView(){
-  await Promise.all([loadProfilesAdmin(), loadActivityLog()]);
+  await Promise.all([loadProfilesAdmin(), loadActivityLog(), loadSupportMessagesAdmin()]);
   if(state.route==='admin'){
     document.getElementById('view-root').innerHTML = viewAdmin();
     bindViewEvents();
@@ -4019,6 +4091,97 @@ async function callAiSynthesis(promptText, apiKey){
   }
 }
 
+/* ============================================================
+   CHATBOT IA — assistant flottant, disponible sur toutes les pages
+   une fois connecté. Réutilise la fonction serverless existante
+   /.netlify/functions/gemini-synthesis (voir plus haut) : la clé
+   Gemini reste donc côté serveur, rien de neuf à configurer sur Netlify.
+   La conversation est gardée en mémoire le temps de la session
+   (non persistée en base), pour rester simple.
+============================================================ */
+let chatOpen = false;
+let chatMessages = []; // { role:'user'|'assistant', text }
+let chatLoading = false;
+
+const CHAT_SYSTEM_CONTEXT = `Tu es l'assistant intégré de l'application Contralytix, un outil de gestion de comptes prop firm (trading sur futures/forex) pour des traders : suivi des comptes Challenge / PA (compte financé) / Live, des dépenses (achats, mensualités, activations), des payouts, de la comptabilité, d'un calendrier d'échéances, d'un bilan visuel et d'un classement entre traders. L'app propose une formule Free et une formule Premium (mensuel, annuel ou lifetime).
+Réponds toujours en français, de façon brève, concrète et directe (quelques phrases maximum, pas de blabla). Aide la personne à comprendre comment utiliser l'application. Si la question sort du cadre de l'application, nécessite une action que tu ne peux pas faire (modifier ses données, un remboursement, un problème de compte précis), ou si tu n'es pas sûr de la réponse, dis-le clairement et invite la personne à utiliser le formulaire de contact de l'application plutôt que d'inventer une réponse. Ne donne jamais de conseil de trading ou d'investissement financier.`;
+
+function renderChatWidget(){
+  const root = document.getElementById('chat-widget-root');
+  if(!root) return;
+  root.innerHTML = `
+    <button class="chat-fab" id="chat-fab" title="Assistant Contralytix">${icon(chatOpen ? 'x' : 'chat')}</button>
+    ${chatOpen ? `
+    <div class="chat-panel">
+      <div class="chat-panel-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img src="${LOGO_DATA_URI}" alt="" style="width:22px;height:22px;border-radius:6px;object-fit:cover;"/>
+          <div style="font-weight:700;font-size:13.5px;">Assistant Contralytix</div>
+        </div>
+        <button class="icon-btn-plain" id="chat-close" title="Fermer">${icon('x')}</button>
+      </div>
+      <div class="chat-panel-body" id="chat-body">
+        ${chatMessages.length===0 ? `<div class="chat-empty">Pose-moi une question sur l'utilisation de Contralytix : comptes, payouts, comptabilité, abonnement… Pour toute question précise sur ton compte, utilise plutôt le formulaire de contact.</div>` : ''}
+        ${chatMessages.map(m=>`<div class="chat-msg chat-msg-${m.role}">${escapeHtml(m.text)}</div>`).join('')}
+        ${chatLoading ? `<div class="chat-msg chat-msg-assistant chat-typing">L\u2019assistant réfléchit…</div>` : ''}
+      </div>
+      <div class="chat-panel-foot">
+        <input type="text" id="chat-input" placeholder="Écris ta question…" ${chatLoading?'disabled':''}/>
+        <button class="btn btn-primary" id="chat-send" ${chatLoading?'disabled':''} title="Envoyer">${icon('send')}</button>
+      </div>
+    </div>` : ''}
+  `;
+  document.getElementById('chat-fab').onclick = ()=>{
+    chatOpen = !chatOpen;
+    renderChatWidget();
+    if(chatOpen){
+      scrollChatToBottom();
+      setTimeout(()=>{ const inp = document.getElementById('chat-input'); if(inp) inp.focus(); }, 30);
+    }
+  };
+  if(chatOpen){
+    document.getElementById('chat-close').onclick = ()=>{ chatOpen = false; renderChatWidget(); };
+    const input = document.getElementById('chat-input');
+    const doSend = ()=>{
+      const text = input.value.trim();
+      if(!text || chatLoading) return;
+      input.value = '';
+      sendChatMessage(text);
+    };
+    document.getElementById('chat-send').onclick = doSend;
+    input.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSend(); } };
+    scrollChatToBottom();
+  }
+}
+function scrollChatToBottom(){
+  const body = document.getElementById('chat-body');
+  if(body) body.scrollTop = body.scrollHeight;
+}
+async function sendChatMessage(text){
+  chatMessages.push({ role:'user', text });
+  chatLoading = true;
+  renderChatWidget();
+  // On renvoie tout l'historique récent à chaque appel, car la fonction serverless
+  // ne garde aucun état entre deux requêtes (un seul champ "prompt" texte libre).
+  const history = chatMessages.slice(-10).map(m=>`${m.role==='user'?'Utilisateur':'Assistant'} : ${m.text}`).join('\n');
+  const prompt = `${CHAT_SYSTEM_CONTEXT}\n\nConversation :\n${history}\nAssistant :`;
+  try{
+    const res = await fetch('/.netlify/functions/gemini-synthesis', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Erreur API');
+    chatMessages.push({ role:'assistant', text: (data.text || '').trim() || 'Désolé, je n\u2019ai pas de réponse à te proposer pour l\u2019instant.' });
+  } catch(e){
+    chatMessages.push({ role:'assistant', text: 'Je n\u2019ai pas pu obtenir de réponse (' + e.message + '). Tu peux utiliser le formulaire de contact pour nous écrire directement.' });
+  } finally {
+    chatLoading = false;
+    renderChatWidget();
+    scrollChatToBottom();
+  }
+}
+
 function prepFormModal(existing){
   const p = existing || { id: uid('mp'), date: todayISO(), biasNote:'', aiSummary:'', aiPrompt: DEFAULT_AI_PROMPT, createdBy: currentUserId() };
   openModal({
@@ -4298,6 +4461,28 @@ function viewAdmin(){
       </div>
     </div>`;
 
+  const newMsgCount = state.support_messages.filter(m=>m.status==='nouveau').length;
+  const messagesPanel = `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('mail')}Messages de contact (${state.support_messages.length})${newMsgCount ? ` <span class="badge badge-danger">${newMsgCount} nouveau${newMsgCount>1?'x':''}</span>` : ''}</div></div>
+      ${state.support_messages.length===0 ? `<div class="empty-sub" style="padding:16px 0;">Aucun message reçu pour l\u2019instant.</div>` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>De</th><th>Sujet</th><th>Message</th><th>Statut</th><th></th></tr></thead>
+          <tbody>
+            ${state.support_messages.map(m=>`<tr>
+              <td class="mono text-dim" style="white-space:nowrap;">${new Date(m.createdAt).toLocaleString('fr-FR')}</td>
+              <td class="text-dim">${escapeHtml(m.userEmail||'—')}</td>
+              <td><span class="badge badge-slate">${escapeHtml(CONTACT_SUBJECTS[m.subject]||m.subject||'—')}</span></td>
+              <td class="text-dim" style="max-width:340px;white-space:pre-wrap;">${escapeHtml(m.message||'')}</td>
+              <td><span class="badge ${m.status==='traite'?'badge-accent':'badge-danger'}">${m.status==='traite'?'Traité':'Nouveau'}</span></td>
+              <td><button class="btn btn-outline btn-sm" data-toggle-msg-status="${m.id}">${m.status==='traite'?'Marquer nouveau':'Marquer traité'}</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`;
+
   const logPanel = `
     <div class="panel">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('clock')}Journal d\u2019activité (${state.activityLog.length})</div></div>
@@ -4317,7 +4502,7 @@ function viewAdmin(){
       </div>
     </div>`;
 
-  return dashboard + settingsPanel + usersTable + logPanel;
+  return dashboard + messagesPanel + settingsPanel + usersTable + logPanel;
 }
 
 function viewSubscription(){
@@ -4754,6 +4939,12 @@ function bindViewEvents(){
       await deleteUserProfile(id, email);
       renderView();
     }, true);
+  });
+  document.querySelectorAll('[data-toggle-msg-status]').forEach(b=>b.onclick=async ()=>{
+    const m = state.support_messages.find(x=>x.id===b.dataset.toggleMsgStatus);
+    if(!m) return;
+    await upsert('support_messages', { ...m, status: m.status==='traite' ? 'nouveau' : 'traite' });
+    renderView();
   });
   // Comparatif : tri des colonnes au clic sur l'en-tête (même clé -> inverse le sens,
   // nouvelle clé -> tri descendant par défaut, sauf pour le nom de PropFirm -> croissant).
@@ -6201,6 +6392,7 @@ async function runMigrationImport(json){
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app-root').style.display = 'flex';
     render();
+    renderChatWidget();
   }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -6211,8 +6403,11 @@ async function runMigrationImport(json){
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
       state.changelog_entries = [];
+      state.support_messages = [];
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
+      chatOpen = false; chatMessages = [];
+      document.getElementById('chat-widget-root').innerHTML = '';
       renderAuthScreen();
     }
   });
