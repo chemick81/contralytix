@@ -488,6 +488,15 @@ th.th-sort-active svg{opacity:1;}
 .firm-stat-cat{border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
 .firm-stat-cat-label{font-size:11.5px;color:var(--text-faint);margin-bottom:4px;}
 
+/* TEASER FLOU — FORMULE FREE (listes principales) */
+.free-blur-wrap{position:relative;}
+.free-blur-row{filter:blur(5px);user-select:none;pointer-events:none;}
+.free-blur-overlay{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, var(--surface) 32%);}
+.free-blur-card{text-align:center;padding:16px 22px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);max-width:280px;}
+.free-blur-card-title{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:14px;margin-bottom:4px;}
+.free-blur-card-title svg{width:15px;height:15px;}
+.free-blur-card-sub{font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.4;}
+
 /* IMPORT PROPDESK */
 .import-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
 .import-summary .chip{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text-dim);}
@@ -1758,10 +1767,34 @@ async function assignTraderOwnerModal(trader){
 ============================================================ */
 async function loadProfile(){
   const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUserId()).maybeSingle();
-  if(error || !data){ state.profile = { id: currentUserId(), role: 'FREE' }; return; }
-  state.profile = fromRow(data);
-  // last_login best-effort, ne bloque jamais le chargement de l'app
-  supabaseClient.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', currentUserId()).then(()=>{});
+  if(data){
+    state.profile = fromRow(data);
+    // last_login best-effort, ne bloque jamais le chargement de l'app
+    supabaseClient.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', currentUserId()).then(()=>{});
+    return;
+  }
+  if(error){
+    // Erreur réseau/RLS (pas juste "aucune ligne") : on ne fabrique un profil qu'en mémoire pour
+    // ne pas bloquer l'utilisateur, sans rien écrire — on retentera au prochain chargement.
+    state.profile = { id: currentUserId(), role: 'FREE' };
+    return;
+  }
+  // Aucune erreur mais aucune ligne trouvée : le compte existe dans Supabase Auth mais n'a
+  // jamais eu de ligne 'profiles' créée pour lui (trigger côté serveur absent/en échec au moment
+  // de l'inscription, ou compte créé avant sa mise en place). Sans ce correctif, l'utilisateur
+  // navigue avec un profil "fantôme" recréé en mémoire à chaque session : il n'apparaît jamais
+  // dans profiles ni dans l'espace Admin. On crée donc la ligne manquante nous-mêmes ici.
+  const newProfile = {
+    id: currentUserId(),
+    email: state.session ? state.session.user.email : null,
+    role: 'FREE',
+    createdAt: new Date().toISOString(),
+  };
+  const { error: insertError } = await supabaseClient.from('profiles').insert(toRow(newProfile));
+  if(insertError){
+    console.warn('Impossible de créer la ligne "profiles" manquante :', insertError.message);
+  }
+  state.profile = newProfile;
 }
 
 /* ============================================================
@@ -1795,6 +1828,42 @@ function computePermissions(){
   return state.permissions;
 }
 function perms(){ return state.permissions || computePermissions(); }
+
+/* ============================================================
+   TEASER FLOU — LISTES PRINCIPALES EN FORMULE FREE
+   En Free, les listes (Traders, PropFirms, Comptes, Comptabilité, Sessions)
+   affichent leurs premiers éléments normalement, puis floutent le reste
+   (30% visibles) avec une carte "Passe à Premium" en overlay — sans bloquer
+   complètement la page comme le fait lockedFeatureView() pour Calendrier /
+   Bilan Visuel / Classement. Usage dans une vue table :
+     const total = items.length;
+     const visible = freeVisibleCount(total);
+     items.map((x,i)=>`<tr class="${freeBlurRowClass(i,total)}">…</tr>`)
+     // puis, juste avant de refermer le conteneur ayant class="free-blur-wrap" :
+     freeBlurOverlayHtml(total, 'PropFirms')
+============================================================ */
+const FREE_VISIBLE_RATIO = 0.3;
+function freeVisibleCount(total){
+  if(perms().isPremium) return total;
+  return Math.max(1, Math.ceil(total * FREE_VISIBLE_RATIO));
+}
+function freeBlurRowClass(index, total){
+  return (!perms().isPremium && index >= freeVisibleCount(total)) ? 'free-blur-row' : '';
+}
+function freeBlurOverlayHtml(total, featureLabel){
+  if(perms().isPremium) return '';
+  const visible = freeVisibleCount(total);
+  const hidden = total - visible;
+  if(hidden <= 0) return '';
+  const topPct = Math.round((visible / total) * 100);
+  return `<div class="free-blur-overlay" style="top:${topPct}%;">
+    <div class="free-blur-card">
+      <div class="free-blur-card-title">${icon('lock')}Passe à Premium</div>
+      <div class="free-blur-card-sub">Débloque ${hidden} ${featureLabel} supplémentaire${hidden>1?'s':''} et bien plus.</div>
+      <button class="btn btn-primary btn-sm" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
+    </div>
+  </div>`;
+}
 
 // Valeurs de repli si aucun réglage n'a encore été enregistré depuis l'espace Admin
 // (voir state.pricingSettings, loadPricingSettings(), savePricingSettings()).
@@ -3897,19 +3966,20 @@ function viewTraders(){
   if(state.traders.length===0){
     return emptyState('users','Aucun trader','Ajoute ton premier trader pour commencer à suivre ses comptes PropFirm.');
   }
+  const trTotal = state.traders.length;
   return `
     <div class="panel">
-      <div class="table-wrap">
+      <div class="table-wrap free-blur-wrap">
         <table>
           <thead><tr><th>Trader</th><th>Email</th><th>Statut</th><th>Badges</th><th class="num">Comptes</th><th class="num">Dépenses</th><th class="num">Payouts</th><th></th></tr></thead>
           <tbody>
-            ${state.traders.map(t=>{
+            ${state.traders.map((t,ti)=>{
               const accs = state.accounts.filter(a=>a.traderId===t.id);
               const exp = accs.reduce((s,a)=>s+totalExpensesFor(a.id),0);
               const pay = accs.reduce((s,a)=>s+totalPayoutsFor(a.id),0);
               const badges = computeTraderBadges(t);
               const unlocked = badges.filter(b=>b.unlocked);
-              return `<tr>
+              return `<tr class="${freeBlurRowClass(ti,trTotal)}">
                 <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${t.firstName} ${t.lastName}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${t.pseudo}</span></td>
                 <td class="text-dim">${t.email||'—'}</td>
                 <td><span class="badge ${t.status==='ACTIF'?'badge-accent':'badge-slate'}">${t.status==='ACTIF'?'Actif':'Inactif'}</span></td>
@@ -3935,6 +4005,7 @@ function viewTraders(){
             }).join('')}
           </tbody>
         </table>
+        ${freeBlurOverlayHtml(trTotal, 'traders')}
       </div>
     </div>
   `;
@@ -3953,16 +4024,17 @@ function viewPropfirmsList(){
   if(state.propfirms.length===0){
     return emptyState('building','Aucune PropFirm','Ajoute les PropFirms utilisées par tes traders.');
   }
+  const pfTotal = state.propfirms.length;
   return `
     <div class="panel">
-      <div class="table-wrap">
+      <div class="table-wrap free-blur-wrap">
         <table>
           <thead><tr><th></th><th>Nom</th><th>Site web</th><th>Avis</th><th>Notes</th><th class="num">Comptes liés</th><th></th></tr></thead>
           <tbody>
-            ${sortedFirms().map(f=>{
+            ${sortedFirms().map((f,fi)=>{
               const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
               const stats = firmRatingStats(f.id);
-              return `<tr>
+              return `<tr class="${freeBlurRowClass(fi,pfTotal)}">
                 <td><span class="firm-row-link" data-firm-detail="${f.id}">${firmLogoHtml(f,26)}</span></td>
                 <td style="font-weight:600;"><span class="firm-row-link" data-firm-detail="${f.id}">${f.name}</span></td>
                 <td>${f.website ? `<a href="${f.website}" target="_blank" rel="noopener">${f.website}</a>` : '<span class="text-faint">—</span>'}</td>
@@ -3979,6 +4051,7 @@ function viewPropfirmsList(){
             }).join('')}
           </tbody>
         </table>
+        ${freeBlurOverlayHtml(pfTotal, 'PropFirms')}
       </div>
     </div>
   `;
@@ -5081,7 +5154,14 @@ function viewAccounts(){
     return filterBar + renderGroupedAccounts(list, activeGroups);
   }
 
-  return filterBar + list.map(a=>accountCard(a)).join('');
+  // Teaser flou Free : au-delà du quota d'un compte Free (déjà limité en création à
+  // maxFreeAccounts), on floute surtout les comptes visibles mais qui ne sont pas les siens
+  // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
+  const accTotal = list.length;
+  return filterBar + `<div class="free-blur-wrap">
+    ${list.map((a,ai)=>`<div class="${freeBlurRowClass(ai,accTotal)}">${accountCard(a)}</div>`).join('')}
+    ${freeBlurOverlayHtml(accTotal, 'comptes')}
+  </div>`;
 }
 
 /* ============================================================
@@ -5463,13 +5543,13 @@ function viewAccounting(){
     </div>`;
 
   const rows = all.length===0 ? `<tr><td colspan="6"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune ligne pour ces filtres.</div></td></tr>` :
-    all.map(x=>{
+    all.map((x,xi)=>{
       const acc = getAccount(x.accountId);
       const trader = acc ? getTrader(acc.traderId) : null;
       const firm = acc ? getFirm(acc.propFirmId) : null;
       const isPayout = x.kind==='payout';
       const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
-      return `<tr>
+      return `<tr class="${freeBlurRowClass(xi,all.length)}">
         <td class="mono text-dim">${fmtDate(x.date)}</td>
         <td><span class="badge ${isPayout?'badge-accent':'badge-slate'}">${typeLabel}</span></td>
         <td>${trader?trader.pseudo:'—'}</td>
@@ -5535,11 +5615,12 @@ function viewAccounting(){
     </div>
     ${recapTable}
     <div class="panel">
-      <div class="table-wrap">
+      <div class="table-wrap free-blur-wrap">
         <table>
           <thead><tr><th>Date</th><th>Type</th><th>Trader</th><th>PropFirm</th><th>Compte</th><th class="num">Montant</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        ${freeBlurOverlayHtml(all.length, 'lignes')}
       </div>
     </div>
   `;
@@ -6374,9 +6455,12 @@ function sessionsResultsHtml(){
   } else if(list.length===0){
     tablePanel = `<div class="panel"><div class="panel-body">${emptyState('video','Aucune session pour ces filtres','Essaie d’élargir ta recherche ou de réinitialiser les filtres.')}</div></div>`;
   } else {
-    const rows = visibleList.map(s=>{
+    // Les sessions verrouillées (hors quota Free) restent affichées mais floutées, plutôt que
+    // simplement omises : ça donne un aperçu concret de ce qu'il y a à débloquer.
+    const rows = list.map(s=>{
       const durationMin = minutesBetweenTimes(s.startTime, s.endTime);
-      return `<tr data-open-session="${s.id}" style="cursor:pointer;">
+      const locked = !unlockedIds.has(s.id);
+      return `<tr ${locked?'':`data-open-session="${s.id}"`} class="${locked?'free-blur-row':''}" style="${locked?'':'cursor:pointer;'}">
         <td style="font-weight:600;">${escapeHtml(s.title)||'<span class="text-faint" style="font-weight:400;font-style:italic;">Session sans nom</span>'}</td>
         <td class="text-dim">${fmtDate(s.date)}</td>
         <td class="text-dim">${fmtDuration(durationMin)}</td>
@@ -6395,7 +6479,7 @@ function sessionsResultsHtml(){
         ${lockedInView>0 ? `
           <div class="session-lock-panel">
             ${icon('lock')}
-            <div style="color:var(--text-dim);font-size:12.5px;margin:8px 0 12px;">${lockedInView} session${lockedInView>1?'s':''} plus ancienne${lockedInView>1?'s':''} — réservée${lockedInView>1?'s':''} aux formules Premium et Lifetime.</div>
+            <div style="color:var(--text-dim);font-size:12.5px;margin:8px 0 12px;">${lockedInView} session${lockedInView>1?'s':''} plus ancienne${lockedInView>1?'s':''} (floutée${lockedInView>1?'s':''} ci-dessus) — réservée${lockedInView>1?'s':''} aux formules Premium et Lifetime.</div>
             <button class="btn btn-primary btn-sm" onclick="openUpgradeModal('L\\'historique complet des sessions de trading')">Passer à Pro</button>
           </div>` : ''}
       </div>`;
@@ -7617,20 +7701,23 @@ function firmFormModal(existing){
 /* ============================================================
    FORM: AVIS PROPFIRM (propfirm_ratings)
    Un avis = 4 sous-notes (générale, tarifs, règles, payout) + commentaire
-   optionnel, rattaché à un trader (n'importe quel trader de l'utilisateur,
-   pas seulement ceux ayant un compte chez cette PropFirm). Un seul avis
-   par couple (trader, PropFirm) : si le trader sélectionné en a déjà un,
-   ce formulaire le charge et le met à jour plutôt que d'en créer un second.
+   optionnel. Il est rattaché AU COMPTE (createdBy) ET au trader dont l'email
+   correspond au compte connecté (myLinkedTrader()) — reconnu automatiquement,
+   sans sélection manuelle : on ne peut pas laisser un avis "au nom" d'un
+   autre trader. Un seul avis par couple (trader, PropFirm) : si ce trader en
+   a déjà un, ce formulaire le charge et le met à jour plutôt que d'en créer
+   un second. (Un admin qui modifie l'avis de quelqu'un d'autre, via le crayon
+   sur la fiche PropFirm, garde le trader d'origine de cet avis.)
 ============================================================ */
 function ratingFormModal(firm, existing){
-  if(state.traders.length===0){
-    showToast('Crée d’abord au moins un trader pour pouvoir laisser un avis.', 'danger');
+  const traderId = existing ? existing.traderId : (myLinkedTrader() ? myLinkedTrader().id : null);
+  if(!traderId){
+    showToast("Aucun trader n'est lié à ton compte (email correspondant) : impossible de laisser un avis. Demande à un admin de lier ton compte à ta fiche trader.", 'danger');
     return;
   }
-  const myTrader = myLinkedTrader();
-  let traderId = existing ? existing.traderId : (myTrader ? myTrader.id : state.traders[0].id);
+  const trader = getTrader(traderId);
   function findExisting(tid){ return state.propfirm_ratings.find(r=>r.propFirmId===firm.id && r.traderId===tid); }
-  let current = existing || findExisting(traderId) || null;
+  const current = existing || findExisting(traderId) || null;
   let draft = {
     generalRating: current ? Number(current.generalRating)||0 : 0,
     priceRating:   current ? Number(current.priceRating)||0 : 0,
@@ -7641,9 +7728,10 @@ function ratingFormModal(firm, existing){
     title: current ? 'Modifier mon avis' : 'Donner mon avis',
     bodyHtml: `
       <div class="field"><label>Trader</label>
-        <select id="rf-trader">${state.traders.map(t=>`<option value="${t.id}" ${t.id===traderId?'selected':''}>${escapeHtml(t.pseudo)}</option>`).join('')}</select>
+        <div style="font-weight:600;padding:2px 0;">${escapeHtml(trader ? trader.pseudo : '—')}</div>
+        <div class="field-hint" style="margin:2px 0 0;">Reconnu automatiquement depuis ton compte.</div>
       </div>
-      <div id="rf-existing-hint" class="field-hint" style="margin:-4px 0 10px;">${current ? 'Ce trader a déjà un avis sur cette PropFirm : il sera mis à jour.' : ''}</div>
+      <div id="rf-existing-hint" class="field-hint" style="margin:10px 0 10px;">${current ? 'Tu as déjà un avis sur cette PropFirm : il sera mis à jour.' : ''}</div>
       <div id="rf-stars">
         ${RATING_CATEGORIES.map(c=>`
           <div class="field" style="margin-bottom:10px;">
@@ -7659,23 +7747,6 @@ function ratingFormModal(firm, existing){
       ${current ? `<button class="btn btn-danger" id="rf-delete" style="margin-right:auto;">${icon('trash')}Supprimer mon avis</button>` : ''}
       <button class="btn btn-primary" id="rf-save">Enregistrer</button>`,
     onMount(){
-      document.getElementById('rf-trader').addEventListener('change', (e)=>{
-        traderId = e.target.value;
-        current = findExisting(traderId);
-        draft = {
-          generalRating: current ? Number(current.generalRating)||0 : 0,
-          priceRating:   current ? Number(current.priceRating)||0 : 0,
-          rulesRating:   current ? Number(current.rulesRating)||0 : 0,
-          payoutRating:  current ? Number(current.payoutRating)||0 : 0,
-        };
-        RATING_CATEGORIES.forEach(c=>{
-          document.querySelector(`[data-star-row="${c.key}"]`).innerHTML = starInputHtml(c.key, draft[c.key]);
-        });
-        document.getElementById('rf-comment').value = (current && current.comment) || '';
-        document.getElementById('rf-existing-hint').textContent = current ? 'Ce trader a déjà un avis sur cette PropFirm : il sera mis à jour.' : '';
-        const delBtn = document.getElementById('rf-delete');
-        if(delBtn) delBtn.style.display = current ? '' : 'none';
-      });
       document.getElementById('rf-stars').addEventListener('click', (e)=>{
         const btn = e.target.closest('[data-star-cat]');
         if(!btn) return;
