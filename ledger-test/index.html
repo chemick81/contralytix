@@ -2284,14 +2284,51 @@ function firmImgError(img, initials, color, size){
 function firmLogoHtml(firm, size){
   size = size || 22;
   const name = firm ? firm.name : '?';
-  const domain = firmDomain(firm);
   const initials = firmInitials(name);
   const color = firmAvatarColor(name);
+  // Priorité 1 : logo uploadé manuellement en admin (le plus fiable, résout le cas où
+  // le favicon Google renvoyé pour le domaine est erroné ou absent).
+  if(firm && firm.logoUrl){
+    return `<img src="${firm.logoUrl}" class="firm-logo" style="width:${size}px;height:${size}px;" alt="" loading="lazy" onerror="firmImgError(this,'${initials}','${color}',${size})" />`;
+  }
+  // Priorité 2 : favicon Google déduit du site web (ou d'une base de domaines connus).
+  const domain = firmDomain(firm);
   if(domain){
     const src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
     return `<img src="${src}" class="firm-logo" style="width:${size}px;height:${size}px;" alt="" loading="lazy" onerror="firmImgError(this,'${initials}','${color}',${size})" />`;
   }
+  // Repli : badge coloré avec initiales.
   return `<span class="firm-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;background:${color};">${initials}</span>`;
+}
+
+// Redimensionne une image uploadée (fichier) en la faisant tenir dans un carré de
+// `maxSize` px (fond transparent, ratio conservé, centrée) et renvoie un data URL PNG.
+// C'est ce qui permet à l'admin d'ajouter n'importe quelle image de logo sans avoir à
+// la redimensionner elle-même au préalable.
+function resizeImageFileToDataUrl(file, maxSize){
+  maxSize = maxSize || 128;
+  return new Promise((resolve, reject)=>{
+    if(!file.type || !file.type.startsWith('image/')){ reject(new Error('Le fichier sélectionné n’est pas une image.')); return; }
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('Impossible de lire le fichier.'));
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('Image invalide ou illisible.'));
+      img.onload = ()=>{
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = maxSize; canvas.height = maxSize;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0,0,maxSize,maxSize);
+        ctx.drawImage(img, Math.round((maxSize-w)/2), Math.round((maxSize-h)/2), w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 function getAccount(id){ return state.accounts.find(a=>a.id===id); }
 
@@ -7316,13 +7353,21 @@ function traderFormModal(existing){
    FORM: PROPFIRM
 ============================================================ */
 function firmFormModal(existing){
-  const f = existing || { id: uid('pf'), name:'', website:'', notes:'', createdBy: currentUserId() };
+  const f = existing || { id: uid('pf'), name:'', website:'', notes:'', logoUrl:'', createdBy: currentUserId() };
+  // Logo actuellement sélectionné dans le formulaire (peut être modifié via l'upload / le retrait,
+  // avant enregistrement). On part de celui déjà enregistré sur la PropFirm, s'il y en a un.
+  let logoUrl = f.logoUrl || '';
   openModal({
     title: existing ? 'Modifier la PropFirm' : 'Nouvelle PropFirm',
     bodyHtml: `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;" id="ff-preview-wrap">
-        ${firmLogoHtml(f, 36)}
-        <span class="field-hint" style="margin:0;">Aperçu du logo (basé sur le site web, ou déduit du nom pour les PropFirms connues).</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;" id="ff-preview-wrap">
+        ${firmLogoHtml({ ...f, logoUrl }, 36)}
+        <span class="field-hint" style="margin:0;">${logoUrl ? 'Logo personnalisé.' : 'Aperçu du logo (basé sur le site web, ou déduit du nom pour les PropFirms connues).'}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <button type="button" class="btn btn-outline btn-sm" id="ff-logo-upload-btn">${icon('upload')}Choisir une image…</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="ff-logo-clear-btn" style="${logoUrl?'':'display:none;'}">Retirer le logo personnalisé</button>
+        <input type="file" id="ff-logo-file" accept="image/*" style="display:none;" />
       </div>
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
       <div class="field"><label>Site web (optionnel)</label><input id="ff-web" value="${f.website||''}" placeholder="https://…"/></div>
@@ -7332,19 +7377,37 @@ function firmFormModal(existing){
     footHtml: `<button class="btn btn-outline" id="ff-cancel">Annuler</button><button class="btn btn-primary" id="ff-save">Enregistrer</button>`,
     onMount(){
       function refreshPreview(){
+        const hint = logoUrl ? 'Logo personnalisé.' : 'Aperçu du logo (basé sur le site web, ou déduit du nom pour les PropFirms connues).';
         document.getElementById('ff-preview-wrap').innerHTML =
-          firmLogoHtml({ name: document.getElementById('ff-name').value, website: document.getElementById('ff-web').value }, 36)
-          + `<span class="field-hint" style="margin:0;">Aperçu du logo (basé sur le site web, ou déduit du nom pour les PropFirms connues).</span>`;
+          firmLogoHtml({ name: document.getElementById('ff-name').value, website: document.getElementById('ff-web').value, logoUrl }, 36)
+          + `<span class="field-hint" style="margin:0;">${hint}</span>`;
+        document.getElementById('ff-logo-clear-btn').style.display = logoUrl ? '' : 'none';
       }
       document.getElementById('ff-name').addEventListener('input', refreshPreview);
       document.getElementById('ff-web').addEventListener('input', refreshPreview);
+      document.getElementById('ff-logo-upload-btn').onclick = ()=> document.getElementById('ff-logo-file').click();
+      document.getElementById('ff-logo-clear-btn').onclick = ()=>{ logoUrl = ''; refreshPreview(); };
+      document.getElementById('ff-logo-file').addEventListener('change', async (e)=>{
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        document.getElementById('ff-error').textContent = '';
+        try{
+          // Redimensionnement automatique côté client : n'importe quelle image fournie
+          // par l'admin est recadrée/adaptée en carré, l'utilisateur n'a rien à faire.
+          logoUrl = await resizeImageFileToDataUrl(file, 128);
+          refreshPreview();
+        }catch(err){
+          document.getElementById('ff-error').textContent = err.message || "Impossible d'utiliser cette image.";
+        }
+        e.target.value = '';
+      });
       document.getElementById('ff-cancel').onclick = closeModal;
       document.getElementById('ff-save').onclick = async ()=>{
         const name = document.getElementById('ff-name').value.trim();
         if(!name){ document.getElementById('ff-error').textContent = 'Le nom est obligatoire.'; return; }
         const dup = state.propfirms.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.id!==f.id);
         if(dup){ document.getElementById('ff-error').textContent = 'Cette PropFirm existe déjà.'; return; }
-        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim() });
+        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl });
         await logActivity(existing?'UPDATE':'CREATE', 'propfirm', f.id, `${name}`);
         showToast(existing ? 'PropFirm mise à jour.' : 'PropFirm créée.');
         closeModal(); render();
