@@ -314,6 +314,12 @@ th.th-sort-active svg{opacity:1;}
 .results-counter-value .rc-total{font-size:13px;font-weight:500;color:var(--text-faint);margin-left:2px;}
 .pill-reset{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:9px 18px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .12s;}
 .pill-reset:hover{background:var(--danger-dim);}
+.recap-granularity{display:flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px;}
+.recap-gran-btn{background:none;border:none;color:var(--text-dim);font-size:12px;font-weight:600;font-family:inherit;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.recap-gran-btn:hover{color:var(--text);}
+.recap-gran-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 0 0 1px var(--border);}
+.recap-total-row{border-top:2px solid var(--border);}
+.recap-total-row td{font-weight:700;padding-top:10px;}
 .filter-bar-spacer{flex:1 1 auto;}
 
 /* EMPTY STATE */
@@ -959,7 +965,7 @@ const state = {
   },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
-    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false },
+    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false },
     sessions: { q:'', trader:[], traderMenuOpen:false },
@@ -1941,6 +1947,16 @@ function monthLabel(key){
   const [y,m] = key.split('-');
   const noms = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
   return `${noms[Number(m)-1]} ${String(y).slice(2)}`;
+}
+function monthLabelCap(key){ const l = monthLabel(key); return l.charAt(0).toUpperCase()+l.slice(1); }
+function quarterKey(dateStr){ const [y,m] = dateStr.slice(0,7).split('-').map(Number); return `${y}-T${Math.ceil(m/3)}`; }
+function quarterLabel(key){ const [y,q] = key.split('-T'); return `T${q} ${y}`; }
+function yearKey(dateStr){ return dateStr.slice(0,4); }
+function yearLabel(key){ return key; }
+function periodLabel(pk, granularity){
+  if(granularity==='year') return yearLabel(pk);
+  if(granularity==='quarter') return quarterLabel(pk);
+  return monthLabelCap(pk);
 }
 function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); } // m = 1-12, calcul calendaire local, sans UTC
 function addMonths(dateStr, n){
@@ -4593,8 +4609,8 @@ function viewAccounting(){
   const totalExp = all.filter(x=>x.kind==='expense').reduce((s,x)=>s+x.amount,0);
   const totalPay = all.filter(x=>x.kind==='payout').reduce((s,x)=>s+Number(x.amount),0);
 
-  // Récapitulatif mensuel : respecte les filtres Trader/Type, mais pas le filtre Mois
-  // (sinon on ne pourrait comparer qu'un seul mois avec lui-même).
+  // Rapport de rentabilité : respecte les filtres Trader/Type/PropFirm, mais pas le filtre Mois
+  // (sinon on ne pourrait comparer qu'une seule période avec elle-même).
   let recapSource = [...lines, ...pays];
   if(f.type){
     if(f.type==='PAYOUT') recapSource = recapSource.filter(x=>x.kind==='payout');
@@ -4602,16 +4618,36 @@ function viewAccounting(){
   }
   if(f.trader.length) recapSource = recapSource.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
+  const recapGranularity = f.recapGranularity || 'month';
+  const recapKeyFn = recapGranularity==='year' ? yearKey : recapGranularity==='quarter' ? quarterKey : monthKey;
   const recapGroups = {};
   recapSource.forEach(x=>{
-    const mk = monthKey(x.date);
-    if(!recapGroups[mk]) recapGroups[mk] = { expense:0, payout:0 };
-    if(x.kind==='expense') recapGroups[mk].expense += x.amount;
-    else recapGroups[mk].payout += Number(x.amount);
+    const pk = recapKeyFn(x.date);
+    if(!recapGroups[pk]) recapGroups[pk] = { challenge:0, activation:0, payout:0, payoutCount:0 };
+    if(x.kind==='expense'){
+      if(x.type==='ACTIVATION') recapGroups[pk].activation += x.amount;
+      else recapGroups[pk].challenge += x.amount; // ACHAT + MENSUALITE
+    } else { recapGroups[pk].payout += Number(x.amount); recapGroups[pk].payoutCount++; }
   });
   const recapRows = Object.entries(recapGroups)
-    .map(([mk,v])=>({ mk, expense:v.expense, payout:v.payout, net:v.payout-v.expense }))
-    .sort((a,b)=>b.mk.localeCompare(a.mk));
+    .map(([pk,v])=>{
+      const totalCosts = v.challenge + v.activation;
+      const net = v.payout - totalCosts;
+      const roi = totalCosts>0 ? (net/totalCosts*100) : null;
+      return { pk, challenge:v.challenge, activation:v.activation, payout:v.payout, payoutCount:v.payoutCount, totalCosts, net, roi };
+    })
+    .sort((a,b)=>b.pk.localeCompare(a.pk));
+  const recapTotal = recapRows.reduce((acc,r)=>{
+    acc.challenge += r.challenge; acc.activation += r.activation; acc.payout += r.payout; acc.payoutCount += r.payoutCount; acc.totalCosts += r.totalCosts; acc.net += r.net;
+    return acc;
+  }, { challenge:0, activation:0, payout:0, payoutCount:0, totalCosts:0, net:0 });
+  recapTotal.roi = recapTotal.totalCosts>0 ? (recapTotal.net/recapTotal.totalCosts*100) : null;
+  const recapMoney = (v, kind)=>{ // kind: 'cost' | 'gain' | 'net'
+    if(kind==='cost') return v>0 ? `-${fmtMoney(v)}` : '—';
+    if(kind==='gain') return v>0 ? `+${fmtMoney(v)}` : '—';
+    return v>=0 ? `+${fmtMoney(v)}` : fmtMoney(v); // net : déjà signé par toLocaleString si négatif
+  };
+  const recapRoi = (roi)=> roi===null ? '—' : `${roi>=0?'+':''}${roi.toFixed(1)}%`;
 
   const filterBar = `
     <div class="filter-bar">
@@ -4652,19 +4688,48 @@ function viewAccounting(){
 
   const recapTable = `
     <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="section-title">Récapitulatif mensuel</div><div class="text-faint" style="font-size:11.5px;">Clique un mois pour filtrer la liste ci-dessous</div></div>
+      <div class="panel-head">
+        <div class="section-title">Rapport de rentabilité</div>
+        <div class="recap-granularity">
+          <button type="button" class="recap-gran-btn ${recapGranularity==='month'?'active':''}" data-recap-gran="month">Par mois</button>
+          <button type="button" class="recap-gran-btn ${recapGranularity==='quarter'?'active':''}" data-recap-gran="quarter">Par trimestre</button>
+          <button type="button" class="recap-gran-btn ${recapGranularity==='year'?'active':''}" data-recap-gran="year">Par année</button>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Mois</th><th class="num">Dépenses</th><th class="num">Payouts</th><th class="num">Net</th></tr></thead>
+          <thead><tr>
+            <th>Période</th><th class="num">Payouts</th><th class="num">Challenges</th><th class="num">Activation</th>
+            <th class="num">Total coûts</th><th class="num">Net</th><th class="num">ROI</th>
+          </tr></thead>
           <tbody>
-            ${recapRows.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:16px 0;text-align:center;">Aucune donnée.</div></td></tr>` :
-              recapRows.map(r=>`<tr data-select-month="${r.mk}" style="cursor:pointer;${f.month===r.mk?'background:var(--surface-2);':''}">
-                <td style="font-weight:600;">${monthLabel(r.mk)}${f.month===r.mk?` <span class="badge badge-accent" style="margin-left:4px;">actif</span>`:''}</td>
-                <td class="num" style="color:var(--danger)">${fmtMoney(r.expense)}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoney(r.payout)}</td>
-                <td class="num" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${r.net>=0?'+':''}${fmtMoney(r.net)}</td>
-              </tr>`).join('')}
+            ${recapRows.length===0 ? `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;text-align:center;">Aucune donnée.</div></td></tr>` :
+              recapRows.map(r=>{
+                const clickable = recapGranularity==='month';
+                const isActive = clickable && f.month===r.pk;
+                return `<tr ${clickable?`data-select-month="${r.pk}"`:''} style="${clickable?'cursor:pointer;':''}${isActive?'background:var(--surface-2);':''}">
+                <td style="font-weight:600;">${periodLabel(r.pk, recapGranularity)}${isActive?` <span class="badge badge-accent" style="margin-left:4px;">actif</span>`:''}</td>
+                <td class="num" style="color:${r.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(r.payout,'gain')}${r.payoutCount>1?` <span class="text-faint">×${r.payoutCount}</span>`:''}</td>
+                <td class="num" style="color:${r.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.challenge,'cost')}</td>
+                <td class="num" style="color:${r.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.activation,'cost')}</td>
+                <td class="num" style="color:${r.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.totalCosts,'cost')}</td>
+                <td class="num" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</td>
+                <td class="num" style="color:${r.roi===null?'var(--text-faint)':r.roi>=0?'var(--accent)':'var(--danger)'}">${recapRoi(r.roi)}</td>
+              </tr>`;
+              }).join('')}
           </tbody>
+          ${recapRows.length>0 ? `
+          <tfoot>
+            <tr class="recap-total-row">
+              <td>Total</td>
+              <td class="num" style="color:${recapTotal.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(recapTotal.payout,'gain')}${recapTotal.payoutCount>1?` <span class="text-faint">×${recapTotal.payoutCount}</span>`:''}</td>
+              <td class="num" style="color:${recapTotal.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.challenge,'cost')}</td>
+              <td class="num" style="color:${recapTotal.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.activation,'cost')}</td>
+              <td class="num" style="color:${recapTotal.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.totalCosts,'cost')}</td>
+              <td class="num" style="color:${recapTotal.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(recapTotal.net,'net')}</td>
+              <td class="num" style="color:${recapTotal.roi===null?'var(--text-faint)':recapTotal.roi>=0?'var(--accent)':'var(--danger)'}">${recapRoi(recapTotal.roi)}</td>
+            </tr>
+          </tfoot>` : ''}
         </table>
       </div>
     </div>`;
@@ -6022,10 +6087,14 @@ function bindViewEvents(){
   bindMonthFilter('fa-month', state.filters.accounting, { allowAll:true });
   bindMultiSelectDropdown('fa-trader', state.filters.accounting, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const clearBtn = document.getElementById('fa-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false,monthMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
+  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false,monthMenuOpen:false,recapGranularity:state.filters.accounting.recapGranularity}; setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-select-month]').forEach(row=>row.onclick=()=>{
     const mk = row.dataset.selectMonth;
     state.filters.accounting.month = (state.filters.accounting.month===mk) ? '' : mk; // re-clic = désélectionner
+    renderView();
+  });
+  document.querySelectorAll('[data-recap-gran]').forEach(b=>b.onclick=()=>{
+    state.filters.accounting.recapGranularity = b.dataset.recapGran;
     renderView();
   });
 
