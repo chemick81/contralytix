@@ -1866,22 +1866,19 @@ function freeBlurOverlayHtml(total, featureLabel){
 }
 
 /* ============================================================
-   POPUP D'ACCUEIL — NOUVELLE INSCRIPTION
-   Affichée une seule fois (par compte, persistée via profiles.onboarding_seen),
-   à la première arrivée sur le Dashboard : explique qu'il faut d'abord créer un
-   trader, puis donne un aperçu rapide de ce que débloque Premium. Les admins ne
-   la voient jamais (ils n'ont pas besoin d'être "onboardés").
+   POPUP D'ACCUEIL — TANT QU'AUCUN TRADER N'EST IDENTIFIÉ AU COMPTE
+   Contrairement à un onboarding "vu une fois", cette popup se réaffiche à
+   CHAQUE connexion tant que myLinkedTrader() ne trouve aucun trader dont
+   l'email correspond à celui du compte connecté : c'est justement ce lien
+   qui manque et qu'on rappelle de créer. Dès qu'un trader est identifié
+   (créé, ou email renseigné/mis à jour dessus par un admin), la condition
+   devient fausse et la popup ne s'affiche plus. Les admins ne la voient
+   jamais (ils n'ont pas besoin d'être "onboardés").
 ============================================================ */
-function markOnboardingSeen(){
-  if(!state.profile || state.profile.onboardingSeen) return;
-  state.profile.onboardingSeen = true;
-  supabaseClient.from('profiles').update({ onboarding_seen: true }).eq('id', currentUserId()).then(({error})=>{
-    if(error) console.warn('Impossible d’enregistrer onboarding_seen (colonne manquante ? voir migration SQL) :', error.message);
-  });
-}
 function maybeShowWelcomeModal(){
-  if(!state.profile || state.profile.onboardingSeen) return;
+  if(!state.profile) return;
   if(isAdmin()) return;
+  if(myLinkedTrader()) return;
   openWelcomeModal();
 }
 const WELCOME_PREMIUM_HIGHLIGHTS = [
@@ -1891,7 +1888,6 @@ const WELCOME_PREMIUM_HIGHLIGHTS = [
   { icon:'download', label:'Exports & sauvegardes', desc:'Export Excel/PDF et sauvegarde de tes données en un clic.' },
 ];
 function openWelcomeModal(){
-  const needsTrader = state.traders.length===0;
   openModal({
     title: 'Bienvenue sur Contralytix',
     wide: true,
@@ -1899,15 +1895,14 @@ function openWelcomeModal(){
       <div style="font-size:13.5px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;">
         Contralytix t'aide à centraliser et suivre tous tes comptes PropFirm (Challenges, comptes financés, payouts, comptabilité…) au même endroit.
       </div>
-      ${needsTrader ? `
       <div style="display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;background:var(--surface-2);">
         <div class="help-cat-icon" style="flex-shrink:0;">${icon('users')}</div>
         <div style="flex:1;">
           <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Étape 1 — Crée ton premier trader</div>
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;">Avant toute chose, crée une fiche trader (toi-même, ou la personne dont tu suis les comptes) : c'est elle qui sera reliée à tes comptes PropFirm, tes payouts et tes sessions de trading.</div>
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;">Avant toute chose, crée une fiche trader (toi-même, ou la personne dont tu suis les comptes), avec ton adresse email (${escapeHtml(state.session.user.email)}) renseignée dessus : c'est elle qui sera reliée à tes comptes PropFirm, tes payouts et tes sessions de trading. Tant qu'aucun trader n'est identifié à ton compte, ce message reviendra à chaque connexion.</div>
           <button class="btn btn-primary btn-sm" id="wm-add-trader">${icon('plus')}Créer mon premier trader</button>
         </div>
-      </div>` : ''}
+      </div>
       <div style="font-weight:700;font-size:13.5px;margin-bottom:10px;">Passe à Premium quand tu es prêt</div>
       <div class="firm-stat-cats" style="margin-top:0;">
         ${WELCOME_PREMIUM_HIGHLIGHTS.map(h=>`
@@ -1923,10 +1918,9 @@ function openWelcomeModal(){
     `,
     footHtml: `<button class="btn btn-outline" id="wm-later">Plus tard</button><button class="btn btn-primary" id="wm-pricing">${icon('wallet')}Voir les tarifs</button>`,
     onMount(){
-      const addTraderBtn = document.getElementById('wm-add-trader');
-      if(addTraderBtn) addTraderBtn.onclick = ()=>{ markOnboardingSeen(); closeModal(); traderFormModal(); };
-      document.getElementById('wm-later').onclick = ()=>{ markOnboardingSeen(); closeModal(); };
-      document.getElementById('wm-pricing').onclick = ()=>{ markOnboardingSeen(); closeModal(); state.route='subscription'; render(); };
+      document.getElementById('wm-add-trader').onclick = ()=>{ closeModal(); traderFormModal(); };
+      document.getElementById('wm-later').onclick = closeModal;
+      document.getElementById('wm-pricing').onclick = ()=>{ closeModal(); state.route='subscription'; render(); };
     }
   });
 }
