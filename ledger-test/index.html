@@ -465,6 +465,28 @@ th.th-sort-active svg{opacity:1;}
 .firm-pick:hover{border-color:var(--accent);}
 .firm-pick.selected{border-color:var(--accent);background:var(--accent-dim);font-weight:600;}
 .firm-name-inline{display:inline-flex;align-items:center;gap:6px;}
+.firm-row-link{cursor:pointer;}
+.firm-row-link:hover{color:var(--accent);}
+
+/* AVIS / NOTES PROPFIRMS */
+.star-rating{display:inline-flex;align-items:center;gap:1px;vertical-align:middle;}
+.star-slot{position:relative;display:inline-block;flex-shrink:0;}
+.star-slot .star-bg{position:absolute;top:0;left:0;display:inline-flex;color:var(--border);overflow:hidden;}
+.star-slot .star-bg svg{width:100%;height:100%;}
+.star-slot .star-fg{position:absolute;top:0;left:0;display:inline-flex;color:#f5a623;overflow:hidden;white-space:nowrap;}
+.star-slot .star-fg svg{width:100%;height:100%;}
+.rating-value{font-size:12px;color:var(--text-dim);font-weight:600;margin-left:4px;}
+.rating-count{font-size:11px;color:var(--text-faint);margin-left:2px;}
+.star-input-row{display:flex;align-items:center;gap:2px;}
+.star-input-btn{background:none;border:none;padding:2px;cursor:pointer;color:var(--border);display:inline-flex;line-height:0;}
+.star-input-btn svg{width:22px;height:22px;}
+.star-input-btn.filled{color:#f5a623;}
+.rating-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.rating-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.rating-cats-row{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;}
+.firm-stat-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;}
+.firm-stat-cat{border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.firm-stat-cat-label{font-size:11.5px;color:var(--text-faint);margin-bottom:4px;}
 
 /* IMPORT PROPDESK */
 .import-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
@@ -956,6 +978,7 @@ const ICONS = {
   chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4.5 4v-4H6a2 2 0 0 1-2-2v-9Z"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3 3 10.5l7.5 3M21 3l-7.5 18-3-7.5M21 3 10.5 13.5"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -994,7 +1017,7 @@ const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL,
 // séance : elle est alors envoyée avec la requête (et uniquement stockée dans
 // son navigateur, via localStorage) pour servir de repli.
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
-const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
+const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings'];
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
@@ -1024,9 +1047,13 @@ const state = {
   account_notes: [],
   yt_sessions: [],
   market_prep: [],
+  propfirm_ratings: [],
   // Vue liste / vue détail (immersive) au sein de la page Sessions de Trading — pas une route à
   // part entière, juste un état d'affichage local à cette page (voir viewSessions()).
   sessionDetailId: null,
+  // Idem pour la page PropFirms : affiche la fiche détaillée (avis/notes) d'une PropFirm au
+  // lieu de la liste, sans être une route à part entière (voir viewPropfirms()).
+  propfirmDetailId: null,
   profiles: [],
   activityLog: [],
   promo_codes: [],
@@ -1098,6 +1125,14 @@ function setTraderFilterEverywhere(traderIds){
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
 function isMine(item){ return item.createdBy === currentUserId(); }
 function canEdit(item){ return isAdmin() || isMine(item); }
+// Vérif des droits d'écriture par collection : les PropFirms (fiche + logo) sont désormais
+// réservées aux administrateurs, y compris celles créées avant ce changement (les utilisateurs
+// passent par "Demander l'ajout d'une PropFirm" — voir requestPropfirmModal()). Les avis/notes
+// (propfirm_ratings), eux, restent modifiables par leur auteur ou un admin, comme le reste.
+function canEditRecord(collection, item){
+  if(collection==='propfirms') return isAdmin();
+  return canEdit(item);
+}
 
 function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -1122,7 +1157,7 @@ async function loadAll(){
   }
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings'];
 
 /* ============================================================
    RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
@@ -1192,8 +1227,14 @@ async function upsert(collection, item){
   const idx = arr.findIndex(x=>x.id===item.id);
   // Garde-fou côté interface (défense en profondeur) : la vraie sécurité est appliquée par les
   // policies RLS Supabase — voir rls_policies.sql. L'interface ne doit jamais être la seule sécurité.
-  if(idx>=0 && OWNED_TABLES.includes(collection) && !canEdit(arr[idx])){
-    showToast("Vous n'êtes pas autorisé à modifier cet enregistrement (créé par un autre utilisateur).", 'danger');
+  if(idx>=0 && OWNED_TABLES.includes(collection) && !canEditRecord(collection, arr[idx])){
+    showToast("Vous n'êtes pas autorisé à modifier cet enregistrement.", 'danger');
+    return;
+  }
+  // Création : les PropFirms ne peuvent désormais être créées que par un admin (les autres
+  // utilisateurs passent par "Demander l'ajout d'une PropFirm").
+  if(idx<0 && collection==='propfirms' && !isAdmin()){
+    showToast("Réservé aux administrateurs — utilise «Demander l'ajout d'une PropFirm».", 'danger');
     return;
   }
   if(idx>=0) arr[idx] = item; else arr.push(item);
@@ -1230,8 +1271,8 @@ async function upsert(collection, item){
 }
 async function remove(collection, id){
   const item = state[collection].find(x=>x.id===id);
-  if(item && OWNED_TABLES.includes(collection) && !canEdit(item)){
-    showToast("Vous n'êtes pas autorisé à supprimer cet enregistrement (créé par un autre utilisateur).", 'danger');
+  if(item && OWNED_TABLES.includes(collection) && !canEditRecord(collection, item)){
+    showToast("Vous n'êtes pas autorisé à supprimer cet enregistrement.", 'danger');
     return false;
   }
   state[collection] = state[collection].filter(x=>x.id!==id);
@@ -2330,6 +2371,56 @@ function resizeImageFileToDataUrl(file, maxSize){
     reader.readAsDataURL(file);
   });
 }
+
+/* ============================================================
+   AVIS / NOTES PROPFIRMS (propfirm_ratings)
+   Chaque trader peut laisser un avis par PropFirm (4 sous-notes 1-5 :
+   générale, tarifs, règles, payout + commentaire optionnel). La note
+   affichée dans la liste et l'en-tête de fiche est la moyenne des 4
+   sous-notes, tous avis confondus.
+============================================================ */
+const RATING_CATEGORIES = [
+  { key:'generalRating', label:'Note générale' },
+  { key:'priceRating',   label:'Tarifs' },
+  { key:'rulesRating',   label:'Règles' },
+  { key:'payoutRating',  label:'Payout' },
+];
+function firmRatings(firmId){ return state.propfirm_ratings.filter(r=>r.propFirmId===firmId); }
+// Note "globale" d'un avis individuel = moyenne de ses 4 sous-notes.
+function ratingOverall(r){
+  const vals = RATING_CATEGORIES.map(c=>Number(r[c.key])||0).filter(v=>v>0);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+}
+function avg(nums){ const v = nums.filter(n=>n>0); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0; }
+function firmRatingStats(firmId){
+  const ratings = firmRatings(firmId);
+  const stats = { count: ratings.length, overall: 0 };
+  RATING_CATEGORIES.forEach(c=>{ stats[c.key] = avg(ratings.map(r=>Number(r[c.key])||0)); });
+  stats.overall = avg(ratings.map(ratingOverall));
+  return stats;
+}
+// Rendu visuel d'une note en étoiles (support des demi/quart d'étoiles via un recouvrement
+// en largeur %, pour bien refléter une moyenne comme 3.7). `value` entre 0 et 5.
+function starRatingHtml(value, size){
+  size = size || 14;
+  const v = Math.max(0, Math.min(5, Number(value)||0));
+  const stars = Array.from({length:5}).map((_,i)=>{
+    const fill = Math.max(0, Math.min(1, v - i)) * 100;
+    return `<span class="star-slot" style="width:${size}px;height:${size}px;">
+      <span class="star-bg" style="width:${size}px;height:${size}px;">${icon('star')}</span>
+      <span class="star-fg" style="width:${fill}%;height:${size}px;"><span style="width:${size}px;height:${size}px;display:inline-flex;">${icon('star')}</span></span>
+    </span>`;
+  }).join('');
+  return `<span class="star-rating" style="height:${size}px;">${stars}</span>`;
+}
+// Étoiles cliquables (1 à 5) pour la saisie d'une note dans le formulaire d'avis.
+function starInputHtml(cat, value){
+  const v = Number(value)||0;
+  return Array.from({length:5}).map((_,i)=>{
+    const n = i+1;
+    return `<button type="button" class="star-input-btn ${n<=v?'filled':''}" data-star-cat="${cat}" data-star-val="${n}" title="${n}/5">${icon('star')}</button>`;
+  }).join('');
+}
 function getAccount(id){ return state.accounts.find(a=>a.id===id); }
 
 function statusLabel(acc){
@@ -2708,16 +2799,19 @@ function confirmModal(message, onConfirm, danger=true){
 // Formulaire de contact : accessible à tout utilisateur connecté depuis la barre latérale.
 // Écrit dans la table Supabase 'support_messages' (INSERT autorisé pour tout utilisateur
 // connecté, lecture réservée aux admins — voir support_messages.sql et loadSupportMessagesAdmin()).
-const CONTACT_SUBJECTS = { BUG:'Bug / problème technique', QUESTION:'Question', SUGGESTION:'Suggestion', FACTURATION:'Facturation / abonnement', AUTRE:'Autre' };
-function openContactModal(){
+const CONTACT_SUBJECTS = { BUG:'Bug / problème technique', QUESTION:'Question', SUGGESTION:'Suggestion', FACTURATION:'Facturation / abonnement', PROPFIRM_REQUEST:'Demande d’ajout de PropFirm', AUTRE:'Autre' };
+// `prefill` (optionnel) : { subject, message } — utilisé par exemple par
+// requestPropfirmModal() pour ouvrir ce formulaire déjà rempli.
+function openContactModal(prefill){
+  prefill = prefill || {};
   openModal({
     title: 'Nous contacter',
     bodyHtml: `
       <div class="field-hint" style="margin:0 0 12px;">On te répond par email, à l'adresse de ton compte (${escapeHtml(state.session.user.email)}).</div>
       <div class="field"><label>Sujet</label>
-        <select id="ct-subject">${Object.entries(CONTACT_SUBJECTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
+        <select id="ct-subject">${Object.entries(CONTACT_SUBJECTS).map(([k,v])=>`<option value="${k}" ${prefill.subject===k?'selected':''}>${v}</option>`).join('')}</select>
       </div>
-      <div class="field"><label>Message</label><textarea id="ct-message" rows="5" style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;" placeholder="Décris ta question, ton problème ou ta suggestion…"></textarea></div>
+      <div class="field"><label>Message</label><textarea id="ct-message" rows="5" style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;" placeholder="Décris ta question, ton problème ou ta suggestion…">${escapeHtml(prefill.message||'')}</textarea></div>
       <div id="ct-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="ct-cancel">Annuler</button><button class="btn btn-primary" id="ct-send">Envoyer</button>`,
@@ -2747,6 +2841,16 @@ function openContactModal(){
         closeModal();
       };
     }
+  });
+}
+
+// Depuis la page PropFirms, réservée aux admins pour la création/modif : les autres
+// utilisateurs passent par ici pour demander l'ajout d'une PropFirm, via le formulaire
+// de contact habituel (préfilli avec un gabarit à compléter).
+function requestPropfirmModal(){
+  openContactModal({
+    subject: 'PROPFIRM_REQUEST',
+    message: 'Bonjour, pourriez-vous ajouter la PropFirm suivante ?\n\n- Nom : \n- Site web : \n- Remarque : ',
   });
 }
 
@@ -3059,7 +3163,15 @@ function renderTopbarActions(){
   const el = document.getElementById('topbar-actions');
   if(state.route==='meteo') el.innerHTML = `<button class="btn btn-primary" id="add-prep">${icon('plus')}Nouvelle prépa</button>`;
   else if(state.route==='traders') el.innerHTML = `<button class="btn btn-primary" id="add-trader">${icon('plus')}Nouveau trader</button>`;
-  else if(state.route==='propfirms') el.innerHTML = `<button class="btn btn-primary" id="add-firm">${icon('plus')}Nouvelle PropFirm</button>`;
+  else if(state.route==='propfirms'){
+    if(state.propfirmDetailId){
+      el.innerHTML = `<button class="btn btn-ghost btn-sm" id="firm-back-btn">${icon('chevLeft')}Retour aux PropFirms</button>${isAdmin() ? `<button class="btn btn-outline btn-sm" data-edit-firm="${state.propfirmDetailId}">${icon('edit')}Modifier la fiche</button>` : ''}`;
+    } else {
+      el.innerHTML = isAdmin()
+        ? `<button class="btn btn-primary" id="add-firm">${icon('plus')}Nouvelle PropFirm</button>`
+        : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
+    }
+  }
   else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
@@ -3832,6 +3944,12 @@ function viewTraders(){
    VIEW: PROPFIRMS
 ============================================================ */
 function viewPropfirms(){
+  const f = state.propfirmDetailId ? getFirm(state.propfirmDetailId) : null;
+  if(f) return viewPropfirmDetail(f);
+  if(state.propfirmDetailId) state.propfirmDetailId = null;
+  return viewPropfirmsList();
+}
+function viewPropfirmsList(){
   if(state.propfirms.length===0){
     return emptyState('building','Aucune PropFirm','Ajoute les PropFirms utilisées par tes traders.');
   }
@@ -3839,20 +3957,22 @@ function viewPropfirms(){
     <div class="panel">
       <div class="table-wrap">
         <table>
-          <thead><tr><th></th><th>Nom</th><th>Site web</th><th>Notes</th><th class="num">Comptes liés</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Nom</th><th>Site web</th><th>Avis</th><th>Notes</th><th class="num">Comptes liés</th><th></th></tr></thead>
           <tbody>
             ${sortedFirms().map(f=>{
               const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
+              const stats = firmRatingStats(f.id);
               return `<tr>
-                <td>${firmLogoHtml(f,26)}</td>
-                <td style="font-weight:600;">${f.name}</td>
+                <td><span class="firm-row-link" data-firm-detail="${f.id}">${firmLogoHtml(f,26)}</span></td>
+                <td style="font-weight:600;"><span class="firm-row-link" data-firm-detail="${f.id}">${f.name}</span></td>
                 <td>${f.website ? `<a href="${f.website}" target="_blank" rel="noopener">${f.website}</a>` : '<span class="text-faint">—</span>'}</td>
+                <td class="firm-row-link" data-firm-detail="${f.id}">${stats.count ? `${starRatingHtml(stats.overall,13)}<span class="rating-value">${stats.overall.toFixed(1)}</span><span class="rating-count">(${stats.count})</span>` : '<span class="text-faint">Aucun avis</span>'}</td>
                 <td class="text-dim">${f.notes||'—'}</td>
                 <td class="num">${count}</td>
                 <td>
                   <div style="display:flex;gap:4px;justify-content:flex-end;">
-                    ${canEdit(f) ? `<button class="btn btn-ghost btn-sm" data-edit-firm="${f.id}">${icon('edit')}</button>
-                    <button class="btn btn-ghost btn-sm" data-del-firm="${f.id}" style="color:var(--danger)">${icon('trash')}</button>` : `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`}
+                    ${isAdmin() ? `<button class="btn btn-ghost btn-sm" data-edit-firm="${f.id}">${icon('edit')}</button>
+                    <button class="btn btn-ghost btn-sm" data-del-firm="${f.id}" style="color:var(--danger)">${icon('trash')}</button>` : `<span class="badge badge-slate" title="Réservé aux administrateurs — utilise «Demander l'ajout d'une PropFirm» pour toute correction.">${icon('lock')}Lecture seule</span>`}
                   </div>
                 </td>
               </tr>`;
@@ -3860,6 +3980,65 @@ function viewPropfirms(){
           </tbody>
         </table>
       </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: FICHE PROPFIRM (avis / notes détaillées)
+============================================================ */
+function viewPropfirmDetail(f){
+  const stats = firmRatingStats(f.id);
+  const ratings = firmRatings(f.id).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
+  return `
+    <div class="panel" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+        ${firmLogoHtml(f,56)}
+        <div style="flex:1;min-width:220px;">
+          <div style="font-size:19px;font-weight:700;margin-bottom:4px;">${escapeHtml(f.name)}</div>
+          ${f.website ? `<a href="${f.website}" target="_blank" rel="noopener" style="font-size:12.5px;">${escapeHtml(f.website)}</a>` : ''}
+          ${f.notes ? `<div class="text-dim" style="font-size:12.5px;margin-top:6px;">${escapeHtml(f.notes)}</div>` : ''}
+          <div class="text-faint" style="font-size:11.5px;margin-top:6px;">${count} compte(s) lié(s)</div>
+        </div>
+        <div style="text-align:right;">
+          ${stats.count ? `<div>${starRatingHtml(stats.overall,20)}<span class="rating-value" style="font-size:15px;">${stats.overall.toFixed(1)}</span></div><div class="rating-count">${stats.count} avis</div>` : '<div class="text-faint" style="font-size:12.5px;">Aucun avis pour le moment</div>'}
+        </div>
+      </div>
+      ${stats.count ? `
+      <div class="firm-stat-cats">
+        ${RATING_CATEGORIES.map(c=>`
+          <div class="firm-stat-cat">
+            <div class="firm-stat-cat-label">${c.label}</div>
+            ${starRatingHtml(stats[c.key],14)}<span class="rating-value">${stats[c.key].toFixed(1)}</span>
+          </div>
+        `).join('')}
+      </div>` : ''}
+    </div>
+    <div class="panel">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="section-title">Avis des traders</div>
+        <button class="btn btn-primary btn-sm" id="firm-add-rating-btn">${icon('star')}Donner mon avis</button>
+      </div>
+      ${ratings.length===0 ? `<div class="text-faint" style="font-size:13px;padding:8px 0;">Aucun avis pour l'instant — sois le premier à donner ton retour sur cette PropFirm.</div>` : ratings.map(r=>{
+        const trader = getTrader(r.traderId);
+        return `
+        <div class="rating-card">
+          <div class="rating-card-head">
+            <span style="font-weight:600;">${trader ? escapeHtml(trader.pseudo) : 'Trader supprimé'}</span>
+            <span class="text-faint" style="font-size:11.5px;">${fmtDate((r.createdAt||'').slice(0,10))}</span>
+            <span style="margin-left:auto;">${starRatingHtml(ratingOverall(r),14)}<span class="rating-value">${ratingOverall(r).toFixed(1)}</span></span>
+            ${canEditRecord('propfirm_ratings', r) ? `
+              <button class="btn btn-ghost btn-sm" data-edit-rating="${r.id}">${icon('edit')}</button>
+              <button class="btn btn-ghost btn-sm" data-del-rating="${r.id}" style="color:var(--danger)">${icon('trash')}</button>
+            ` : ''}
+          </div>
+          <div class="rating-cats-row">
+            ${RATING_CATEGORIES.map(c=>`<span>${c.label} : ${starRatingHtml(r[c.key],11)}</span>`).join('')}
+          </div>
+          ${r.comment ? `<div class="note-text">${escapeHtml(r.comment)}</div>` : ''}
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -6825,6 +7004,25 @@ function bindViewEvents(){
       showToast('PropFirm supprimée.'); render();
     });
   });
+  document.querySelectorAll('[data-firm-detail]').forEach(el=>{
+    el.onclick = ()=>{ state.propfirmDetailId = el.dataset.firmDetail; render(); };
+  });
+  const requestFirmBtn = document.getElementById('request-firm-btn');
+  if(requestFirmBtn) requestFirmBtn.onclick = requestPropfirmModal;
+  const firmBackBtn = document.getElementById('firm-back-btn');
+  if(firmBackBtn) firmBackBtn.onclick = ()=>{ state.propfirmDetailId = null; render(); };
+  const firmAddRatingBtn = document.getElementById('firm-add-rating-btn');
+  if(firmAddRatingBtn) firmAddRatingBtn.onclick = ()=>ratingFormModal(getFirm(state.propfirmDetailId));
+  document.querySelectorAll('[data-edit-rating]').forEach(b=>b.onclick=()=>{
+    const r = state.propfirm_ratings.find(x=>x.id===b.dataset.editRating);
+    if(r) ratingFormModal(getFirm(r.propFirmId), r);
+  });
+  document.querySelectorAll('[data-del-rating]').forEach(b=>b.onclick=()=>{
+    confirmModal('Supprimer cet avis ?', async ()=>{
+      const ok = await remove('propfirm_ratings', b.dataset.delRating);
+      if(ok){ showToast('Avis supprimé.'); renderView(); }
+    });
+  });
   // Accounts filters
   ['f-q','f-firm','f-type','f-size'].forEach(id=>{
     const el = document.getElementById(id);
@@ -7410,6 +7608,107 @@ function firmFormModal(existing){
         await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl });
         await logActivity(existing?'UPDATE':'CREATE', 'propfirm', f.id, `${name}`);
         showToast(existing ? 'PropFirm mise à jour.' : 'PropFirm créée.');
+        closeModal(); render();
+      };
+    }
+  });
+}
+
+/* ============================================================
+   FORM: AVIS PROPFIRM (propfirm_ratings)
+   Un avis = 4 sous-notes (générale, tarifs, règles, payout) + commentaire
+   optionnel, rattaché à un trader (n'importe quel trader de l'utilisateur,
+   pas seulement ceux ayant un compte chez cette PropFirm). Un seul avis
+   par couple (trader, PropFirm) : si le trader sélectionné en a déjà un,
+   ce formulaire le charge et le met à jour plutôt que d'en créer un second.
+============================================================ */
+function ratingFormModal(firm, existing){
+  if(state.traders.length===0){
+    showToast('Crée d’abord au moins un trader pour pouvoir laisser un avis.', 'danger');
+    return;
+  }
+  const myTrader = myLinkedTrader();
+  let traderId = existing ? existing.traderId : (myTrader ? myTrader.id : state.traders[0].id);
+  function findExisting(tid){ return state.propfirm_ratings.find(r=>r.propFirmId===firm.id && r.traderId===tid); }
+  let current = existing || findExisting(traderId) || null;
+  let draft = {
+    generalRating: current ? Number(current.generalRating)||0 : 0,
+    priceRating:   current ? Number(current.priceRating)||0 : 0,
+    rulesRating:   current ? Number(current.rulesRating)||0 : 0,
+    payoutRating:  current ? Number(current.payoutRating)||0 : 0,
+  };
+  openModal({
+    title: current ? 'Modifier mon avis' : 'Donner mon avis',
+    bodyHtml: `
+      <div class="field"><label>Trader</label>
+        <select id="rf-trader">${state.traders.map(t=>`<option value="${t.id}" ${t.id===traderId?'selected':''}>${escapeHtml(t.pseudo)}</option>`).join('')}</select>
+      </div>
+      <div id="rf-existing-hint" class="field-hint" style="margin:-4px 0 10px;">${current ? 'Ce trader a déjà un avis sur cette PropFirm : il sera mis à jour.' : ''}</div>
+      <div id="rf-stars">
+        ${RATING_CATEGORIES.map(c=>`
+          <div class="field" style="margin-bottom:10px;">
+            <label>${c.label}</label>
+            <div class="star-input-row" data-star-row="${c.key}">${starInputHtml(c.key, draft[c.key])}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="field"><label>Commentaire (optionnel)</label><textarea id="rf-comment" rows="3" placeholder="Ton retour d'expérience avec cette PropFirm…">${escapeHtml((current&&current.comment)||'')}</textarea></div>
+      <div id="rf-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="rf-cancel">Annuler</button>
+      ${current ? `<button class="btn btn-danger" id="rf-delete" style="margin-right:auto;">${icon('trash')}Supprimer mon avis</button>` : ''}
+      <button class="btn btn-primary" id="rf-save">Enregistrer</button>`,
+    onMount(){
+      document.getElementById('rf-trader').addEventListener('change', (e)=>{
+        traderId = e.target.value;
+        current = findExisting(traderId);
+        draft = {
+          generalRating: current ? Number(current.generalRating)||0 : 0,
+          priceRating:   current ? Number(current.priceRating)||0 : 0,
+          rulesRating:   current ? Number(current.rulesRating)||0 : 0,
+          payoutRating:  current ? Number(current.payoutRating)||0 : 0,
+        };
+        RATING_CATEGORIES.forEach(c=>{
+          document.querySelector(`[data-star-row="${c.key}"]`).innerHTML = starInputHtml(c.key, draft[c.key]);
+        });
+        document.getElementById('rf-comment').value = (current && current.comment) || '';
+        document.getElementById('rf-existing-hint').textContent = current ? 'Ce trader a déjà un avis sur cette PropFirm : il sera mis à jour.' : '';
+        const delBtn = document.getElementById('rf-delete');
+        if(delBtn) delBtn.style.display = current ? '' : 'none';
+      });
+      document.getElementById('rf-stars').addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-star-cat]');
+        if(!btn) return;
+        const cat = btn.dataset.starCat;
+        draft[cat] = Number(btn.dataset.starVal);
+        document.querySelector(`[data-star-row="${cat}"]`).innerHTML = starInputHtml(cat, draft[cat]);
+      });
+      document.getElementById('rf-cancel').onclick = closeModal;
+      const delBtn = document.getElementById('rf-delete');
+      if(delBtn) delBtn.onclick = ()=>{
+        confirmModal('Supprimer ton avis sur cette PropFirm ?', async ()=>{
+          const ok = await remove('propfirm_ratings', current.id);
+          if(ok){ showToast('Avis supprimé.'); closeModal(); render(); }
+        });
+      };
+      document.getElementById('rf-save').onclick = async ()=>{
+        const errEl = document.getElementById('rf-error');
+        if(!draft.generalRating){ errEl.textContent = 'La note générale est obligatoire.'; return; }
+        const item = {
+          id: current ? current.id : uid('pfr'),
+          propFirmId: firm.id,
+          traderId,
+          generalRating: draft.generalRating,
+          priceRating: draft.priceRating,
+          rulesRating: draft.rulesRating,
+          payoutRating: draft.payoutRating,
+          comment: document.getElementById('rf-comment').value.trim(),
+          createdBy: current ? current.createdBy : currentUserId(),
+          createdAt: current ? current.createdAt : new Date().toISOString(),
+        };
+        await upsert('propfirm_ratings', item);
+        await logActivity(current?'UPDATE':'CREATE', 'propfirm_rating', item.id, `${firm.name} — ${getTrader(traderId)?.pseudo||''}`);
+        showToast('Avis enregistré, merci !');
         closeModal(); render();
       };
     }
