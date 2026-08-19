@@ -128,6 +128,15 @@ a{color:var(--accent);text-decoration:none;}
 .topbar-actions{display:flex;gap:10px;align-items:center;}
 .content{padding:24px 28px 60px;flex:1;}
 
+/* RETOUR EN HAUT — bouton flottant, apparaît quand la page est scrollée */
+/* Placé à gauche de la bulle du chat assistant (.chat-fab, en bas à droite) pour ne
+   jamais la chevaucher, sur la même ligne. */
+.back-to-top{position:fixed;right:86px;bottom:22px;width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;z-index:90;opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .15s,transform .15s,visibility .15s,color .12s,border-color .12s;}
+.back-to-top svg{width:18px;height:18px;}
+.back-to-top.visible{opacity:1;visibility:visible;transform:translateY(0);}
+.back-to-top:hover{color:var(--accent);border-color:var(--accent);}
+@media (max-width:640px){ .back-to-top{right:78px;bottom:14px;width:38px;height:38px;} }
+
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;border:1px solid transparent;transition:filter .12s,background .12s;white-space:nowrap;}
 .btn svg{width:14px;height:14px;}
@@ -914,6 +923,11 @@ th.th-sort-active svg{opacity:1;}
 <div id="chat-widget-root"></div>
 <input type="file" id="propdesk-file-input" accept="application/json,.json" style="display:none;" />
 <input type="file" id="migration-file-input" accept="application/json,.json" style="display:none;" />
+<!-- Bouton "Retour en haut" : en dehors de #app-root (qui est intégralement re-généré à chaque
+     render()) pour ne pas avoir à rattacher ses écouteurs à chaque rendu — un seul binding au
+     démarrage suffit (voir bindBackToTop() dans le BOOT). Visible sur toutes les pages dès que
+     la fenêtre est suffisamment scrollée. -->
+<button type="button" id="back-to-top-btn" class="back-to-top" title="Retour en haut" aria-label="Retour en haut"></button>
 
 <script>
 // Section marketing statique (SEO) : remplit l'année du footer immédiatement,
@@ -8941,9 +8955,27 @@ async function runMigrationImport(json){
 }
 
 /* ============================================================
+   RETOUR EN HAUT
+   Bouton flottant global (hors #app-root, voir le commentaire HTML) : un seul
+   binding suffit puisqu'il n'est jamais recréé par render(). Se montre dès que
+   la page est scrollée de plus de 320px et remonte en douceur au clic.
+============================================================ */
+function initBackToTop(){
+  const btn = document.getElementById('back-to-top-btn');
+  if(!btn) return;
+  btn.innerHTML = icon('arrowUp');
+  const SHOW_AFTER_PX = 320;
+  window.addEventListener('scroll', ()=>{
+    btn.classList.toggle('visible', window.scrollY > SHOW_AFTER_PX);
+  }, { passive: true });
+  btn.onclick = ()=> window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
    BOOT
 ============================================================ */
 (async function boot(){
+  initBackToTop();
   if(!SUPABASE_CONFIGURED){
     document.getElementById('loading').innerHTML = `
       <div style="max-width:480px;text-align:center;padding:0 20px;">
