@@ -370,6 +370,31 @@ th.th-sort-active svg{opacity:1;}
 .manual-shot img{display:block;width:100%;height:auto;cursor:zoom-in;}
 .manual-shot-cap{padding:8px 12px;font-size:11.5px;color:var(--text-faint);border-top:1px solid var(--border-soft);}
 .manual-back-top{position:fixed;bottom:22px;right:28px;z-index:6;}
+
+/* CENTRE D'AIDE */
+.help-hero{text-align:center;padding:30px 12px 8px;margin-bottom:22px;}
+.help-hero-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:27px;margin-bottom:8px;}
+.help-hero-sub{color:var(--text-faint);font-size:13.5px;margin-bottom:20px;}
+.help-search{max-width:520px;margin:0 auto;}
+.help-search input{width:100%;padding:11px 14px 11px 36px;font-size:13.5px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);}
+.help-search svg{left:13px;}
+.help-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px;}
+@media (max-width:820px){ .help-cat-grid{grid-template-columns:repeat(2,1fr);} }
+.help-cat-card{display:flex;align-items:center;gap:12px;padding:16px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border-soft);text-decoration:none;color:inherit;transition:border-color .15s;}
+.help-cat-card:hover{border-color:var(--accent);}
+.help-cat-icon{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;background:var(--accent-dim);color:var(--accent);flex-shrink:0;}
+.help-cat-icon svg{width:18px;height:18px;}
+.help-cat-title{font-size:13.5px;font-weight:700;}
+.help-cat-count{font-size:11.5px;color:var(--text-faint);margin-top:2px;}
+.help-cat-section{scroll-margin-top:80px;}
+.help-cat-section-title{display:flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:10px;}
+.help-cat-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.help-faq-item{border-bottom:1px solid var(--border-soft);}
+.help-faq-item:last-child{border-bottom:none;}
+.help-faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:13.5px;font-weight:600;padding:15px 18px;cursor:pointer;}
+.help-faq-item.open .help-faq-q{color:var(--accent);}
+.help-faq-chev{flex-shrink:0;width:15px;height:15px;color:var(--text-faint);}
+.help-faq-a{padding:0 18px 16px;font-size:13px;color:var(--text-dim);line-height:1.65;}
 .rgpd-block{padding:18px 0;border-bottom:1px solid var(--border-soft);}
 .rgpd-block:last-child{border-bottom:none;}
 .rgpd-block h2{font-size:15px;margin:0 0 8px;}
@@ -1013,6 +1038,7 @@ const state = {
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'' },
     sessions: { q:'', trader:[], traderMenuOpen:false },
+    aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
     classement: { month: '', allTime: false, monthMenuOpen:false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
@@ -1022,6 +1048,7 @@ const state = {
   navOpenGroups: loadNavOpenGroups(),
   adminTab: 'overview',
   adminToolsMenuOpen: false,
+  aideOpenQuestions: [],
   dashboardLayout: loadDashboardLayout(),
   // Tarifs affichés dans l'app (page Tarifs) — modifiables depuis Admin > Tarifs affichés.
   // Valeurs de repli tant qu'aucun réglage n'a été enregistré en base (voir loadPricingSettings()).
@@ -1128,7 +1155,7 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','manuel','confidentialite','mentions-legales','cgv'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
 async function toggleHiddenPage(pageId){
   if(!isAdmin() || !HIDEABLE_PAGE_IDS.includes(pageId)) return;
   const hidden = new Set(state.appSettings.hiddenPages);
@@ -2699,6 +2726,7 @@ const BASE_NAV = [
   { id:'classement', label:'Classement', icon:'trophy' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
   { id:'subscription', label:'Tarifs', icon:'wallet' },
+  { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
   { id:'manuel', label:'Manuel', icon:'help' },
   { id:'confidentialite', label:'Confidentialité', icon:'lock' },
   { id:'mentions-legales', label:'Mentions légales', icon:'book' },
@@ -2728,7 +2756,7 @@ const NAV_GROUPS = [
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
   { id:'finance',  label:'Finances',            items:['accounting','bilan'] },
   { id:'perf',     label:'Performance',         items:['comparatif','classement'] },
-  { id:'aide',     label:'Aide & Abonnement',   items:['changelog','subscription','manuel'] },
+  { id:'aide',     label:'Aide & Abonnement',   items:['aide-centre','manuel','changelog','subscription'] },
 ];
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
@@ -2976,6 +3004,7 @@ function topbarSub(){
     comparatif: 'Performance comparée des PropFirms',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
+    'aide-centre': 'Questions fr\u00e9quentes, organis\u00e9es par cat\u00e9gorie',
     manuel: 'Guide complet de l\u2019application, section par section',
     confidentialite: 'Données personnelles, RGPD et vos droits',
     'mentions-legales': 'Éditeur, hébergeur et propriété intellectuelle',
@@ -3070,6 +3099,7 @@ function renderView(){
   else if(state.route==='classement') el.innerHTML = perms().canClassement ? viewClassement() : lockedFeatureView('Le classement');
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
+  else if(state.route==='aide-centre') el.innerHTML = viewCentreAide();
   else if(state.route==='manuel') el.innerHTML = viewManuel();
   else if(state.route==='confidentialite') el.innerHTML = viewConfidentialite();
   else if(state.route==='mentions-legales') el.innerHTML = viewMentionsLegales();
@@ -4179,6 +4209,109 @@ function viewChangelog(){
           </div>` : ''}
         </div>`).join('')}
     </div>
+  `;
+}
+
+/* ============================================================
+   VIEW: CENTRE D'AIDE (FAQ)
+   Complète le Manuel (guide complet par chapitres) avec un format questions/
+   réponses courtes, cherchable, organisées par catégorie — inspiré des
+   centres d'aide SaaS grand public. Contenu v1 à affiner avec l'usage réel.
+============================================================ */
+const HELP_CATEGORIES = [
+  { id:'general', label:'Général', icon:'chat', questions:[
+    { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
+    { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, le Calendrier, le Bilan Visuel, le Classement, les exports Excel/PDF et la sauvegarde. Le détail complet est sur la page Tarifs." },
+    { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
+  ]},
+  { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
+    { q:"Quels types de comptes puis-je suivre ?", a:"Trois types : Challenge (évaluation en cours), PA (compte financé après réussite d'un challenge) et Live (compte financé en argent réel). Chaque compte est rattaché à un trader et à une PropFirm." },
+    { q:"Combien de comptes puis-je suivre en formule Free ?", a:"3 comptes gratuits par trader. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de comptes illimité." },
+    { q:"Comment un Challenge devient-il un compte PA ?", a:"Depuis la fiche du compte, marque le Challenge comme « Réussi » — Contralytix propose alors de créer automatiquement le compte PA correspondant, en reprenant les informations du challenge d'origine." },
+    { q:"Puis-je masquer mes numéros de compte à l'écran ?", a:"Oui, le bouton « Afficher / Masquer les n° de compte » en bas de la barre latérale bascule entre le numéro complet et une version masquée (4 derniers chiffres visibles), pratique pour partager son écran." },
+  ]},
+  { id:'compta', label:'Comptabilité & Bilan', icon:'book', questions:[
+    { q:"Que suit la page Comptabilité ?", a:"Toutes les dépenses (achats de challenge, mensualités, frais d'activation) et tous les payouts reçus, avec un tableau « Performance financière » basculable par mois, trimestre ou année, incluant le ROI." },
+    { q:"Comment exporter mes données comptables ?", a:"Trois formats sont disponibles depuis la page Comptabilité : CSV, Excel et PDF récapitulatif. Les exports Excel et PDF nécessitent la formule Premium ou Lifetime." },
+    { q:"C'est quoi le Bilan Visuel ?", a:"Une page qui génère une image (PNG) prête à partager : soit une vue globale de ton bilan regroupé par PropFirm sur la période choisie, soit une carte par trader et par PropFirm." },
+  ]},
+  { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
+    { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
+    { q:"Comment fonctionnent les alertes du Dashboard ?", a:"Le panneau Alertes du Dashboard signale les mensualités qui arrivent à échéance sous 7 jours, et les comptes financés actifs sans payout récent. Un clic sur une alerte ouvre directement le compte concerné." },
+    { q:"Le Calendrier est-il accessible en formule Free ?", a:"Non, c'est une fonctionnalité Premium/Lifetime — il reste visible en aperçu verrouillé sous forme de widget sur le Dashboard." },
+  ]},
+  { id:'sessions', label:'Sessions de Trading', icon:'video', questions:[
+    { q:"À quoi sert la page Sessions de Trading ?", a:"C'est un journal de trading : chaque session peut inclure un replay YouTube, des notes et une performance (Excellent à Mauvais), pour garder une trace de ton activité au fil du temps." },
+    { q:"Combien de sessions puis-je consulter en formule Free ?", a:"Les 5 sessions les plus récentes restent consultables gratuitement ; l'historique complet est réservé aux formules Premium et Lifetime." },
+    { q:"La vidéo YouTube ne s'affiche pas, que faire ?", a:"Vérifie que la vidéo n'est pas configurée en « non répertoriée » avec lecture externe désactivée côté YouTube Studio. Un lien « Ouvrir sur YouTube » reste toujours disponible en secours." },
+  ]},
+  { id:'classement', label:'Classement', icon:'trophy', questions:[
+    { q:"Comment fonctionne le Classement entre traders ?", a:"Il classe les traders suivis par total des payouts reçus sur la période choisie (un mois précis, ou « Tout temps »), avec le taux de réussite et les badges débloqués." },
+    { q:"Le Classement est-il visible en formule Free ?", a:"Non, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
+  ]},
+  { id:'abonnement', label:'Abonnement & Tarifs', icon:'wallet', questions:[
+    { q:"Comment passer en Premium ?", a:"Depuis la page Tarifs, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
+    { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Tarifs, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
+    { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
+  ]},
+  { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
+    { q:"Mes données sont-elles privées ?", a:"Oui. Chaque utilisateur n'a accès qu'à ses propres données (traders, comptes, dépenses, payouts) grâce aux règles de sécurité de la base de données ; rien n'est partagé avec les autres comptes." },
+    { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"La sauvegarde complète (export JSON) est une fonctionnalité Premium/Lifetime, pour garder une copie de sécurité de tes données." },
+  ]},
+];
+function helpQuestionId(catId, qIdx){ return `faq-${catId}-${qIdx}`; }
+function viewCentreAide(){
+  const q = (state.filters.aide.q||'').trim().toLowerCase();
+  const norm = s => (s||'').toLowerCase();
+  const matches = (item) => !q || norm(item.q).includes(q) || norm(item.a).includes(q);
+
+  const catsWithCounts = HELP_CATEGORIES.map(c=>({ ...c, count: c.questions.length }));
+  const categoryCards = !q ? `
+    <div class="help-cat-grid">
+      ${catsWithCounts.map(c=>`
+        <a href="#" class="help-cat-card" data-scroll-cat="${c.id}">
+          <span class="help-cat-icon">${icon(c.icon)}</span>
+          <div>
+            <div class="help-cat-title">${c.label}</div>
+            <div class="help-cat-count">${c.count} question${c.count>1?'s':''}</div>
+          </div>
+        </a>`).join('')}
+    </div>` : '';
+
+  const sections = HELP_CATEGORIES.map(cat=>{
+    const items = cat.questions.map((item,i)=>({ ...item, id: helpQuestionId(cat.id,i) })).filter(matches);
+    if(items.length===0) return '';
+    return `
+      <div class="help-cat-section" id="help-${cat.id}">
+        <div class="help-cat-section-title"><span class="help-cat-dot"></span>${cat.label}</div>
+        <div class="panel" style="margin-bottom:20px;overflow:hidden;">
+          ${items.map(item=>{
+            const isOpen = state.aideOpenQuestions.includes(item.id);
+            return `
+            <div class="help-faq-item ${isOpen?'open':''}">
+              <button class="help-faq-q" data-toggle-faq="${item.id}">
+                <span>${escapeHtml(item.q)}</span>
+                <span class="help-faq-chev" style="transform:rotate(${isOpen?90:0}deg);">${icon('chevRight')}</span>
+              </button>
+              ${isOpen ? `<div class="help-faq-a">${escapeHtml(item.a)}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  const noResults = q && !sections.trim() ? emptyState('search','Aucun résultat', `Aucune question ne correspond à « ${escapeHtml(q)} ». Essaie un autre mot-clé, ou envoie-nous ta question via le bouton Contact.`) : '';
+
+  return `
+    <div class="help-hero">
+      <div class="help-hero-title">Comment pouvons-nous vous aider ?</div>
+      <div class="help-hero-sub">Trouve rapidement des réponses à tes questions sur Contralytix.</div>
+      <div class="search-wrap help-search">${icon('search')}<input type="text" id="aide-q" placeholder="Rechercher une question, un mot-clé…" value="${escapeHtml(state.filters.aide.q||'')}"/></div>
+    </div>
+    ${categoryCards}
+    ${noResults}
+    ${sections}
   `;
 }
 
@@ -6459,6 +6592,24 @@ function bindViewEvents(){
       e.preventDefault();
       const target = document.getElementById(a.dataset.manualAnchor);
       if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+  });
+  // Centre d'aide : recherche, cartes de catégorie (scroll) et accordéon question/réponse
+  const aideQInput = document.getElementById('aide-q');
+  if(aideQInput) aideQInput.addEventListener('input', ()=>{ state.filters.aide.q = aideQInput.value; renderView(); });
+  document.querySelectorAll('[data-scroll-cat]').forEach(a=>{
+    a.onclick = (e)=>{
+      e.preventDefault();
+      const target = document.getElementById('help-'+a.dataset.scrollCat);
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+  });
+  document.querySelectorAll('[data-toggle-faq]').forEach(b=>{
+    b.onclick = ()=>{
+      const id = b.dataset.toggleFaq;
+      const idx = state.aideOpenQuestions.indexOf(id);
+      if(idx===-1) state.aideOpenQuestions.push(id); else state.aideOpenQuestions.splice(idx,1);
+      renderView();
     };
   });
   document.querySelectorAll('#view-root [data-nav]').forEach(a=>{
