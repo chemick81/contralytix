@@ -532,6 +532,21 @@ th.th-sort-active svg{opacity:1;}
 .ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:14px 0 0;font-size:12px;color:var(--text-dim);}
 .ml-pricing-card li{padding:4px 0;}
 .ml-pricing-note{text-align:center;font-size:11.5px;color:var(--text-faint);margin:20px 0 0;}
+.ml-hero-visual{margin-top:42px;}
+.ml-browser-frame{border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:0 30px 70px rgba(0,0,0,0.35);background:var(--surface);}
+.ml-browser-dots{display:flex;gap:6px;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--border-soft);}
+.ml-browser-dots span{width:10px;height:10px;border-radius:50%;background:var(--border);display:inline-block;}
+.ml-browser-frame img{width:100%;display:block;}
+.ml-tour{padding:20px 0 46px;display:flex;flex-direction:column;gap:52px;}
+.ml-tour-row{display:grid;grid-template-columns:1fr 1.3fr;gap:36px;align-items:center;}
+.ml-tour-row-reverse{direction:rtl;}
+.ml-tour-row-reverse > *{direction:ltr;}
+.ml-tour-text h2{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0 0 12px;}
+.ml-tour-text p{font-size:14px;color:var(--text-dim);line-height:1.65;margin:0;}
+.ml-tour-visual .ml-browser-frame{box-shadow:0 20px 46px rgba(0,0,0,0.3);}
+@media (max-width:760px){
+  .ml-tour-row, .ml-tour-row-reverse{grid-template-columns:1fr;direction:ltr;}
+}
 .ml-final-cta{text-align:center;padding:10px 0 56px;}
 .ml-footer{border-top:1px solid var(--border);padding:24px 0 36px;text-align:center;font-size:11px;color:var(--text-faint);}
 @media (max-width:600px){
@@ -569,7 +584,7 @@ th.th-sort-active svg{opacity:1;}
       <img src="/favicon.png" alt="Contralytix" width="28" height="28" style="border-radius:6px;" onerror="this.style.display='none'"/>
       <span>Contralytix</span>
     </div>
-    <a href="#loading" class="btn btn-outline btn-sm">Se connecter</a>
+    <a href="#loading" data-ml-auth="login" class="btn btn-outline btn-sm">Se connecter</a>
   </header>
 
   <main>
@@ -581,8 +596,53 @@ th.th-sort-active svg{opacity:1;}
         votre comptabilité de trading réunis dans un seul tableau de bord clair.
       </p>
       <div class="ml-hero-ctas">
-        <a href="#signup" class="btn btn-primary">Créer un compte gratuit</a>
-        <a href="#loading" class="btn btn-outline">Se connecter</a>
+        <a href="#loading" data-ml-auth="signup" class="btn btn-primary">Créer un compte gratuit</a>
+        <a href="#loading" data-ml-auth="login" class="btn btn-outline">Se connecter</a>
+      </div>
+      <div class="ml-hero-visual">
+        <div class="ml-browser-frame">
+          <div class="ml-browser-dots"><span></span><span></span><span></span></div>
+          <img src="assets/manuel/03-dashboard.jpg" alt="Tableau de bord Contralytix : indicateurs clés, alertes et délais moyens de gestion propfirm" loading="lazy" onerror="this.closest('.ml-hero-visual').style.display='none'"/>
+        </div>
+      </div>
+    </section>
+
+    <section class="ml-tour">
+      <div class="ml-tour-row">
+        <div class="ml-tour-text">
+          <h2>Tous vos comptes, un seul écran</h2>
+          <p>Challenge, PA (compte financé) et Live : chaque compte de chaque trader et de chaque PropFirm apparaît sous forme de carte claire, avec statut, taille, dépenses et payouts cumulés. Filtrez et regroupez par PropFirm, type, taille ou statut en un clic.</p>
+        </div>
+        <div class="ml-tour-visual">
+          <div class="ml-browser-frame">
+            <div class="ml-browser-dots"><span></span><span></span><span></span></div>
+            <img src="assets/manuel/06-comptes.jpg" alt="Liste des comptes prop firm avec filtres et cartes détaillées" loading="lazy" onerror="this.closest('.ml-tour-visual').style.display='none'"/>
+          </div>
+        </div>
+      </div>
+      <div class="ml-tour-row ml-tour-row-reverse">
+        <div class="ml-tour-text">
+          <h2>Un bilan visuel prêt à partager</h2>
+          <p>Générez chaque mois des cartes de résultats par trader et par PropFirm, exportables en image, pour vos vidéos YouTube ou vos réseaux sociaux — sans retoucher quoi que ce soit dans un logiciel de design.</p>
+        </div>
+        <div class="ml-tour-visual">
+          <div class="ml-browser-frame">
+            <div class="ml-browser-dots"><span></span><span></span><span></span></div>
+            <img src="assets/manuel/09-bilan.jpg" alt="Cartes de bilan visuel mensuelles exportables en image" loading="lazy" onerror="this.closest('.ml-tour-visual').style.display='none'"/>
+          </div>
+        </div>
+      </div>
+      <div class="ml-tour-row">
+        <div class="ml-tour-text">
+          <h2>Comparez vos PropFirms entre elles</h2>
+          <p>Taux de réussite, dépenses, payouts, résultat net : un comparatif trié et exportable pour savoir quelles PropFirms sont réellement rentables pour vous.</p>
+        </div>
+        <div class="ml-tour-visual">
+          <div class="ml-browser-frame">
+            <div class="ml-browser-dots"><span></span><span></span><span></span></div>
+            <img src="assets/manuel/12-comparatif.jpg" alt="Comparatif des PropFirms : taux de réussite, dépenses, payouts et résultat net" loading="lazy" onerror="this.closest('.ml-tour-visual').style.display='none'"/>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -661,7 +721,7 @@ th.th-sort-active svg{opacity:1;}
     </section>
 
     <section class="ml-final-cta">
-      <a href="#signup" class="btn btn-primary">Rejoindre Contralytix gratuitement</a>
+      <a href="#loading" data-ml-auth="signup" class="btn btn-primary">Rejoindre Contralytix gratuitement</a>
     </section>
   </main>
 
@@ -681,7 +741,23 @@ th.th-sort-active svg{opacity:1;}
 <script>
 // Section marketing statique (SEO) : remplit l'année du footer immédiatement,
 // avant même l'initialisation de Supabase / de l'app — aucune dépendance.
-(function(){ const y = document.getElementById('ml-year'); if(y) y.textContent = new Date().getFullYear(); })();
+(function(){
+  const y = document.getElementById('ml-year'); if(y) y.textContent = new Date().getFullYear();
+  // Boutons "Créer un compte gratuit" / "Se connecter" de la page d'accueil publique :
+  // on ne fait qu'enregistrer les clics ici (exécutés plus tard, une fois `state` et
+  // `renderAuthScreen` définis plus bas dans ce script) — le href="#loading" reste un
+  // repli natif fonctionnel même si ce JS n'a pas pu s'exécuter.
+  document.querySelectorAll('[data-ml-auth]').forEach(el=>{
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      state.authMode = el.dataset.mlAuth === 'signup' ? 'signup' : 'login';
+      state.authError = '';
+      if(document.getElementById('tab-login')) renderAuthScreen();
+      const loadingEl = document.getElementById('loading');
+      if(loadingEl) loadingEl.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+})();
 
 /* ============================================================
    ICONS (inline SVG, minimal set)
@@ -814,6 +890,13 @@ const state = {
   },
   numbersVisible: false,
   navOpenGroups: loadNavOpenGroups(),
+  // Tarifs affichés dans l'app (page Tarifs) — modifiables depuis Admin > Tarifs affichés.
+  // Valeurs de repli tant qu'aucun réglage n'a été enregistré en base (voir loadPricingSettings()).
+  pricingSettings: {
+    MONTHLY:  { amount: '9,90', period: '/mois' },
+    YEARLY:   { amount: '90',  period: '/an', monthlyEquivalent: '7,50' },
+    LIFETIME: { amount: '199', period: ' paiement unique' },
+  },
 };
 
 function currentUserId(){ return state.session ? state.session.user.id : null; }
@@ -1497,13 +1580,50 @@ function computePermissions(){
 }
 function perms(){ return state.permissions || computePermissions(); }
 
-// ⚠️ VALEURS D'EXEMPLE — à remplacer par tes vrais tarifs (doivent correspondre aux prix
-// configurés côté Stripe / dans ta fonction /api/create-checkout-session).
-const PRICING = {
+// Valeurs de repli si aucun réglage n'a encore été enregistré depuis l'espace Admin
+// (voir state.pricingSettings, loadPricingSettings(), savePricingSettings()).
+// ⚠️ Ceci ne contrôle que le TEXTE affiché dans l'app — le montant réellement facturé
+// dépend uniquement de la configuration Stripe (STRIPE_PRICE_MONTHLY / YEARLY / LIFETIME,
+// voir create-checkout-session.js). Les deux doivent être tenus manuellement synchronisés.
+const DEFAULT_PRICING = {
   MONTHLY:  { amount: '9,90', period: '/mois' },
   YEARLY:   { amount: '90',  period: '/an', monthlyEquivalent: '7,50' },
   LIFETIME: { amount: '199', period: ' paiement unique' },
 };
+
+// Chargée pour tout utilisateur (pas seulement les admins) car la page Tarifs doit
+// afficher les bons montants pour tout le monde. Réutilise la table 'app_settings'
+// (même table que la visibilité des pages / la bannière d'annonce) avec une clé dédiée
+// 'pricing', pour ne pas avoir à créer de nouvelle table Supabase.
+async function loadPricingSettings(){
+  if(!SUPABASE_CONFIGURED) return;
+  const { data, error } = await supabaseClient.from('app_settings').select('*').eq('key','pricing').maybeSingle();
+  if(error){
+    if(isAdmin()) console.warn('app_settings (pricing) introuvable ou inaccessible :', error.message);
+    return;
+  }
+  if(data && data.value){
+    const v = data.value;
+    state.pricingSettings = {
+      MONTHLY:  { amount: v.MONTHLY?.amount || DEFAULT_PRICING.MONTHLY.amount, period: v.MONTHLY?.period || DEFAULT_PRICING.MONTHLY.period },
+      YEARLY:   { amount: v.YEARLY?.amount || DEFAULT_PRICING.YEARLY.amount, period: v.YEARLY?.period || DEFAULT_PRICING.YEARLY.period, monthlyEquivalent: v.YEARLY?.monthlyEquivalent || DEFAULT_PRICING.YEARLY.monthlyEquivalent },
+      LIFETIME: { amount: v.LIFETIME?.amount || DEFAULT_PRICING.LIFETIME.amount, period: v.LIFETIME?.period || DEFAULT_PRICING.LIFETIME.period },
+    };
+  }
+}
+// Admin uniquement. Rappel : ceci ne modifie QUE le texte affiché dans l'app (page Tarifs),
+// jamais le montant réellement débité par Stripe — voir le commentaire sur DEFAULT_PRICING.
+async function savePricingSettings(successMessage){
+  if(!isAdmin()) return false;
+  const payload = { key:'pricing', value: state.pricingSettings, updated_at: new Date().toISOString() };
+  const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
+  if(error){
+    showToast("Impossible d'enregistrer les tarifs : " + error.message + " — vérifie que la table 'app_settings' autorise cette écriture pour les admins.", 'danger');
+    return false;
+  }
+  if(successMessage) showToast(successMessage);
+  return true;
+}
 
 // Parsing/format des prix affichés en français ("9,90" -> 9.9 -> "9,90")
 function parsePriceFr(str){ return parseFloat(String(str).replace(',', '.')) || 0; }
@@ -4906,6 +5026,29 @@ function viewAdmin(){
         </div>
         <button class="btn btn-primary btn-sm" id="ann-save">${icon('check')}Enregistrer</button>
       </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Tarifs affichés</div></div>
+      <div class="field-hint" style="margin:0 0 14px;">⚠️ Ceci ne change QUE le texte affiché sur la page Tarifs. Le montant réellement débité dépend uniquement de la configuration Stripe (prix associés à STRIPE_PRICE_MONTHLY / STRIPE_PRICE_YEARLY / STRIPE_PRICE_LIFETIME). Modifie les deux côtés pour rester cohérent.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        <div>
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Mensuel</div>
+          <div class="field" style="margin-bottom:8px;"><label>Montant</label><input id="pr-monthly-amount" value="${escapeHtml(state.pricingSettings.MONTHLY.amount)}" placeholder="9,90"/></div>
+          <div class="field"><label>Suffixe</label><input id="pr-monthly-period" value="${escapeHtml(state.pricingSettings.MONTHLY.period)}" placeholder="/mois"/></div>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Annuel</div>
+          <div class="field" style="margin-bottom:8px;"><label>Montant</label><input id="pr-yearly-amount" value="${escapeHtml(state.pricingSettings.YEARLY.amount)}" placeholder="90"/></div>
+          <div class="field" style="margin-bottom:8px;"><label>Suffixe</label><input id="pr-yearly-period" value="${escapeHtml(state.pricingSettings.YEARLY.period)}" placeholder="/an"/></div>
+          <div class="field"><label>Équivalent mensuel affiché</label><input id="pr-yearly-monthly-eq" value="${escapeHtml(state.pricingSettings.YEARLY.monthlyEquivalent||'')}" placeholder="7,50"/></div>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Lifetime</div>
+          <div class="field" style="margin-bottom:8px;"><label>Montant</label><input id="pr-lifetime-amount" value="${escapeHtml(state.pricingSettings.LIFETIME.amount)}" placeholder="199"/></div>
+          <div class="field"><label>Suffixe</label><input id="pr-lifetime-period" value="${escapeHtml(state.pricingSettings.LIFETIME.period)}" placeholder=" paiement unique"/></div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="pr-save" style="margin-top:14px;">${icon('check')}Enregistrer les tarifs</button>
     </div>`;
 
   const newMsgCount = state.support_messages.filter(m=>m.status==='nouveau').length;
@@ -4958,6 +5101,7 @@ function viewAdmin(){
 }
 
 function viewSubscription(){
+  const PRICING = state.pricingSettings; // tarifs administrables (Admin > Tarifs affichés)
   const role = state.profile ? state.profile.role : 'FREE';
   const sub = state.subscription || { plan:'FREE', status:'ACTIVE', billingCycle:null };
   const isPremium = role==='PREMIUM' || role==='ADMIN';
@@ -5434,6 +5578,20 @@ function bindViewEvents(){
     const type = document.getElementById('ann-type').value;
     if(enabled && !message.trim()){ showToast('Ajoute un message avant d\u2019activer la bannière.', 'danger'); return; }
     saveAnnouncement(enabled, message, type);
+  };
+  const prSaveBtn = document.getElementById('pr-save');
+  if(prSaveBtn) prSaveBtn.onclick = async ()=>{
+    const monthlyAmount = document.getElementById('pr-monthly-amount').value.trim();
+    const yearlyAmount = document.getElementById('pr-yearly-amount').value.trim();
+    const lifetimeAmount = document.getElementById('pr-lifetime-amount').value.trim();
+    if(!monthlyAmount || !yearlyAmount || !lifetimeAmount){ showToast('Renseigne un montant pour chaque formule.', 'danger'); return; }
+    state.pricingSettings = {
+      MONTHLY:  { amount: monthlyAmount, period: document.getElementById('pr-monthly-period').value.trim() || '/mois' },
+      YEARLY:   { amount: yearlyAmount, period: document.getElementById('pr-yearly-period').value.trim() || '/an', monthlyEquivalent: document.getElementById('pr-yearly-monthly-eq').value.trim() },
+      LIFETIME: { amount: lifetimeAmount, period: document.getElementById('pr-lifetime-period').value.trim() || ' paiement unique' },
+    };
+    await savePricingSettings('Tarifs mis à jour.');
+    renderView();
   };
   document.querySelectorAll('[data-jump-to]').forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
@@ -6837,6 +6995,7 @@ async function runMigrationImport(json){
     computePermissions();
     await loadAll();
     await loadAppSettings();
+    await loadPricingSettings();
     await loadChangelog();
     if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
