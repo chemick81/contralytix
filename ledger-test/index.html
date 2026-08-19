@@ -262,6 +262,12 @@ th.th-sort-active svg{opacity:1;}
 .status-multiselect{position:relative;}
 .status-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:999px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s;}
 .status-ms-btn:hover{border-color:var(--accent);}
+/* Bouton d'action rattaché à une barre de filtres (ex : "Personnaliser" du dashboard) — même
+   langage visuel que les pilules de filtre (fond, bordure, rayon 999px) pour rester homogène,
+   avec l'icône et le texte teintés accent au repos pour se distinguer d'un simple filtre. */
+.filter-action-btn{background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:9px 16px;border-radius:999px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s,color .12s;}
+.filter-action-btn svg{width:14px;height:14px;flex-shrink:0;}
+.filter-action-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
 .status-ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:40;min-width:170px;flex-direction:column;gap:1px;}
 .status-ms-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;}
 .status-ms-item:hover{background:var(--surface-2);}
@@ -3415,6 +3421,7 @@ function viewDashboard(){
       ${dateRangeFilterHtml('fd-date', f)}
       <div class="filter-bar-spacer"></div>
       ${(f.trader.length||f.propfirm||f.dateFrom||f.dateTo) ? `<button class="pill-reset" id="fd-clear">Réinitialiser</button>` : ''}
+      <button type="button" class="filter-action-btn" id="dash-customize-btn">${icon('layout')}Personnaliser</button>
     </div>`;
 
   const alertsPanel = `
@@ -3486,10 +3493,7 @@ function viewDashboard(){
         <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-bottom:2px;">
-      <div style="flex:1;min-width:260px;">${filterBar}</div>
-      <button class="btn btn-outline btn-sm" id="dash-customize-btn" style="display:flex;align-items:center;gap:6px;white-space:nowrap;">${icon('layout')}Personnaliser</button>
-    </div>
+    ${filterBar}
     ${alertsPanel}
     ${widgetsOut}
   `;
