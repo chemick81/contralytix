@@ -881,7 +881,7 @@ th.th-sort-active svg{opacity:1;}
             <li>✓ Traders illimités</li>
             <li>✓ Comptes gratuits par trader</li>
             <li>✓ Suivi des payouts</li>
-            <li>✓ Sessions live illimitées</li>
+            <li>✓ 5 dernières sessions live</li>
           </ul>
         </div>
         <div class="ml-pricing-card ml-pricing-highlight">
@@ -1845,35 +1845,61 @@ function perms(){ return state.permissions || computePermissions(); }
 
 /* ============================================================
    TEASER FLOU — LISTES PRINCIPALES EN FORMULE FREE
-   En Free, les listes (Traders, PropFirms, Comptes, Comptabilité, Sessions)
-   affichent leurs premiers éléments normalement, puis floutent le reste
-   (30% visibles) avec une carte "Passe à Premium" en overlay — sans bloquer
-   complètement la page comme le fait lockedFeatureView() pour Calendrier /
-   Bilan Visuel / Classement. Usage dans une vue table :
-     const total = items.length;
-     const visible = freeVisibleCount(total);
-     items.map((x,i)=>`<tr class="${freeBlurRowClass(i,total)}">…</tr>`)
+   En Free, les listes (Traders, PropFirms, Comptes, Comptabilité) affichent
+   ~30% de leurs éléments normalement, le reste flouté avec une carte "Passe
+   à Premium" en overlay — sans bloquer complètement la page comme le fait
+   lockedFeatureView() pour Calendrier / Bilan Visuel / Classement.
+   Important : les données du compte connecté (isMineFn) ne sont JAMAIS
+   floutées, quel que soit leur rang dans la liste — sinon le trader ou le
+   compte qu'on vient tout juste de créer pourrait se retrouver caché
+   derrière le paywall simplement parce qu'il tombe après des données
+   d'autres comptes dans l'ordre d'affichage (alphabétique, date...). Le
+   quota Free ne s'applique donc qu'aux données des AUTRES comptes, et
+   l'ordre d'affichage d'origine (alphabétique, chronologique...) n'est
+   jamais changé — seul le statut flouté/visible de chaque ligne l'est.
+   Usage dans une vue table :
+     const blurred = freeBlurIndexSet(items, x=>x.createdBy===currentUserId());
+     items.map((x,i)=>`<tr class="${freeBlurClass(i,blurred)}">…</tr>`)
      // puis, juste avant de refermer le conteneur ayant class="free-blur-wrap" :
-     freeBlurOverlayHtml(total, 'PropFirms')
+     freeBlurOverlayHtml(items.length, blurred.size, 'PropFirms')
+   Si les données ne sont pas "à moi" au sens propriétaire (ex: catalogue
+   PropFirms, partagé), passer isMineFn=null : comportement en simple coupure
+   par quota, comme avant.
 ============================================================ */
 const FREE_VISIBLE_RATIO = 0.3;
 function freeVisibleCount(total){
   if(perms().isPremium) return total;
   return Math.max(1, Math.ceil(total * FREE_VISIBLE_RATIO));
 }
-function freeBlurRowClass(index, total){
-  return (!perms().isPremium && index >= freeVisibleCount(total)) ? 'free-blur-row' : '';
+// Renvoie l'ensemble des INDEX (dans l'ordre d'affichage d'origine, inchangé) à flouter.
+function freeBlurIndexSet(list, isMineFn){
+  const blurred = new Set();
+  if(perms().isPremium) return blurred;
+  const total = list.length;
+  const quota = freeVisibleCount(total);
+  const mineIdx = [], otherIdx = [];
+  list.forEach((x,i)=> (isMineFn && isMineFn(x)) ? mineIdx.push(i) : otherIdx.push(i));
+  const visible = new Set(mineIdx); // les données du compte connecté restent toujours visibles
+  let remaining = Math.max(0, quota - mineIdx.length);
+  for(const i of otherIdx){
+    if(remaining<=0) break;
+    visible.add(i);
+    remaining--;
+  }
+  for(let i=0;i<total;i++){ if(!visible.has(i)) blurred.add(i); }
+  return blurred;
 }
-function freeBlurOverlayHtml(total, featureLabel){
-  if(perms().isPremium) return '';
-  const visible = freeVisibleCount(total);
-  const hidden = total - visible;
-  if(hidden <= 0) return '';
+function freeBlurClass(index, blurredSet){
+  return blurredSet.has(index) ? 'free-blur-row' : '';
+}
+function freeBlurOverlayHtml(total, hiddenCount, featureLabel){
+  if(perms().isPremium || hiddenCount<=0 || total<=0) return '';
+  const visible = total - hiddenCount;
   const topPct = Math.round((visible / total) * 100);
   return `<div class="free-blur-overlay" style="top:${topPct}%;">
     <div class="free-blur-card">
       <div class="free-blur-card-title">${icon('lock')}Passe à Premium</div>
-      <div class="free-blur-card-sub">Débloque ${hidden} ${featureLabel} supplémentaire${hidden>1?'s':''} et bien plus.</div>
+      <div class="free-blur-card-sub">Débloque ${hiddenCount} ${featureLabel} supplémentaire${hiddenCount>1?'s':''} et bien plus.</div>
       <button class="btn btn-primary btn-sm" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
     </div>
   </div>`;
@@ -1899,7 +1925,7 @@ const WELCOME_PREMIUM_HIGHLIGHTS = [
   { icon:'card',     label:'Comptes illimités', desc:'Suis autant de Challenges et de comptes financés que tu veux, sans plafond.' },
   { icon:'calendar', label:'Calendrier', desc:'Visualise tes échéances, mensualités et payouts sur un vrai calendrier.' },
   { icon:'camera',   label:'Bilan Visuel & Classement', desc:'Statistiques avancées et classement entre traders, pour progresser.' },
-  { icon:'download', label:'Exports & sauvegardes', desc:'Export Excel/PDF et sauvegarde de tes données en un clic.' },
+  { icon:'download', label:'Exports Excel & PDF', desc:'Exporte tes données comptables en un clic, en plus du CSV déjà gratuit.' },
 ];
 function openWelcomeModal(){
   openModal({
@@ -4040,7 +4066,9 @@ function viewTraders(){
   if(state.traders.length===0){
     return emptyState('users','Aucun trader','Ajoute ton premier trader pour commencer à suivre ses comptes PropFirm.');
   }
-  const trTotal = state.traders.length;
+  // Un trader créé par le compte connecté ne doit jamais être flouté, quel que soit son
+  // rang dans la liste — seuls les traders d'autres comptes comptent dans le quota Free.
+  const trBlurred = freeBlurIndexSet(state.traders, t=>t.createdBy===currentUserId());
   return `
     <div class="panel">
       <div class="table-wrap free-blur-wrap">
@@ -4053,7 +4081,7 @@ function viewTraders(){
               const pay = accs.reduce((s,a)=>s+totalPayoutsFor(a.id),0);
               const badges = computeTraderBadges(t);
               const unlocked = badges.filter(b=>b.unlocked);
-              return `<tr class="${freeBlurRowClass(ti,trTotal)}">
+              return `<tr class="${freeBlurClass(ti,trBlurred)}">
                 <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${t.firstName} ${t.lastName}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${t.pseudo}</span></td>
                 <td class="text-dim">${t.email||'—'}</td>
                 <td><span class="badge ${t.status==='ACTIF'?'badge-accent':'badge-slate'}">${t.status==='ACTIF'?'Actif':'Inactif'}</span></td>
@@ -4079,7 +4107,7 @@ function viewTraders(){
             }).join('')}
           </tbody>
         </table>
-        ${freeBlurOverlayHtml(trTotal, 'traders')}
+        ${freeBlurOverlayHtml(state.traders.length, trBlurred.size, 'traders')}
       </div>
     </div>
   `;
@@ -4098,7 +4126,8 @@ function viewPropfirmsList(){
   if(state.propfirms.length===0){
     return emptyState('building','Aucune PropFirm','Ajoute les PropFirms utilisées par tes traders.');
   }
-  const pfTotal = state.propfirms.length;
+  // Catalogue partagé (pas de notion de "propriétaire") : simple coupure par quota, comme avant.
+  const pfBlurred = freeBlurIndexSet(sortedFirms(), null);
   return `
     <div class="panel">
       <div class="table-wrap free-blur-wrap">
@@ -4108,7 +4137,7 @@ function viewPropfirmsList(){
             ${sortedFirms().map((f,fi)=>{
               const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
               const stats = firmRatingStats(f.id);
-              return `<tr class="${freeBlurRowClass(fi,pfTotal)}">
+              return `<tr class="${freeBlurClass(fi,pfBlurred)}">
                 <td><span class="firm-row-link" data-firm-detail="${f.id}">${firmLogoHtml(f,26)}</span></td>
                 <td style="font-weight:600;"><span class="firm-row-link" data-firm-detail="${f.id}">${f.name}</span></td>
                 <td>${f.website ? `<a href="${f.website}" target="_blank" rel="noopener">${f.website}</a>` : '<span class="text-faint">—</span>'}</td>
@@ -4125,7 +4154,7 @@ function viewPropfirmsList(){
             }).join('')}
           </tbody>
         </table>
-        ${freeBlurOverlayHtml(pfTotal, 'PropFirms')}
+        ${freeBlurOverlayHtml(state.propfirms.length, pfBlurred.size, 'PropFirms')}
       </div>
     </div>
   `;
@@ -4589,7 +4618,7 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, le Calendrier, le Bilan Visuel, le Classement, les exports Excel/PDF et la sauvegarde. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions, et un aperçu partiel des listes principales (le reste est flouté). Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, l'historique complet des sessions, les listes complètes sans aperçu limité, le Calendrier, le Bilan Visuel, le Classement et les exports Excel/PDF. Le détail complet est sur la page Tarifs." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
   ]},
   { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
@@ -4623,8 +4652,8 @@ const HELP_CATEGORIES = [
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
-    { q:"Mes données sont-elles privées ?", a:"Oui. Chaque utilisateur n'a accès qu'à ses propres données (traders, comptes, dépenses, payouts) grâce aux règles de sécurité de la base de données ; rien n'est partagé avec les autres comptes." },
-    { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"La sauvegarde complète (export JSON) est une fonctionnalité Premium/Lifetime, pour garder une copie de sécurité de tes données." },
+    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité." },
+    { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose un export CSV (gratuit) ainsi qu'Excel et PDF (Premium/Lifetime) ; un export individuel complet peut aussi être demandé au support." },
   ]},
 ];
 function helpQuestionId(catId, qIdx){ return `faq-${catId}-${qIdx}`; }
@@ -4873,10 +4902,11 @@ const MANUAL_CHAPTERS = [
     ${manualShot('15-abonnement.jpg', "Comparatif des formules Free, Premium et Lifetime.")}
     <h3>Comparatif des formules</h3>
     <ul>
-      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, sessions live illimitées, suivi des payouts, support communautaire.</li>
-      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, import CSV/Excel, exports Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, sauvegarde, support prioritaire.</li>
+      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, aperçu partiel des listes principales (Traders, PropFirms, Comptes, Comptabilité — le reste est flouté avec une invitation à passer en Premium), support communautaire.</li>
+      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, historique complet des sessions live, listes complètes sans aperçu limité, exports Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
       <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
     </ul>
+    <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
   { n:'16', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
@@ -5231,10 +5261,11 @@ function viewAccounts(){
   // Teaser flou Free : au-delà du quota d'un compte Free (déjà limité en création à
   // maxFreeAccounts), on floute surtout les comptes visibles mais qui ne sont pas les siens
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
-  const accTotal = list.length;
+  // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
+  const accBlurred = freeBlurIndexSet(list, a=>a.createdBy===currentUserId());
   return filterBar + `<div class="free-blur-wrap">
-    ${list.map((a,ai)=>`<div class="${freeBlurRowClass(ai,accTotal)}">${accountCard(a)}</div>`).join('')}
-    ${freeBlurOverlayHtml(accTotal, 'comptes')}
+    ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
+    ${freeBlurOverlayHtml(list.length, accBlurred.size, 'comptes')}
   </div>`;
 }
 
@@ -5616,6 +5647,9 @@ function viewAccounting(){
       ${(f.month||f.type||f.trader.length||f.propfirm) ? `<button class="pill-reset" id="fa-clear">Réinitialiser</button>` : ''}
     </div>`;
 
+  // Une ligne de comptabilité "à moi" est celle rattachée à un de mes comptes — jamais floutée,
+  // quel que soit son rang dans le tri chronologique (qui, lui, ne change jamais).
+  const acctBlurred = freeBlurIndexSet(all, x=>{ const acc = getAccount(x.accountId); return !!acc && acc.createdBy===currentUserId(); });
   const rows = all.length===0 ? `<tr><td colspan="6"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune ligne pour ces filtres.</div></td></tr>` :
     all.map((x,xi)=>{
       const acc = getAccount(x.accountId);
@@ -5623,7 +5657,7 @@ function viewAccounting(){
       const firm = acc ? getFirm(acc.propFirmId) : null;
       const isPayout = x.kind==='payout';
       const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
-      return `<tr class="${freeBlurRowClass(xi,all.length)}">
+      return `<tr class="${freeBlurClass(xi,acctBlurred)}">
         <td class="mono text-dim">${fmtDate(x.date)}</td>
         <td><span class="badge ${isPayout?'badge-accent':'badge-slate'}">${typeLabel}</span></td>
         <td>${trader?trader.pseudo:'—'}</td>
@@ -5694,7 +5728,7 @@ function viewAccounting(){
           <thead><tr><th>Date</th><th>Type</th><th>Trader</th><th>PropFirm</th><th>Compte</th><th class="num">Montant</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-        ${freeBlurOverlayHtml(all.length, 'lignes')}
+        ${freeBlurOverlayHtml(all.length, acctBlurred.size, 'lignes')}
       </div>
     </div>
   `;
@@ -6512,8 +6546,19 @@ function sessionsResultsHtml(){
 
   // Verrou Free : les N sessions les plus récentes (toutes sessions confondues, indépendamment des
   // filtres actifs) restent consultables — même logique que maxFreeAccounts ailleurs dans l'app.
+  // Mes propres sessions sont TOUJOURS débloquées (jamais floutées derrière celles d'un autre
+  // compte visible) ; le quota Free ne s'applique qu'aux sessions des autres comptes.
   const allByRecency = [...state.yt_sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
-  const unlockedIds = new Set((perms().isPremium ? allByRecency : allByRecency.slice(0, perms().maxFreeSessions)).map(s=>s.id));
+  let unlockedIds;
+  if(perms().isPremium){
+    unlockedIds = new Set(allByRecency.map(s=>s.id));
+  } else {
+    const mine = allByRecency.filter(s=>s.createdBy===currentUserId());
+    const others = allByRecency.filter(s=>s.createdBy!==currentUserId());
+    unlockedIds = new Set(mine.map(s=>s.id));
+    let remaining = Math.max(0, perms().maxFreeSessions - mine.length);
+    for(const s of others){ if(remaining<=0) break; unlockedIds.add(s.id); remaining--; }
+  }
   const visibleList = list.filter(s=>unlockedIds.has(s.id));
   const lockedInView = list.length - visibleList.length;
 
@@ -6882,22 +6927,28 @@ function viewSubscription(){
 
   const checkItem = (label) => `<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:4px 0;"><span class="price-check" style="color:var(--accent);flex-shrink:0;margin-top:1px;">${icon('check')}</span><span>${label}</span></div>`;
 
+  // ⚠️ Cette liste doit rester le reflet exact de computePermissions() / des vérifications
+  // perms().xxx faites dans le code (voir aussi maybeShowWelcomeModal, freeBlurIndexSet,
+  // sessionsResultsHtml, accountFormModal). Import CSV/PropDesk et Sauvegarde JSON sont des
+  // outils réservés à l'espace Admin (isAdmin()), PAS des avantages Premium — ne pas les
+  // remettre ici sans les rendre réellement accessibles aux comptes Premium non-admin.
   const freeFeatures = [
     'Trader(s) illimités',
     `${perms().maxFreeAccounts} comptes gratuits par trader`,
-    'Sessions live illimitées',
+    `${perms().maxFreeSessions} sessions live les plus récentes`,
     'Suivi des payouts',
+    'Aperçu partiel des listes (Traders, PropFirms, Comptes, Comptabilité)',
     'Support communautaire',
   ];
   const premiumFeatures = [
     'Tout Free, plus :',
     'Comptes illimités par trader',
-    'Import CSV / Excel',
+    'Historique complet des sessions live',
+    'Listes complètes, sans aperçu limité',
     'Exports Excel & PDF',
     'Calendrier (payouts, breach, échéances…)',
     'Bilan visuel & statistiques avancées',
     'Classement',
-    'Sauvegarde (backup)',
     'Support prioritaire',
   ];
 
