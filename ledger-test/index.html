@@ -1888,21 +1888,19 @@ function freeVisibleCount(total){
   return Math.max(1, Math.ceil(total * FREE_VISIBLE_RATIO));
 }
 // Renvoie l'ensemble des INDEX (dans l'ordre d'affichage d'origine, inchangé) à flouter.
+// Quand isMineFn est fourni (données rattachées à un trader : traders, comptes, comptabilité…),
+// la règle Free est simple : tout ce qui n'est pas "à moi" est flouté, sans quota partiel.
+// Sans isMineFn (catalogue partagé, ex: PropFirms), on garde l'ancien aperçu partiel par quota.
 function freeBlurIndexSet(list, isMineFn){
   const blurred = new Set();
   if(perms().isPremium) return blurred;
   const total = list.length;
-  const quota = freeVisibleCount(total);
-  const mineIdx = [], otherIdx = [];
-  list.forEach((x,i)=> (isMineFn && isMineFn(x)) ? mineIdx.push(i) : otherIdx.push(i));
-  const visible = new Set(mineIdx); // les données du compte connecté restent toujours visibles
-  let remaining = Math.max(0, quota - mineIdx.length);
-  for(const i of otherIdx){
-    if(remaining<=0) break;
-    visible.add(i);
-    remaining--;
+  if(isMineFn){
+    list.forEach((x,i)=>{ if(!isMineFn(x)) blurred.add(i); });
+    return blurred;
   }
-  for(let i=0;i<total;i++){ if(!visible.has(i)) blurred.add(i); }
+  const quota = freeVisibleCount(total);
+  for(let i=quota;i<total;i++) blurred.add(i);
   return blurred;
 }
 function freeBlurClass(index, blurredSet){
@@ -4096,8 +4094,8 @@ function viewTraders(){
   if(state.traders.length===0){
     return emptyState('users','Aucun trader','Ajoute ton premier trader pour commencer à suivre ses comptes PropFirm.');
   }
-  // Un trader créé par le compte connecté ne doit jamais être flouté, quel que soit son
-  // rang dans la liste — seuls les traders d'autres comptes comptent dans le quota Free.
+  // Formule Free : tout trader qui n'est pas le sien (créé par soi, ou lié à son email) est
+  // floue en totalité — pas d'aperçu partiel comme avant, la règle est binaire et simple.
   const trBlurred = freeBlurIndexSet(state.traders, isMineTrader);
   return `
     <div class="panel">
@@ -4648,7 +4646,7 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions, et un aperçu partiel des listes principales (le reste est flouté). Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, l'historique complet des sessions, les listes complètes sans aperçu limité, le Calendrier, le Bilan Visuel, le Classement et les exports Excel/PDF. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel, le Classement et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
   ]},
   { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
@@ -4932,8 +4930,8 @@ const MANUAL_CHAPTERS = [
     ${manualShot('15-abonnement.jpg', "Comparatif des formules Free, Premium et Lifetime.")}
     <h3>Comparatif des formules</h3>
     <ul>
-      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, aperçu partiel des listes principales (Traders, PropFirms, Comptes, Comptabilité — le reste est flouté avec une invitation à passer en Premium), support communautaire.</li>
-      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, historique complet des sessions live, listes complètes sans aperçu limité, exports Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
+      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité toujours limitée à tes propres comptes, support communautaire.</li>
+      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
       <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
@@ -6966,7 +6964,8 @@ function viewSubscription(){
     `${perms().maxFreeAccounts} comptes gratuits par trader`,
     `${perms().maxFreeSessions} sessions live les plus récentes`,
     'Suivi des payouts',
-    'Aperçu partiel des listes (Traders, PropFirms, Comptes)',
+    'Tes propres Traders et Comptes toujours visibles, ceux des autres floutés',
+    'Aperçu partiel du catalogue PropFirms',
     'Comptabilité toujours limitée à tes propres comptes',
     'Support communautaire',
   ];
