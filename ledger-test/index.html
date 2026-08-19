@@ -965,7 +965,7 @@ const state = {
   },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
-    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month' },
+    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false },
     sessions: { q:'', trader:[], traderMenuOpen:false },
@@ -1958,6 +1958,16 @@ function periodLabel(pk, granularity){
   if(granularity==='quarter') return quarterLabel(pk);
   return monthLabelCap(pk);
 }
+// Filtre "période" générique de la page Comptabilité : f.month contient la clé de la période
+// sélectionnée (format dépendant de f.periodGranularity — mois/trimestre/année), posée soit via le
+// sélecteur rapide en haut (toujours en granularité mois), soit en cliquant une ligne du tableau
+// "Performance financière" (dans la granularité affichée à ce moment-là).
+function accountingPeriodFilter(x, f){
+  if(!f.month) return true;
+  const gran = f.periodGranularity || 'month';
+  const fn = gran==='year' ? yearKey : gran==='quarter' ? quarterKey : monthKey;
+  return fn(x.date) === f.month;
+}
 function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); } // m = 1-12, calcul calendaire local, sans UTC
 function addMonths(dateStr, n){
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -2391,13 +2401,17 @@ function bindDateRangeFilter(idPrefix, filterObj, onChange){
 function monthFilterHtml(idPrefix, filterObj, opts){
   opts = opts || {};
   const mk = filterObj.month;
+  // filterObj.month peut exceptionnellement contenir une clé trimestre/année (ex: sélection faite
+  // depuis le tableau "Performance financière" en vue Par trimestre/Par année) — ce picker ne sait
+  // afficher que des mois, donc on retombe sur un libellé neutre plutôt que de mal l'interpréter.
+  const mkIsMonth = !mk || /^\d{4}-\d{2}$/.test(mk);
   const isAllTime = opts.allTimeField ? !!filterObj[opts.allTimeField] : (opts.allowAll && !mk);
-  const label = isAllTime ? 'Toutes les périodes' : monthLabelFull(mk || todayISO().slice(0,7));
+  const label = isAllTime ? 'Toutes les périodes' : !mkIsMonth ? 'Période personnalisée' : monthLabelFull(mk || todayISO().slice(0,7));
   const open = filterObj.monthMenuOpen;
   const thisMonth = todayISO().slice(0,7);
   const lastMonth = addMonthKey(thisMonth, -1);
-  const isThisMonth = !isAllTime && (mk||thisMonth)===thisMonth;
-  const isLastMonth = !isAllTime && mk===lastMonth;
+  const isThisMonth = !isAllTime && mkIsMonth && (mk||thisMonth)===thisMonth;
+  const isLastMonth = !isAllTime && mkIsMonth && mk===lastMonth;
   const allBtn = opts.allowAll
     ? (opts.allTimeField
         ? `<button type="button" class="drf-preset ${isAllTime?'active':''}" data-drf-alltime="1">Tout</button>`
@@ -2413,7 +2427,7 @@ function monthFilterHtml(idPrefix, filterObj, opts){
           ${allBtn}
         </div>
         <div class="drf-month-list">
-          ${monthList(24).map(k=>`<button type="button" class="drf-month-item ${!isAllTime && (mk||thisMonth)===k?'active':''}" data-drf-month="${k}">${monthLabelFull(k)}</button>`).join('')}
+          ${monthList(24).map(k=>`<button type="button" class="drf-month-item ${!isAllTime && mkIsMonth && (mk||thisMonth)===k?'active':''}" data-drf-month="${k}">${monthLabelFull(k)}</button>`).join('')}
         </div>
       </div>
     </div>`;
@@ -4432,7 +4446,7 @@ function exportAccountingCSV(){
   let lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
   let pays = state.payouts.map(p=>({...p, kind:'payout'}));
   let all = [...lines, ...pays];
-  if(f.month) all = all.filter(x=>monthKey(x.date)===f.month);
+  all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
@@ -4471,7 +4485,7 @@ function buildAccountingRows(){
   let lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
   let pays = state.payouts.map(p=>({...p, kind:'payout'}));
   let all = [...lines, ...pays];
-  if(f.month) all = all.filter(x=>monthKey(x.date)===f.month);
+  all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
@@ -4522,7 +4536,11 @@ function exportAccountingPDF(){
   y += 22;
 
   const filterParts = [];
-  if(f.month){ const [yy,mm]=f.month.split('-'); filterParts.push(`Mois : ${mm}/${yy}`); } else filterParts.push('Période : toutes dates');
+  if(f.month){
+    const gran = f.periodGranularity || 'month';
+    const granLabel = gran==='year' ? 'Année' : gran==='quarter' ? 'Trimestre' : 'Mois';
+    filterParts.push(`${granLabel} : ${periodLabel(f.month, gran)}`);
+  } else filterParts.push('Période : toutes dates');
   if(f.trader.length) filterParts.push(`Trader : ${f.trader.map(id=>getTrader(id)?.pseudo).filter(Boolean).join(', ')}`);
   if(f.propfirm) filterParts.push(`PropFirm : ${getFirm(f.propfirm)?.name||''}`);
   if(f.type) filterParts.push(`Type : ${f.type==='PAYOUT'?'Payouts':f.type}`);
@@ -4597,7 +4615,7 @@ function viewAccounting(){
   let all = [...lines, ...pays];
   const totalLines = all.length;
 
-  if(f.month) all = all.filter(x=>monthKey(x.date)===f.month);
+  all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
     else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
@@ -4609,7 +4627,7 @@ function viewAccounting(){
   const totalExp = all.filter(x=>x.kind==='expense').reduce((s,x)=>s+x.amount,0);
   const totalPay = all.filter(x=>x.kind==='payout').reduce((s,x)=>s+Number(x.amount),0);
 
-  // Rapport de rentabilité : respecte les filtres Trader/Type/PropFirm, mais pas le filtre Mois
+  // Performance financière : respecte les filtres Trader/Type/PropFirm, mais pas le filtre Mois
   // (sinon on ne pourrait comparer qu'une seule période avec elle-même).
   let recapSource = [...lines, ...pays];
   if(f.type){
@@ -4689,7 +4707,7 @@ function viewAccounting(){
   const recapTable = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="section-title">Rapport de rentabilité</div>
+        <div class="section-title">Performance financière</div>
         <div class="recap-granularity">
           <button type="button" class="recap-gran-btn ${recapGranularity==='month'?'active':''}" data-recap-gran="month">Par mois</button>
           <button type="button" class="recap-gran-btn ${recapGranularity==='quarter'?'active':''}" data-recap-gran="quarter">Par trimestre</button>
@@ -4705,9 +4723,8 @@ function viewAccounting(){
           <tbody>
             ${recapRows.length===0 ? `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;text-align:center;">Aucune donnée.</div></td></tr>` :
               recapRows.map(r=>{
-                const clickable = recapGranularity==='month';
-                const isActive = clickable && f.month===r.pk;
-                return `<tr ${clickable?`data-select-month="${r.pk}"`:''} style="${clickable?'cursor:pointer;':''}${isActive?'background:var(--surface-2);':''}">
+                const isActive = (f.periodGranularity||'month')===recapGranularity && f.month===r.pk;
+                return `<tr data-select-period="${r.pk}" data-select-gran="${recapGranularity}" style="cursor:pointer;${isActive?'background:var(--surface-2);':''}">
                 <td style="font-weight:600;">${periodLabel(r.pk, recapGranularity)}${isActive?` <span class="badge badge-accent" style="margin-left:4px;">actif</span>`:''}</td>
                 <td class="num" style="color:${r.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(r.payout,'gain')}${r.payoutCount>1?` <span class="text-faint">×${r.payoutCount}</span>`:''}</td>
                 <td class="num" style="color:${r.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.challenge,'cost')}</td>
@@ -6084,13 +6101,16 @@ function bindViewEvents(){
       renderView();
     });
   });
-  bindMonthFilter('fa-month', state.filters.accounting, { allowAll:true });
+  bindMonthFilter('fa-month', state.filters.accounting, { allowAll:true }, ()=>{ state.filters.accounting.periodGranularity = 'month'; });
   bindMultiSelectDropdown('fa-trader', state.filters.accounting, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const clearBtn = document.getElementById('fa-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false,monthMenuOpen:false,recapGranularity:state.filters.accounting.recapGranularity}; setTraderFilterEverywhere([]); renderView(); };
-  document.querySelectorAll('[data-select-month]').forEach(row=>row.onclick=()=>{
-    const mk = row.dataset.selectMonth;
-    state.filters.accounting.month = (state.filters.accounting.month===mk) ? '' : mk; // re-clic = désélectionner
+  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false,monthMenuOpen:false,periodGranularity:'month',recapGranularity:state.filters.accounting.recapGranularity}; setTraderFilterEverywhere([]); renderView(); };
+  document.querySelectorAll('[data-select-period]').forEach(row=>row.onclick=()=>{
+    const pk = row.dataset.selectPeriod;
+    const gran = row.dataset.selectGran;
+    const already = state.filters.accounting.month===pk && (state.filters.accounting.periodGranularity||'month')===gran;
+    state.filters.accounting.month = already ? '' : pk; // re-clic = désélectionner
+    state.filters.accounting.periodGranularity = already ? 'month' : gran;
     renderView();
   });
   document.querySelectorAll('[data-recap-gran]').forEach(b=>b.onclick=()=>{
