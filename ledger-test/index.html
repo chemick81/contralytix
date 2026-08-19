@@ -189,6 +189,9 @@ tr[data-open-session]:hover{background:var(--surface-2);}
 .session-lock-panel{padding:26px 18px;text-align:center;border-top:1px solid var(--border-soft);}
 .session-lock-panel svg{width:24px;height:24px;color:var(--text-faint);}
 .field-row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.time-select{display:flex;align-items:center;gap:6px;}
+.time-select select{flex:1;min-width:0;text-align:center;}
+.time-select-sep{color:var(--text-faint);font-weight:600;}
 @media (max-width:900px){ .field-row-4{grid-template-columns:repeat(2,1fr);} }
 .session-details-toggle summary{list-style:none;cursor:pointer;user-select:none;}
 .session-details-toggle summary::-webkit-details-marker{display:none;}
@@ -928,7 +931,7 @@ const state = {
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false },
     dashboard: { trader:[], propfirm:'', month:'', traderMenuOpen:false },
     bilan: { month:'', trader:[], traderMenuOpen:false },
-    sessions: { q:'', trader:[], month:'', traderMenuOpen:false },
+    sessions: { q:'', trader:[], traderMenuOpen:false },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
     classement: { month: '', allTime: false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
@@ -4899,8 +4902,9 @@ function prepFormModal(existing){
 }
 
 function newSessionDefaults(){
+  const myTrader = myLinkedTrader();
   return {
-    id: uid('yts'), title:'', date: todayISO(), youtubeUrl:'', notes:'', traderId:null, createdBy: currentUserId(),
+    id: uid('yts'), title:'', date: todayISO(), youtubeUrl:'', notes:'', traderId: myTrader ? myTrader.id : null, createdBy: currentUserId(),
     startTime:'', endTime:'', plannedDurationMin:null, performance:'',
   };
 }
@@ -5040,6 +5044,17 @@ function sessionStatTilesHtml(s){
       <div class="stat-tile stat-tile-clickable" data-open-details="1" style="--rail:var(--gold)"><div class="stat-label">Performance</div><div class="stat-value" style="font-size:19px;">${perf?perf.l:'—'}</div><div class="stat-sub">modifier ci-dessous</div></div>
     </div>`;
 }
+function timeSelectHtml(field, value){
+  const [h,m] = (value||'').split(':');
+  const hopts = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+  const mopts = Array.from({length:60},(_,i)=>String(i).padStart(2,'0'));
+  return `
+    <div class="time-select" data-time-field="${field}">
+      <select data-time-part="h"><option value="">—</option>${hopts.map(o=>`<option value="${o}" ${h===o?'selected':''}>${o}</option>`).join('')}</select>
+      <span class="time-select-sep">:</span>
+      <select data-time-part="m"><option value="">—</option>${mopts.map(o=>`<option value="${o}" ${m===o?'selected':''}>${o}</option>`).join('')}</select>
+    </div>`;
+}
 function sessionDetailsToggleHtml(s){
   return `
     <details class="panel session-details-toggle" id="sd-details-panel" open>
@@ -5050,13 +5065,19 @@ function sessionDetailsToggleHtml(s){
       <div class="panel-body">
         <div class="field-row-4">
           <div class="field"><label>Date</label><input type="date" data-sfield="date" value="${s.date||''}"/></div>
-          <div class="field"><label>Début</label><input type="time" data-sfield="startTime" value="${s.startTime||''}"/></div>
-          <div class="field"><label>Fin</label><input type="time" data-sfield="endTime" value="${s.endTime||''}"/></div>
+          <div class="field"><label>Début</label>${timeSelectHtml('startTime', s.startTime)}</div>
+          <div class="field"><label>Fin</label>${timeSelectHtml('endTime', s.endTime)}</div>
           <div class="field"><label>Durée prévue (min)</label><input type="number" min="0" data-sfield="plannedDurationMin" data-sfield-type="number" value="${s.plannedDurationMin ?? ''}" placeholder="—"/></div>
         </div>
         <div class="field-hint" style="margin:-6px 0 14px;">Fuseau horaire : Paris (UTC+2)</div>
-        <div class="field"><label>Performance</label>
-          <select data-sfield="performance"><option value="">—</option>${PERFORMANCE_OPTIONS.map(p=>`<option value="${p.v}" ${s.performance===p.v?'selected':''}>${p.l}</option>`).join('')}</select>
+        <div class="field-row">
+          <div class="field"><label>Trader</label>
+            <select data-sfield="traderId"><option value="">— Aucun —</option>${state.traders.map(t=>`<option value="${t.id}" ${s.traderId===t.id?'selected':''}>${t.pseudo}${t.isPublic===false?' (privé)':''}</option>`).join('')}</select>
+            <div class="field-hint">Si ce trader est marqué « Privé », la session hérite de cette confidentialité.</div>
+          </div>
+          <div class="field"><label>Performance</label>
+            <select data-sfield="performance"><option value="">—</option>${PERFORMANCE_OPTIONS.map(p=>`<option value="${p.v}" ${s.performance===p.v?'selected':''}>${p.l}</option>`).join('')}</select>
+          </div>
         </div>
       </div>
     </details>`;
@@ -5091,7 +5112,6 @@ function viewSessionsList(){
     list = list.filter(s=>(s.title||'').toLowerCase().includes(q) || (s.notes||'').toLowerCase().includes(q));
   }
   if(f.trader.length) list = list.filter(s=>s.traderId && f.trader.includes(s.traderId));
-  if(f.month) list = list.filter(s=>s.date && monthKey(s.date)===f.month);
   list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
 
   // Verrou Free : les N sessions les plus récentes (toutes sessions confondues, indépendamment des
@@ -5122,9 +5142,8 @@ function viewSessionsList(){
       </div>
       <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:200px;"/></div>
       ${renderMultiSelect('fs-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <input type="month" id="fs-month" value="${f.month}"/>
       <div class="filter-bar-spacer"></div>
-      ${(f.q||f.trader.length||f.month) ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : ''}
+      ${(f.q||f.trader.length) ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : ''}
     </div>`;
 
   let tablePanel;
@@ -5899,11 +5918,9 @@ function bindViewEvents(){
   // Sessions de Trading — vue liste (filtres + ouverture d'une session)
   const fsQ = document.getElementById('fs-q');
   if(fsQ) fsQ.addEventListener('input', ()=>{ state.filters.sessions.q = fsQ.value; renderView(); });
-  const fsMonth = document.getElementById('fs-month');
-  if(fsMonth) fsMonth.addEventListener('change', ()=>{ state.filters.sessions.month = fsMonth.value; renderView(); });
   bindMultiSelectDropdown('fs-trader', state.filters.sessions, 'trader', 'traderMenuOpen');
   const fsClearBtn = document.getElementById('fs-clear');
-  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q=''; state.filters.sessions.trader=[]; state.filters.sessions.month=''; renderView(); };
+  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q=''; state.filters.sessions.trader=[]; renderView(); };
   document.querySelectorAll('[data-open-session]').forEach(el=>{
     el.onclick = (e)=>{ e.preventDefault(); state.sessionDetailId = el.dataset.openSession; render(); };
   });
@@ -5916,8 +5933,21 @@ function bindViewEvents(){
         el.addEventListener('change', async ()=>{
           let val = el.value;
           if(el.dataset.sfieldType==='number') val = val===''? null : Number(val);
+          if(el.dataset.sfield==='traderId' && val==='') val = null;
           await saveSessionField(session.id, { [el.dataset.sfield]: val });
           render();
+        });
+      });
+      document.querySelectorAll('[data-time-field]').forEach(wrap=>{
+        const field = wrap.dataset.timeField;
+        wrap.querySelectorAll('select').forEach(sel=>{
+          sel.addEventListener('change', async ()=>{
+            const h = wrap.querySelector('[data-time-part="h"]').value;
+            const m = wrap.querySelector('[data-time-part="m"]').value;
+            const val = (h && m) ? `${h}:${m}` : '';
+            await saveSessionField(session.id, { [field]: val });
+            render();
+          });
         });
       });
       const videoBtn = document.getElementById('sd-video-save');
