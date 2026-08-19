@@ -276,6 +276,37 @@ th.th-sort-active svg{opacity:1;}
 .search-wrap{position:relative;}
 .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-faint);}
 .search-wrap input{padding-left:30px !important;}
+.month-filter{position:relative;display:flex;align-items:center;}
+.month-filter svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-faint);pointer-events:none;}
+.month-filter input{padding-left:32px !important;}
+.date-range-filter{position:relative;}
+.drf-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:999px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.drf-btn svg{width:13px;height:13px;color:var(--text-faint);flex-shrink:0;}
+.drf-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);z-index:40;display:flex;overflow:hidden;}
+.drf-menu-right{left:auto;right:0;}
+.drf-presets{display:flex;flex-direction:column;gap:1px;padding:8px;border-right:1px solid var(--border-soft);min-width:150px;}
+.drf-preset{background:none;border:none;color:var(--text-dim);font-size:12.5px;font-family:inherit;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.drf-preset:hover{background:var(--surface-2);color:var(--text);}
+.drf-preset.active{background:var(--accent-dim);color:var(--accent);font-weight:600;}
+.drf-calendars{display:flex;gap:4px;padding:12px;}
+.drf-month{width:220px;}
+.drf-month-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.drf-month-label{font-size:12.5px;font-weight:600;text-transform:capitalize;}
+.drf-nav{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:3px;display:flex;}
+.drf-nav svg{width:14px;height:14px;}
+.drf-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:var(--text-faint);margin-bottom:4px;}
+.drf-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.drf-day{background:none;border:none;color:var(--text);font-size:12px;font-family:inherit;padding:6px 0;border-radius:6px;cursor:pointer;text-align:center;}
+.drf-day:hover{background:var(--surface-2);}
+.drf-day.in-range{background:var(--accent-dim);border-radius:0;}
+.drf-day.edge{background:var(--accent);color:#04231d;font-weight:700;border-radius:6px;}
+.drf-day-empty{cursor:default;}
+.drf-menu-month{min-width:0;}
+.drf-menu-month .drf-presets{min-width:130px;}
+.drf-month-list{max-height:270px;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;min-width:150px;}
+.drf-month-item{background:none;border:none;color:var(--text-dim);font-size:12.5px;font-family:inherit;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;text-transform:capitalize;}
+.drf-month-item:hover{background:var(--surface-2);color:var(--text);}
+.drf-month-item.active{background:var(--accent-dim);color:var(--accent);font-weight:600;}
 /* Compteur "RÉSULTATS" à bulle (gros chiffre + libellé), et bouton Réinitialiser en bulle rouge */
 .results-counter{display:flex;flex-direction:column;margin-right:4px;line-height:1.05;}
 .results-counter-label{font-size:9.5px;color:var(--text-faint);letter-spacing:1.3px;text-transform:uppercase;font-weight:700;margin-bottom:2px;}
@@ -928,12 +959,12 @@ const state = {
   },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
-    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false },
-    dashboard: { trader:[], propfirm:'', month:'', traderMenuOpen:false },
-    bilan: { month:'', trader:[], traderMenuOpen:false },
+    accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false },
+    dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false },
+    bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false },
     sessions: { q:'', trader:[], traderMenuOpen:false },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
-    classement: { month: '', allTime: false },
+    classement: { month: '', allTime: false, monthMenuOpen:false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
@@ -2184,6 +2215,230 @@ function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onCha
     }, 0);
   }
 }
+
+/* ============================================================
+   FILTRES DE DATE (composants réutilisables)
+   - dateRangeFilterHtml/bindDateRangeFilter : plage libre avec préréglages
+     + double calendrier (Dashboard — période arbitraire, pas de notion de mois).
+   - monthFilterHtml/bindMonthFilter : même habillage visuel, mais liste de
+     mois (Comptabilité / Bilan visuel / Classement — ces pages sont
+     structurellement organisées par mois calendaire, une plage libre n'y a
+     pas de sens fonctionnel).
+============================================================ */
+function isoFromDate(dt){ return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`; }
+function addDaysISO(iso, n){ const dt = new Date(iso+'T00:00:00'); dt.setDate(dt.getDate()+n); return isoFromDate(dt); }
+function endOfMonthISO(iso){ const [y,m] = iso.split('-').map(Number); return `${y}-${pad2(m)}-${pad2(new Date(y,m,0).getDate())}`; }
+function addMonthKey(mk, delta){
+  let [y,m] = mk.split('-').map(Number);
+  m += delta;
+  while(m>12){ m-=12; y++; }
+  while(m<1){ m+=12; y--; }
+  return `${y}-${pad2(m)}`;
+}
+function monthLabelFull(key){
+  const [y,m] = key.split('-');
+  const noms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  return `${noms[Number(m)-1]} ${y}`;
+}
+function monthList(count){
+  const out = [];
+  let mk = todayISO().slice(0,7);
+  for(let i=0;i<count;i++){ out.push(mk); mk = addMonthKey(mk,-1); }
+  return out;
+}
+function dateRangeLabel(from, to){
+  if(!from && !to) return 'Toutes les dates';
+  if(from && to && from===to) return fmtDate(from);
+  if(from && to) return `${fmtDate(from)} – ${fmtDate(to)}`;
+  if(from) return `Depuis ${fmtDate(from)}`;
+  return `Jusqu'au ${fmtDate(to)}`;
+}
+function DATE_PRESETS(){
+  const today = todayISO();
+  const dow = new Date(today+'T00:00:00').getDay(); // 0=dim..6=sam
+  const weekStart = addDaysISO(today, dow===0 ? -6 : -(dow-1));
+  const [ty,tm] = today.split('-').map(Number);
+  const quarterStartMonth = Math.floor((tm-1)/3)*3+1;
+  const lastMonthStart = `${addMonthKey(`${ty}-${pad2(tm)}`,-1)}-01`;
+  return [
+    { key:'today', label:"Aujourd'hui", from:today, to:today },
+    { key:'week', label:'Cette semaine', from:weekStart, to:today },
+    { key:'month', label:'Ce mois', from:`${ty}-${pad2(tm)}-01`, to:today },
+    { key:'30d', label:'30 derniers jours', from:addDaysISO(today,-29), to:today },
+    { key:'lastmonth', label:'Mois dernier', from:lastMonthStart, to:endOfMonthISO(lastMonthStart) },
+    { key:'quarter', label:'Ce trimestre', from:`${ty}-${pad2(quarterStartMonth)}-01`, to:today },
+    { key:'ytd', label:'Depuis le 1er janv.', from:`${ty}-01-01`, to:today },
+    { key:'all', label:'Tout', from:'', to:'' },
+  ];
+}
+function buildCalendarMonthCells(mk){
+  const [y,m] = mk.split('-').map(Number);
+  let firstDow = new Date(y,m-1,1).getDay(); // 0=dim
+  firstDow = (firstDow+6)%7; // décalé lundi=0
+  const daysInMonth = new Date(y,m,0).getDate();
+  const cells = [];
+  for(let i=0;i<firstDow;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(`${y}-${pad2(m)}-${pad2(d)}`);
+  return cells;
+}
+function dateRangeFilterHtml(idPrefix, filterObj){
+  const from = filterObj.dateFrom, to = filterObj.dateTo, open = filterObj.dateMenuOpen;
+  const label = dateRangeLabel(from, to);
+  const leftMk = filterObj.calMonth || monthKey(to || from || todayISO());
+  const rightMk = addMonthKey(leftMk, 1);
+  const presets = DATE_PRESETS();
+  const activeKey = (presets.find(p=>p.from===from && p.to===to) || {}).key;
+  const monthPanel = (mk, showPrev, showNext)=>{
+    const [yy,mm] = mk.split('-').map(Number);
+    const label = new Date(yy,mm-1,1).toLocaleDateString('fr-FR',{month:'long', year:'numeric'});
+    const cells = buildCalendarMonthCells(mk);
+    return `
+      <div class="drf-month">
+        <div class="drf-month-head">
+          <button type="button" class="drf-nav" data-drf-nav="prev" style="visibility:${showPrev?'visible':'hidden'};">${icon('chevLeft')}</button>
+          <span class="drf-month-label">${label}</span>
+          <button type="button" class="drf-nav" data-drf-nav="next" style="visibility:${showNext?'visible':'hidden'};">${icon('chevRight')}</button>
+        </div>
+        <div class="drf-weekdays">${['Lu','Ma','Me','Je','Ve','Sa','Di'].map(d=>`<span>${d}</span>`).join('')}</div>
+        <div class="drf-days">
+          ${cells.map(c=>{
+            if(!c) return `<span class="drf-day drf-day-empty"></span>`;
+            const inRange = !!(from && to && c>=from && c<=to);
+            const edge = c===from || c===to;
+            return `<button type="button" class="drf-day ${inRange?'in-range':''} ${edge?'edge':''}" data-drf-day="${c}">${Number(c.slice(8))}</button>`;
+          }).join('')}
+        </div>
+      </div>`;
+  };
+  return `
+    <div class="date-range-filter" id="${idPrefix}-wrap">
+      <button type="button" class="drf-btn" id="${idPrefix}-btn">${icon('calendar')}<span>${label}</span></button>
+      <div class="drf-menu" id="${idPrefix}-menu" style="display:${open?'flex':'none'};">
+        <div class="drf-presets">
+          ${presets.map(p=>`<button type="button" class="drf-preset ${activeKey===p.key?'active':''}" data-drf-preset="${p.key}">${p.label}</button>`).join('')}
+        </div>
+        <div class="drf-calendars">
+          ${monthPanel(leftMk, true, false)}
+          ${monthPanel(rightMk, false, true)}
+        </div>
+      </div>
+    </div>`;
+}
+function bindDateRangeFilter(idPrefix, filterObj, onChange){
+  const btn = document.getElementById(idPrefix+'-btn');
+  if(!btn) return;
+  btn.onclick = (e)=>{
+    e.stopPropagation();
+    filterObj.dateMenuOpen = !filterObj.dateMenuOpen;
+    if(filterObj.dateMenuOpen && !filterObj.calMonth) filterObj.calMonth = monthKey(filterObj.dateTo || filterObj.dateFrom || todayISO());
+    renderView();
+  };
+  const menu = document.getElementById(idPrefix+'-menu');
+  if(menu) menu.onclick = e=>e.stopPropagation();
+  document.querySelectorAll(`#${idPrefix}-menu [data-drf-preset]`).forEach(b=>{
+    b.onclick = ()=>{
+      const p = DATE_PRESETS().find(x=>x.key===b.dataset.drfPreset);
+      filterObj.dateFrom = p.from; filterObj.dateTo = p.to;
+      filterObj.calMonth = monthKey(p.to || p.from || todayISO());
+      filterObj.dateMenuOpen = false;
+      if(onChange) onChange();
+      renderView();
+    };
+  });
+  document.querySelectorAll(`#${idPrefix}-menu [data-drf-nav]`).forEach(b=>{
+    b.onclick = ()=>{ filterObj.calMonth = addMonthKey(filterObj.calMonth, b.dataset.drfNav==='prev' ? -1 : 1); renderView(); };
+  });
+  document.querySelectorAll(`#${idPrefix}-menu [data-drf-day]`).forEach(b=>{
+    b.onclick = ()=>{
+      const day = b.dataset.drfDay;
+      if(!filterObj.dateFrom || (filterObj.dateFrom && filterObj.dateTo)){
+        filterObj.dateFrom = day; filterObj.dateTo = '';
+      } else if(day < filterObj.dateFrom){
+        filterObj.dateTo = filterObj.dateFrom; filterObj.dateFrom = day;
+      } else {
+        filterObj.dateTo = day;
+      }
+      if(filterObj.dateFrom && filterObj.dateTo){ filterObj.dateMenuOpen = false; if(onChange) onChange(); }
+      renderView();
+    };
+  });
+  if(filterObj.dateMenuOpen){
+    setTimeout(()=>{
+      document.addEventListener('click', function closeDrf(){
+        filterObj.dateMenuOpen = false;
+        renderView();
+        document.removeEventListener('click', closeDrf);
+      }, { once:true });
+    }, 0);
+  }
+}
+function monthFilterHtml(idPrefix, filterObj, opts){
+  opts = opts || {};
+  const mk = filterObj.month;
+  const isAllTime = opts.allTimeField ? !!filterObj[opts.allTimeField] : (opts.allowAll && !mk);
+  const label = isAllTime ? 'Toutes les périodes' : monthLabelFull(mk || todayISO().slice(0,7));
+  const open = filterObj.monthMenuOpen;
+  const thisMonth = todayISO().slice(0,7);
+  const lastMonth = addMonthKey(thisMonth, -1);
+  const isThisMonth = !isAllTime && (mk||thisMonth)===thisMonth;
+  const isLastMonth = !isAllTime && mk===lastMonth;
+  const allBtn = opts.allowAll
+    ? (opts.allTimeField
+        ? `<button type="button" class="drf-preset ${isAllTime?'active':''}" data-drf-alltime="1">Tout</button>`
+        : `<button type="button" class="drf-preset ${isAllTime?'active':''}" data-drf-month="">Tout</button>`)
+    : '';
+  return `
+    <div class="date-range-filter" id="${idPrefix}-wrap">
+      <button type="button" class="drf-btn" id="${idPrefix}-btn">${icon('calendar')}<span>${label}</span></button>
+      <div class="drf-menu drf-menu-month ${opts.align==='right'?'drf-menu-right':''}" id="${idPrefix}-menu" style="display:${open?'flex':'none'};">
+        <div class="drf-presets">
+          <button type="button" class="drf-preset ${isThisMonth?'active':''}" data-drf-month="${thisMonth}">Ce mois</button>
+          <button type="button" class="drf-preset ${isLastMonth?'active':''}" data-drf-month="${lastMonth}">Mois dernier</button>
+          ${allBtn}
+        </div>
+        <div class="drf-month-list">
+          ${monthList(24).map(k=>`<button type="button" class="drf-month-item ${!isAllTime && (mk||thisMonth)===k?'active':''}" data-drf-month="${k}">${monthLabelFull(k)}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+function bindMonthFilter(idPrefix, filterObj, opts, onChange){
+  opts = opts || {};
+  const btn = document.getElementById(idPrefix+'-btn');
+  if(!btn) return;
+  btn.onclick = (e)=>{ e.stopPropagation(); filterObj.monthMenuOpen = !filterObj.monthMenuOpen; renderView(); };
+  const menu = document.getElementById(idPrefix+'-menu');
+  if(menu) menu.onclick = e=>e.stopPropagation();
+  document.querySelectorAll(`#${idPrefix}-menu [data-drf-month]`).forEach(b=>{
+    b.onclick = ()=>{
+      filterObj.month = b.dataset.drfMonth;
+      if(opts.allTimeField) filterObj[opts.allTimeField] = false;
+      filterObj.monthMenuOpen = false;
+      if(onChange) onChange();
+      renderView();
+    };
+  });
+  if(opts.allTimeField){
+    document.querySelectorAll(`#${idPrefix}-menu [data-drf-alltime]`).forEach(b=>{
+      b.onclick = ()=>{
+        filterObj[opts.allTimeField] = true;
+        filterObj.monthMenuOpen = false;
+        if(onChange) onChange();
+        renderView();
+      };
+    });
+  }
+  if(filterObj.monthMenuOpen){
+    setTimeout(()=>{
+      document.addEventListener('click', function closeMf(){
+        filterObj.monthMenuOpen = false;
+        renderView();
+        document.removeEventListener('click', closeMf);
+      }, { once:true });
+    }, 0);
+  }
+}
+
 function openModal({ title, bodyHtml, footHtml, wide, onMount }){
   const root = document.getElementById('modal-root');
   root.innerHTML = `
@@ -2615,9 +2870,9 @@ function viewDashboard(){
 
   let allExpenses = computeAllExpenses().filter(e=>accIds.has(e.accountId));
   let payoutsF = state.payouts.filter(p=>accIds.has(p.accountId));
-  if(f.month){
-    allExpenses = allExpenses.filter(e=>monthKey(e.date)===f.month);
-    payoutsF = payoutsF.filter(p=>monthKey(p.date)===f.month);
+  if(f.dateFrom || f.dateTo){
+    allExpenses = allExpenses.filter(e=>e.date && (!f.dateFrom || e.date>=f.dateFrom) && (!f.dateTo || e.date<=f.dateTo));
+    payoutsF = payoutsF.filter(p=>p.date && (!f.dateFrom || p.date>=f.dateFrom) && (!f.dateTo || p.date<=f.dateTo));
   }
   const totalExpenses = allExpenses.reduce((s,e)=>s+e.amount,0);
   const totalPayouts = payoutsF.reduce((s,p)=>s+Number(p.amount),0);
@@ -2701,9 +2956,9 @@ function viewDashboard(){
     <div class="filter-bar">
       ${renderMultiSelect('fd-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <select id="fd-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
-      <input type="month" id="fd-month" value="${f.month}"/>
+      ${dateRangeFilterHtml('fd-date', f)}
       <div class="filter-bar-spacer"></div>
-      ${(f.trader.length||f.propfirm||f.month) ? `<button class="pill-reset" id="fd-clear">Réinitialiser</button>` : ''}
+      ${(f.trader.length||f.propfirm||f.dateFrom||f.dateTo) ? `<button class="pill-reset" id="fd-clear">Réinitialiser</button>` : ''}
     </div>`;
 
   const alertsPanel = `
@@ -2741,8 +2996,8 @@ function viewDashboard(){
     </div>
     <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
       <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${f.month?' (mois)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${f.month?' (mois)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
       <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
     </div>
 
@@ -3419,8 +3674,7 @@ function viewClassement(){
       <div class="panel-head">
         <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('trophy')}Classement des traders</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="month" id="lb-month" value="${mk}" ${f.allTime?'disabled':''} />
-          <button class="btn ${f.allTime?'btn-primary':'btn-outline'} btn-sm" id="lb-alltime">Tout temps</button>
+          ${monthFilterHtml('lb-month', f, { allowAll:true, allTimeField:'allTime', align:'right' })}
         </div>
       </div>
       <div class="panel-body">
@@ -4365,7 +4619,7 @@ function viewAccounting(){
         <div class="results-counter-label">Résultats</div>
         <div class="results-counter-value">${all.length}<span class="rc-total"> / ${totalLines}</span></div>
       </div>
-      <input type="month" id="fa-month" value="${f.month}"/>
+      ${monthFilterHtml('fa-month', f, { allowAll:true })}
       <select id="fa-type">
         <option value="">Tous types</option>
         <option value="ACHAT" ${f.type==='ACHAT'?'selected':''}>Achat</option>
@@ -4531,7 +4785,7 @@ function viewBilanVisuel(){
         <div class="results-counter-label">Résultats</div>
         <div class="results-counter-value">${entries.length}<span class="rc-total"> / ${state.traders.length}</span></div>
       </div>
-      <input type="month" id="fb-month" value="${month}"/>
+      ${monthFilterHtml('fb-month', f, { allowAll:false })}
       ${renderMultiSelect('fb-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <div class="filter-bar-spacer"></div>
       ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
@@ -5583,18 +5837,19 @@ function bindViewEvents(){
     a.onclick = (e)=>{ e.preventDefault(); state.route = a.dataset.nav; render(); };
   });
   // Dashboard filters
-  ['fd-firm','fd-month'].forEach(id=>{
+  ['fd-firm'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fd-firm':'propfirm', 'fd-month':'month' };
+    const map = { 'fd-firm':'propfirm' };
     el.addEventListener('change', ()=>{
       state.filters.dashboard[map[id]] = el.value;
       renderView();
     });
   });
+  bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fdClearBtn = document.getElementById('fd-clear');
-  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:[],propfirm:'',month:'',traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
+  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:[],propfirm:'',dateFrom:'',dateTo:'',calMonth:'',dateMenuOpen:false,traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
     tile.onclick = ()=>openDelayDetailModal(tile.dataset.delayDetail);
   });
@@ -5635,10 +5890,7 @@ function bindViewEvents(){
   const calToday = document.getElementById('cal-today');
   if(calToday) calToday.onclick = ()=>{ state.filters.calendrier.month = ''; renderView(); };
   // Classement
-  const lbMonth = document.getElementById('lb-month');
-  if(lbMonth) lbMonth.addEventListener('change', ()=>{ state.filters.classement.month = lbMonth.value; renderView(); });
-  const lbAllTime = document.getElementById('lb-alltime');
-  if(lbAllTime) lbAllTime.onclick = ()=>{ state.filters.classement.allTime = !state.filters.classement.allTime; renderView(); };
+  bindMonthFilter('lb-month', state.filters.classement, { allowAll:true, allTimeField:'allTime' });
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
   const promoInput = document.getElementById('promo-code-input');
@@ -5758,18 +6010,19 @@ function bindViewEvents(){
     }
   }
   // Accounting filters
-  ['fa-month','fa-type','fa-firm'].forEach(id=>{
+  ['fa-type','fa-firm'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fa-month':'month', 'fa-type':'type', 'fa-firm':'propfirm' };
+    const map = { 'fa-type':'type', 'fa-firm':'propfirm' };
     el.addEventListener('change', ()=>{
       state.filters.accounting[map[id]] = el.value;
       renderView();
     });
   });
+  bindMonthFilter('fa-month', state.filters.accounting, { allowAll:true });
   bindMultiSelectDropdown('fa-trader', state.filters.accounting, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const clearBtn = document.getElementById('fa-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
+  if(clearBtn) clearBtn.onclick = ()=>{ state.filters.accounting = {month:'',type:'',trader:[],propfirm:'',traderMenuOpen:false,monthMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
   document.querySelectorAll('[data-select-month]').forEach(row=>row.onclick=()=>{
     const mk = row.dataset.selectMonth;
     state.filters.accounting.month = (state.filters.accounting.month===mk) ? '' : mk; // re-clic = désélectionner
@@ -5899,15 +6152,7 @@ function bindViewEvents(){
   });
 
   // Bilan Visuel filters
-  ['fb-month'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    const map = { 'fb-month':'month' };
-    el.addEventListener('change', ()=>{
-      state.filters.bilan[map[id]] = el.value;
-      renderView();
-    });
-  });
+  bindMonthFilter('fb-month', state.filters.bilan, { allowAll:false });
   bindMultiSelectDropdown('fb-trader', state.filters.bilan, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fbClearBtn = document.getElementById('fb-clear');
   if(fbClearBtn) fbClearBtn.onclick = ()=>{ setTraderFilterEverywhere([]); renderView(); };
@@ -5942,8 +6187,12 @@ function bindViewEvents(){
         const field = wrap.dataset.timeField;
         wrap.querySelectorAll('select').forEach(sel=>{
           sel.addEventListener('change', async ()=>{
-            const h = wrap.querySelector('[data-time-part="h"]').value;
-            const m = wrap.querySelector('[data-time-part="m"]').value;
+            let h = wrap.querySelector('[data-time-part="h"]').value;
+            let m = wrap.querySelector('[data-time-part="m"]').value;
+            // Si une seule des deux valeurs est choisie (ex: on vient de sélectionner l'heure
+            // sur une session vierge), on complète l'autre à "00" plutôt que d'effacer le champ
+            // au prochain re-rendu — évite l'impression que la sélection "ne s'enregistre pas".
+            if(h || m){ if(!h) h='00'; if(!m) m='00'; }
             const val = (h && m) ? `${h}:${m}` : '';
             await saveSessionField(session.id, { [field]: val });
             render();
