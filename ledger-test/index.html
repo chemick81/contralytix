@@ -889,7 +889,7 @@ th.th-sort-active svg{opacity:1;}
           <p class="ml-pricing-tagline">Mensuel ou annuel</p>
           <ul>
             <li>✓ Comptes illimités par trader</li>
-            <li>✓ Exports Excel &amp; PDF</li>
+            <li>✓ Exports CSV, Excel &amp; PDF</li>
             <li>✓ Calendrier des échéances</li>
             <li>✓ Bilan visuel &amp; classement</li>
           </ul>
@@ -1866,6 +1866,22 @@ function perms(){ return state.permissions || computePermissions(); }
    PropFirms, partagé), passer isMineFn=null : comportement en simple coupure
    par quota, comme avant.
 ============================================================ */
+// "À moi" au sens large : soit j'ai créé la donnée moi-même (createdBy), soit elle est
+// rattachée à MON trader — celui dont l'email correspond à mon compte connecté, même si
+// c'est un admin qui a créé/assigné la fiche pour moi (même logique que myLinkedTrader(),
+// utilisée pour les avis PropFirm et la popup d'accueil). Sans ce 2e critère, le trader
+// qu'un admin crée ou réattribue pour un utilisateur resterait flouté chez cet utilisateur.
+function isMineTrader(t){
+  if(!t) return false;
+  if(t.createdBy===currentUserId()) return true;
+  const myEmail = (state.session && state.session.user && state.session.user.email || '').toLowerCase();
+  return !!(myEmail && t.email && t.email.toLowerCase()===myEmail);
+}
+function isMineAccount(a){
+  if(!a) return false;
+  if(a.createdBy===currentUserId()) return true;
+  return isMineTrader(getTrader(a.traderId));
+}
 const FREE_VISIBLE_RATIO = 0.3;
 function freeVisibleCount(total){
   if(perms().isPremium) return total;
@@ -1925,7 +1941,7 @@ const WELCOME_PREMIUM_HIGHLIGHTS = [
   { icon:'card',     label:'Comptes illimités', desc:'Suis autant de Challenges et de comptes financés que tu veux, sans plafond.' },
   { icon:'calendar', label:'Calendrier', desc:'Visualise tes échéances, mensualités et payouts sur un vrai calendrier.' },
   { icon:'camera',   label:'Bilan Visuel & Classement', desc:'Statistiques avancées et classement entre traders, pour progresser.' },
-  { icon:'download', label:'Exports Excel & PDF', desc:'Exporte tes données comptables en un clic, en plus du CSV déjà gratuit.' },
+  { icon:'download', label:'Exports CSV, Excel & PDF', desc:'Exporte tes données comptables en un clic (CSV, Excel, PDF).' },
 ];
 function openWelcomeModal(){
   openModal({
@@ -2642,6 +2658,20 @@ function totalPayoutsFor(accountId){
 }
 function totalExpensesFor(accountId){
   return computeAccountExpenses(getAccount(accountId)).reduce((s,e)=>s+e.amount,0);
+}
+
+// Base de données comptables restreinte aux comptes "à moi" (isMineAccount) — la Comptabilité
+// n'affiche et n'exporte jamais les lignes financières d'un autre utilisateur, admin excepté.
+function myAccountingSource(){
+  const mineFilter = x=>isMineAccount(getAccount(x.accountId));
+  if(isAdmin()){
+    const lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
+    const pays = state.payouts.map(p=>({...p, kind:'payout'}));
+    return { lines, pays };
+  }
+  const lines = computeAllExpenses().map(e=>({...e, kind:'expense'})).filter(mineFilter);
+  const pays = state.payouts.map(p=>({...p, kind:'payout'})).filter(mineFilter);
+  return { lines, pays };
 }
 
 
@@ -4068,7 +4098,7 @@ function viewTraders(){
   }
   // Un trader créé par le compte connecté ne doit jamais être flouté, quel que soit son
   // rang dans la liste — seuls les traders d'autres comptes comptent dans le quota Free.
-  const trBlurred = freeBlurIndexSet(state.traders, t=>t.createdBy===currentUserId());
+  const trBlurred = freeBlurIndexSet(state.traders, isMineTrader);
   return `
     <div class="panel">
       <div class="table-wrap free-blur-wrap">
@@ -4652,8 +4682,8 @@ const HELP_CATEGORIES = [
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
-    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité." },
-    { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose un export CSV (gratuit) ainsi qu'Excel et PDF (Premium/Lifetime) ; un export individuel complet peut aussi être demandé au support." },
+    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. La page Comptabilité fait exception : elle n'affiche et n'exporte jamais que les lignes financières de tes propres comptes, quelle que soit ta formule." },
+    { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose des exports CSV, Excel et PDF, réservés aux comptes Premium/Lifetime ; un export individuel complet peut aussi être demandé au support." },
   ]},
 ];
 function helpQuestionId(catId, qIdx){ return `faq-${catId}-${qIdx}`; }
@@ -4851,13 +4881,13 @@ const MANUAL_CHAPTERS = [
     <p>Les flèches en haut permettent de passer au mois précédent ou suivant ; un bouton « Aujourd'hui » ramène au mois en cours. Un filtre par trader (choix multiple) restreint les événements affichés, et une légende rappelle la signification de chaque icône et couleur.</p>
     <p>Chaque case contenant des événements est cliquable et ouvre le détail complet de la journée. En bas de page, quatre indicateurs résument le mois : payouts reçus, dépenses, challenges réussis et breaches.</p>` },
   { n:'8', id:'m-comptabilite', title:"Comptabilité", html:`
-    <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports.</p>
+    <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports. Elle n'affiche et n'exporte jamais que les lignes rattachées à tes propres comptes (comptes que tu as créés, ou comptes d'un trader lié à ton adresse email) — quelle que soit ta formule, les données financières des autres utilisateurs n'y apparaissent jamais.</p>
     ${manualShot('08-comptabilite.jpg', "Registre comptable — dépenses et payouts, avec filtres et exports CSV / Excel / PDF.")}
     <h3>Filtres</h3>
     <p>Il est possible de filtrer les lignes par mois, par type de mouvement, par trader (choix multiple) et par PropFirm.</p>
     <h3>Exports</h3>
     <ul>
-      <li><b>CSV</b> — fichier tableur brut, disponible dans toutes les formules.</li>
+      <li><b>CSV</b> — fichier tableur brut, réservé aux formules Premium et Lifetime.</li>
       <li><b>Excel (.xlsx)</b> — fichier tableur mis en forme, réservé aux formules Premium et Lifetime.</li>
       <li><b>PDF récapitulatif</b> — indicateurs clés puis détail ligne par ligne, réservé aux formules Premium et Lifetime.</li>
     </ul>` },
@@ -5262,7 +5292,7 @@ function viewAccounts(){
   // maxFreeAccounts), on floute surtout les comptes visibles mais qui ne sont pas les siens
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
   // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
-  const accBlurred = freeBlurIndexSet(list, a=>a.createdBy===currentUserId());
+  const accBlurred = freeBlurIndexSet(list, isMineAccount);
   return filterBar + `<div class="free-blur-wrap">
     ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
     ${freeBlurOverlayHtml(list.length, accBlurred.size, 'comptes')}
@@ -5408,9 +5438,9 @@ function csvEscape(v){
   return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
 }
 function exportAccountingCSV(){
+  if(!perms().isPremium){ openUpgradeModal('Export CSV'); return; }
   const f = state.filters.accounting;
-  let lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
-  let pays = state.payouts.map(p=>({...p, kind:'payout'}));
+  const { lines, pays } = myAccountingSource();
   let all = [...lines, ...pays];
   all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
@@ -5448,8 +5478,7 @@ function exportAccountingCSV(){
 
 function buildAccountingRows(){
   const f = state.filters.accounting;
-  let lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
-  let pays = state.payouts.map(p=>({...p, kind:'payout'}));
+  const { lines, pays } = myAccountingSource();
   let all = [...lines, ...pays];
   all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
@@ -5576,8 +5605,7 @@ function exportAccountingPDF(){
 ============================================================ */
 function viewAccounting(){
   const f = state.filters.accounting;
-  let lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
-  let pays = state.payouts.map(p=>({...p, kind:'payout'}));
+  const { lines, pays } = myAccountingSource();
   let all = [...lines, ...pays];
   const totalLines = all.length;
 
@@ -5649,7 +5677,7 @@ function viewAccounting(){
 
   // Une ligne de comptabilité "à moi" est celle rattachée à un de mes comptes — jamais floutée,
   // quel que soit son rang dans le tri chronologique (qui, lui, ne change jamais).
-  const acctBlurred = freeBlurIndexSet(all, x=>{ const acc = getAccount(x.accountId); return !!acc && acc.createdBy===currentUserId(); });
+  const acctBlurred = freeBlurIndexSet(all, x=>isMineAccount(getAccount(x.accountId)));
   const rows = all.length===0 ? `<tr><td colspan="6"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune ligne pour ces filtres.</div></td></tr>` :
     all.map((x,xi)=>{
       const acc = getAccount(x.accountId);
@@ -6553,8 +6581,9 @@ function sessionsResultsHtml(){
   if(perms().isPremium){
     unlockedIds = new Set(allByRecency.map(s=>s.id));
   } else {
-    const mine = allByRecency.filter(s=>s.createdBy===currentUserId());
-    const others = allByRecency.filter(s=>s.createdBy!==currentUserId());
+    const isMineSession = s=> s.createdBy===currentUserId() || isMineTrader(getTrader(s.traderId));
+    const mine = allByRecency.filter(isMineSession);
+    const others = allByRecency.filter(s=>!isMineSession(s));
     unlockedIds = new Set(mine.map(s=>s.id));
     let remaining = Math.max(0, perms().maxFreeSessions - mine.length);
     for(const s of others){ if(remaining<=0) break; unlockedIds.add(s.id); remaining--; }
@@ -6937,7 +6966,8 @@ function viewSubscription(){
     `${perms().maxFreeAccounts} comptes gratuits par trader`,
     `${perms().maxFreeSessions} sessions live les plus récentes`,
     'Suivi des payouts',
-    'Aperçu partiel des listes (Traders, PropFirms, Comptes, Comptabilité)',
+    'Aperçu partiel des listes (Traders, PropFirms, Comptes)',
+    'Comptabilité toujours limitée à tes propres comptes',
     'Support communautaire',
   ];
   const premiumFeatures = [
@@ -6945,7 +6975,7 @@ function viewSubscription(){
     'Comptes illimités par trader',
     'Historique complet des sessions live',
     'Listes complètes, sans aperçu limité',
-    'Exports Excel & PDF',
+    'Exports CSV, Excel & PDF',
     'Calendrier (payouts, breach, échéances…)',
     'Bilan visuel & statistiques avancées',
     'Classement',
