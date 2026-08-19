@@ -152,6 +152,46 @@ a{color:var(--accent);text-decoration:none;}
 .panel-body{padding:16px 18px;}
 .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
 
+/* SESSIONS LIVE — regroupement par mois + carte */
+.session-month-group{margin-bottom:28px;}
+.session-month-group:last-child{margin-bottom:0;}
+.session-month-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.session-month-head .section-title{font-size:15px;}
+.session-month-count{font-size:11.5px;color:var(--text-faint);}
+.session-card{transition:transform .12s ease,border-color .12s ease;}
+.session-card:hover{border-color:var(--border);transform:translateY(-2px);box-shadow:var(--shadow);}
+tr[data-open-session]:hover{background:var(--surface-2);}
+
+/* SESSIONS DE TRADING — vue détail (header, vidéo, éditeur de notes, sélecteur d'erreurs) */
+.session-title-input{background:transparent;border:none;outline:none;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);width:100%;padding:2px 0;}
+.session-title-input::placeholder{color:var(--text-faint);}
+.session-video-drop{border:1px dashed var(--border);border-radius:10px;padding:34px 16px;text-align:center;color:var(--text-faint);margin-bottom:12px;}
+.session-video-drop svg{width:28px;height:28px;margin:0 auto 8px;display:block;}
+.session-video-embed{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:var(--surface-3);margin-bottom:12px;}
+.session-video-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.wysiwyg-toolbar{display:flex;flex-wrap:wrap;gap:2px;padding:6px;border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;background:var(--surface-2);}
+.wysiwyg-toolbar button{min-width:28px;height:28px;padding:0 7px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text-dim);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;}
+.wysiwyg-toolbar button:hover{background:var(--surface-3);color:var(--text);}
+.wysiwyg-toolbar .wysiwyg-sep{width:1px;background:var(--border);margin:4px 4px;}
+.wysiwyg-body{min-height:220px;border:1px solid var(--border);border-radius:0 0 10px 10px;padding:14px 16px;font-size:13.5px;line-height:1.65;color:var(--text);background:var(--surface-2);}
+.wysiwyg-body:focus{outline:none;border-color:var(--accent);}
+.wysiwyg-body:empty:before{content:attr(data-placeholder);color:var(--text-faint);}
+.wysiwyg-body h1{font-size:20px;margin:10px 0;}
+.wysiwyg-body h2{font-size:17px;margin:8px 0;}
+.wysiwyg-body h3{font-size:14.5px;margin:6px 0;}
+.wysiwyg-body ul,.wysiwyg-body ol{padding-left:22px;margin:6px 0;}
+.wysiwyg-body a{color:var(--accent);}
+.wysiwyg-body img{max-width:100%;border-radius:6px;margin:6px 0;}
+.wysiwyg-body hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.session-lock-panel{padding:26px 18px;text-align:center;border-top:1px solid var(--border-soft);}
+.session-lock-panel svg{width:24px;height:24px;color:var(--text-faint);}
+.field-row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media (max-width:900px){ .field-row-4{grid-template-columns:repeat(2,1fr);} }
+.session-details-toggle summary{list-style:none;cursor:pointer;user-select:none;}
+.session-details-toggle summary::-webkit-details-marker{display:none;}
+.session-details-chev{width:14px;height:14px;color:var(--text-faint);transition:transform .15s;flex-shrink:0;}
+.session-details-toggle[open] .session-details-chev{transform:rotate(90deg);}
+
 /* TABLE */
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -866,6 +906,9 @@ const state = {
   account_notes: [],
   yt_sessions: [],
   market_prep: [],
+  // Vue liste / vue détail (immersive) au sein de la page Sessions de Trading — pas une route à
+  // part entière, juste un état d'affichage local à cette page (voir viewSessions()).
+  sessionDetailId: null,
   profiles: [],
   activityLog: [],
   promo_codes: [],
@@ -882,7 +925,7 @@ const state = {
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false },
     dashboard: { trader:[], propfirm:'', month:'', traderMenuOpen:false },
     bilan: { month:'', trader:[], traderMenuOpen:false },
-    sessions: { q:'' },
+    sessions: { q:'', trader:[], month:'', traderMenuOpen:false },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
     classement: { month: '', allTime: false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
@@ -1031,28 +1074,36 @@ async function upsert(collection, item){
     return;
   }
   if(idx>=0) arr[idx] = item; else arr.push(item);
-  const row = toRow(item);
-  let { error } = await supabaseClient.from(collection).upsert(row);
-  if(error){
-    // Repli : si Supabase signale une colonne manquante (schéma pas encore migré,
-    // ex. "ai_prompt" absent de la table market_prep), on retente sans ce champ
-    // plutôt que de perdre toute la sauvegarde — le reste des données est conservé.
+  let row = toRow(item);
+  const droppedCols = [];
+  let error = null;
+  // Repli : si Supabase signale une colonne manquante (schéma pas encore migré, ex. un nouveau
+  // champ du module Sessions de Trading absent de la table "yt_sessions"), on retente sans ce
+  // champ plutôt que de perdre toute la sauvegarde — le reste des données est conservé. On boucle
+  // pour gérer le cas où PLUSIEURS colonnes manquent à la fois (schéma pas migré du tout).
+  for(let attempt=0; attempt<12; attempt++){
+    const res = await supabaseClient.from(collection).upsert(row);
+    error = res.error;
+    if(!error) break;
     const missingColMatch = /Could not find the '([a-z0-9_]+)' column/i.exec(error.message || '');
     if(missingColMatch && missingColMatch[1] in row){
       const missingCol = missingColMatch[1];
-      const rowWithoutCol = { ...row };
-      delete rowWithoutCol[missingCol];
-      const retry = await supabaseClient.from(collection).upsert(rowWithoutCol);
-      if(!retry.error){
-        showToast(`Enregistré, mais le champ "${missingCol}" n'a pas pu être sauvegardé : cette colonne n'existe pas encore dans la table Supabase "${collection}" (il faut l'ajouter via une migration SQL).`);
-        return;
-      }
-      error = retry.error;
+      row = { ...row };
+      delete row[missingCol];
+      droppedCols.push(missingCol);
+      continue;
     }
-    // Autre repli si le serveur (RLS) refuse l'opération malgré la vérification côté interface
-    if(idx>=0) await loadAll();
-    showToast('Erreur de sauvegarde : ' + error.message, 'danger');
+    break;
   }
+  if(!error){
+    if(droppedCols.length){
+      showToast(`Enregistré, mais ${droppedCols.length>1?'ces champs n’ont':'ce champ n’a'} pas pu être sauvegardé${droppedCols.length>1?'s':''} : ${droppedCols.join(', ')} — colonne(s) absente(s) de la table Supabase "${collection}" (migration SQL requise).`);
+    }
+    return;
+  }
+  // Autre repli si le serveur (RLS) refuse l'opération malgré la vérification côté interface
+  if(idx>=0) await loadAll();
+  showToast('Erreur de sauvegarde : ' + error.message, 'danger');
 }
 async function remove(collection, id){
   const item = state[collection].find(x=>x.id===id);
@@ -1575,6 +1626,7 @@ function computePermissions(){
     canClassement: isPremiumRole,
     canUnlimitedAccounts: isPremiumRole,
     maxFreeAccounts: 3,
+    maxFreeSessions: 5,
   };
   return state.permissions;
 }
@@ -1611,6 +1663,18 @@ async function loadPricingSettings(){
     };
   }
 }
+/* ============================================================
+   MODULE SESSIONS DE TRADING — performance
+============================================================ */
+const PERFORMANCE_OPTIONS = [
+  { v:'EXCELLENT', l:'Excellent' },
+  { v:'BON',        l:'Bon' },
+  { v:'NEUTRE',     l:'Neutre' },
+  { v:'FAIBLE',     l:'Faible' },
+  { v:'MAUVAIS',    l:'Mauvais' },
+];
+function performanceOption(v){ return PERFORMANCE_OPTIONS.find(o=>o.v===v) || null; }
+
 // Admin uniquement. Rappel : ceci ne modifie QUE le texte affiché dans l'app (page Tarifs),
 // jamais le montant réellement débité par Stripe — voir le commentaire sur DEFAULT_PRICING.
 async function savePricingSettings(successMessage){
@@ -1805,6 +1869,26 @@ function fmtDate(d){
   if(!d) return '—';
   const dt = new Date(d+'T00:00:00');
   return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+}
+// Formate une durée en minutes -> "2h 1min" / "45min" (utilisé par le module Sessions de Trading).
+function fmtDuration(totalMinutes){
+  if(totalMinutes===null || totalMinutes===undefined || isNaN(totalMinutes)) return '—';
+  const m = Math.round(totalMinutes);
+  if(m<0) return '—';
+  const h = Math.floor(m/60);
+  const rem = m%60;
+  if(h===0) return `${rem}min`;
+  if(rem===0) return `${h}h`;
+  return `${h}h ${rem}min`;
+}
+// Différence en minutes entre deux horaires "HH:MM" (même journée). null si incomplet/incohérent.
+function minutesBetweenTimes(start, end){
+  if(!start || !end) return null;
+  const [sh,sm] = start.split(':').map(Number);
+  const [eh,em] = end.split(':').map(Number);
+  if([sh,sm,eh,em].some(n=>isNaN(n))) return null;
+  const diff = (eh*60+em) - (sh*60+sm);
+  return diff>=0 ? diff : null;
 }
 // Toutes les dates de l'app sont des chaînes calendaires "YYYY-MM-DD" (comme les <input type="date">).
 // On évite volontairement Date.toISOString() pour tout calcul/génération de date : cette méthode convertit
@@ -2181,7 +2265,7 @@ const BASE_NAV = [
   { id:'calendrier', label:'Calendrier', icon:'calendar' },
   { id:'accounting', label:'Comptabilité', icon:'book' },
   { id:'bilan', label:'Bilan Visuel', icon:'camera' },
-  { id:'sessions', label:'Sessions Live', icon:'video' },
+  { id:'sessions', label:'Sessions de Trading', icon:'video' },
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
   { id:'classement', label:'Classement', icon:'trophy' },
@@ -2297,11 +2381,15 @@ function render(){
         </div>` : ''}
       <div class="topbar">
         <div>
-          <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
-          <div class="topbar-sub">${topbarSub()}</div>
+          ${(state.route==='sessions' && state.sessionDetailId && state.yt_sessions.find(x=>x.id===state.sessionDetailId)) ? `
+            <button class="btn btn-ghost btn-sm" id="session-back-btn" style="padding-left:2px;">${icon('chevLeft')}Retour aux sessions</button>
+          ` : `
+            <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
+            <div class="topbar-sub">${topbarSub()}</div>
+          `}
         </div>
         <div class="topbar-actions">
-          <button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale">${icon('search')}</button>
+          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale">${icon('search')}</button>`}
           <div class="topbar-actions" id="topbar-actions"></div>
         </div>
       </div>
@@ -2329,7 +2417,8 @@ function render(){
       render();
     };
   });
-  document.getElementById('global-search-btn').onclick = globalSearchModal;
+  if(document.getElementById('global-search-btn')) document.getElementById('global-search-btn').onclick = globalSearchModal;
+  if(document.getElementById('session-back-btn')) document.getElementById('session-back-btn').onclick = ()=>{ state.sessionDetailId = null; render(); };
   document.getElementById('theme-toggle').onclick = ()=>{ state.theme = state.theme==='dark'?'light':'dark'; render(); };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
@@ -2354,7 +2443,7 @@ function topbarSub(){
     accounts: state.accounts.length + ' compte(s) au total',
     accounting: 'Dépenses, mensualités et payouts',
     bilan: 'Cartes visuelles mensuelles, par trader et par propfirm',
-    sessions: state.yt_sessions.length + ' session(s) enregistrée(s)',
+    sessions: 'Journal de trading — replay, notes et performance de chaque session',
     comparatif: 'Performance comparée des PropFirms',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
@@ -2380,7 +2469,12 @@ function renderTopbarActions(){
       <button class="btn btn-outline" id="import-migration">${icon('upload')}Importer migration (ancien site)</button>
       <button class="btn btn-outline" id="export-backup">${icon('download')}Sauvegarde JSON</button>`;
   else if(state.route==='bilan') el.innerHTML = `<button class="btn btn-primary" id="export-bilan-all">${icon('image')}Tout exporter (PNG)</button>`;
-  else if(state.route==='sessions') el.innerHTML = `<button class="btn btn-primary" id="add-session">${icon('plus')}Nouvelle session</button>`;
+  else if(state.route==='sessions'){
+    const detail = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
+    el.innerHTML = detail
+      ? `<button class="btn btn-outline btn-sm" id="session-share-btn">${icon('link')}Partager</button>${canEdit(detail) ? `<button class="btn btn-danger btn-sm" id="session-delete-btn">${icon('trash')}Supprimer la session</button>` : ''}`
+      : `<button class="btn btn-primary" id="add-session">${icon('plus')}Nouvelle session</button>`;
+  }
   else el.innerHTML = '';
   if(document.getElementById('add-prep')) document.getElementById('add-prep').onclick = ()=>prepFormModal();
   if(document.getElementById('add-trader')) document.getElementById('add-trader').onclick = ()=>traderFormModal();
@@ -2393,7 +2487,23 @@ function renderTopbarActions(){
   if(document.getElementById('import-propdesk')) document.getElementById('import-propdesk').onclick = pickPropDeskFile;
   if(document.getElementById('import-migration')) document.getElementById('import-migration').onclick = pickMigrationFile;
   if(document.getElementById('export-bilan-all')) document.getElementById('export-bilan-all').onclick = exportAllBilanCards;
-  if(document.getElementById('add-session')) document.getElementById('add-session').onclick = ()=>sessionFormModal();
+  if(document.getElementById('add-session')) document.getElementById('add-session').onclick = createNewSession;
+  if(document.getElementById('session-share-btn')) document.getElementById('session-share-btn').onclick = ()=>{
+    const s = state.yt_sessions.find(x=>x.id===state.sessionDetailId);
+    if(s && s.youtubeUrl && navigator.clipboard){ navigator.clipboard.writeText(s.youtubeUrl); showToast('Lien de la session copié.'); }
+    else showToast('Ajoute d’abord un lien YouTube à partager.', 'danger');
+  };
+  if(document.getElementById('session-delete-btn')) document.getElementById('session-delete-btn').onclick = ()=>{
+    const s = state.yt_sessions.find(x=>x.id===state.sessionDetailId);
+    if(!s) return;
+    confirmModal('Supprimer définitivement cette session et ses notes ?', async ()=>{
+      await remove('yt_sessions', s.id);
+      await logActivity('DELETE', 'yt_session', s.id, s.title||'Session sans nom');
+      state.sessionDetailId = null;
+      showToast('Session supprimée.');
+      render();
+    });
+  };
 }
 
 function renderView(){
@@ -3414,7 +3524,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Sessions Live, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Sessions de Trading, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -3508,10 +3618,11 @@ const MANUAL_CHAPTERS = [
     <p>Le Bilan visuel présente des cartes récapitulatives mensuelles, par trader et par PropFirm, destinées à être partagées. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
     ${manualShot('09-bilan.jpg', "Cartes de bilan visuel mensuelles, exportables en image PNG.")}
     <p>Un filtre permet de choisir le mois et un ou plusieurs traders. Chaque carte affiche les dépenses, les payouts et le résultat net du mois pour un trader donné, et peut être exportée individuellement en image PNG, ou en une fois via « Tout exporter (PNG) ».</p>` },
-  { n:'10', id:'m-sessions', title:"Sessions Live", html:`
-    <p>La section Sessions Live conserve les enregistrements vidéo (YouTube) des sessions de trading, avec vignette, notes et lien.</p>
-    ${manualShot('10-sessions.jpg', "Galerie des sessions live enregistrées, avec vignette YouTube et notes.")}
-    <p>Le bouton « Nouvelle session » permet d'ajouter une session : titre, lien YouTube (vignette générée automatiquement), date, notes libres, et association optionnelle à un trader. Si la session est associée à un trader marqué « Privé », elle hérite de cette confidentialité. Chaque session peut être ouverte sur YouTube, modifiée ou supprimée par son créateur (ou un administrateur).</p>` },
+  { n:'10', id:'m-sessions', title:"Sessions de Trading", html:`
+    <p>La section Sessions de Trading est un journal de bord orienté organisation : chaque session de trading peut être débriefée avec son replay vidéo, des notes détaillées et une évaluation de la performance. Volontairement, aucune donnée financière n'y figure — la comptabilité réelle reste sur la page Comptabilité.</p>
+    ${manualShot('10-sessions.jpg', "Liste des sessions de trading, avec durée et performance de chaque session.")}
+    <p>Le bouton « Nouvelle session » crée une session et ouvre directement sa page de détail. On y renseigne : le nom (éditable en tête de page), le replay YouTube de la session, des notes générales (éditeur enrichi), et dans la section « Détails de la session » : la chronologie (heure de début/fin, durée réelle calculée automatiquement, durée prévue) et la performance du jour. Une session peut être associée à un trader ; si ce trader est marqué « Privé », la session hérite de cette confidentialité. En formule Free, seules les sessions les plus récentes restent consultables ; les plus anciennes sont réservées aux formules Premium et Lifetime.</p>
+    ${manualShot('10b-sessions-detail.jpg', "Page de détail d'une session : replay vidéo, notes et détails (chronologie, performance).")}` },
   { n:'11', id:'m-meteo', title:"Préparation de séance", html:`
     <p>Cette section (« Météo ») génère une prépa de séance quotidienne à l'aide d'une IA, avec en complément un calendrier économique et les résultats d'entreprises du jour.</p>
     ${manualShot('11-meteo.jpg', "Prépa de séance générée par IA, avec calendrier économique et résultats d'entreprises.")}
@@ -4461,7 +4572,7 @@ async function exportAllBilanCards(){
 }
 
 /* ============================================================
-   VIEW: SESSIONS LIVE YOUTUBE (vignettes + notes + lien)
+   VIEW: SESSIONS DE TRADING (replay YouTube + journaling psycho)
 ============================================================ */
 function extractYoutubeId(url){
   if(!url) return null;
@@ -4469,40 +4580,7 @@ function extractYoutubeId(url){
   return m ? m[1] : null;
 }
 function youtubeThumbUrl(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
-
-function sessionCardHtml(s){
-  const ytId = extractYoutubeId(s.youtubeUrl);
-  const thumb = ytId
-    ? `<img src="${youtubeThumbUrl(ytId)}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface-3);"/>`
-    : `<div style="width:100%;aspect-ratio:16/9;background:var(--surface-3);display:flex;align-items:center;justify-content:center;color:var(--text-faint);">${icon('video')}</div>`;
-  const author = authorLabel(s.createdBy);
-  const canManage = canEdit(s);
-  const linkedTrader = s.traderId ? getTrader(s.traderId) : null;
-  const isPrivate = linkedTrader && linkedTrader.isPublic===false;
-  return `
-    <div class="panel" style="overflow:hidden;display:flex;flex-direction:column;">
-      <a href="${s.youtubeUrl}" target="_blank" rel="noopener" style="position:relative;display:block;">
-        ${thumb}
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);transition:background .15s;" class="yt-play-overlay">
-          <div style="width:52px;height:52px;border-radius:50%;background:rgba(11,15,20,0.72);display:flex;align-items:center;justify-content:center;color:#fff;">${icon('play')}</div>
-        </div>
-        <div style="position:absolute;top:8px;left:8px;background:rgba(11,15,20,0.78);color:#E8EDF2;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;">${fmtDate(s.date)}</div>
-        ${isPrivate ? `<div style="position:absolute;top:8px;right:8px;background:rgba(11,15,20,0.78);color:#E8EDF2;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;display:flex;align-items:center;gap:4px;" title="Session privée — liée à ${linkedTrader.pseudo}">${icon('lock')}Privé</div>` : ''}
-      </a>
-      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;gap:8px;">
-        <div style="font-weight:700;font-size:14.5px;line-height:1.3;">${s.title}</div>
-        ${s.notes ? `<div class="text-dim" style="font-size:12.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${s.notes.replace(/\n/g,'<br/>')}</div>` : `<div class="text-faint" style="font-size:12px;font-style:italic;">Aucune note.</div>`}
-        <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border-soft);">
-          <span class="text-faint" style="font-size:10.5px;">Ajouté par ${author}</span>
-          <div style="display:flex;gap:6px;">
-            <a class="btn btn-ghost btn-sm" href="${s.youtubeUrl}" target="_blank" rel="noopener" title="Voir sur YouTube">${icon('link')}</a>
-            ${canManage ? `<button class="btn btn-ghost btn-sm" data-edit-session="${s.id}" title="Modifier">${icon('edit')}</button>` : ''}
-            ${canManage ? `<button class="btn btn-ghost btn-sm" data-del-session="${s.id}" title="Supprimer">${icon('trash')}</button>` : ''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
+function youtubeEmbedUrl(id){ return `https://www.youtube.com/embed/${id}`; }
 
 /* ============================================================
    VIEW: MÉTÉO NQ (prépa de séance — brief IA quotidien)
@@ -4817,81 +4895,271 @@ function prepFormModal(existing){
   });
 }
 
-function viewSessions(){
+function newSessionDefaults(){
+  return {
+    id: uid('yts'), title:'', date: todayISO(), youtubeUrl:'', notes:'', traderId:'', createdBy: currentUserId(),
+    startTime:'', endTime:'', plannedDurationMin:null, performance:'',
+  };
+}
+async function createNewSession(){
+  const s = newSessionDefaults();
+  await upsert('yt_sessions', s);
+  await logActivity('CREATE', 'yt_session', s.id, 'Nouvelle session de trading');
+  state.sessionDetailId = s.id;
+  render();
+}
+async function saveSessionField(id, patch){
+  const s = state.yt_sessions.find(x=>x.id===id);
+  if(!s) return;
+  await upsert('yt_sessions', { ...s, ...patch });
+}
+function perfBadgeHtml(v){
+  const p = performanceOption(v);
+  if(!p) return '';
+  const cls = (p.v==='EXCELLENT'||p.v==='BON') ? 'badge-accent' : p.v==='NEUTRE' ? 'badge-slate' : 'badge-danger';
+  return `<span class="badge ${cls}">${p.l}</span>`;
+}
+
+/* ---- Éditeur de notes enrichi (contentEditable + document.execCommand) ----
+   Choix pragmatique pour rester en vanilla JS sans dépendance externe : execCommand est
+   déprécié mais reste largement supporté pour ces commandes de base (gras/italique/listes/
+   liens). Si un éditeur plus robuste est souhaité plus tard, seuls wysiwygToolbarHtml() et
+   bindWysiwygEditor() sont à remplacer, le reste (sauvegarde, placeholder) ne change pas. */
+const WYSIWYG_COMMANDS = [
+  { cmd:'bold', label:'B', style:'font-weight:700;' },
+  { cmd:'italic', label:'I', style:'font-style:italic;' },
+  { cmd:'underline', label:'U', style:'text-decoration:underline;' },
+  { cmd:'strikeThrough', label:'S', style:'text-decoration:line-through;' },
+  { sep:true },
+  { block:'H1', label:'H1' },
+  { block:'H2', label:'H2' },
+  { block:'H3', label:'H3' },
+  { sep:true },
+  { cmd:'insertUnorderedList', label:'•' },
+  { cmd:'insertOrderedList', label:'1.' },
+  { sep:true },
+  { link:true, label:'🔗' },
+  { image:true, label:'🖼' },
+  { cmd:'insertHorizontalRule', label:'—' },
+];
+function wysiwygToolbarHtml(){
+  return `<div class="wysiwyg-toolbar">${WYSIWYG_COMMANDS.map(c=>{
+    if(c.sep) return `<div class="wysiwyg-sep"></div>`;
+    if(c.block) return `<button type="button" data-wy-block="${c.block}" title="Titre ${c.block}">${c.label}</button>`;
+    if(c.link) return `<button type="button" data-wy-link="1" title="Lien">${c.label}</button>`;
+    if(c.image) return `<button type="button" data-wy-image="1" title="Image (URL)">${c.label}</button>`;
+    return `<button type="button" data-wy-cmd="${c.cmd}" style="${c.style||''}" title="${c.label}">${c.label}</button>`;
+  }).join('')}</div>`;
+}
+let _sessionNotesSaveTimer = null;
+function scheduleNotesSave(sessionId, body){
+  clearTimeout(_sessionNotesSaveTimer);
+  _sessionNotesSaveTimer = setTimeout(async ()=>{
+    const s = state.yt_sessions.find(x=>x.id===sessionId);
+    if(!s) return;
+    await upsert('yt_sessions', { ...s, notes: sanitizeNotesHtml(body.innerHTML) });
+  }, 700);
+}
+// Sanitation minimale (retire scripts/handlers inline) — filet de sécurité, sachant que ce
+// contenu n'est modifiable que par le créateur de la session ou un administrateur.
+function sanitizeNotesHtml(html){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('script,style,iframe,object,embed').forEach(el=>el.remove());
+  tmp.querySelectorAll('*').forEach(el=>{
+    [...el.attributes].forEach(attr=>{
+      if(/^on/i.test(attr.name) || (attr.name==='href' && /^javascript:/i.test(attr.value))) el.removeAttribute(attr.name);
+    });
+  });
+  return tmp.innerHTML;
+}
+function bindWysiwygEditor(session){
+  const body = document.getElementById('sd-notes-body');
+  if(!body) return;
+  document.querySelectorAll('[data-wy-cmd]').forEach(b=>{
+    b.onclick = ()=>{ body.focus(); document.execCommand(b.dataset.wyCmd, false, null); scheduleNotesSave(session.id, body); };
+  });
+  document.querySelectorAll('[data-wy-block]').forEach(b=>{
+    b.onclick = ()=>{ body.focus(); document.execCommand('formatBlock', false, b.dataset.wyBlock); scheduleNotesSave(session.id, body); };
+  });
+  const linkBtn = document.querySelector('[data-wy-link]');
+  if(linkBtn) linkBtn.onclick = ()=>{
+    const url = prompt('URL du lien :');
+    if(url){ body.focus(); document.execCommand('createLink', false, url); scheduleNotesSave(session.id, body); }
+  };
+  const imgBtn = document.querySelector('[data-wy-image]');
+  if(imgBtn) imgBtn.onclick = ()=>{
+    const url = prompt('URL de l’image :');
+    if(url){ body.focus(); document.execCommand('insertImage', false, url); scheduleNotesSave(session.id, body); }
+  };
+  body.addEventListener('input', ()=>scheduleNotesSave(session.id, body));
+}
+
+/* ---- Panneaux de la vue détail ---- */
+function sessionVideoPanelHtml(s){
+  const ytId = extractYoutubeId(s.youtubeUrl);
+  const embed = ytId
+    ? `<div class="session-video-embed"><iframe src="${youtubeEmbedUrl(ytId)}" title="Replay de la session" allowfullscreen loading="lazy"></iframe></div>`
+    : `<div class="session-video-drop">${icon('video')}<div>Ajoutez l'URL YouTube de votre session enregistrée</div></div>`;
+  return `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Enregistrement vidéo</div></div>
+      <div class="panel-body">
+        ${embed}
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="sd-video-url" value="${escapeHtml(s.youtubeUrl||'')}" placeholder="Collez l'URL YouTube de votre session…" style="flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:7px;font-size:13px;font-family:inherit;"/>
+          <button class="btn btn-primary btn-sm" id="sd-video-save">Enregistrer</button>
+        </div>
+        <div id="sd-video-error" class="error-text"></div>
+      </div>
+    </div>`;
+}
+function sessionNotesPanelHtml(s){
+  return `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Notes générales</div></div>
+      <div class="panel-body" style="padding-top:14px;">
+        ${wysiwygToolbarHtml()}
+        <div class="wysiwyg-body" id="sd-notes-body" contenteditable="true" data-placeholder="Notes générales sur la session…">${s.notes||''}</div>
+      </div>
+    </div>`;
+}
+function sessionStatTilesHtml(s){
+  const durationMin = minutesBetweenTimes(s.startTime, s.endTime);
+  const perf = performanceOption(s.performance);
+  return `
+    <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);">
+      <div class="stat-tile stat-tile-clickable" data-open-details="1" style="--rail:var(--slate)"><div class="stat-label">Durée</div><div class="stat-value" style="font-size:19px;">${fmtDuration(durationMin)}</div><div class="stat-sub">voir la chronologie</div></div>
+      <div class="stat-tile stat-tile-clickable" data-open-details="1" style="--rail:var(--gold)"><div class="stat-label">Performance</div><div class="stat-value" style="font-size:19px;">${perf?perf.l:'—'}</div><div class="stat-sub">modifier ci-dessous</div></div>
+    </div>`;
+}
+function sessionDetailsToggleHtml(s){
+  return `
+    <details class="panel session-details-toggle" id="sd-details-panel" open>
+      <summary class="panel-head">
+        <div class="section-title">Détails de la session</div>
+        <span class="session-details-chev">${icon('chevRight')}</span>
+      </summary>
+      <div class="panel-body">
+        <div class="field-row-4">
+          <div class="field"><label>Date</label><input type="date" data-sfield="date" value="${s.date||''}"/></div>
+          <div class="field"><label>Début</label><input type="time" data-sfield="startTime" value="${s.startTime||''}"/></div>
+          <div class="field"><label>Fin</label><input type="time" data-sfield="endTime" value="${s.endTime||''}"/></div>
+          <div class="field"><label>Durée prévue (min)</label><input type="number" min="0" data-sfield="plannedDurationMin" data-sfield-type="number" value="${s.plannedDurationMin ?? ''}" placeholder="—"/></div>
+        </div>
+        <div class="field-hint" style="margin:-6px 0 14px;">Fuseau horaire : Paris (UTC+2)</div>
+        <div class="field"><label>Performance</label>
+          <select data-sfield="performance"><option value="">—</option>${PERFORMANCE_OPTIONS.map(p=>`<option value="${p.v}" ${s.performance===p.v?'selected':''}>${p.l}</option>`).join('')}</select>
+        </div>
+      </div>
+    </details>`;
+}
+function viewSessionDetail(s){
+  const dateLabel = s.date ? new Date(s.date+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long', year:'numeric'}) : '—';
+
+  const header = `
+    <div style="margin-bottom:22px;">
+      <input class="session-title-input" id="sd-title" data-sfield="title" value="${escapeHtml(s.title||'')}" placeholder="Nommer cette session…"/>
+      <div class="text-dim" style="font-size:13px;margin-top:4px;text-transform:capitalize;">${dateLabel}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;">
+        ${perfBadgeHtml(s.performance)}
+      </div>
+    </div>`;
+
+  return `
+    ${header}
+    ${sessionStatTilesHtml(s)}
+    ${sessionVideoPanelHtml(s)}
+    ${sessionNotesPanelHtml(s)}
+    ${sessionDetailsToggleHtml(s)}`;
+}
+
+/* ---- Vue liste (tableau) ---- */
+function viewSessionsList(){
   const f = state.filters.sessions;
+  const total = state.yt_sessions.length;
   let list = [...state.yt_sessions];
   if(f.q){
     const q = f.q.toLowerCase();
     list = list.filter(s=>(s.title||'').toLowerCase().includes(q) || (s.notes||'').toLowerCase().includes(q));
   }
-  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(f.trader.length) list = list.filter(s=>s.traderId && f.trader.includes(s.traderId));
+  if(f.month) list = list.filter(s=>s.date && monthKey(s.date)===f.month);
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+
+  // Verrou Free : les N sessions les plus récentes (toutes sessions confondues, indépendamment des
+  // filtres actifs) restent consultables — même logique que maxFreeAccounts ailleurs dans l'app.
+  const allByRecency = [...state.yt_sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  const unlockedIds = new Set((perms().isPremium ? allByRecency : allByRecency.slice(0, perms().maxFreeSessions)).map(s=>s.id));
+  const visibleList = list.filter(s=>unlockedIds.has(s.id));
+  const lockedInView = list.length - visibleList.length;
+
+  const currentMonth = monthKey(todayISO());
+  const sessionsThisMonth = state.yt_sessions.filter(s=>s.date && monthKey(s.date)===currentMonth).length;
+  const totalDurationMin = state.yt_sessions.reduce((sum,s)=>sum + (minutesBetweenTimes(s.startTime, s.endTime)||0), 0);
+  const lastSession = allByRecency[0];
+
+  const statsStrip = `
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Total sessions</div><div class="stat-value">${total}</div><div class="stat-sub">archivées au total</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Ce mois-ci</div><div class="stat-value">${sessionsThisMonth}</div><div class="stat-sub">${monthLabel(currentMonth)}</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Temps de trading cumulé</div><div class="stat-value" style="font-size:20px;">${fmtDuration(totalDurationMin)}</div><div class="stat-sub">toutes sessions confondues</div></div>
+      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Dernière session</div><div class="stat-value" style="font-size:17px;">${lastSession?fmtDate(lastSession.date):'—'}</div><div class="stat-sub">${lastSession?(escapeHtml(lastSession.title)||'Session sans nom'):'—'}</div></div>
+    </div>`;
 
   const filterBar = `
     <div class="filter-bar">
       <div class="results-counter">
         <div class="results-counter-label">Résultats</div>
-        <div class="results-counter-value">${list.length}<span class="rc-total"> / ${state.yt_sessions.length}</span></div>
+        <div class="results-counter-value">${list.length}<span class="rc-total"> / ${total}</span></div>
       </div>
-      <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:260px;"/></div>
+      <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:200px;"/></div>
+      ${renderMultiSelect('fs-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      <input type="month" id="fs-month" value="${f.month}"/>
       <div class="filter-bar-spacer"></div>
-      ${f.q ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : ''}
+      ${(f.q||f.trader.length||f.month) ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : ''}
     </div>`;
 
-  const grid = list.length===0
-    ? emptyState('video','Aucune session enregistrée','Ajoute le lien de ta première session live pour commencer à archiver tes vidéos et tes notes.')
-    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">${list.map(sessionCardHtml).join('')}</div>`;
+  let tablePanel;
+  if(total===0){
+    tablePanel = `<div class="panel"><div class="panel-body">${emptyState('video','Aucune session enregistrée','Crée ta première session pour commencer ton journal de trading — replay, notes et performance.')}</div></div>`;
+  } else if(list.length===0){
+    tablePanel = `<div class="panel"><div class="panel-body">${emptyState('video','Aucune session pour ces filtres','Essaie d’élargir ta recherche ou de réinitialiser les filtres.')}</div></div>`;
+  } else {
+    const rows = visibleList.map(s=>{
+      const durationMin = minutesBetweenTimes(s.startTime, s.endTime);
+      return `<tr data-open-session="${s.id}" style="cursor:pointer;">
+        <td style="font-weight:600;">${escapeHtml(s.title)||'<span class="text-faint" style="font-weight:400;font-style:italic;">Session sans nom</span>'}</td>
+        <td class="text-dim">${fmtDate(s.date)}</td>
+        <td class="text-dim">${fmtDuration(durationMin)}</td>
+        <td>${perfBadgeHtml(s.performance) || '<span class="text-faint">—</span>'}</td>
+      </tr>`;
+    }).join('');
+    tablePanel = `
+      <div class="panel" style="overflow:hidden;">
+        <div class="panel-head"><div class="section-title">Sessions</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nom</th><th>Date</th><th>Durée</th><th>Performance</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        ${lockedInView>0 ? `
+          <div class="session-lock-panel">
+            ${icon('lock')}
+            <div style="color:var(--text-dim);font-size:12.5px;margin:8px 0 12px;">${lockedInView} session${lockedInView>1?'s':''} plus ancienne${lockedInView>1?'s':''} — réservée${lockedInView>1?'s':''} aux formules Premium et Lifetime.</div>
+            <button class="btn btn-primary btn-sm" onclick="openUpgradeModal('L\\'historique complet des sessions de trading')">Passer à Pro</button>
+          </div>` : ''}
+      </div>`;
+  }
 
-  return `${filterBar}${grid}`;
+  return `${statsStrip}${filterBar}${tablePanel}`;
 }
-
-function sessionFormModal(existing){
-  const s = existing || { id: uid('yts'), title:'', date: todayISO(), youtubeUrl:'', notes:'', traderId:'', createdBy: currentUserId() };
-  const traderOptions = state.traders.map(t=>`<option value="${t.id}" ${s.traderId===t.id?'selected':''}>${t.pseudo}${t.isPublic===false?' (privé)':''}</option>`).join('');
-  openModal({
-    title: existing ? 'Modifier la session' : 'Nouvelle session live',
-    bodyHtml: `
-      <div class="field"><label>Titre</label><input id="sf-title" value="${s.title}" placeholder="Ex : Live trading NQ — session de New York"/></div>
-      <div class="field-row">
-        <div class="field"><label>Date</label><input id="sf-date" type="date" value="${s.date}"/></div>
-        <div class="field"><label>Lien YouTube</label><input id="sf-url" value="${s.youtubeUrl}" placeholder="https://youtube.com/watch?v=…"/></div>
-      </div>
-      <div class="field"><label>Trader associé (optionnel)</label>
-        <select id="sf-trader"><option value="">Aucun — session publique</option>${traderOptions}</select>
-        <div class="field-hint">Si un trader privé est sélectionné, cette session ne sera visible que par toi et les admins. Laisse vide pour une session publique.</div>
-      </div>
-      <div id="sf-preview-wrap" style="margin:2px 0 14px;"></div>
-      <div class="field"><label>Notes (optionnel)</label><textarea id="sf-notes" rows="5" placeholder="Ce qui s'est passé pendant la session, points à retenir, erreurs, setups pris…">${s.notes||''}</textarea></div>
-      <div id="sf-error" class="error-text"></div>
-    `,
-    footHtml: `<button class="btn btn-outline" id="sf-cancel">Annuler</button><button class="btn btn-primary" id="sf-save">Enregistrer</button>`,
-    onMount(){
-      const previewWrap = document.getElementById('sf-preview-wrap');
-      const urlInput = document.getElementById('sf-url');
-      function updatePreview(){
-        const id = extractYoutubeId(urlInput.value.trim());
-        previewWrap.innerHTML = id
-          ? `<img src="${youtubeThumbUrl(id)}" style="width:220px;max-width:100%;border-radius:8px;display:block;border:1px solid var(--border);"/>`
-          : (urlInput.value.trim() ? `<div class="field-hint" style="color:var(--danger);">Lien YouTube non reconnu — vérifie le format (le miniature s'affichera si valide).</div>` : '');
-      }
-      urlInput.addEventListener('input', updatePreview);
-      updatePreview();
-      document.getElementById('sf-cancel').onclick = closeModal;
-      document.getElementById('sf-save').onclick = async ()=>{
-        const title = document.getElementById('sf-title').value.trim();
-        const date = document.getElementById('sf-date').value;
-        const youtubeUrl = document.getElementById('sf-url').value.trim();
-        const notes = document.getElementById('sf-notes').value.trim();
-        const traderId = document.getElementById('sf-trader').value || null;
-        if(!title || !date || !youtubeUrl){
-          document.getElementById('sf-error').textContent = 'Titre, date et lien YouTube sont obligatoires.'; return;
-        }
-        await upsert('yt_sessions', { ...s, title, date, youtubeUrl, notes, traderId });
-        await logActivity(existing?'UPDATE':'CREATE', 'yt_session', s.id, title);
-        showToast(existing ? 'Session mise à jour.' : 'Session ajoutée.');
-        closeModal(); render();
-      };
-    }
-  });
+function viewSessions(){
+  const s = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
+  if(s) return viewSessionDetail(s);
+  if(state.sessionDetailId) state.sessionDetailId = null;
+  return viewSessionsList();
 }
 
 /* ============================================================
@@ -5621,23 +5889,55 @@ function bindViewEvents(){
     exportBilanCard(b.dataset.exportCard, b.dataset.exportName);
   });
 
-  // Sessions Live filters + actions
+  // Sessions de Trading — vue liste (filtres + ouverture d'une session)
   const fsQ = document.getElementById('fs-q');
   if(fsQ) fsQ.addEventListener('input', ()=>{ state.filters.sessions.q = fsQ.value; renderView(); });
+  const fsMonth = document.getElementById('fs-month');
+  if(fsMonth) fsMonth.addEventListener('change', ()=>{ state.filters.sessions.month = fsMonth.value; renderView(); });
+  bindMultiSelectDropdown('fs-trader', state.filters.sessions, 'trader', 'traderMenuOpen');
   const fsClearBtn = document.getElementById('fs-clear');
-  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q = ''; renderView(); };
-  document.querySelectorAll('[data-edit-session]').forEach(b=>b.onclick=()=>{
-    sessionFormModal(state.yt_sessions.find(x=>x.id===b.dataset.editSession));
+  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q=''; state.filters.sessions.trader=[]; state.filters.sessions.month=''; renderView(); };
+  document.querySelectorAll('[data-open-session]').forEach(el=>{
+    el.onclick = (e)=>{ e.preventDefault(); state.sessionDetailId = el.dataset.openSession; render(); };
   });
-  document.querySelectorAll('[data-del-session]').forEach(b=>b.onclick=()=>{
-    const id = b.dataset.delSession;
-    confirmModal('Supprimer cette session live et ses notes ?', async ()=>{
-      const s = state.yt_sessions.find(x=>x.id===id);
-      await remove('yt_sessions', id);
-      await logActivity('DELETE', 'yt_session', id, s?s.title:'');
-      showToast('Session supprimée.'); render();
-    });
-  });
+
+  // Sessions de Trading — vue détail (édition inline avec sauvegarde automatique)
+  if(state.route==='sessions' && state.sessionDetailId){
+    const session = state.yt_sessions.find(x=>x.id===state.sessionDetailId);
+    if(session){
+      document.querySelectorAll('[data-sfield]').forEach(el=>{
+        el.addEventListener('change', async ()=>{
+          let val = el.value;
+          if(el.dataset.sfieldType==='number') val = val===''? null : Number(val);
+          await saveSessionField(session.id, { [el.dataset.sfield]: val });
+          render();
+        });
+      });
+      const videoBtn = document.getElementById('sd-video-save');
+      if(videoBtn) videoBtn.onclick = async ()=>{
+        const urlInput = document.getElementById('sd-video-url');
+        const errEl = document.getElementById('sd-video-error');
+        const url = urlInput.value.trim();
+        if(url && !extractYoutubeId(url)){
+          errEl.textContent = 'Lien YouTube non reconnu — vérifie le format.';
+          return;
+        }
+        errEl.textContent = '';
+        await saveSessionField(session.id, { youtubeUrl: url });
+        showToast('Vidéo enregistrée.');
+        render();
+      };
+      bindWysiwygEditor(session);
+      document.querySelectorAll('[data-open-details]').forEach(el=>{
+        el.onclick = ()=>{
+          const det = document.getElementById('sd-details-panel');
+          if(!det) return;
+          det.open = true;
+          det.scrollIntoView({ behavior:'smooth', block:'start' });
+        };
+      });
+    }
+  }
 }
 
 /* ============================================================
