@@ -149,6 +149,7 @@ a{color:var(--accent);text-decoration:none;}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;}
 .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-soft);}
 .section-title{font-size:14px;font-weight:600;}
+.section-title svg{width:16px;height:16px;flex-shrink:0;}
 .panel-body{padding:16px 18px;}
 .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
 
@@ -514,7 +515,10 @@ th.th-sort-active svg{opacity:1;}
 .cal-cell-today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
 .cal-cell-has{cursor:pointer;}
 .cal-cell-has:hover{background:var(--surface-3);}
-.cal-daynum{font-size:11.5px;font-weight:600;color:var(--text-dim);}
+.cal-daynum{font-size:11.5px;font-weight:600;color:var(--text-dim);display:flex;align-items:center;gap:4px;}
+.cal-cell-holiday{background:var(--gold-dim);}
+.cal-holiday-flags{font-size:10px;line-height:1;}
+.cal-holiday-label{font-size:9px;color:var(--gold);font-weight:600;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cal-day-items{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
 .cal-chip{font-size:10px;padding:2px 5px;border-radius:5px;background:var(--slate-dim);color:var(--slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cal-chip-accent{background:var(--accent-dim);color:var(--accent);}
@@ -528,6 +532,20 @@ th.th-sort-active svg{opacity:1;}
   .cal-chip{display:none;}
   .cal-day-total{font-size:9px;}
 }
+/* Variante compacte du calendrier utilisée dans le widget Dashboard */
+.cal-cell-sm{min-height:40px;padding:4px;}
+.cal-cell-sm .cal-daynum{font-size:10.5px;}
+.cal-cell-sm .cal-holiday-label{display:none;}
+.cal-grid-sm .cal-day-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:4px;}
+
+/* DASHBOARD — personnalisation des widgets (afficher/masquer + réordonner) */
+.dlw-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;}
+.dlw-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface-2);}
+.dlw-item-hidden{opacity:.55;}
+.dlw-check{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;cursor:pointer;}
+.dlw-check input{width:16px;height:16px;}
+.dlw-arrows{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.dlw-arrows button svg{width:14px;height:14px;}
 
 /* CLASSEMENT (leaderboard) */
 .lb-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}
@@ -932,6 +950,18 @@ const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL,
 // son navigateur, via localStorage) pour servir de repli.
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep'];
+// Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
+// via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
+const DASHBOARD_WIDGETS = [
+  { id:'kpi',           label:'Indicateurs clés' },
+  { id:'delays',        label:'Délais moyens' },
+  { id:'chart',         label:'Dépenses vs Payouts (6 derniers mois)' },
+  { id:'calendar',      label:'Calendrier' },
+  { id:'monthRecap',    label:'Récap du mois' },
+  { id:'recentPayouts', label:'Payouts récents' },
+  { id:'upcoming',      label:'Prochaines échéances' },
+  { id:'lastSession',   label:'Dernière session de trading' },
+];
 
 const state = {
   route: 'dashboard',
@@ -976,6 +1006,7 @@ const state = {
   },
   numbersVisible: false,
   navOpenGroups: loadNavOpenGroups(),
+  dashboardLayout: loadDashboardLayout(),
   // Tarifs affichés dans l'app (page Tarifs) — modifiables depuis Admin > Tarifs affichés.
   // Valeurs de repli tant qu'aucun réglage n'a été enregistré en base (voir loadPricingSettings()).
   pricingSettings: {
@@ -1968,6 +1999,96 @@ function accountingPeriodFilter(x, f){
   const fn = gran==='year' ? yearKey : gran==='quarter' ? quarterKey : monthKey;
   return fn(x.date) === f.month;
 }
+// Formatage monétaire pour les tableaux/widgets de type "récap" (coûts en négatif, gains en positif).
+// Global (pas seulement viewAccounting) pour être réutilisable par le widget "Récap du mois" du dashboard.
+function recapMoney(v, kind){ // kind: 'cost' | 'gain' | 'net'
+  if(kind==='cost') return v>0 ? `-${fmtMoney(v)}` : '—';
+  if(kind==='gain') return v>0 ? `+${fmtMoney(v)}` : '—';
+  return v>=0 ? `+${fmtMoney(v)}` : fmtMoney(v);
+}
+function recapRoi(roi){ return roi===null ? '—' : `${roi>=0?'+':''}${roi.toFixed(1)}%`; }
+// Calcule le récap Payouts/Challenges/Activation/Total coûts/Net/ROI pour un ensemble de mouvements
+// (dépenses+payouts, format computeAllExpenses()/state.payouts) sur une période donnée (par défaut le mois en cours).
+function computeRecapFor(expenses, payouts, pk, keyFn){
+  const exp = expenses.filter(e=>keyFn(e.date)===pk);
+  const pay = payouts.filter(p=>keyFn(p.date)===pk);
+  let challenge=0, activation=0;
+  exp.forEach(e=>{ if(e.type==='ACTIVATION') activation+=e.amount; else challenge+=e.amount; });
+  const payout = pay.reduce((s,p)=>s+Number(p.amount),0);
+  const totalCosts = challenge+activation;
+  const net = payout-totalCosts;
+  const roi = totalCosts>0 ? (net/totalCosts*100) : null;
+  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi };
+}
+/* ============================================================
+   JOURS FÉRIÉS — France & États-Unis
+   Calculés localement (algorithme de Meeus/Jones/Butcher pour Pâques,
+   règles "n-ième jour de semaine du mois" pour les fériés US mobiles) —
+   aucune dépendance réseau, valable pour n'importe quelle année.
+============================================================ */
+function easterDateISO(year){ // dimanche de Pâques (calendrier grégorien)
+  const a = year % 19, b = Math.floor(year/100), c = year % 100;
+  const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15) % 30;
+  const i = Math.floor(c/4), k = c % 4, l = (32+2*e+2*i-h-k) % 7;
+  const m = Math.floor((a+11*h+22*l)/451);
+  const month = Math.floor((h+l-7*m+114)/31), day = ((h+l-7*m+114) % 31) + 1;
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+function nthWeekdayOfMonth(year, month, weekday, n){ // weekday: 0=dim..6=sam, n=1..5 (n=-1 pour le dernier)
+  const first = new Date(year, month-1, 1);
+  if(n>0){
+    const offset = (weekday - first.getDay() + 7) % 7;
+    const day = 1 + offset + (n-1)*7;
+    return `${year}-${pad2(month)}-${pad2(day)}`;
+  }
+  const last = new Date(year, month, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  const day = last.getDate() - offset;
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+const _holidaysCache = {};
+function getHolidays(year){
+  if(_holidaysCache[year]) return _holidaysCache[year];
+  const easter = easterDateISO(year);
+  const list = [
+    // France
+    { date:`${year}-01-01`, label:"Jour de l'an", country:'FR' },
+    { date: addDaysISO(easter, 1), label:'Lundi de Pâques', country:'FR' },
+    { date:`${year}-05-01`, label:'Fête du travail', country:'FR' },
+    { date:`${year}-05-08`, label:'Victoire 1945', country:'FR' },
+    { date: addDaysISO(easter, 39), label:'Ascension', country:'FR' },
+    { date: addDaysISO(easter, 50), label:'Lundi de Pentecôte', country:'FR' },
+    { date:`${year}-07-14`, label:'Fête nationale', country:'FR' },
+    { date:`${year}-08-15`, label:'Assomption', country:'FR' },
+    { date:`${year}-11-01`, label:'Toussaint', country:'FR' },
+    { date:`${year}-11-11`, label:'Armistice', country:'FR' },
+    { date:`${year}-12-25`, label:'Noël', country:'FR' },
+    // États-Unis (fériés fédéraux)
+    { date:`${year}-01-01`, label:"New Year's Day", country:'US' },
+    { date: nthWeekdayOfMonth(year,1,1,3), label:'Martin Luther King Jr. Day', country:'US' },
+    { date: nthWeekdayOfMonth(year,2,1,3), label:"Washington's Birthday", country:'US' },
+    { date: nthWeekdayOfMonth(year,5,1,-1), label:'Memorial Day', country:'US' },
+    { date:`${year}-06-19`, label:'Juneteenth', country:'US' },
+    { date:`${year}-07-04`, label:'Independence Day', country:'US' },
+    { date: nthWeekdayOfMonth(year,9,1,1), label:'Labor Day', country:'US' },
+    { date: nthWeekdayOfMonth(year,10,1,2), label:'Columbus Day', country:'US' },
+    { date:`${year}-11-11`, label:'Veterans Day', country:'US' },
+    { date: nthWeekdayOfMonth(year,11,4,4), label:'Thanksgiving', country:'US' },
+    { date:`${year}-12-25`, label:'Christmas Day', country:'US' },
+  ];
+  _holidaysCache[year] = list;
+  return list;
+}
+// Fériés d'un mois donné (mk: "YYYY-MM"), regroupés par date — un jour peut avoir un férié FR et/ou US.
+function holidaysForMonth(mk){
+  const [y] = mk.split('-').map(Number);
+  const byDate = {};
+  getHolidays(y).filter(h=>monthKey(h.date)===mk).forEach(h=>{
+    (byDate[h.date] = byDate[h.date] || []).push(h);
+  });
+  return byDate;
+}
 function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); } // m = 1-12, calcul calendaire local, sans UTC
 function addMonths(dateStr, n){
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -2602,6 +2723,88 @@ function loadNavOpenGroups(){
 function saveNavOpenGroups(){
   try{ localStorage.setItem(NAV_GROUPS_STORAGE_KEY, JSON.stringify(state.navOpenGroups)); }catch(e){}
 }
+
+/* ============================================================
+   DASHBOARD — layout personnalisable (afficher/masquer + réordonner)
+   Persisté en localStorage (par appareil), pas synchronisé entre appareils.
+   (Le registre DASHBOARD_WIDGETS est déclaré plus haut, avant `state`.)
+============================================================ */
+const DASHBOARD_LAYOUT_KEY = 'ledger_dashboard_layout';
+function loadDashboardLayout(){
+  const defaultOrder = DASHBOARD_WIDGETS.map(w=>w.id);
+  try{
+    const raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if(parsed && Array.isArray(parsed.order)){
+      // Fusionne avec le registre courant : les nouveaux widgets (ajoutés depuis une mise à jour de
+      // l'app) rejoignent la fin de la liste, ceux qui n'existent plus sont simplement ignorés.
+      const known = new Set(defaultOrder);
+      const order = parsed.order.filter(id=>known.has(id));
+      defaultOrder.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+      const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(id=>known.has(id)) : [];
+      return { order, hidden };
+    }
+  }catch(e){}
+  return { order: defaultOrder, hidden: [] };
+}
+function saveDashboardLayout(){
+  try{ localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(state.dashboardLayout)); }catch(e){}
+}
+function openDashboardCustomizeModal(){
+  const layout = state.dashboardLayout;
+  const rows = layout.order.map((id,i)=>{
+    const w = DASHBOARD_WIDGETS.find(x=>x.id===id);
+    if(!w) return '';
+    const hidden = layout.hidden.includes(id);
+    return `<div class="dlw-item ${hidden?'dlw-item-hidden':''}">
+      <label class="dlw-check">
+        <input type="checkbox" data-dlw-toggle="${id}" ${hidden?'':'checked'}/>
+        <span>${escapeHtml(w.label)}</span>
+      </label>
+      <div class="dlw-arrows">
+        <button class="btn btn-ghost btn-sm" data-dlw-up="${id}" ${i===0?'disabled':''} title="Monter">${icon('arrowUp')}</button>
+        <button class="btn btn-ghost btn-sm" data-dlw-down="${id}" ${i===layout.order.length-1?'disabled':''} title="Descendre">${icon('arrowDown')}</button>
+      </div>
+    </div>`;
+  }).join('');
+  openModal({
+    title: 'Personnaliser le dashboard',
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:12px;">Choisis les modules affichés et leur ordre. Cette préférence est enregistrée sur cet appareil.</div>
+      <div class="dlw-list">${rows}</div>`,
+    footHtml: `<button class="btn btn-outline" id="dlw-reset">Réinitialiser</button><button class="btn btn-primary" id="dlw-done">Terminé</button>`,
+    onMount(){
+      document.querySelectorAll('[data-dlw-toggle]').forEach(cb=>{
+        cb.onchange = ()=>{
+          const id = cb.dataset.dlwToggle;
+          state.dashboardLayout.hidden = cb.checked ? layout.hidden.filter(x=>x!==id) : [...new Set([...layout.hidden, id])];
+          saveDashboardLayout();
+          openDashboardCustomizeModal();
+        };
+      });
+      document.querySelectorAll('[data-dlw-up]').forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.dataset.dlwUp;
+          const idx = layout.order.indexOf(id);
+          if(idx>0){ [layout.order[idx-1], layout.order[idx]] = [layout.order[idx], layout.order[idx-1]]; saveDashboardLayout(); openDashboardCustomizeModal(); }
+        };
+      });
+      document.querySelectorAll('[data-dlw-down]').forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.dataset.dlwDown;
+          const idx = layout.order.indexOf(id);
+          if(idx<layout.order.length-1){ [layout.order[idx+1], layout.order[idx]] = [layout.order[idx], layout.order[idx+1]]; saveDashboardLayout(); openDashboardCustomizeModal(); }
+        };
+      });
+      document.getElementById('dlw-reset').onclick = ()=>{
+        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [] };
+        saveDashboardLayout();
+        openDashboardCustomizeModal();
+      };
+      document.getElementById('dlw-done').onclick = ()=>{ closeModal(); renderView(); };
+    }
+  });
+}
 function navItemHtml(n){
   return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${n.hiddenForOthers?'Masquée pour les autres utilisateurs':''}">
     ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}
@@ -2878,6 +3081,146 @@ function computeDashboardAlerts(accountsF){
    VIEW: DASHBOARD
 ============================================================ */
 let dashboardDelayDetails = {};
+// Widget "Calendrier" compact pour le dashboard — même moteur que viewCalendrier() (grille, jours
+// fériés FR/US) mais sans le filtre trader dédié (utilise celui du dashboard) ni le récap du bas.
+function dashboardCalendarWidgetHtml(f, accIds){
+  const today = todayISO();
+  const mk = f.calMonth || today.slice(0,7);
+  const items = computeCalendarEvents(mk).filter(it=>accIds.has(it.account.id));
+  const byDay = {};
+  items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
+  const holidaysByDate = holidaysForMonth(mk);
+  const cells = buildCalendarGrid(mk);
+  const [y,m] = mk.split('-').map(Number);
+  const dayCell = (dateStr)=>{
+    if(!dateStr) return `<div class="cal-cell cal-cell-sm cal-cell-empty"></div>`;
+    const dayItems = byDay[dateStr]||[];
+    const dayHolidays = holidaysByDate[dateStr]||[];
+    const dayNum = Number(dateStr.slice(8,10));
+    const isToday = dateStr===today;
+    const holidayFlags = dayHolidays.map(h=>h.country==='FR'?'🇫🇷':'🇺🇸').join('');
+    const holidayTitle = dayHolidays.map(h=>`${h.country} — ${h.label}`).join(' · ');
+    return `<div class="cal-cell cal-cell-sm ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[dayItems.length?'Voir le détail':'', holidayTitle].filter(Boolean).join(' · ')}">
+      <div class="cal-daynum">${dayNum}${dayHolidays.length?`<span class="cal-holiday-flags" title="${holidayTitle}">${holidayFlags}</span>`:''}</div>
+      ${dayItems.length?`<div class="cal-day-dot"></div>`:''}
+    </div>`;
+  };
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('calendar')}Calendrier</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn btn-ghost btn-sm" id="dashcal-prev">${icon('chevLeft')}</button>
+          <div style="font-weight:600;font-size:12.5px;min-width:110px;text-align:center;">${MONTH_NAMES_LONG[m-1]} ${y}</div>
+          <button class="btn btn-ghost btn-sm" id="dashcal-next">${icon('chevRight')}</button>
+          <a href="#" data-nav="calendrier" class="btn btn-outline btn-sm">Vue complète</a>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="cal-grid cal-grid-head">${['L','M','M','J','V','S','D'].map(d=>`<div class="cal-head-cell">${d}</div>`).join('')}</div>
+        <div class="cal-grid cal-grid-sm">${cells.map(dayCell).join('')}</div>
+      </div>
+    </div>`;
+}
+// Widget "Récap du mois" — toujours le mois en cours (indépendant du filtre de période du dashboard),
+// même logique de calcul que le tableau "Performance financière" de la page Comptabilité.
+function dashboardMonthRecapWidgetHtml(expenses, payouts){
+  const mk = todayISO().slice(0,7);
+  const r = computeRecapFor(expenses, payouts, mk, monthKey);
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span></div></div>
+      <div class="panel-body">
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain')}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
+          <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost')}</div><div class="stat-sub">${recapMoney(r.challenge,'cost')} challenges · ${recapMoney(r.activation,'cost')} activation</div></div>
+          <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
+        </div>
+      </div>
+    </div>`;
+}
+// Widget "Payouts récents" — derniers versements (comptes filtrés par le dashboard), triés par date.
+function dashboardRecentPayoutsWidgetHtml(payoutsAll){
+  const rows = [...payoutsAll].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,6);
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Payouts récents</div></div>
+      <div class="panel-body">
+        ${rows.length===0 ? `<div class="empty-sub">Aucun payout enregistré pour ces filtres.</div>` : rows.map(p=>{
+          const acc = getAccount(p.accountId);
+          const trader = acc ? getTrader(acc.traderId) : null;
+          const firm = acc ? getFirm(acc.propFirmId) : null;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);">
+            <div>
+              <div style="font-size:13px;font-weight:600;">${trader?trader.pseudo:'—'} <span class="text-faint" style="font-weight:400;">· ${firm?firm.name:'—'}</span></div>
+              <div class="text-faint" style="font-size:11.5px;">${fmtDate(p.date)}</div>
+            </div>
+            <span style="font-weight:700;color:var(--accent);">+${fmtMoney(p.amount)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+// Widget "Prochaines échéances" — mensualités à venir sous 30 jours (fenêtre plus large que les
+// alertes du haut, qui se limitent à 7 jours), pour les comptes actifs filtrés.
+function dashboardUpcomingWidgetHtml(accountsF){
+  const today = todayISO();
+  const items = [];
+  accountsF.forEach(a=>{
+    const isActive = (a.type==='CHALLENGE' && a.status==='ACTIF') || ((a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF');
+    if(!isActive || a.paymentType!=='MENSUEL' || !a.monthlyAmount) return;
+    const due = nextMonthlyDueDate(a.purchaseDate, today);
+    if(!due) return;
+    const dLeft = daysBetween(today, due);
+    if(dLeft>=0 && dLeft<=30) items.push({ account:a, due, dLeft });
+  });
+  items.sort((a,b)=>a.dLeft-b.dLeft);
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('clock')}Prochaines échéances <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— 30 prochains jours</span></div></div>
+      <div class="panel-body">
+        ${items.length===0 ? `<div class="empty-sub">Aucune mensualité à venir dans les 30 prochains jours.</div>` : items.map(it=>{
+          const a = it.account, trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
+          return `<div class="alert-row" data-alert-acc="${a.id}" style="--dot:var(--${it.dLeft<=7?'gold':'slate'})">
+            <span class="alert-dot"></span>
+            <div>
+              <div class="alert-label">${fmtMoney(a.monthlyAmount)} · ${trader?trader.pseudo:'—'} <span class="text-faint">· ${firm?firm.name:'—'}</span></div>
+              <div class="alert-sub">${fmtDate(it.due)} · ${it.dLeft===0?'aujourd’hui':(it.dLeft===1?'demain':`dans ${it.dLeft} jours`)}</div>
+            </div>
+            <span class="alert-goto">${icon('chevRight')}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+// Widget "Dernière session de trading" — la session la plus récente (respecte le filtre trader du dashboard).
+function dashboardLastSessionWidgetHtml(f){
+  let sessions = [...state.yt_sessions];
+  if(f.trader.length) sessions = sessions.filter(s=>s.traderId && f.trader.includes(s.traderId));
+  sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  const s = sessions[0];
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('video')}Dernière session de trading</div></div>
+      <div class="panel-body">
+        ${!s ? `<div class="empty-sub">Aucune session enregistrée.</div>` : `
+          <div data-open-session="${s.id}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div>
+              <div style="font-size:13.5px;font-weight:600;">${escapeHtml(s.title)||'<span class="text-faint" style="font-weight:400;font-style:italic;">Session sans nom</span>'}</div>
+              <div class="text-faint" style="font-size:11.5px;margin-top:2px;">${fmtDate(s.date)} · ${fmtDuration(minutesBetweenTimes(s.startTime, s.endTime))}</div>
+            </div>
+            ${perfBadgeHtml(s.performance) || ''}
+          </div>`}
+      </div>
+    </div>`;
+}
+function lockedWidgetInline(label){
+  return `<div class="panel"><div class="panel-body" style="text-align:center;padding:22px 16px;">
+    ${icon('lock')}
+    <div style="font-size:12.5px;color:var(--text-dim);margin:8px 0 10px;">${label} est réservé aux comptes Premium.</div>
+    <button class="btn btn-primary btn-sm upgrade-cta" onclick="openUpgradeModal('${label.replace(/'/g,"\\'")}')">🚀 Passer à Premium</button>
+  </div></div>`;
+}
 function viewDashboard(){
   const f = state.filters.dashboard;
   const accountsF = state.accounts.filter(a=>
@@ -2925,8 +3268,6 @@ function viewDashboard(){
     return { mk, exp, pay };
   });
   const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
-
-  const recent = [...accountsF].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
 
   // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
   // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
@@ -3010,36 +3351,31 @@ function viewDashboard(){
       </div>
     </div>`;
 
-  return `
-    ${!perms().isPremium ? `
-      <div class="panel" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-dim);border-color:rgba(217,166,90,0.3);">
-        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
-        <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
-      </div>` : ''}
-    ${filterBar}
-    ${alertsPanel}
-    <div class="stats-grid">
-      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${state.traders.length} au total</div></div>
-      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
-    </div>
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
-      <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
-    </div>
-
-    <div class="section-title" style="margin-bottom:10px;">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div>
-    <div class="stats-grid">
-      <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
-      <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
-      <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
-      <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
-    </div>
-
-    <div class="grid-2">
+  // Assemblage des widgets selon la disposition personnalisée (state.dashboardLayout) — chaque widget
+  // est un bloc HTML autonome ; l'ordre et la visibilité sont pilotés par la modale "Personnaliser".
+  const widgetHtml = {
+    kpi: `
+      <div class="stats-grid">
+        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${state.traders.length} au total</div></div>
+        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
+        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
+        <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
+      </div>
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
+        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
+        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
+        <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
+      </div>`,
+    delays: `
+      <div class="section-title" style="margin-bottom:10px;">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div>
+      <div class="stats-grid">
+        <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
+        <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
+        <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
+        <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
+      </div>`,
+    chart: `
       <div class="panel">
         <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois</div></div>
         <div class="panel-body">
@@ -3049,23 +3385,28 @@ function viewDashboard(){
             <span><span class="legend-dot" style="background:var(--accent)"></span>Payouts</span>
           </div>
         </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><div class="section-title">Comptes récents</div></div>
-        <div class="panel-body">
-          ${recent.length===0 ? `<div class="empty-sub">Aucun compte pour ces filtres.</div>` : recent.map(a=>{
-            const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);">
-              <div>
-                <div style="font-size:13px;font-weight:600;">${trader?trader.pseudo:'—'} <span class="text-faint" style="font-weight:400;">· ${firm?firm.name:'—'}</span></div>
-                <div class="text-faint" style="font-size:11.5px;">${TYPE_LABELS[a.type]} · ${sizeLabel(a)}</div>
-              </div>
-              <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
+      </div>`,
+    calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
+    monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
+    recentPayouts: dashboardRecentPayoutsWidgetHtml(payoutsUnfiltered),
+    upcoming: dashboardUpcomingWidgetHtml(accountsF),
+    lastSession: dashboardLastSessionWidgetHtml(f),
+  };
+  const visibleOrder = state.dashboardLayout.order.filter(id=>!state.dashboardLayout.hidden.includes(id) && widgetHtml[id]!==undefined);
+  const widgetsOut = visibleOrder.map(id=>`<div class="dash-widget" data-widget="${id}" style="margin-bottom:16px;">${widgetHtml[id]}</div>`).join('');
+
+  return `
+    ${!perms().isPremium ? `
+      <div class="panel" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-dim);border-color:rgba(217,166,90,0.3);">
+        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
+        <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
+      </div>` : ''}
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-bottom:2px;">
+      <div style="flex:1;min-width:260px;">${filterBar}</div>
+      <button class="btn btn-outline btn-sm" id="dash-customize-btn" style="display:flex;align-items:center;gap:6px;white-space:nowrap;">${icon('layout')}Personnaliser</button>
     </div>
+    ${alertsPanel}
+    ${widgetsOut}
   `;
 }
 function openDelayDetailModal(key){
@@ -3610,14 +3951,20 @@ function viewCalendrier(){
   const totalPayouts = payoutsMonth.reduce((s,it)=>s+it.amount,0);
   const totalDepenses = depensesMonth.reduce((s,it)=>s+it.amount,0);
 
+  const holidaysByDate = holidaysForMonth(mk);
+
   const dayCell = (dateStr)=>{
     if(!dateStr) return `<div class="cal-cell cal-cell-empty"></div>`;
     const dayItems = byDay[dateStr]||[];
+    const dayHolidays = holidaysByDate[dateStr]||[];
     const dayNum = Number(dateStr.slice(8,10));
     const isToday = dateStr===today;
     const daySum = dayItems.reduce((s,it)=>s+(it.amount||0),0);
-    return `<div class="cal-cell ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${dayItems.length?'Voir le détail':''}">
-      <div class="cal-daynum">${dayNum}</div>
+    const holidayFlags = dayHolidays.map(h=>h.country==='FR'?'🇫🇷':'🇺🇸').join('');
+    const holidayTitle = dayHolidays.map(h=>`${h.country} — ${h.label}`).join(' · ');
+    return `<div class="cal-cell ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[dayItems.length?'Voir le détail':'', holidayTitle].filter(Boolean).join(' · ')}">
+      <div class="cal-daynum">${dayNum}${dayHolidays.length?`<span class="cal-holiday-flags" title="${holidayTitle}">${holidayFlags}</span>`:''}</div>
+      ${dayHolidays.length?`<div class="cal-holiday-label">${dayHolidays.map(h=>h.label).join(' · ')}</div>`:''}
       ${dayItems.length?`<div class="cal-day-items">
         ${dayItems.slice(0,3).map(it=>{
           const meta = CAL_EVENT_META[it.type] || { icon:'•', color:'slate', short:it.type };
@@ -3630,7 +3977,7 @@ function viewCalendrier(){
 
   const legend = Object.entries(CAL_EVENT_META).map(([k,meta])=>
     `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);"><span class="cal-chip cal-chip-${meta.color}" style="padding:2px 6px;">${meta.icon}</span>${meta.label}</div>`
-  ).join('');
+  ).join('') + `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);"><span style="font-size:12px;">🇫🇷🇺🇸</span>Jour férié (FR/US)</div>`;
 
   return `
     <div class="panel" style="margin-bottom:16px;">
@@ -4660,12 +5007,6 @@ function viewAccounting(){
     return acc;
   }, { challenge:0, activation:0, payout:0, payoutCount:0, totalCosts:0, net:0 });
   recapTotal.roi = recapTotal.totalCosts>0 ? (recapTotal.net/recapTotal.totalCosts*100) : null;
-  const recapMoney = (v, kind)=>{ // kind: 'cost' | 'gain' | 'net'
-    if(kind==='cost') return v>0 ? `-${fmtMoney(v)}` : '—';
-    if(kind==='gain') return v>0 ? `+${fmtMoney(v)}` : '—';
-    return v>=0 ? `+${fmtMoney(v)}` : fmtMoney(v); // net : déjà signé par toLocaleString si négatif
-  };
-  const recapRoi = (roi)=> roi===null ? '—' : `${roi>=0?'+':''}${roi.toFixed(1)}%`;
 
   const filterBar = `
     <div class="filter-bar">
@@ -5932,6 +6273,20 @@ function bindViewEvents(){
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fdClearBtn = document.getElementById('fd-clear');
   if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:[],propfirm:'',dateFrom:'',dateTo:'',calMonth:'',dateMenuOpen:false,traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
+  const dashCustomizeBtn = document.getElementById('dash-customize-btn');
+  if(dashCustomizeBtn) dashCustomizeBtn.onclick = openDashboardCustomizeModal;
+  const dashCalPrev = document.getElementById('dashcal-prev');
+  if(dashCalPrev) dashCalPrev.onclick = ()=>{
+    const mk = state.filters.dashboard.calMonth || todayISO().slice(0,7);
+    state.filters.dashboard.calMonth = addMonths(mk+'-01', -1).slice(0,7);
+    renderView();
+  };
+  const dashCalNext = document.getElementById('dashcal-next');
+  if(dashCalNext) dashCalNext.onclick = ()=>{
+    const mk = state.filters.dashboard.calMonth || todayISO().slice(0,7);
+    state.filters.dashboard.calMonth = addMonths(mk+'-01', 1).slice(0,7);
+    renderView();
+  };
   document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
     tile.onclick = ()=>openDelayDetailModal(tile.dataset.delayDetail);
   });
