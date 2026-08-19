@@ -4261,7 +4261,7 @@ const HELP_CATEGORIES = [
   ]},
 ];
 function helpQuestionId(catId, qIdx){ return `faq-${catId}-${qIdx}`; }
-function viewCentreAide(){
+function aideResultsHtml(){
   const q = (state.filters.aide.q||'').trim().toLowerCase();
   const norm = s => (s||'').toLowerCase();
   const matches = (item) => !q || norm(item.q).includes(q) || norm(item.a).includes(q);
@@ -4303,15 +4303,41 @@ function viewCentreAide(){
 
   const noResults = q && !sections.trim() ? emptyState('search','Aucun résultat', `Aucune question ne correspond à « ${escapeHtml(q)} ». Essaie un autre mot-clé, ou envoie-nous ta question via le bouton Contact.`) : '';
 
+  return `${categoryCards}${noResults}${sections}`;
+}
+
+// Rattache les listeners des cartes de catégorie (scroll) et de l'accordéon question/réponse.
+// Appelée par bindViewEvents() au chargement complet, et par le handler de recherche pour
+// une mise à jour partielle de #aide-results uniquement (le champ #aide-q n'est jamais recréé,
+// donc il ne perd jamais le focus pendant la frappe).
+function bindAideResultsEvents(){
+  document.querySelectorAll('[data-scroll-cat]').forEach(a=>{
+    a.onclick = (e)=>{
+      e.preventDefault();
+      const target = document.getElementById('help-'+a.dataset.scrollCat);
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+  });
+  document.querySelectorAll('[data-toggle-faq]').forEach(b=>{
+    b.onclick = ()=>{
+      const id = b.dataset.toggleFaq;
+      const idx = state.aideOpenQuestions.indexOf(id);
+      if(idx===-1) state.aideOpenQuestions.push(id); else state.aideOpenQuestions.splice(idx,1);
+      const results = document.getElementById('aide-results');
+      if(results){ results.innerHTML = aideResultsHtml(); bindAideResultsEvents(); }
+      else renderView();
+    };
+  });
+}
+
+function viewCentreAide(){
   return `
     <div class="help-hero">
       <div class="help-hero-title">Comment pouvons-nous vous aider ?</div>
       <div class="help-hero-sub">Trouve rapidement des réponses à tes questions sur Contralytix.</div>
       <div class="search-wrap help-search">${icon('search')}<input type="text" id="aide-q" placeholder="Rechercher une question, un mot-clé…" value="${escapeHtml(state.filters.aide.q||'')}"/></div>
     </div>
-    ${categoryCards}
-    ${noResults}
-    ${sections}
+    <div id="aide-results">${aideResultsHtml()}</div>
   `;
 }
 
@@ -6095,7 +6121,10 @@ function viewSessionDetail(s){
 }
 
 /* ---- Vue liste (tableau) ---- */
-function viewSessionsList(){
+// Calcule le compteur de résultats, le bouton de réinitialisation et le tableau de sessions
+// filtrées. Isolé de viewSessionsList() pour permettre une mise à jour partielle de la liste
+// (sur chaque frappe dans la recherche) sans jamais recréer le champ #fs-q lui-même.
+function sessionsResultsHtml(){
   const f = state.filters.sessions;
   const total = state.yt_sessions.length;
   let list = [...state.yt_sessions];
@@ -6113,30 +6142,11 @@ function viewSessionsList(){
   const visibleList = list.filter(s=>unlockedIds.has(s.id));
   const lockedInView = list.length - visibleList.length;
 
-  const currentMonth = monthKey(todayISO());
-  const sessionsThisMonth = state.yt_sessions.filter(s=>s.date && monthKey(s.date)===currentMonth).length;
-  const totalDurationMin = state.yt_sessions.reduce((sum,s)=>sum + (minutesBetweenTimes(s.startTime, s.endTime)||0), 0);
-  const lastSession = allByRecency[0];
+  const counterHtml = `
+    <div class="results-counter-label">Résultats</div>
+    <div class="results-counter-value">${list.length}<span class="rc-total"> / ${total}</span></div>`;
 
-  const statsStrip = `
-    <div class="stats-grid">
-      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Total sessions</div><div class="stat-value">${total}</div><div class="stat-sub">archivées au total</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Ce mois-ci</div><div class="stat-value">${sessionsThisMonth}</div><div class="stat-sub">${monthLabel(currentMonth)}</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Temps de trading cumulé</div><div class="stat-value" style="font-size:20px;">${fmtDuration(totalDurationMin)}</div><div class="stat-sub">toutes sessions confondues</div></div>
-      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Dernière session</div><div class="stat-value" style="font-size:17px;">${lastSession?fmtDate(lastSession.date):'—'}</div><div class="stat-sub">${lastSession?(escapeHtml(lastSession.title)||'Session sans nom'):'—'}</div></div>
-    </div>`;
-
-  const filterBar = `
-    <div class="filter-bar">
-      <div class="results-counter">
-        <div class="results-counter-label">Résultats</div>
-        <div class="results-counter-value">${list.length}<span class="rc-total"> / ${total}</span></div>
-      </div>
-      <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:200px;"/></div>
-      ${renderMultiSelect('fs-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <div class="filter-bar-spacer"></div>
-      ${(f.q||f.trader.length) ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : ''}
-    </div>`;
+  const resetHtml = (f.q||f.trader.length) ? `<button class="pill-reset" id="fs-clear">Réinitialiser</button>` : '';
 
   let tablePanel;
   if(total===0){
@@ -6171,7 +6181,49 @@ function viewSessionsList(){
       </div>`;
   }
 
-  return `${statsStrip}${filterBar}${tablePanel}`;
+  return { counterHtml, resetHtml, tablePanel };
+}
+
+// Rattache le bouton de réinitialisation et les clics d'ouverture de session dans la zone de
+// résultats. Appelée au chargement complet (bindViewEvents) et après chaque mise à jour
+// partielle de #fs-results (recherche en direct) sans jamais toucher au champ #fs-q.
+function bindSessionsResultsEvents(){
+  const fsClearBtn = document.getElementById('fs-clear');
+  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q=''; state.filters.sessions.trader=[]; renderView(); };
+  document.querySelectorAll('[data-open-session]').forEach(el=>{
+    el.onclick = (e)=>{ e.preventDefault(); state.sessionDetailId = el.dataset.openSession; render(); };
+  });
+}
+
+function viewSessionsList(){
+  const f = state.filters.sessions;
+  const total = state.yt_sessions.length;
+  const currentMonth = monthKey(todayISO());
+  const sessionsThisMonth = state.yt_sessions.filter(s=>s.date && monthKey(s.date)===currentMonth).length;
+  const totalDurationMin = state.yt_sessions.reduce((sum,s)=>sum + (minutesBetweenTimes(s.startTime, s.endTime)||0), 0);
+  const allByRecency = [...state.yt_sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  const lastSession = allByRecency[0];
+
+  const statsStrip = `
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Total sessions</div><div class="stat-value">${total}</div><div class="stat-sub">archivées au total</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Ce mois-ci</div><div class="stat-value">${sessionsThisMonth}</div><div class="stat-sub">${monthLabel(currentMonth)}</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Temps de trading cumulé</div><div class="stat-value" style="font-size:20px;">${fmtDuration(totalDurationMin)}</div><div class="stat-sub">toutes sessions confondues</div></div>
+      <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Dernière session</div><div class="stat-value" style="font-size:17px;">${lastSession?fmtDate(lastSession.date):'—'}</div><div class="stat-sub">${lastSession?(escapeHtml(lastSession.title)||'Session sans nom'):'—'}</div></div>
+    </div>`;
+
+  const { counterHtml, resetHtml, tablePanel } = sessionsResultsHtml();
+
+  const filterBar = `
+    <div class="filter-bar">
+      <div class="results-counter" id="fs-counter">${counterHtml}</div>
+      <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:200px;"/></div>
+      ${renderMultiSelect('fs-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      <div class="filter-bar-spacer"></div>
+      <div id="fs-reset-wrap">${resetHtml}</div>
+    </div>`;
+
+  return `${statsStrip}${filterBar}<div id="fs-table-wrap">${tablePanel}</div>`;
 }
 function viewSessions(){
   const s = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
@@ -6594,24 +6646,17 @@ function bindViewEvents(){
       if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
     };
   });
-  // Centre d'aide : recherche, cartes de catégorie (scroll) et accordéon question/réponse
+  // Centre d'aide : recherche (met à jour uniquement #aide-results, jamais l'input lui-même,
+  // pour que le champ ne perde jamais le focus pendant la frappe), cartes de catégorie (scroll)
+  // et accordéon question/réponse.
   const aideQInput = document.getElementById('aide-q');
-  if(aideQInput) aideQInput.addEventListener('input', ()=>{ state.filters.aide.q = aideQInput.value; renderView(); });
-  document.querySelectorAll('[data-scroll-cat]').forEach(a=>{
-    a.onclick = (e)=>{
-      e.preventDefault();
-      const target = document.getElementById('help-'+a.dataset.scrollCat);
-      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
-    };
+  if(aideQInput) aideQInput.addEventListener('input', ()=>{
+    state.filters.aide.q = aideQInput.value;
+    const results = document.getElementById('aide-results');
+    if(results){ results.innerHTML = aideResultsHtml(); bindAideResultsEvents(); }
+    else renderView();
   });
-  document.querySelectorAll('[data-toggle-faq]').forEach(b=>{
-    b.onclick = ()=>{
-      const id = b.dataset.toggleFaq;
-      const idx = state.aideOpenQuestions.indexOf(id);
-      if(idx===-1) state.aideOpenQuestions.push(id); else state.aideOpenQuestions.splice(idx,1);
-      renderView();
-    };
-  });
+  bindAideResultsEvents();
   document.querySelectorAll('#view-root [data-nav]').forEach(a=>{
     a.onclick = (e)=>{ e.preventDefault(); state.route = a.dataset.nav; render(); };
   });
@@ -6991,15 +7036,25 @@ function bindViewEvents(){
     renderView();
   };
 
-  // Sessions de Trading — vue liste (filtres + ouverture d'une session)
+  // Sessions de Trading — vue liste (filtres + ouverture d'une session). La recherche met à
+  // jour uniquement le compteur, le bouton de réinitialisation et le tableau (jamais le champ
+  // #fs-q lui-même), pour que le focus reste stable pendant la frappe.
   const fsQ = document.getElementById('fs-q');
-  if(fsQ) fsQ.addEventListener('input', ()=>{ state.filters.sessions.q = fsQ.value; renderView(); });
-  bindMultiSelectDropdown('fs-trader', state.filters.sessions, 'trader', 'traderMenuOpen');
-  const fsClearBtn = document.getElementById('fs-clear');
-  if(fsClearBtn) fsClearBtn.onclick = ()=>{ state.filters.sessions.q=''; state.filters.sessions.trader=[]; renderView(); };
-  document.querySelectorAll('[data-open-session]').forEach(el=>{
-    el.onclick = (e)=>{ e.preventDefault(); state.sessionDetailId = el.dataset.openSession; render(); };
+  if(fsQ) fsQ.addEventListener('input', ()=>{
+    state.filters.sessions.q = fsQ.value;
+    const { counterHtml, resetHtml, tablePanel } = sessionsResultsHtml();
+    const counterEl = document.getElementById('fs-counter');
+    const resetEl = document.getElementById('fs-reset-wrap');
+    const tableEl = document.getElementById('fs-table-wrap');
+    if(counterEl && resetEl && tableEl){
+      counterEl.innerHTML = counterHtml;
+      resetEl.innerHTML = resetHtml;
+      tableEl.innerHTML = tablePanel;
+      bindSessionsResultsEvents();
+    } else renderView();
   });
+  bindMultiSelectDropdown('fs-trader', state.filters.sessions, 'trader', 'traderMenuOpen');
+  bindSessionsResultsEvents();
 
   // Sessions de Trading — vue détail (édition inline avec sauvegarde automatique)
   if(state.route==='sessions' && state.sessionDetailId){
