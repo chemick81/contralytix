@@ -655,6 +655,26 @@ th.th-sort-active svg{opacity:1;}
 .dlw-check input{width:16px;height:16px;}
 .dlw-arrows{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .dlw-arrows button svg{width:14px;height:14px;}
+.dlw-item[draggable="true"]{cursor:grab;}
+.dlw-item.dlw-dragging{opacity:.4;}
+.dlw-item.dlw-drag-over{border-color:var(--accent);background:var(--accent-dim);}
+.dlw-drag-handle{display:flex;flex-direction:column;gap:2px;padding:2px 4px;color:var(--text-faint);flex-shrink:0;}
+.dlw-drag-handle span{width:3px;height:3px;border-radius:50%;background:currentColor;}
+.dlw-size-select{display:flex;gap:2px;background:var(--surface-3);border-radius:6px;padding:2px;flex-shrink:0;}
+.dlw-size-btn{background:none;border:none;color:var(--text-faint);font-size:10.5px;font-weight:700;font-family:inherit;padding:4px 7px;border-radius:5px;cursor:pointer;}
+.dlw-size-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 0 0 1px var(--border);}
+
+/* GRILLE DU DASHBOARD — widgets modulaires (Petit 1/3, Moyen 1/2, Pleine largeur) */
+.dash-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+.dash-widget{flex:1 1 100%;max-width:100%;min-width:0;}
+.dash-widget-md{flex-basis:calc(50% - 8px);max-width:calc(50% - 8px);}
+.dash-widget-sm{flex-basis:calc(33.333% - 11px);max-width:calc(33.333% - 11px);}
+@media (max-width:1000px){
+  .dash-widget-md,.dash-widget-sm{flex-basis:calc(50% - 8px);max-width:calc(50% - 8px);}
+}
+@media (max-width:700px){
+  .dash-widget-md,.dash-widget-sm{flex-basis:100%;max-width:100%;}
+}
 
 /* CLASSEMENT (leaderboard) */
 .lb-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}
@@ -3231,25 +3251,36 @@ function loadDashboardLayout(){
       const order = parsed.order.filter(id=>known.has(id));
       defaultOrder.forEach(id=>{ if(!order.includes(id)) order.push(id); });
       const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(id=>known.has(id)) : [];
-      return { order, hidden };
+      const rawSizes = (parsed.sizes && typeof parsed.sizes==='object') ? parsed.sizes : {};
+      const sizes = {};
+      order.forEach(id=>{ sizes[id] = ['sm','md','lg'].includes(rawSizes[id]) ? rawSizes[id] : 'lg'; });
+      return { order, hidden, sizes };
     }
   }catch(e){}
-  return { order: defaultOrder, hidden: [] };
+  const sizes = {};
+  defaultOrder.forEach(id=>{ sizes[id]='lg'; });
+  return { order: defaultOrder, hidden: [], sizes };
 }
 function saveDashboardLayout(){
   try{ localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(state.dashboardLayout)); }catch(e){}
 }
 function openDashboardCustomizeModal(){
   const layout = state.dashboardLayout;
+  if(!layout.sizes) layout.sizes = {};
+  const SIZE_LABELS = { sm:'Petit', md:'Moyen', lg:'Pleine largeur' };
   const rows = layout.order.map((id,i)=>{
     const w = DASHBOARD_WIDGETS.find(x=>x.id===id);
     if(!w) return '';
     const hidden = layout.hidden.includes(id);
-    return `<div class="dlw-item ${hidden?'dlw-item-hidden':''}">
+    const size = ['sm','md','lg'].includes(layout.sizes[id]) ? layout.sizes[id] : 'lg';
+    const sizeBtns = ['sm','md','lg'].map(s=>`<button type="button" class="dlw-size-btn ${s===size?'active':''}" data-dlw-size="${id}" data-dlw-size-val="${s}" title="${SIZE_LABELS[s]}">${s.toUpperCase()}</button>`).join('');
+    return `<div class="dlw-item ${hidden?'dlw-item-hidden':''}" draggable="true" data-dlw-row="${id}">
+      <span class="dlw-drag-handle" title="Glisser pour réordonner"><span></span><span></span><span></span><span></span><span></span><span></span></span>
       <label class="dlw-check">
         <input type="checkbox" data-dlw-toggle="${id}" ${hidden?'':'checked'}/>
         <span>${escapeHtml(w.label)}</span>
       </label>
+      <div class="dlw-size-select">${sizeBtns}</div>
       <div class="dlw-arrows">
         <button class="btn btn-ghost btn-sm" data-dlw-up="${id}" ${i===0?'disabled':''} title="Monter">${icon('arrowUp')}</button>
         <button class="btn btn-ghost btn-sm" data-dlw-down="${id}" ${i===layout.order.length-1?'disabled':''} title="Descendre">${icon('arrowDown')}</button>
@@ -3259,7 +3290,7 @@ function openDashboardCustomizeModal(){
   openModal({
     title: 'Personnaliser le dashboard',
     bodyHtml: `
-      <div class="field-hint" style="margin-bottom:12px;">Choisis les modules affichés et leur ordre. Cette préférence est enregistrée sur cet appareil.</div>
+      <div class="field-hint" style="margin-bottom:12px;">Choisis les modules affichés, leur ordre (glisser-déposer via la poignée, ou les flèches) et leur taille. Cette préférence est enregistrée sur cet appareil.</div>
       <div class="dlw-list">${rows}</div>`,
     footHtml: `<button class="btn btn-outline" id="dlw-reset">Réinitialiser</button><button class="btn btn-primary" id="dlw-done">Terminé</button>`,
     onMount(){
@@ -3285,8 +3316,55 @@ function openDashboardCustomizeModal(){
           if(idx<layout.order.length-1){ [layout.order[idx+1], layout.order[idx]] = [layout.order[idx], layout.order[idx+1]]; saveDashboardLayout(); openDashboardCustomizeModal(); }
         };
       });
+      document.querySelectorAll('[data-dlw-size]').forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.dataset.dlwSize;
+          const val = b.dataset.dlwSizeVal;
+          if(!state.dashboardLayout.sizes) state.dashboardLayout.sizes = {};
+          state.dashboardLayout.sizes[id] = val;
+          saveDashboardLayout();
+          openDashboardCustomizeModal();
+        };
+      });
+      // Glisser-déposer natif HTML5 pour réordonner les widgets
+      let dragId = null;
+      const list = document.querySelector('.dlw-list');
+      const allRows = () => Array.from(document.querySelectorAll('[data-dlw-row]'));
+      allRows().forEach(row=>{
+        row.addEventListener('dragstart', (e)=>{
+          dragId = row.dataset.dlwRow;
+          row.classList.add('dlw-dragging');
+          try{ e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); }catch(err){}
+        });
+        row.addEventListener('dragend', ()=>{
+          row.classList.remove('dlw-dragging');
+          allRows().forEach(r=>r.classList.remove('dlw-drag-over'));
+        });
+        row.addEventListener('dragover', (e)=>{
+          e.preventDefault();
+          if(row.dataset.dlwRow===dragId) return;
+          row.classList.add('dlw-drag-over');
+        });
+        row.addEventListener('dragleave', ()=>{ row.classList.remove('dlw-drag-over'); });
+        row.addEventListener('drop', (e)=>{
+          e.preventDefault();
+          row.classList.remove('dlw-drag-over');
+          const targetId = row.dataset.dlwRow;
+          if(!dragId || dragId===targetId) return;
+          const order = state.dashboardLayout.order;
+          const fromIdx = order.indexOf(dragId);
+          const toIdx = order.indexOf(targetId);
+          if(fromIdx<0 || toIdx<0) return;
+          order.splice(fromIdx,1);
+          order.splice(toIdx,0,dragId);
+          saveDashboardLayout();
+          openDashboardCustomizeModal();
+        });
+      });
       document.getElementById('dlw-reset').onclick = ()=>{
-        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [] };
+        const sizes = {};
+        DASHBOARD_WIDGETS.forEach(w=>{ sizes[w.id]='lg'; });
+        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [], sizes };
         saveDashboardLayout();
         openDashboardCustomizeModal();
       };
@@ -3947,7 +4025,11 @@ function viewDashboard(){
     lastSession: dashboardLastSessionWidgetHtml(f, dashRestricted ? new Set(myTraders.map(t=>t.id)) : null),
   };
   const visibleOrder = state.dashboardLayout.order.filter(id=>!state.dashboardLayout.hidden.includes(id) && widgetHtml[id]!==undefined);
-  const widgetsOut = visibleOrder.map(id=>`<div class="dash-widget" data-widget="${id}" style="margin-bottom:16px;">${widgetHtml[id]}</div>`).join('');
+  const dlSizes = state.dashboardLayout.sizes || {};
+  const widgetsOut = `<div class="dash-grid">${visibleOrder.map(id=>{
+    const size = ['sm','md'].includes(dlSizes[id]) ? dlSizes[id] : '';
+    return `<div class="dash-widget${size?` dash-widget-${size}`:''}" data-widget="${id}">${widgetHtml[id]}</div>`;
+  }).join('')}</div>`;
 
   return `
     ${!perms().isPremium ? `
