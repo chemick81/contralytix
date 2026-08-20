@@ -668,8 +668,13 @@ th.th-sort-active svg{opacity:1;}
 .dlw-size-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 0 0 1px var(--border);}
 
 /* GRILLE DU DASHBOARD — widgets modulaires (Petit 1/3, Moyen 1/2, Pleine largeur) */
-.dash-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
-.dash-widget{flex:1 1 100%;max-width:100%;min-width:0;position:relative;}
+/* align-items:stretch (au lieu de flex-start) : sur une même ligne, les modules s'étirent tous à la
+   hauteur du plus grand — le fond coloré et le cadre de chaque module remplissent alors toute la
+   hauteur de la ligne, sans désalignement quand deux modules de contenu inégal sont côte à côte. */
+.dash-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;}
+.dash-widget{flex:1 1 100%;max-width:100%;min-width:0;position:relative;display:flex;flex-direction:column;}
+.dash-widget > .panel{flex:1 1 auto;display:flex;flex-direction:column;}
+.dash-widget > .panel > .panel-body{flex:1 1 auto;}
 .dash-widget-sm,.dash-widget-md{overflow-x:auto;}
 .dash-widget-md{flex-basis:calc(50% - 8px);max-width:calc(50% - 8px);}
 .dash-widget-sm{flex-basis:calc(33.333% - 11px);max-width:calc(33.333% - 11px);}
@@ -4011,25 +4016,34 @@ function viewDashboard(){
         </div>`}
       </div>`,
     kpi: `
-      <div class="stats-grid">
-        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
-        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
-        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
-        <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
-        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
-        <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('layout')}Vue d'ensemble</div></div>
+        <div class="panel-body">
+          <div class="stats-grid">
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
+          </div>
+          <div class="stats-grid" style="margin-bottom:0;">
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
+          </div>
+        </div>
       </div>`,
     delays: `
-      <div class="section-title" style="margin-bottom:10px;">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div>
-      <div class="stats-grid">
-        <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
-        <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
-        <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
-        <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div></div>
+        <div class="panel-body">
+          <div class="stats-grid" style="margin-bottom:0;">
+            <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
+            <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
+            <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
+            <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
+          </div>
+        </div>
       </div>`,
     chart: `
       <div class="panel">
