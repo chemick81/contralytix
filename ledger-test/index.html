@@ -165,8 +165,11 @@ a{color:var(--accent);text-decoration:none;}
 .btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* STAT TILES */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
-.stat-tile{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:10px;padding:16px 16px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px;}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:10px;padding:16px 16px;min-width:0;}
+/* Dans un widget de dashboard rétréci (Petit/Moyen), la grille de stats se replie en colonnes réduites au lieu de déborder sur le module voisin */
+.dash-widget-sm .stats-grid,.dash-widget-md .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.dash-widget-sm .stats-grid{grid-template-columns:repeat(1,minmax(0,1fr));}
 .stat-label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
 .stat-value{font-size:24px;font-weight:700;margin-top:8px;font-family:'JetBrains Mono',monospace;}
 .stat-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
@@ -667,6 +670,7 @@ th.th-sort-active svg{opacity:1;}
 /* GRILLE DU DASHBOARD — widgets modulaires (Petit 1/3, Moyen 1/2, Pleine largeur) */
 .dash-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
 .dash-widget{flex:1 1 100%;max-width:100%;min-width:0;position:relative;}
+.dash-widget-sm,.dash-widget-md{overflow-x:auto;}
 .dash-widget-md{flex-basis:calc(50% - 8px);max-width:calc(50% - 8px);}
 .dash-widget-sm{flex-basis:calc(33.333% - 11px);max-width:calc(33.333% - 11px);}
 @media (max-width:1000px){
@@ -684,6 +688,9 @@ th.th-sort-active svg{opacity:1;}
 .dash-widget-toolbar .dlw-size-btn{font-size:10px;padding:3px 6px;}
 .dash-widget.dw-dragging{opacity:.4;}
 .dash-widget.dw-drag-over{outline:2px dashed var(--accent);outline-offset:6px;border-radius:12px;}
+/* Module Alertes : en-tête cliquable pour replier/déplier */
+.dash-alerts-head{cursor:pointer;user-select:none;}
+.dash-alerts-collapse-btn{pointer-events:none;}
 
 /* CLASSEMENT (leaderboard) */
 .lb-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}
@@ -1120,6 +1127,7 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
+  { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
   { id:'delays',         label:'Délais moyens' },
   { id:'chart',          label:'Dépenses vs Payouts (6 derniers mois)' },
@@ -3263,12 +3271,15 @@ function loadDashboardLayout(){
       const rawSizes = (parsed.sizes && typeof parsed.sizes==='object') ? parsed.sizes : {};
       const sizes = {};
       order.forEach(id=>{ sizes[id] = ['sm','md','lg'].includes(rawSizes[id]) ? rawSizes[id] : 'lg'; });
-      return { order, hidden, sizes };
+      const rawCollapsed = (parsed.collapsed && typeof parsed.collapsed==='object') ? parsed.collapsed : {};
+      const collapsed = {};
+      order.forEach(id=>{ collapsed[id] = !!rawCollapsed[id]; });
+      return { order, hidden, sizes, collapsed };
     }
   }catch(e){}
-  const sizes = {};
-  defaultOrder.forEach(id=>{ sizes[id]='lg'; });
-  return { order: defaultOrder, hidden: [], sizes };
+  const sizes = {}, collapsed = {};
+  defaultOrder.forEach(id=>{ sizes[id]='lg'; collapsed[id]=false; });
+  return { order: defaultOrder, hidden: [], sizes, collapsed };
 }
 function saveDashboardLayout(){
   try{ localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(state.dashboardLayout)); }catch(e){}
@@ -3371,9 +3382,9 @@ function openDashboardCustomizeModal(){
         });
       });
       document.getElementById('dlw-reset').onclick = ()=>{
-        const sizes = {};
-        DASHBOARD_WIDGETS.forEach(w=>{ sizes[w.id]='lg'; });
-        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [], sizes };
+        const sizes = {}, collapsed = {};
+        DASHBOARD_WIDGETS.forEach(w=>{ sizes[w.id]='lg'; collapsed[w.id]=false; });
+        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [], sizes, collapsed };
         saveDashboardLayout();
         openDashboardCustomizeModal();
       };
@@ -3972,28 +3983,31 @@ function viewDashboard(){
       <button type="button" class="filter-action-btn" id="dash-customize-btn">${icon('layout')}Personnaliser</button>
     </div>`;
 
-  const alertsPanel = `
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head">
-        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('bell')}Alertes${alerts.length?` (${alerts.length})`:''}</div>
-      </div>
-      <div class="panel-body">
-        ${alerts.length===0 ? `<div class="empty-sub">Aucune alerte pour le moment — tout est à jour.</div>` :
-          alerts.map(al=>`
-            <div class="alert-row" data-alert-acc="${al.accountId}" style="--dot:var(--${al.severity==='gold'?'gold':al.severity==='danger'?'danger':'slate'})">
-              <span class="alert-dot"></span>
-              <div>
-                <div class="alert-label">${al.label}</div>
-                <div class="alert-sub">${al.sub}</div>
-              </div>
-              <span class="alert-goto">${icon('chevRight')}</span>
-            </div>`).join('')}
-      </div>
-    </div>`;
-
   // Assemblage des widgets selon la disposition personnalisée (state.dashboardLayout) — chaque widget
   // est un bloc HTML autonome ; l'ordre et la visibilité sont pilotés par la modale "Personnaliser".
+  const alertsCollapsed = !!(state.dashboardLayout.collapsed && state.dashboardLayout.collapsed.alerts);
   const widgetHtml = {
+    alerts: `
+      <div class="panel dash-alerts-panel">
+        <div class="panel-head dash-alerts-head" data-alerts-toggle>
+          <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('bell')}Alertes${alerts.length?` (${alerts.length})`:''}</div>
+          <button type="button" class="btn btn-ghost btn-sm dash-alerts-collapse-btn" title="${alertsCollapsed?'Déplier':'Replier'}">
+            <span class="dash-alerts-chev" style="display:inline-flex;transform:rotate(${alertsCollapsed?0:90}deg);transition:transform .15s;">${icon('chevRight')}</span>
+          </button>
+        </div>
+        ${alertsCollapsed ? '' : `<div class="panel-body">
+          ${alerts.length===0 ? `<div class="empty-sub">Aucune alerte pour le moment — tout est à jour.</div>` :
+            alerts.map(al=>`
+              <div class="alert-row" data-alert-acc="${al.accountId}" style="--dot:var(--${al.severity==='gold'?'gold':al.severity==='danger'?'danger':'slate'})">
+                <span class="alert-dot"></span>
+                <div>
+                  <div class="alert-label">${al.label}</div>
+                  <div class="alert-sub">${al.sub}</div>
+                </div>
+                <span class="alert-goto">${icon('chevRight')}</span>
+              </div>`).join('')}
+        </div>`}
+      </div>`,
     kpi: `
       <div class="stats-grid">
         <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
@@ -4001,7 +4015,7 @@ function viewDashboard(){
         <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
         <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
       </div>
-      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="stats-grid">
         <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
         <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
         <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
@@ -4055,7 +4069,6 @@ function viewDashboard(){
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
     ${filterBar}
-    ${alertsPanel}
     ${widgetsOut}
   `;
 }
@@ -7449,6 +7462,13 @@ function bindViewEvents(){
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   // Dashboard : glisser-déposer direct des widgets + sélecteur de taille S/M/L, sur la page elle-même
   if(state.route==='dashboard'){
+    const alertsHead = document.querySelector('[data-alerts-toggle]');
+    if(alertsHead) alertsHead.onclick = ()=>{
+      if(!state.dashboardLayout.collapsed) state.dashboardLayout.collapsed = {};
+      state.dashboardLayout.collapsed.alerts = !state.dashboardLayout.collapsed.alerts;
+      saveDashboardLayout();
+      renderView();
+    };
     document.querySelectorAll('[data-dw-size]').forEach(b=>{
       b.onclick = (e)=>{
         e.stopPropagation();
