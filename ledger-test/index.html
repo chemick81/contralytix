@@ -491,7 +491,10 @@ th.th-sort-active svg{opacity:1;}
 .star-input-btn svg{width:22px;height:22px;}
 .star-input-btn.filled{color:#f5a623;}
 .rating-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.rating-card.rating-card-mine{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:color-mix(in srgb, var(--accent) 6%, transparent);}
 .rating-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.rating-card-actions{display:flex;gap:6px;margin-left:auto;}
+.rating-card-actions .btn{white-space:nowrap;}
 .rating-cats-row{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;}
 .firm-stat-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;}
 .firm-stat-cat{border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
@@ -4195,6 +4198,7 @@ function viewPropfirmDetail(f){
   const stats = firmRatingStats(f.id);
   const ratings = firmRatings(f.id).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
+  const myRating = myLinkedTrader() ? ratings.find(r=>r.traderId===myLinkedTrader().id) : null;
   return `
     <div class="panel" style="margin-bottom:16px;">
       <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
@@ -4222,19 +4226,23 @@ function viewPropfirmDetail(f){
     <div class="panel">
       <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;">
         <div class="section-title">Avis des traders</div>
-        <button class="btn btn-primary btn-sm" id="firm-add-rating-btn">${icon('star')}Donner mon avis</button>
+        <button class="btn btn-primary btn-sm" id="firm-add-rating-btn">${icon(myRating?'edit':'star')}${myRating?'Modifier mon avis':'Donner mon avis'}</button>
       </div>
       ${ratings.length===0 ? `<div class="text-faint" style="font-size:13px;padding:8px 0;">Aucun avis pour l'instant — sois le premier à donner ton retour sur cette PropFirm.</div>` : ratings.map(r=>{
         const trader = getTrader(r.traderId);
+        const mine = canEditRecord('propfirm_ratings', r);
         return `
-        <div class="rating-card">
+        <div class="rating-card${mine?' rating-card-mine':''}">
           <div class="rating-card-head">
             <span style="font-weight:600;">${trader ? escapeHtml(trader.pseudo) : 'Trader supprimé'}</span>
+            ${mine ? `<span class="badge badge-accent" style="font-size:10.5px;">Ton avis</span>` : ''}
             <span class="text-faint" style="font-size:11.5px;">${fmtDate((r.createdAt||'').slice(0,10))}</span>
-            <span style="margin-left:auto;">${starRatingHtml(ratingOverall(r),14)}<span class="rating-value">${ratingOverall(r).toFixed(1)}</span></span>
-            ${canEditRecord('propfirm_ratings', r) ? `
-              <button class="btn btn-ghost btn-sm" data-edit-rating="${r.id}">${icon('edit')}</button>
-              <button class="btn btn-ghost btn-sm" data-del-rating="${r.id}" style="color:var(--danger)">${icon('trash')}</button>
+            <span style="margin-left:${mine?'8px':'auto'};">${starRatingHtml(ratingOverall(r),14)}<span class="rating-value">${ratingOverall(r).toFixed(1)}</span></span>
+            ${mine ? `
+              <div class="rating-card-actions">
+                <button class="btn btn-outline btn-sm" data-edit-rating="${r.id}">${icon('edit')}Modifier</button>
+                <button class="btn btn-outline btn-sm" data-del-rating="${r.id}" style="color:var(--danger);border-color:var(--danger);">${icon('trash')}Supprimer</button>
+              </div>
             ` : ''}
           </div>
           <div class="rating-cats-row">
