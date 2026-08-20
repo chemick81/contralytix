@@ -3259,38 +3259,70 @@ function saveNavOpenGroups(){
 }
 
 /* ============================================================
-   DASHBOARD — layout personnalisable (afficher/masquer + réordonner)
-   Persisté en localStorage (par appareil), pas synchronisé entre appareils.
+   DASHBOARD — layout personnalisable (afficher/masquer, réordonner, tailles, replié)
+   Sauvegardé sur le compte (colonne "dashboard_layout" de la table "profiles"), donc valable sur
+   tous les appareils/navigateurs connectés au même compte. Une copie est aussi gardée en
+   localStorage : elle sert de disposition immédiate au tout premier rendu (avant que le profil
+   Supabase ait fini de charger) et de filet de secours si jamais l'écriture réseau échoue.
    (Le registre DASHBOARD_WIDGETS est déclaré plus haut, avant `state`.)
 ============================================================ */
 const DASHBOARD_LAYOUT_KEY = 'ledger_dashboard_layout';
-function loadDashboardLayout(){
+// Valide/complète un objet de disposition quelconque (venant du compte ou du localStorage) par
+// rapport au registre actuel des widgets ; renvoie null si l'objet est inutilisable.
+function normalizeDashboardLayout(parsed){
+  if(!parsed || !Array.isArray(parsed.order)) return null;
   const defaultOrder = DASHBOARD_WIDGETS.map(w=>w.id);
-  try{
-    const raw = localStorage.getItem(DASHBOARD_LAYOUT_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    if(parsed && Array.isArray(parsed.order)){
-      // Fusionne avec le registre courant : les nouveaux widgets (ajoutés depuis une mise à jour de
-      // l'app) rejoignent la fin de la liste, ceux qui n'existent plus sont simplement ignorés.
-      const known = new Set(defaultOrder);
-      const order = parsed.order.filter(id=>known.has(id));
-      defaultOrder.forEach(id=>{ if(!order.includes(id)) order.push(id); });
-      const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(id=>known.has(id)) : [];
-      const rawSizes = (parsed.sizes && typeof parsed.sizes==='object') ? parsed.sizes : {};
-      const sizes = {};
-      order.forEach(id=>{ sizes[id] = ['sm','md','lg'].includes(rawSizes[id]) ? rawSizes[id] : 'lg'; });
-      const rawCollapsed = (parsed.collapsed && typeof parsed.collapsed==='object') ? parsed.collapsed : {};
-      const collapsed = {};
-      order.forEach(id=>{ collapsed[id] = !!rawCollapsed[id]; });
-      return { order, hidden, sizes, collapsed };
-    }
-  }catch(e){}
+  const known = new Set(defaultOrder);
+  // Fusionne avec le registre courant : les nouveaux widgets (ajoutés depuis une mise à jour de
+  // l'app) rejoignent la fin de la liste, ceux qui n'existent plus sont simplement ignorés.
+  const order = parsed.order.filter(id=>known.has(id));
+  defaultOrder.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(id=>known.has(id)) : [];
+  const rawSizes = (parsed.sizes && typeof parsed.sizes==='object') ? parsed.sizes : {};
+  const sizes = {};
+  order.forEach(id=>{ sizes[id] = ['sm','md','lg'].includes(rawSizes[id]) ? rawSizes[id] : 'lg'; });
+  const rawCollapsed = (parsed.collapsed && typeof parsed.collapsed==='object') ? parsed.collapsed : {};
+  const collapsed = {};
+  order.forEach(id=>{ collapsed[id] = !!rawCollapsed[id]; });
+  return { order, hidden, sizes, collapsed };
+}
+function defaultDashboardLayout(){
+  const defaultOrder = DASHBOARD_WIDGETS.map(w=>w.id);
   const sizes = {}, collapsed = {};
   defaultOrder.forEach(id=>{ sizes[id]='lg'; collapsed[id]=false; });
   return { order: defaultOrder, hidden: [], sizes, collapsed };
 }
+function loadDashboardLayout(){
+  try{
+    const normalized = normalizeDashboardLayout(JSON.parse(localStorage.getItem(DASHBOARD_LAYOUT_KEY)||'null'));
+    if(normalized) return normalized;
+  }catch(e){}
+  return defaultDashboardLayout();
+}
 function saveDashboardLayout(){
   try{ localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(state.dashboardLayout)); }catch(e){}
+  // Sauvegarde côté compte, best-effort : si la colonne "dashboard_layout" n'existe pas encore
+  // dans Supabase (migration SQL non appliquée), l'erreur est journalisée sans bloquer l'app —
+  // on reste alors sur la copie locale ci-dessus.
+  const uid = currentUserId();
+  if(uid){
+    supabaseClient.from('profiles').update({ dashboard_layout: state.dashboardLayout }).eq('id', uid).then(({error})=>{
+      if(error) console.warn('Sauvegarde du dashboard côté compte impossible (colonne "dashboard_layout" absente ?) :', error.message);
+    });
+  }
+}
+// Appelée juste après le chargement du profil (voir enterApp) : la disposition enregistrée sur le
+// compte fait autorité dès qu'elle existe (valable sur tous les appareils) ; sinon, on migre vers
+// le compte la disposition trouvée en local sur cet appareil (ou les valeurs par défaut).
+async function syncDashboardLayoutFromProfile(){
+  if(!state.profile) return;
+  const fromAccount = normalizeDashboardLayout(state.profile.dashboardLayout);
+  if(fromAccount){
+    state.dashboardLayout = fromAccount;
+    try{ localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(state.dashboardLayout)); }catch(e){}
+  } else {
+    saveDashboardLayout();
+  }
 }
 function openDashboardCustomizeModal(){
   const layout = state.dashboardLayout;
@@ -3318,7 +3350,7 @@ function openDashboardCustomizeModal(){
   openModal({
     title: 'Personnaliser le dashboard',
     bodyHtml: `
-      <div class="field-hint" style="margin-bottom:12px;">Choisis les modules affichés, leur ordre (glisser-déposer via la poignée, ou les flèches) et leur taille. Cette préférence est enregistrée sur cet appareil.</div>
+      <div class="field-hint" style="margin-bottom:12px;">Choisis les modules affichés, leur ordre (glisser-déposer via la poignée, ou les flèches) et leur taille. Cette préférence est liée à ton compte : elle te suit sur tous tes appareils.</div>
       <div class="dlw-list">${rows}</div>`,
     footHtml: `<button class="btn btn-outline" id="dlw-reset">Réinitialiser</button><button class="btn btn-primary" id="dlw-done">Terminé</button>`,
     onMount(){
@@ -9590,6 +9622,7 @@ function initBackToTop(){
   async function enterApp(session){
     state.session = session;
     await loadProfile();
+    await syncDashboardLayoutFromProfile();
     await loadSubscription();
     computePermissions();
     await loadAll();
