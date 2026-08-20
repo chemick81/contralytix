@@ -677,11 +677,25 @@ th.th-sort-active svg{opacity:1;}
   .cal-chip{display:none;}
   .cal-day-total{font-size:9px;}
 }
-/* Variante compacte du calendrier utilisée dans le widget Dashboard */
-.cal-cell-sm{min-height:40px;padding:4px;}
-.cal-cell-sm .cal-daynum{font-size:10.5px;}
+/* Variante compacte du calendrier utilisée dans le widget Dashboard — agrandie et avec des
+   puces colorées par type d'événement (mensualité/payout/achat/etc.) pour rester lisible dans
+   un widget de petite taille, plutôt qu'un simple point neutre peu visible. */
+.cal-cell-sm{min-height:56px;padding:5px 4px;}
+.cal-cell-sm .cal-daynum{font-size:12.5px;font-weight:700;}
 .cal-cell-sm .cal-holiday-label{display:none;}
-.cal-grid-sm .cal-day-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:4px;}
+.cal-cell-sm.cal-cell-has{background:var(--surface-3);border-color:var(--border);}
+.cal-cell-sm.cal-cell-today{box-shadow:inset 0 0 0 2px var(--accent);}
+.cal-grid-sm .cal-day-dots{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:5px;flex-wrap:wrap;}
+.cal-grid-sm .cal-day-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 1px var(--surface-2);}
+.cal-grid-sm .cal-day-dot-accent{background:var(--accent);}
+.cal-grid-sm .cal-day-dot-gold{background:var(--gold);}
+.cal-grid-sm .cal-day-dot-danger{background:var(--danger);}
+.cal-grid-sm .cal-day-dot-slate{background:var(--slate);}
+.cal-grid-sm .cal-day-dot-more{width:auto;height:auto;border-radius:3px;background:none;box-shadow:none;font-size:9px;font-weight:700;color:var(--text-faint);line-height:1;}
+/* Légende compacte sous le mini-calendrier du dashboard, pour rappeler ce que signifient les couleurs */
+.cal-legend-sm{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft);}
+.cal-legend-sm-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);}
+.cal-legend-sm-item .cal-day-dot{margin-top:0;}
 
 /* DASHBOARD — personnalisation des widgets (afficher/masquer + réordonner) */
 .dlw-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;}
@@ -3863,11 +3877,20 @@ function dashboardCalendarWidgetHtml(f, accIds){
     const isToday = dateStr===today;
     const holidayFlags = dayHolidays.map(h=>h.country==='FR'?'🇫🇷':'🇺🇸').join('');
     const holidayTitle = dayHolidays.map(h=>`${h.country} — ${h.label}`).join(' · ');
-    return `<div class="cal-cell cal-cell-sm ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[dayItems.length?'Voir le détail':'', holidayTitle].filter(Boolean).join(' · ')}">
+    // Une puce colorée par type d'événement distinct présent ce jour-là (mensualité=or,
+    // payout/réussi=accent, breach=rouge, achat/activation/fermé=slate) — bien plus visible
+    // qu'un simple point neutre, tout en restant lisible dans un widget compact.
+    const dayTypes = [...new Set(dayItems.map(it=>(CAL_EVENT_META[it.type]||{color:'slate'}).color))];
+    const dotsHtml = dayTypes.length ? `<div class="cal-day-dots">${dayTypes.slice(0,4).map(c=>`<div class="cal-day-dot cal-day-dot-${c}"></div>`).join('')}${dayTypes.length>4?`<div class="cal-day-dot-more">+${dayTypes.length-4}</div>`:''}</div>` : '';
+    const evtTitle = dayItems.length ? dayItems.map(it=>(CAL_EVENT_META[it.type]||{label:it.type}).label).join(' · ') : '';
+    return `<div class="cal-cell cal-cell-sm ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[evtTitle||(dayItems.length?'Voir le détail':''), holidayTitle].filter(Boolean).join(' · ')}">
       <div class="cal-daynum">${dayNum}${dayHolidays.length?`<span class="cal-holiday-flags" title="${holidayTitle}">${holidayFlags}</span>`:''}</div>
-      ${dayItems.length?`<div class="cal-day-dot"></div>`:''}
+      ${dotsHtml}
     </div>`;
   };
+  const usedColors = [...new Set(items.map(it=>(CAL_EVENT_META[it.type]||{color:'slate'}).color))];
+  const legendLabels = { accent:'Payout / Réussi', gold:'Mensualité due', danger:'Breach', slate:'Achat / Activation / Fermé' };
+  const legendHtml = usedColors.length ? `<div class="cal-legend-sm">${usedColors.map(c=>`<div class="cal-legend-sm-item"><div class="cal-day-dot cal-day-dot-${c}"></div>${legendLabels[c]||c}</div>`).join('')}</div>` : '';
   return `
     <div class="panel">
       <div class="panel-head">
@@ -3882,6 +3905,7 @@ function dashboardCalendarWidgetHtml(f, accIds){
       <div class="panel-body">
         <div class="cal-grid cal-grid-head">${['L','M','M','J','V','S','D'].map(d=>`<div class="cal-head-cell">${d}</div>`).join('')}</div>
         <div class="cal-grid cal-grid-sm">${cells.map(dayCell).join('')}</div>
+        ${legendHtml}
       </div>
     </div>`;
 }
