@@ -82,6 +82,15 @@
   --slate:#5B6673; --slate-dim:rgba(91,102,115,0.08);
   --shadow: 0 8px 24px rgba(20,30,40,0.08);
 }
+/* Thème d'accent "Bleu électrique" — remplace uniquement --accent/--accent-dim/--accent-text,
+   indépendamment de Clair/Sombre (data-theme). Choisi pour rester distinct de --gold (Premium)
+   et garder un bon contraste dans les deux modes. */
+:root[data-theme="dark"][data-accent="blue"]{
+  --accent:#3E8EF7; --accent-dim:rgba(62,142,247,0.16); --accent-text:#FFFFFF;
+}
+:root[data-theme="light"][data-accent="blue"]{
+  --accent:#1D6FE0; --accent-dim:rgba(29,111,224,0.10); --accent-text:#FFFFFF;
+}
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.brand,.nav-label,.stat-label,.section-title{font-family:'Space Grotesk',sans-serif;}
@@ -516,6 +525,7 @@ th.th-sort-active svg{opacity:1;}
 .free-blur-banner svg{width:16px;height:16px;flex-shrink:0;color:var(--text-dim);}
 .free-blur-banner-text{font-size:12.5px;color:var(--text-dim);flex:1;}
 .free-blur-banner-text button{background:none;border:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer;font-size:inherit;text-decoration:underline;}
+.accent-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.15);}
 
 /* IMPORT PROPDESK */
 .import-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
@@ -1067,7 +1077,8 @@ const DASHBOARD_WIDGETS = [
 
 const state = {
   route: 'dashboard',
-  theme: 'dark',
+  theme: loadThemePrefs().theme,
+  accent: loadThemePrefs().accent, // 'teal' (défaut, turquoise) | 'blue' — indépendant du thème clair/sombre
   session: null,
   profile: null,
   subscription: null,
@@ -1134,6 +1145,14 @@ function myLinkedTrader(){
   const email = (state.session.user.email||'').toLowerCase();
   if(!email) return null;
   return state.traders.find(t=>t.email && t.email.toLowerCase()===email) || null;
+}
+// Tous les traders "à moi" (créés par le compte connecté, OU liés par email) — contrairement à
+// myLinkedTrader() qui ne renvoie qu'une seule correspondance par email, un compte peut avoir
+// plusieurs traders à lui (ex: plusieurs traders créés à la main). Sert notamment au formulaire
+// d'avis PropFirm, pour laisser choisir au nom de quel trader on note.
+function myTraders(){
+  if(!state.session) return [];
+  return state.traders.filter(isMineTrader);
 }
 // Applique ce trader par défaut sur tous les filtres "trader" existants, une seule fois
 // à la connexion (sans écraser un filtre déjà modifié manuellement par l'utilisateur).
@@ -3126,6 +3145,22 @@ const NAV_GROUPS = [
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
 // du menu latéral (voir LEGAL_NAV_IDS / render()), comme sur la plupart des SaaS grand public.
 const LEGAL_NAV_IDS = ['confidentialite','mentions-legales','cgv'];
+// Préférences visuelles (thème clair/sombre + couleur d'accent) — persistées en localStorage
+// (par appareil), comme le reste des préférences d'affichage de cette section.
+const THEME_STORAGE_KEY = 'ledger_theme_prefs';
+function loadThemePrefs(){
+  try{
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return {
+      theme: (parsed && (parsed.theme==='light'||parsed.theme==='dark')) ? parsed.theme : 'dark',
+      accent: (parsed && (parsed.accent==='blue'||parsed.accent==='teal')) ? parsed.accent : 'teal',
+    };
+  }catch(e){ return { theme:'dark', accent:'teal' }; }
+}
+function saveThemePrefs(){
+  try{ localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ theme: state.theme, accent: state.accent })); }catch(e){}
+}
 const NAV_GROUPS_STORAGE_KEY = 'ledger_nav_open_groups';
 function loadNavOpenGroups(){
   try{
@@ -3288,6 +3323,10 @@ function render(){
         </div>
         <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
         <button class="icon-btn" id="theme-toggle">${icon(state.theme==='dark'?'sun':'moon')}<span class="nav-label">${state.theme==='dark'?'Mode clair':'Mode sombre'}</span></button>
+        <button class="icon-btn" id="accent-toggle" title="Changer la couleur d'accent">
+          <span class="accent-swatch" style="background:${state.accent==='blue'?'#149A80':'#1D6FE0'};"></span>
+          <span class="nav-label">${state.accent==='blue'?'Accent turquoise':'Accent bleu'}</span>
+        </button>
         ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
         <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
         <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
@@ -3318,6 +3357,7 @@ function render(){
     </div>
   `;
   document.documentElement.setAttribute('data-theme', state.theme);
+  document.documentElement.setAttribute('data-accent', state.accent);
   document.querySelectorAll('.sidebar [data-nav]').forEach(el=>{
     el.onclick = ()=>{
       state.route = el.dataset.nav;
@@ -3340,7 +3380,8 @@ function render(){
   });
   if(document.getElementById('global-search-btn')) document.getElementById('global-search-btn').onclick = globalSearchModal;
   if(document.getElementById('session-back-btn')) document.getElementById('session-back-btn').onclick = ()=>{ state.sessionDetailId = null; render(); };
-  document.getElementById('theme-toggle').onclick = ()=>{ state.theme = state.theme==='dark'?'light':'dark'; render(); };
+  document.getElementById('theme-toggle').onclick = ()=>{ state.theme = state.theme==='dark'?'light':'dark'; saveThemePrefs(); render(); };
+  document.getElementById('accent-toggle').onclick = ()=>{ state.accent = state.accent==='blue'?'teal':'blue'; saveThemePrefs(); render(); };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
   document.getElementById('contact-btn').onclick = openContactModal;
@@ -3651,8 +3692,11 @@ function dashboardUpcomingWidgetHtml(accountsF){
     </div>`;
 }
 // Widget "Dernière session de trading" — la session la plus récente (respecte le filtre trader du dashboard).
-function dashboardLastSessionWidgetHtml(f){
+function dashboardLastSessionWidgetHtml(f, myTraderIds){
   let sessions = [...state.yt_sessions];
+  // myTraderIds non-null : Dashboard restreint (tout le monde sauf admin) — jamais la session
+  // d'un autre utilisateur, même sans filtre trader explicite sélectionné.
+  if(myTraderIds) sessions = sessions.filter(s=>s.traderId && myTraderIds.has(s.traderId));
   if(f.trader.length) sessions = sessions.filter(s=>s.traderId && f.trader.includes(s.traderId));
   sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
   const s = sessions[0];
@@ -3680,14 +3724,21 @@ function lockedWidgetInline(label){
 }
 function viewDashboard(){
   const f = state.filters.dashboard;
-  const accountsF = state.accounts.filter(a=>
+  // Le Dashboard est toujours personnel, sur toutes les formules (Free/Premium/Lifetime) — seul
+  // un admin voit les données de l'ensemble de la plateforme. Contrairement aux pages Traders/
+  // Comptes (où les données des autres restent visibles en Premium, floutées en Free), ici on
+  // exclut carrément les autres traders, comme pour la Comptabilité.
+  const dashRestricted = !isAdmin();
+  const myTraders = dashRestricted ? state.traders.filter(isMineTrader) : state.traders;
+  const baseAccounts = dashRestricted ? state.accounts.filter(isMineAccount) : state.accounts;
+  const accountsF = baseAccounts.filter(a=>
     (!f.trader.length || f.trader.includes(a.traderId)) &&
     (!f.propfirm || a.propFirmId===f.propfirm)
   );
   const accIds = new Set(accountsF.map(a=>a.id));
   const alerts = computeDashboardAlerts(accountsF);
 
-  const activeTraders = state.traders.filter(t=>t.status==='ACTIF').length;
+  const activeTraders = myTraders.filter(t=>t.status==='ACTIF').length;
   const challenges = accountsF.filter(a=>a.type==='CHALLENGE');
   const pas = accountsF.filter(a=>a.type==='PA');
   const lives = accountsF.filter(a=>a.type==='LIVE');
@@ -3782,7 +3833,7 @@ function viewDashboard(){
 
   const filterBar = `
     <div class="filter-bar">
-      ${renderMultiSelect('fd-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      ${renderMultiSelect('fd-trader', myTraders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <select id="fd-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
       ${dateRangeFilterHtml('fd-date', f)}
       <div class="filter-bar-spacer"></div>
@@ -3814,7 +3865,7 @@ function viewDashboard(){
   const widgetHtml = {
     kpi: `
       <div class="stats-grid">
-        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${state.traders.length} au total</div></div>
+        <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
         <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
         <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
         <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
@@ -3848,7 +3899,7 @@ function viewDashboard(){
     monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
     recentPayouts: dashboardRecentPayoutsWidgetHtml(payoutsUnfiltered),
     upcoming: dashboardUpcomingWidgetHtml(accountsF),
-    lastSession: dashboardLastSessionWidgetHtml(f),
+    lastSession: dashboardLastSessionWidgetHtml(f, dashRestricted ? new Set(myTraders.map(t=>t.id)) : null),
   };
   const visibleOrder = state.dashboardLayout.order.filter(id=>!state.dashboardLayout.hidden.includes(id) && widgetHtml[id]!==undefined);
   const widgetsOut = visibleOrder.map(id=>`<div class="dash-widget" data-widget="${id}" style="margin-bottom:16px;">${widgetHtml[id]}</div>`).join('');
@@ -4215,7 +4266,10 @@ function viewPropfirmDetail(f){
   const stats = firmRatingStats(f.id);
   const ratings = firmRatings(f.id).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const count = state.accounts.filter(a=>a.propFirmId===f.id).length;
-  const myRating = myLinkedTrader() ? ratings.find(r=>r.traderId===myLinkedTrader().id) : null;
+  // Un avis "à moi" quel que soit celui de mes traders (s'il y en a plusieurs) au nom duquel
+  // il a été laissé — pas seulement celui reconnu automatiquement par email.
+  const myTraderIdsForRating = new Set(myTraders().map(t=>t.id));
+  const myRating = ratings.find(r=>myTraderIdsForRating.has(r.traderId)) || null;
   return `
     <div class="panel" style="margin-bottom:16px;">
       <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
@@ -4705,7 +4759,7 @@ const HELP_CATEGORIES = [
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
-    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. La page Comptabilité fait exception : elle n'affiche et n'exporte jamais que les lignes financières de tes propres comptes, quelle que soit ta formule." },
+    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. Le Dashboard et la page Comptabilité font exception : ils n'affichent jamais que les données de tes propres traders et comptes, quelle que soit ta formule." },
     { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose des exports CSV, Excel et PDF, réservés aux comptes Premium/Lifetime ; un export individuel complet peut aussi être demandé au support." },
   ]},
 ];
@@ -4818,6 +4872,7 @@ const MANUAL_CHAPTERS = [
     <ul>
       <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
       <li><b>Mode clair / Mode sombre</b> — bascule le thème visuel de l'application.</li>
+      <li><b>Accent bleu / Accent turquoise</b> — change la couleur d'accent de l'interface (boutons, liens, graphiques). Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
       <li><b>Réinitialiser</b> (administrateurs uniquement) — supprime définitivement toutes les données pour l'ensemble des utilisateurs du site. Action irréversible.</li>
       <li><b>Déconnexion</b> — ferme la session en cours.</li>
     </ul>
@@ -7880,23 +7935,27 @@ function firmFormModal(existing){
 /* ============================================================
    FORM: AVIS PROPFIRM (propfirm_ratings)
    Un avis = 4 sous-notes (générale, tarifs, règles, payout) + commentaire
-   optionnel. Il est rattaché AU COMPTE (createdBy) ET au trader dont l'email
-   correspond au compte connecté (myLinkedTrader()) — reconnu automatiquement,
-   sans sélection manuelle : on ne peut pas laisser un avis "au nom" d'un
-   autre trader. Un seul avis par couple (trader, PropFirm) : si ce trader en
-   a déjà un, ce formulaire le charge et le met à jour plutôt que d'en créer
-   un second. (Un admin qui modifie l'avis de quelqu'un d'autre, via le crayon
-   sur la fiche PropFirm, garde le trader d'origine de cet avis.)
+   optionnel. Il est rattaché AU COMPTE (createdBy) ET à un trader "à moi"
+   (myTraders() — créé par le compte, ou lié par email) : on ne peut jamais
+   laisser un avis "au nom" du trader de quelqu'un d'autre. Si le compte n'a
+   qu'un seul trader à lui, il est reconnu automatiquement (comme avant). S'il
+   en a plusieurs, un menu déroulant permet de choisir au nom duquel noter.
+   Un seul avis par couple (trader, PropFirm) : si le trader choisi en a déjà
+   un, ce formulaire le charge et le met à jour plutôt que d'en créer un
+   second. (Un admin qui modifie l'avis de quelqu'un d'autre, via le crayon
+   sur la fiche PropFirm, garde le trader d'origine de cet avis — pas de
+   sélecteur dans ce cas.)
 ============================================================ */
 function ratingFormModal(firm, existing){
-  const traderId = existing ? existing.traderId : (myLinkedTrader() ? myLinkedTrader().id : null);
+  const mine = myTraders();
+  let traderId = existing ? existing.traderId : ((myLinkedTrader() && mine.some(t=>t.id===myLinkedTrader().id)) ? myLinkedTrader().id : (mine[0] ? mine[0].id : null));
   if(!traderId){
-    showToast("Aucun trader n'est lié à ton compte (email correspondant) : impossible de laisser un avis. Demande à un admin de lier ton compte à ta fiche trader.", 'danger');
+    showToast("Aucun trader n'est lié à ton compte : impossible de laisser un avis. Crée d'abord un trader, ou demande à un admin de lier ton compte à ta fiche trader.", 'danger');
     return;
   }
-  const trader = getTrader(traderId);
+  const canPickTrader = !existing && mine.length>1;
   function findExisting(tid){ return state.propfirm_ratings.find(r=>r.propFirmId===firm.id && r.traderId===tid); }
-  const current = existing || findExisting(traderId) || null;
+  let current = existing || findExisting(traderId) || null;
   let draft = {
     generalRating: current ? Number(current.generalRating)||0 : 0,
     priceRating:   current ? Number(current.priceRating)||0 : 0,
@@ -7907,10 +7966,15 @@ function ratingFormModal(firm, existing){
     title: current ? 'Modifier mon avis' : 'Donner mon avis',
     bodyHtml: `
       <div class="field"><label>Trader</label>
-        <div style="font-weight:600;padding:2px 0;">${escapeHtml(trader ? trader.pseudo : '—')}</div>
-        <div class="field-hint" style="margin:2px 0 0;">Reconnu automatiquement depuis ton compte.</div>
+        ${canPickTrader ? `
+          <select id="rf-trader">${mine.map(t=>`<option value="${t.id}" ${t.id===traderId?'selected':''}>${escapeHtml(t.pseudo)}${findExisting(t.id)?' (avis déjà donné)':''}</option>`).join('')}</select>
+          <div class="field-hint" style="margin:2px 0 0;">Ton compte a plusieurs traders : choisis au nom duquel tu laisses cet avis.</div>
+        ` : `
+          <div style="font-weight:600;padding:2px 0;">${escapeHtml(getTrader(traderId) ? getTrader(traderId).pseudo : '—')}</div>
+          <div class="field-hint" style="margin:2px 0 0;">Reconnu automatiquement depuis ton compte.</div>
+        `}
       </div>
-      <div id="rf-existing-hint" class="field-hint" style="margin:10px 0 10px;">${current ? 'Tu as déjà un avis sur cette PropFirm : il sera mis à jour.' : ''}</div>
+      <div id="rf-existing-hint" class="field-hint" style="margin:10px 0 10px;">${current ? 'Tu as déjà un avis sur cette PropFirm pour ce trader : il sera mis à jour.' : ''}</div>
       <div id="rf-stars">
         ${RATING_CATEGORIES.map(c=>`
           <div class="field" style="margin-bottom:10px;">
@@ -7926,6 +7990,11 @@ function ratingFormModal(firm, existing){
       ${current ? `<button class="btn btn-danger" id="rf-delete" style="margin-right:auto;">${icon('trash')}Supprimer mon avis</button>` : ''}
       <button class="btn btn-primary" id="rf-save">Enregistrer</button>`,
     onMount(){
+      function refreshStars(){
+        RATING_CATEGORIES.forEach(c=>{
+          document.querySelector(`[data-star-row="${c.key}"]`).innerHTML = starInputHtml(c.key, draft[c.key]);
+        });
+      }
       document.getElementById('rf-stars').addEventListener('click', (e)=>{
         const btn = e.target.closest('[data-star-cat]');
         if(!btn) return;
@@ -7933,6 +8002,22 @@ function ratingFormModal(firm, existing){
         draft[cat] = Number(btn.dataset.starVal);
         document.querySelector(`[data-star-row="${cat}"]`).innerHTML = starInputHtml(cat, draft[cat]);
       });
+      const traderSelect = document.getElementById('rf-trader');
+      if(traderSelect) traderSelect.onchange = ()=>{
+        traderId = traderSelect.value;
+        current = findExisting(traderId) || null;
+        draft = {
+          generalRating: current ? Number(current.generalRating)||0 : 0,
+          priceRating:   current ? Number(current.priceRating)||0 : 0,
+          rulesRating:   current ? Number(current.rulesRating)||0 : 0,
+          payoutRating:  current ? Number(current.payoutRating)||0 : 0,
+        };
+        refreshStars();
+        document.getElementById('rf-existing-hint').textContent = current ? 'Tu as déjà un avis sur cette PropFirm pour ce trader : il sera mis à jour.' : '';
+        document.getElementById('rf-comment').value = (current && current.comment) || '';
+        const errEl = document.getElementById('rf-error');
+        if(errEl) errEl.textContent = '';
+      };
       document.getElementById('rf-cancel').onclick = closeModal;
       const delBtn = document.getElementById('rf-delete');
       if(delBtn) delBtn.onclick = ()=>{
