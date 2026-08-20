@@ -7533,11 +7533,22 @@ function bindViewEvents(){
         if(!target) return;
         const targetId = target.dataset.dashWidget;
         if(!targetId || targetId===draggedId) return;
+        // Dépose avant ou après le widget ciblé selon l'endroit précis du lâcher (moitié gauche/droite
+        // pour un widget partiel, moitié haute/basse pour un widget qui occupe (presque) toute la
+        // largeur) — ça permet de se glisser dans un espace vide à côté d'un widget, pas seulement
+        // de prendre sa place.
+        const rect = target.getBoundingClientRect();
+        const gridRect = dashGrid.getBoundingClientRect();
+        const isFullWidth = rect.width >= gridRect.width * 0.9;
+        const insertAfter = isFullWidth ? (e.clientY > rect.top + rect.height/2) : (e.clientX > rect.left + rect.width/2);
         const order = state.dashboardLayout.order;
         const fromIdx = order.indexOf(draggedId);
-        if(fromIdx<0 || order.indexOf(targetId)<0) return;
+        if(fromIdx<0) return;
         order.splice(fromIdx,1);
-        order.splice(order.indexOf(targetId),0,draggedId);
+        let targetIdx = order.indexOf(targetId);
+        if(targetIdx<0) return;
+        if(insertAfter) targetIdx++;
+        order.splice(targetIdx,0,draggedId);
         saveDashboardLayout();
         renderView();
       });
