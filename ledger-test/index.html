@@ -165,11 +165,11 @@ a{color:var(--accent);text-decoration:none;}
 .btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* STAT TILES */
-.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px;}
+/* auto-fit + minmax : le nombre de colonnes s'adapte à la largeur réelle du bloc (widget pleine
+   largeur, moyen ou petit) et les tuiles existantes se répartissent tout l'espace disponible —
+   plus de colonnes vides figées ni de débordement sur le module voisin. */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
 .stat-tile{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:10px;padding:16px 16px;min-width:0;}
-/* Dans un widget de dashboard rétréci (Petit/Moyen), la grille de stats se replie en colonnes réduites au lieu de déborder sur le module voisin */
-.dash-widget-sm .stats-grid,.dash-widget-md .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
-.dash-widget-sm .stats-grid{grid-template-columns:repeat(1,minmax(0,1fr));}
 .stat-label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
 .stat-value{font-size:24px;font-weight:700;margin-top:8px;font-family:'JetBrains Mono',monospace;}
 .stat-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
@@ -3373,10 +3373,9 @@ function openDashboardCustomizeModal(){
           if(!dragId || dragId===targetId) return;
           const order = state.dashboardLayout.order;
           const fromIdx = order.indexOf(dragId);
-          const toIdx = order.indexOf(targetId);
-          if(fromIdx<0 || toIdx<0) return;
+          if(fromIdx<0 || order.indexOf(targetId)<0) return;
           order.splice(fromIdx,1);
-          order.splice(toIdx,0,dragId);
+          order.splice(order.indexOf(targetId),0,dragId);
           saveDashboardLayout();
           openDashboardCustomizeModal();
         });
@@ -7499,31 +7498,50 @@ function bindViewEvents(){
         dwRows().forEach(r=>r.classList.remove('dw-dragging','dw-drag-over'));
       });
     });
-    dwRows().forEach(row=>{
-      row.addEventListener('dragover', (e)=>{
+    // Trouve le widget le plus proche du curseur (par distance au centre) — permet de déposer
+    // n'importe où dans la grille (même dans un espace vide entre deux widgets, ex : à côté d'un
+    // widget plus étroit que la ligne) et pas seulement pile sur le widget visé.
+    const closestDashRow = (x,y)=>{
+      let best=null, bestDist=Infinity;
+      dwRows().forEach(r=>{
+        const rect = r.getBoundingClientRect();
+        const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+        const d = Math.hypot(x-cx, y-cy);
+        if(d<bestDist){ bestDist=d; best=r; }
+      });
+      return best;
+    };
+    const dashGrid = document.querySelector('.dash-grid');
+    if(dashGrid){
+      dashGrid.addEventListener('dragover', (e)=>{
         if(!dwDragId) return;
         e.preventDefault();
-        if(row.dataset.dashWidget===dwDragId) return;
-        row.classList.add('dw-drag-over');
+        dwRows().forEach(r=>r.classList.remove('dw-drag-over'));
+        const target = closestDashRow(e.clientX, e.clientY);
+        if(target && target.dataset.dashWidget!==dwDragId) target.classList.add('dw-drag-over');
       });
-      row.addEventListener('dragleave', ()=>{ row.classList.remove('dw-drag-over'); });
-      row.addEventListener('drop', (e)=>{
+      dashGrid.addEventListener('dragleave', (e)=>{
+        if(e.target===dashGrid) dwRows().forEach(r=>r.classList.remove('dw-drag-over'));
+      });
+      dashGrid.addEventListener('drop', (e)=>{
         e.preventDefault();
-        row.classList.remove('dw-drag-over');
-        const targetId = row.dataset.dashWidget;
+        dwRows().forEach(r=>r.classList.remove('dw-drag-over'));
         const draggedId = dwDragId;
         dwDragId = null;
-        if(!draggedId || draggedId===targetId) return;
+        if(!draggedId) return;
+        const target = closestDashRow(e.clientX, e.clientY);
+        if(!target) return;
+        const targetId = target.dataset.dashWidget;
+        if(!targetId || targetId===draggedId) return;
         const order = state.dashboardLayout.order;
         const fromIdx = order.indexOf(draggedId);
-        const toIdx = order.indexOf(targetId);
-        if(fromIdx<0 || toIdx<0) return;
+        if(fromIdx<0 || order.indexOf(targetId)<0) return;
         order.splice(fromIdx,1);
-        order.splice(toIdx,0,draggedId);
+        order.splice(order.indexOf(targetId),0,draggedId);
         saveDashboardLayout();
         renderView();
       });
-    });
+    }
   }
   const fdClearBtn = document.getElementById('fd-clear');
   if(fdClearBtn) fdClearBtn.onclick = ()=>{
