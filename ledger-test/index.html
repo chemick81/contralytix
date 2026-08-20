@@ -6518,19 +6518,33 @@ function prepCardHtml(p){
     </div>`;
 }
 
+// Date du jour dans le fuseau Europe/Paris (indépendant du fuseau local du visiteur) au format
+// YYYY-MM-DD, utilisée pour forcer le calendrier économique sur "aujourd'hui, heure de Paris"
+// plutôt que de dépendre de l'horloge/fuseau du navigateur de chacun.
+function parisDateISO(){
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Paris', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date());
+  const get = t => parts.find(p=>p.type===t).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
 function calendarsPanelHtml(){
   // Widget officiel Investing.com (Webmaster Tools) — pattern documenté publiquement.
-  // countries=5 -> États-Unis (le plus pertinent pour le NQ). calType=week -> vue semaine.
+  // countries=5 -> États-Unis (le plus pertinent pour le NQ).
+  // dateFrom/dateTo forcés sur la date du jour (fuseau Europe/Paris, voir parisDateISO) à chaque
+  // rendu du panneau, pour que le calendrier s'ouvre toujours sur aujourd'hui plutôt que de garder
+  // en mémoire la dernière date consultée. timeZone=8 correspond à la zone Europe centrale
+  // (Paris/Berlin/Rome...) côté Investing.com ; le sélecteur de fuseau est retiré de "features"
+  // pour qu'un visiteur ne puisse pas basculer sur un autre fuseau par erreur.
   // Langue par défaut : anglais (le code langue français officiel n'a pas pu être vérifié
   // ici de façon fiable ; régénère le widget sur fr.investing.com/webmaster-tools/economic-calendar
   // si tu veux le forcer en français, et remplace juste l'URL ci-dessous dans le code).
-  const ecalSrc = 'https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5&calType=week&timeZone=8&lang=1';
+  const todayParis = parisDateISO();
+  const ecalSrc = `https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker&countries=5&calType=day&timeZone=8&lang=1&dateFrom=${todayParis}&dateTo=${todayParis}`;
   return `
     <div class="panel" style="margin-bottom:18px;">
-      <div class="panel-head"><div class="section-title">Calendrier économique — semaine (US)</div></div>
+      <div class="panel-head"><div class="section-title">Calendrier économique — aujourd'hui (US, heure de Paris)</div></div>
       <div class="panel-body" style="padding:8px;">
-        <iframe src="${ecalSrc}" width="100%" height="467" frameborder="0" allowtransparency="true" style="border:none;border-radius:6px;"></iframe>
-        <div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Calendrier économique fourni par <a href="https://www.investing.com/" target="_blank" rel="nofollow noopener">Investing.com</a>.</div>
+        <iframe src="${ecalSrc}" width="100%" height="467" loading="lazy" frameborder="0" allowtransparency="true" style="border:none;border-radius:6px;background:var(--surface-2);"></iframe>
+        <div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Calendrier économique fourni par <a href="https://www.investing.com/" target="_blank" rel="nofollow noopener">Investing.com</a>. Chargement parfois lent : ce widget dépend entièrement du serveur d'Investing.com, hors de notre contrôle.</div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
