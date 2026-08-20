@@ -508,6 +508,14 @@ th.th-sort-active svg{opacity:1;}
 .free-blur-card-title{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:14px;margin-bottom:4px;}
 .free-blur-card-title svg{width:15px;height:15px;}
 .free-blur-card-sub{font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.4;}
+/* Bandeau statique (non superposé) : utilisé quand les lignes floutées sont dispersées dans la
+   liste (règle "à moi vs les autres") plutôt que regroupées en fin de liste par quota — un
+   overlay absolu positionné par pourcentage cacherait alors des lignes "à moi" légitimement
+   visibles si elles se trouvent après des lignes floutées dans l'ordre d'affichage. */
+.free-blur-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;margin-top:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);}
+.free-blur-banner svg{width:16px;height:16px;flex-shrink:0;color:var(--text-dim);}
+.free-blur-banner-text{font-size:12.5px;color:var(--text-dim);flex:1;}
+.free-blur-banner-text button{background:none;border:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer;font-size:inherit;text-decoration:underline;}
 
 /* IMPORT PROPDESK */
 .import-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
@@ -1919,6 +1927,15 @@ function freeBlurOverlayHtml(total, hiddenCount, featureLabel){
       <div class="free-blur-card-sub">Débloque ${hiddenCount} ${featureLabel} supplémentaire${hiddenCount>1?'s':''} et bien plus.</div>
       <button class="btn btn-primary btn-sm" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
     </div>
+  </div>`;
+}
+// Variante SANS positionnement absolu — pour les listes où le flou "à moi vs les autres" est
+// dispersé (pas regroupé en fin de liste), voir le commentaire CSS sur .free-blur-banner.
+function freeBlurBannerHtml(hiddenCount, featureLabel){
+  if(perms().isPremium || hiddenCount<=0) return '';
+  return `<div class="free-blur-banner">
+    ${icon('lock')}
+    <div class="free-blur-banner-text">${hiddenCount} ${featureLabel} d'autres utilisateurs ${hiddenCount>1?'sont floutés':'est flouté'} ci-dessus. <button type="button" onclick="closeModal();state.route='subscription';render();">Passe à Premium</button> pour tout voir.</div>
   </div>`;
 }
 
@@ -4102,7 +4119,7 @@ function viewTraders(){
   const trBlurred = freeBlurIndexSet(state.traders, isMineTrader);
   return `
     <div class="panel">
-      <div class="table-wrap free-blur-wrap">
+      <div class="table-wrap">
         <table>
           <thead><tr><th>Trader</th><th>Email</th><th>Statut</th><th>Badges</th><th class="num">Comptes</th><th class="num">Dépenses</th><th class="num">Payouts</th><th></th></tr></thead>
           <tbody>
@@ -4138,9 +4155,9 @@ function viewTraders(){
             }).join('')}
           </tbody>
         </table>
-        ${freeBlurOverlayHtml(state.traders.length, trBlurred.size, 'traders')}
       </div>
     </div>
+    ${freeBlurBannerHtml(trBlurred.size, 'traders')}
   `;
 }
 
@@ -5299,10 +5316,10 @@ function viewAccounts(){
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
   // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
   const accBlurred = freeBlurIndexSet(list, isMineAccount);
-  return filterBar + `<div class="free-blur-wrap">
+  return filterBar + `<div>
     ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
-    ${freeBlurOverlayHtml(list.length, accBlurred.size, 'comptes')}
-  </div>`;
+  </div>
+  ${freeBlurBannerHtml(accBlurred.size, 'comptes')}`;
 }
 
 /* ============================================================
