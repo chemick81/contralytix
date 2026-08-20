@@ -666,7 +666,7 @@ th.th-sort-active svg{opacity:1;}
 
 /* GRILLE DU DASHBOARD — widgets modulaires (Petit 1/3, Moyen 1/2, Pleine largeur) */
 .dash-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
-.dash-widget{flex:1 1 100%;max-width:100%;min-width:0;}
+.dash-widget{flex:1 1 100%;max-width:100%;min-width:0;position:relative;}
 .dash-widget-md{flex-basis:calc(50% - 8px);max-width:calc(50% - 8px);}
 .dash-widget-sm{flex-basis:calc(33.333% - 11px);max-width:calc(33.333% - 11px);}
 @media (max-width:1000px){
@@ -675,6 +675,15 @@ th.th-sort-active svg{opacity:1;}
 @media (max-width:700px){
   .dash-widget-md,.dash-widget-sm{flex-basis:100%;max-width:100%;}
 }
+/* Toolbar flottante par widget : poignée de glisser-déposer + tailles S/M/L, directement sur le dashboard */
+.dash-widget-toolbar{position:absolute;top:8px;right:8px;z-index:6;display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border-soft);border-radius:8px;padding:3px;box-shadow:0 2px 8px rgba(0,0,0,0.14);opacity:0;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;pointer-events:none;}
+.dash-widget:hover .dash-widget-toolbar,.dash-widget:focus-within .dash-widget-toolbar{opacity:1;transform:translateY(0);pointer-events:auto;}
+@media (hover:none){.dash-widget-toolbar{opacity:1;transform:none;pointer-events:auto;position:static;justify-content:flex-end;box-shadow:none;border:none;background:none;margin-bottom:6px;}}
+.dash-widget-drag{cursor:grab;padding:3px 7px;color:var(--text-faint);font-size:13px;line-height:1;user-select:none;border-radius:5px;}
+.dash-widget-drag:hover{background:var(--surface-3);color:var(--text);}
+.dash-widget-toolbar .dlw-size-btn{font-size:10px;padding:3px 6px;}
+.dash-widget.dw-dragging{opacity:.4;}
+.dash-widget.dw-drag-over{outline:2px dashed var(--accent);outline-offset:6px;border-radius:12px;}
 
 /* CLASSEMENT (leaderboard) */
 .lb-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}
@@ -4026,9 +4035,17 @@ function viewDashboard(){
   };
   const visibleOrder = state.dashboardLayout.order.filter(id=>!state.dashboardLayout.hidden.includes(id) && widgetHtml[id]!==undefined);
   const dlSizes = state.dashboardLayout.sizes || {};
+  const DASH_SIZE_LABELS = { sm:'Petit', md:'Moyen', lg:'Pleine largeur' };
   const widgetsOut = `<div class="dash-grid">${visibleOrder.map(id=>{
-    const size = ['sm','md'].includes(dlSizes[id]) ? dlSizes[id] : '';
-    return `<div class="dash-widget${size?` dash-widget-${size}`:''}" data-widget="${id}">${widgetHtml[id]}</div>`;
+    const size = ['sm','md'].includes(dlSizes[id]) ? dlSizes[id] : 'lg';
+    const sizeBtns = ['sm','md','lg'].map(s=>`<button type="button" class="dlw-size-btn ${s===size?'active':''}" data-dw-size="${id}" data-dw-size-val="${s}" title="${DASH_SIZE_LABELS[s]}">${s.toUpperCase()}</button>`).join('');
+    return `<div class="dash-widget${size!=='lg'?` dash-widget-${size}`:''}" data-dash-widget="${id}">
+      <div class="dash-widget-toolbar">
+        <span class="dash-widget-drag" draggable="true" data-dw-drag="${id}" title="Glisser pour déplacer">⋮⋮</span>
+        <div class="dlw-size-select dash-widget-sizes">${sizeBtns}</div>
+      </div>
+      ${widgetHtml[id]}
+    </div>`;
   }).join('')}</div>`;
 
   return `
@@ -7430,6 +7447,64 @@ function bindViewEvents(){
   });
   bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
+  // Dashboard : glisser-déposer direct des widgets + sélecteur de taille S/M/L, sur la page elle-même
+  if(state.route==='dashboard'){
+    document.querySelectorAll('[data-dw-size]').forEach(b=>{
+      b.onclick = (e)=>{
+        e.stopPropagation();
+        const id = b.dataset.dwSize;
+        const val = b.dataset.dwSizeVal;
+        if(!state.dashboardLayout.sizes) state.dashboardLayout.sizes = {};
+        state.dashboardLayout.sizes[id] = val;
+        saveDashboardLayout();
+        renderView();
+      };
+    });
+    let dwDragId = null;
+    const dwRows = () => Array.from(document.querySelectorAll('[data-dash-widget]'));
+    document.querySelectorAll('[data-dw-drag]').forEach(handle=>{
+      handle.addEventListener('dragstart', (e)=>{
+        const row = handle.closest('[data-dash-widget]');
+        if(!row) return;
+        dwDragId = row.dataset.dashWidget;
+        row.classList.add('dw-dragging');
+        try{
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', dwDragId);
+          e.dataTransfer.setDragImage(row, 20, 20);
+        }catch(err){}
+      });
+      handle.addEventListener('dragend', ()=>{
+        dwDragId = null;
+        dwRows().forEach(r=>r.classList.remove('dw-dragging','dw-drag-over'));
+      });
+    });
+    dwRows().forEach(row=>{
+      row.addEventListener('dragover', (e)=>{
+        if(!dwDragId) return;
+        e.preventDefault();
+        if(row.dataset.dashWidget===dwDragId) return;
+        row.classList.add('dw-drag-over');
+      });
+      row.addEventListener('dragleave', ()=>{ row.classList.remove('dw-drag-over'); });
+      row.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        row.classList.remove('dw-drag-over');
+        const targetId = row.dataset.dashWidget;
+        const draggedId = dwDragId;
+        dwDragId = null;
+        if(!draggedId || draggedId===targetId) return;
+        const order = state.dashboardLayout.order;
+        const fromIdx = order.indexOf(draggedId);
+        const toIdx = order.indexOf(targetId);
+        if(fromIdx<0 || toIdx<0) return;
+        order.splice(fromIdx,1);
+        order.splice(toIdx,0,draggedId);
+        saveDashboardLayout();
+        renderView();
+      });
+    });
+  }
   const fdClearBtn = document.getElementById('fd-clear');
   if(fdClearBtn) fdClearBtn.onclick = ()=>{
     const { pfSplitStatus, pfSplitType } = state.filters.dashboard;
