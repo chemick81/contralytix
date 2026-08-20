@@ -82,14 +82,18 @@
   --slate:#5B6673; --slate-dim:rgba(91,102,115,0.08);
   --shadow: 0 8px 24px rgba(20,30,40,0.08);
 }
-/* Thème d'accent "Bleu électrique" — remplace uniquement --accent/--accent-dim/--accent-text,
-   indépendamment de Clair/Sombre (data-theme). Choisi pour rester distinct de --gold (Premium)
-   et garder un bon contraste dans les deux modes. */
-:root[data-theme="dark"][data-accent="blue"]{
-  --accent:#3E8EF7; --accent-dim:rgba(62,142,247,0.16); --accent-text:#FFFFFF;
-}
-:root[data-theme="light"][data-accent="blue"]{
-  --accent:#1D6FE0; --accent-dim:rgba(29,111,224,0.10); --accent-text:#FFFFFF;
+/* 3e thème visuel : "Premium doré" — ambiance chaude/sombre distincte de Sombre et Clair,
+   pas juste une variante de couleur d'accent. L'accent lui-même devient doré (au lieu du
+   turquoise), et --gold est éclairci pour rester lisible à côté (badges Premium, etc.). */
+:root[data-theme="premium"]{
+  --bg:#0D0B08; --surface:#161310; --surface-2:#1F1A14; --surface-3:#28211A;
+  --border:#332A1F; --border-soft:#241E17;
+  --text:#F2EAD9; --text-dim:#B8A98E; --text-faint:#7A6C55;
+  --accent:#E3B564; --accent-dim:rgba(227,181,100,0.18); --accent-text:#1A1206;
+  --danger:#E8664A; --danger-dim:rgba(232,102,74,0.16);
+  --gold:#F2C879; --gold-dim:rgba(242,200,121,0.20);
+  --slate:#8C7D62; --slate-dim:rgba(140,125,98,0.14);
+  --shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -525,7 +529,6 @@ th.th-sort-active svg{opacity:1;}
 .free-blur-banner svg{width:16px;height:16px;flex-shrink:0;color:var(--text-dim);}
 .free-blur-banner-text{font-size:12.5px;color:var(--text-dim);flex:1;}
 .free-blur-banner-text button{background:none;border:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer;font-size:inherit;text-decoration:underline;}
-.accent-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.15);}
 
 /* IMPORT PROPDESK */
 .import-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
@@ -704,6 +707,20 @@ th.th-sort-active svg{opacity:1;}
 .chart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--text-dim);margin-top:10px;}
 .chart-legend span{display:flex;align-items:center;gap:6px;}
 .legend-dot{width:8px;height:8px;border-radius:2px;}
+
+/* DONUT (anneaux KPI du Dashboard) */
+.donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+.donut-ring{width:140px;height:140px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;}
+.donut-ring::before{content:'';position:absolute;inset:18px;border-radius:50%;background:var(--surface);}
+.donut-hole{position:relative;z-index:1;text-align:center;}
+.donut-hole-value{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;}
+.donut-hole-label{font-size:10.5px;color:var(--text-faint);margin-top:1px;}
+.donut-legend{display:flex;flex-direction:column;gap:8px;min-width:180px;flex:1;}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.donut-legend-label{flex:1;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.donut-legend-value{font-weight:600;}
+.donut-legend-pct{color:var(--text-faint);font-size:11px;min-width:32px;text-align:right;}
 
 /* MISC */
 .pill-select{display:flex;gap:6px;}
@@ -899,7 +916,7 @@ th.th-sort-active svg{opacity:1;}
           <h3>Free</h3>
           <p class="ml-pricing-tagline">Pour démarrer sans engagement</p>
           <ul>
-            <li>✓ Traders illimités</li>
+            <li>✓ Jusqu'à 2 traders</li>
             <li>✓ Comptes gratuits par trader</li>
             <li>✓ Suivi des payouts</li>
             <li>✓ 5 dernières sessions live</li>
@@ -909,6 +926,7 @@ th.th-sort-active svg{opacity:1;}
           <h3>Premium</h3>
           <p class="ml-pricing-tagline">Mensuel ou annuel</p>
           <ul>
+            <li>✓ Traders illimités</li>
             <li>✓ Comptes illimités par trader</li>
             <li>✓ Exports CSV, Excel &amp; PDF</li>
             <li>✓ Calendrier des échéances</li>
@@ -1065,20 +1083,21 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
-  { id:'kpi',           label:'Indicateurs clés' },
-  { id:'delays',        label:'Délais moyens' },
-  { id:'chart',         label:'Dépenses vs Payouts (6 derniers mois)' },
-  { id:'calendar',      label:'Calendrier' },
-  { id:'monthRecap',    label:'Récap du mois' },
-  { id:'recentPayouts', label:'Payouts récents' },
-  { id:'upcoming',      label:'Prochaines échéances' },
-  { id:'lastSession',   label:'Dernière session de trading' },
+  { id:'kpi',            label:'Indicateurs clés' },
+  { id:'delays',         label:'Délais moyens' },
+  { id:'chart',          label:'Dépenses vs Payouts (6 derniers mois)' },
+  { id:'monthRecapRing', label:'Répartition du mois (anneau)' },
+  { id:'propfirmSplit',  label:'Répartition par PropFirm (anneau)' },
+  { id:'calendar',       label:'Calendrier' },
+  { id:'monthRecap',     label:'Récap du mois' },
+  { id:'recentPayouts',  label:'Payouts récents' },
+  { id:'upcoming',       label:'Prochaines échéances' },
+  { id:'lastSession',    label:'Dernière session de trading' },
 ];
 
 const state = {
   route: 'dashboard',
-  theme: loadThemePrefs().theme,
-  accent: loadThemePrefs().accent, // 'teal' (défaut, turquoise) | 'blue' — indépendant du thème clair/sombre
+  theme: loadThemePrefs().theme, // 'dark' | 'light' | 'premium'
   session: null,
   profile: null,
   subscription: null,
@@ -1868,6 +1887,7 @@ function computePermissions(){
     canUnlimitedAccounts: isPremiumRole,
     maxFreeAccounts: 3,
     maxFreeSessions: 5,
+    maxFreeTraders: 2,
   };
   return state.permissions;
 }
@@ -3145,21 +3165,34 @@ const NAV_GROUPS = [
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
 // du menu latéral (voir LEGAL_NAV_IDS / render()), comme sur la plupart des SaaS grand public.
 const LEGAL_NAV_IDS = ['confidentialite','mentions-legales','cgv'];
-// Préférences visuelles (thème clair/sombre + couleur d'accent) — persistées en localStorage
-// (par appareil), comme le reste des préférences d'affichage de cette section.
+// Préférence de thème visuel (Sombre / Clair / Premium doré) — persistée en localStorage (par
+// appareil), comme le reste des préférences d'affichage de cette section.
 const THEME_STORAGE_KEY = 'ledger_theme_prefs';
+const THEME_CYCLE = ['dark','light','premium'];
 function loadThemePrefs(){
   try{
     const raw = localStorage.getItem(THEME_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    return {
-      theme: (parsed && (parsed.theme==='light'||parsed.theme==='dark')) ? parsed.theme : 'dark',
-      accent: (parsed && (parsed.accent==='blue'||parsed.accent==='teal')) ? parsed.accent : 'teal',
-    };
-  }catch(e){ return { theme:'dark', accent:'teal' }; }
+    return { theme: (parsed && THEME_CYCLE.includes(parsed.theme)) ? parsed.theme : 'dark' };
+  }catch(e){ return { theme:'dark' }; }
 }
 function saveThemePrefs(){
-  try{ localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ theme: state.theme, accent: state.accent })); }catch(e){}
+  try{ localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ theme: state.theme })); }catch(e){}
+}
+// Icône/label du bouton de thème = la DESTINATION du prochain clic (pas le thème actuel),
+// même convention que l'ancien toggle Clair/Sombre à 2 états.
+function nextTheme(theme){
+  const i = THEME_CYCLE.indexOf(theme);
+  return THEME_CYCLE[(i+1) % THEME_CYCLE.length];
+}
+function themeToggleTarget(){
+  const next = nextTheme(state.theme);
+  const map = {
+    dark:    { icon:'moon',     label:'Mode sombre' },
+    light:   { icon:'sun',      label:'Mode clair' },
+    premium: { icon:'sparkles', label:'Thème Premium doré' },
+  };
+  return map[next];
 }
 const NAV_GROUPS_STORAGE_KEY = 'ledger_nav_open_groups';
 function loadNavOpenGroups(){
@@ -3322,11 +3355,7 @@ function render(){
           <div class="nav-label">${planBadgeHtml()}</div>
         </div>
         <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
-        <button class="icon-btn" id="theme-toggle">${icon(state.theme==='dark'?'sun':'moon')}<span class="nav-label">${state.theme==='dark'?'Mode clair':'Mode sombre'}</span></button>
-        <button class="icon-btn" id="accent-toggle" title="Changer la couleur d'accent">
-          <span class="accent-swatch" style="background:${state.accent==='blue'?'#149A80':'#1D6FE0'};"></span>
-          <span class="nav-label">${state.accent==='blue'?'Accent turquoise':'Accent bleu'}</span>
-        </button>
+        <button class="icon-btn" id="theme-toggle" title="Changer de thème (Sombre → Clair → Premium doré)">${icon(themeToggleTarget().icon)}<span class="nav-label">${themeToggleTarget().label}</span></button>
         ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
         <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
         <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
@@ -3357,7 +3386,6 @@ function render(){
     </div>
   `;
   document.documentElement.setAttribute('data-theme', state.theme);
-  document.documentElement.setAttribute('data-accent', state.accent);
   document.querySelectorAll('.sidebar [data-nav]').forEach(el=>{
     el.onclick = ()=>{
       state.route = el.dataset.nav;
@@ -3380,8 +3408,7 @@ function render(){
   });
   if(document.getElementById('global-search-btn')) document.getElementById('global-search-btn').onclick = globalSearchModal;
   if(document.getElementById('session-back-btn')) document.getElementById('session-back-btn').onclick = ()=>{ state.sessionDetailId = null; render(); };
-  document.getElementById('theme-toggle').onclick = ()=>{ state.theme = state.theme==='dark'?'light':'dark'; saveThemePrefs(); render(); };
-  document.getElementById('accent-toggle').onclick = ()=>{ state.accent = state.accent==='blue'?'teal':'blue'; saveThemePrefs(); render(); };
+  document.getElementById('theme-toggle').onclick = ()=>{ state.theme = nextTheme(state.theme); saveThemePrefs(); render(); };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
   document.getElementById('contact-btn').onclick = openContactModal;
@@ -3895,6 +3922,8 @@ function viewDashboard(){
           </div>
         </div>
       </div>`,
+    monthRecapRing: dashboardMonthRecapRingWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
+    propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
     monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
     recentPayouts: dashboardRecentPayoutsWidgetHtml(payoutsUnfiltered),
@@ -3907,7 +3936,7 @@ function viewDashboard(){
   return `
     ${!perms().isPremium ? `
       <div class="panel" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-dim);border-color:rgba(217,166,90,0.3);">
-        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
+        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
     ${filterBar}
@@ -3975,6 +4004,94 @@ function renderMiniChart(data, maxVal){
     bars += `<text x="${x+barW+2}" y="166" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`;
   });
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">${bars}</svg>`;
+}
+
+/* ============================================================
+   ANNEAU (donut) générique — utilisé par les widgets KPI du Dashboard.
+   segments: [{ label, value, color, valueLabel? }] — valueLabel permet d'afficher
+   autre chose que le montant brut (ex: "3 comptes") dans la légende.
+============================================================ */
+function donutChartHtml(segments, opts={}){
+  const items = segments.filter(s=>s.value>0);
+  const total = items.reduce((s,it)=>s+it.value,0);
+  if(total<=0){
+    return `<div class="empty-sub" style="padding:20px 0;text-align:center;">Aucune donnée pour le moment.</div>`;
+  }
+  let acc = 0;
+  const stops = items.map(it=>{
+    const from = acc/total*100;
+    acc += it.value;
+    const to = acc/total*100;
+    return `${it.color} ${from.toFixed(2)}% ${to.toFixed(2)}%`;
+  }).join(', ');
+  return `
+    <div class="donut-wrap">
+      <div class="donut-ring" style="background:conic-gradient(${stops});">
+        <div class="donut-hole">
+          <div class="donut-hole-value">${opts.centerValue!==undefined ? opts.centerValue : fmtMoney(total)}</div>
+          ${opts.centerLabel ? `<div class="donut-hole-label">${escapeHtml(opts.centerLabel)}</div>` : ''}
+        </div>
+      </div>
+      <div class="donut-legend">
+        ${items.map(it=>`
+          <div class="donut-legend-item">
+            <span class="donut-dot" style="background:${it.color};"></span>
+            <span class="donut-legend-label">${escapeHtml(it.label)}</span>
+            <span class="donut-legend-value">${it.valueLabel!==undefined ? it.valueLabel : fmtMoney(it.value)}</span>
+            <span class="donut-legend-pct">${Math.round(it.value/total*100)}%</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+// Widget "Répartition du mois" — anneau visuel des flux du mois en cours (frais Challenge,
+// frais Activation, Payouts), même source de calcul que le widget "Récap du mois"
+// (computeRecapFor) — toujours le mois en cours, indépendant du filtre de période du dashboard.
+function dashboardMonthRecapRingWidgetHtml(expenses, payouts){
+  const mk = todayISO().slice(0,7);
+  const r = computeRecapFor(expenses, payouts, mk, monthKey);
+  const segments = [
+    { label:'Frais Challenge', value:r.challenge, color:'var(--danger)' },
+    { label:'Frais Activation', value:r.activation, color:'var(--gold)' },
+    { label:'Payouts', value:r.payout, color:'var(--accent)' },
+  ];
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Répartition du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span></div></div>
+      <div class="panel-body">
+        ${donutChartHtml(segments, { centerLabel:'Total', centerValue: fmtMoney(r.challenge+r.activation+r.payout) })}
+      </div>
+    </div>`;
+}
+// Widget "Répartition par PropFirm" — anneau du nombre de comptes par PropFirm, sur les comptes
+// actuellement filtrés du dashboard (respecte donc la restriction "mes données uniquement").
+const DONUT_PALETTE = ['var(--accent)','var(--gold)','var(--danger)','var(--slate)','#8B5CF6','#EC4899','#22D3EE','#84CC16'];
+function dashboardPropfirmSplitWidgetHtml(accountsF){
+  const counts = {};
+  accountsF.forEach(a=>{
+    const key = a.propFirmId || '__none__';
+    counts[key] = (counts[key]||0)+1;
+  });
+  const entries = Object.entries(counts)
+    .map(([fid,count])=>({ fid, count, firm: fid!=='__none__' ? getFirm(fid) : null }))
+    .sort((a,b)=>b.count-a.count);
+  const top = entries.slice(0,7);
+  const rest = entries.slice(7);
+  const restCount = rest.reduce((s,e)=>s+e.count,0);
+  const segments = top.map((e,i)=>({
+    label: e.firm ? e.firm.name : 'Sans PropFirm',
+    value: e.count,
+    color: DONUT_PALETTE[i % DONUT_PALETTE.length],
+    valueLabel: `${e.count} compte${e.count>1?'s':''}`,
+  }));
+  if(restCount>0) segments.push({ label:'Autres', value:restCount, color:'var(--text-faint)', valueLabel:`${restCount} compte${restCount>1?'s':''}` });
+  const total = entries.reduce((s,e)=>s+e.count,0);
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('building')}Répartition par PropFirm</div></div>
+      <div class="panel-body">
+        ${donutChartHtml(segments, { centerLabel:'Comptes', centerValue: String(total) })}
+      </div>
+    </div>`;
 }
 
 /* ============================================================
@@ -4725,11 +4842,12 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel, le Classement et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel, le Classement et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
   ]},
   { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
     { q:"Quels types de comptes puis-je suivre ?", a:"Trois types : Challenge (évaluation en cours), PA (compte financé après réussite d'un challenge) et Live (compte financé en argent réel). Chaque compte est rattaché à un trader et à une PropFirm." },
+    { q:"Combien de traders puis-je créer en formule Free ?", a:"2 traders maximum par compte. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de traders illimité." },
     { q:"Combien de comptes puis-je suivre en formule Free ?", a:"3 comptes gratuits par trader. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de comptes illimité." },
     { q:"Comment un Challenge devient-il un compte PA ?", a:"Depuis la fiche du compte, marque le Challenge comme « Réussi » — Contralytix propose alors de créer automatiquement le compte PA correspondant, en reprenant les informations du challenge d'origine." },
     { q:"Puis-je masquer mes numéros de compte à l'écran ?", a:"Oui, le bouton « Afficher / Masquer les n° de compte » en bas de la barre latérale bascule entre le numéro complet et une version masquée (4 derniers chiffres visibles), pratique pour partager son écran." },
@@ -4871,8 +4989,7 @@ const MANUAL_CHAPTERS = [
     <p>En bas de la barre latérale se trouvent les commandes suivantes :</p>
     <ul>
       <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
-      <li><b>Mode clair / Mode sombre</b> — bascule le thème visuel de l'application.</li>
-      <li><b>Accent bleu / Accent turquoise</b> — change la couleur d'accent de l'interface (boutons, liens, graphiques). Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
+      <li><b>Thème (Sombre / Clair / Premium doré)</b> — un clic fait défiler les 3 thèmes visuels de l'application, dont un thème « Premium doré » à l'ambiance plus chaude. Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
       <li><b>Réinitialiser</b> (administrateurs uniquement) — supprime définitivement toutes les données pour l'ensemble des utilisateurs du site. Action irréversible.</li>
       <li><b>Déconnexion</b> — ferme la session en cours.</li>
     </ul>
@@ -4908,7 +5025,7 @@ const MANUAL_CHAPTERS = [
     <h3>Le tableau des traders</h3>
     <p>Pour chaque trader : nom et pseudo, e-mail, statut (Actif / Inactif), badges débloqués, nombre de comptes, total des dépenses et total des payouts.</p>
     <h3>Créer ou modifier un trader</h3>
-    <p>Le bouton « Nouveau trader » ouvre un formulaire de création. Un trader peut être marqué « Privé » : il n'est alors visible que par son créateur et les administrateurs.</p>
+    <p>Le bouton « Nouveau trader » ouvre un formulaire de création. Un trader peut être marqué « Privé » : il n'est alors visible que par son créateur et les administrateurs. En formule Free, un compte peut créer 2 traders maximum ; au-delà, il faut passer en Premium ou Lifetime.</p>
     <h3>Badges et régularité</h3>
     <ul>
       <li><b>Badges</b> — affiche la liste des succès débloqués et à débloquer pour ce trader.</li>
@@ -5010,8 +5127,8 @@ const MANUAL_CHAPTERS = [
     ${manualShot('15-abonnement.jpg', "Comparatif des formules Free, Premium et Lifetime.")}
     <h3>Comparatif des formules</h3>
     <ul>
-      <li><b>Free</b> — gratuite : traders illimités, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité toujours limitée à tes propres comptes, support communautaire.</li>
-      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
+      <li><b>Free</b> — gratuite : jusqu'à 2 traders, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité et Dashboard toujours limités à tes propres traders et comptes, support communautaire.</li>
+      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : traders illimités, comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
       <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
@@ -5240,6 +5357,7 @@ function viewCGV(){
         <div class="rgpd-block">
           <h2>2. Description du Service</h2>
           <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités d'aide à la préparation de séance assistées par IA fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
+          <p>La page Comptabilité et les exports associés (CSV, Excel, PDF) sont des outils de suivi personnel de l'activité prop firm de l'Utilisateur ; ils ne constituent en aucun cas un document fiscal, comptable ou une aide à la déclaration d'impôts, et ne sauraient s'y substituer. Contralytix ne fournit aucun conseil fiscal ou comptable. Pour toute question relative à la déclaration de ses revenus ou à ses obligations fiscales et comptables, l'Utilisateur est invité à consulter un expert-comptable ou tout professionnel qualifié.</p>
         </div>
 
         <div class="rgpd-block">
@@ -7040,17 +7158,18 @@ function viewSubscription(){
   // outils réservés à l'espace Admin (isAdmin()), PAS des avantages Premium — ne pas les
   // remettre ici sans les rendre réellement accessibles aux comptes Premium non-admin.
   const freeFeatures = [
-    'Trader(s) illimités',
+    `${perms().maxFreeTraders} traders max`,
     `${perms().maxFreeAccounts} comptes gratuits par trader`,
     `${perms().maxFreeSessions} sessions live les plus récentes`,
     'Suivi des payouts',
     'Tes propres Traders et Comptes toujours visibles, ceux des autres floutés',
     'Aperçu partiel du catalogue PropFirms',
-    'Comptabilité toujours limitée à tes propres comptes',
+    'Comptabilité et Dashboard toujours limités à tes propres traders et comptes',
     'Support communautaire',
   ];
   const premiumFeatures = [
     'Tout Free, plus :',
+    'Traders illimités',
     'Comptes illimités par trader',
     'Historique complet des sessions live',
     'Listes complètes, sans aperçu limité',
@@ -7855,6 +7974,16 @@ function traderFormModal(existing){
         }
         const dup = state.traders.find(x=>x.pseudo.toLowerCase()===pseudo.toLowerCase() && x.id!==t.id);
         if(dup){ document.getElementById('tf-error').textContent = 'Ce pseudo est déjà utilisé.'; return; }
+        // Formule Free : maximum maxFreeTraders traders créés par ce compte (Premium/Lifetime/Admin
+        // restent illimités — même logique que la limite de comptes par trader ailleurs dans l'app).
+        if(!existing && !perms().isPremium){
+          const ownTraders = state.traders.filter(x=>x.createdBy===currentUserId()).length;
+          if(ownTraders >= perms().maxFreeTraders){
+            closeModal();
+            openUpgradeModal(`La création de plus de ${perms().maxFreeTraders} traders`);
+            return;
+          }
+        }
         await upsert('traders', { ...t, firstName, lastName, pseudo, email, status, isPublic });
         if(!existing) applyMyTraderDefaultFilters();
         await logActivity(existing?'UPDATE':'CREATE', 'trader', t.id, `${pseudo}${isPublic?'':' (privé)'}`);
