@@ -2784,6 +2784,33 @@ function starInputHtml(cat, value){
 }
 function getAccount(id){ return state.accounts.find(a=>a.id===id); }
 
+// Normalisation d'un numéro de compte pour la détection de doublons : insensible à la casse,
+// aux espaces et à la ponctuation courante (ex: "AB-1234" et "ab 1234" sont considérés identiques).
+function normAccNum(s){ return (s||'').toString().trim().toLowerCase().replace(/[\s._-]+/g,''); }
+// Verrou anti-doublons : un même numéro de compte pour une même PropFirm ne doit exister
+// qu'une seule fois en base, tous traders confondus (un numéro de compte réel chez un broker/PropFirm
+// est unique). Retourne le compte existant en conflit, ou null. `excludeId` sert à exclure le compte
+// lui-même lors d'une modification.
+function findDuplicateAccount(propFirmId, accountNumber, excludeId){
+  const key = normAccNum(accountNumber);
+  if(!key || !propFirmId) return null;
+  return state.accounts.find(a => a.id!==excludeId && a.propFirmId===propFirmId && normAccNum(a.accountNumber)===key) || null;
+}
+// Regroupe tous les comptes de la base par (PropFirm, numéro de compte normalisé) et ne garde
+// que les groupes contenant plus d'un compte — utilisé par le panneau Admin > Doublons pour
+// donner une vue d'ensemble des doublons potentiels, tous traders confondus.
+function computeDuplicateAccountGroups(){
+  const map = new Map();
+  state.accounts.forEach(a=>{
+    const key = normAccNum(a.accountNumber);
+    if(!key) return;
+    const groupKey = a.propFirmId + '|' + key;
+    if(!map.has(groupKey)) map.set(groupKey, []);
+    map.get(groupKey).push(a);
+  });
+  return [...map.values()].filter(g=>g.length>1).sort((x,y)=>y.length-x.length);
+}
+
 function statusLabel(acc){
   return STATUS_LABELS[acc.status] || acc.status;
 }
@@ -7148,11 +7175,12 @@ function viewSessions(){
    VIEW: ADMIN (utilisateurs, rôles, journal d'activité)
 ============================================================ */
 const ADMIN_TABS = [
-  { id:'overview', label:'Vue d’ensemble', icon:'grid' },
-  { id:'users',    label:'Utilisateurs',    icon:'users' },
-  { id:'support',  label:'Support',         icon:'mail' },
-  { id:'settings', label:'Paramètres',      icon:'layout' },
-  { id:'log',      label:'Journal',         icon:'clock' },
+  { id:'overview',    label:'Vue d’ensemble', icon:'grid' },
+  { id:'users',       label:'Utilisateurs',    icon:'users' },
+  { id:'duplicates',  label:'Doublons',        icon:'lock' },
+  { id:'support',     label:'Support',         icon:'mail' },
+  { id:'settings',    label:'Paramètres',      icon:'layout' },
+  { id:'log',         label:'Journal',         icon:'clock' },
 ];
 function viewAdmin(){
   const subs = state.allSubscriptions || [];
@@ -7308,6 +7336,39 @@ function viewAdmin(){
       <button class="btn btn-primary btn-sm" id="pr-save" style="margin-top:14px;">${icon('check')}Enregistrer les tarifs</button>
     </div>`;
 
+  // Panneau de contrôle des doublons : regroupe tous les comptes de la base qui partagent le même
+  // numéro de compte pour une même PropFirm, tous traders confondus (un numéro de compte réel
+  // chez une PropFirm est censé être unique). Sert à repérer une saisie en double, un compte
+  // rattaché au mauvais trader, ou un reliquat d'import. Le formulaire de création bloque
+  // désormais ce cas (voir findDuplicateAccount), ce panneau permet de vérifier l'état existant
+  // de la base (comptes créés avant ce verrou, ou importés).
+  const dupGroups = computeDuplicateAccountGroups();
+  const dupAccountsCount = dupGroups.reduce((s,g)=>s+g.length, 0);
+  const duplicatesPanel = `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('lock')}Contrôle des doublons (${dupGroups.length} groupe${dupGroups.length>1?'s':''}${dupGroups.length?`, ${dupAccountsCount} comptes`:''})</div></div>
+      <div class="field-hint" style="margin:0 0 14px;">Détecte les comptes qui partagent le même numéro de compte pour une même PropFirm, tous traders confondus. À la création, ce cas est désormais bloqué automatiquement ; ce tableau sert à repérer les doublons déjà présents en base (comptes créés avant le verrou, ou issus d'un import).</div>
+      ${dupGroups.length===0 ? `<div class="empty-sub" style="padding:16px 0;">Aucun doublon détecté.</div>` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>PropFirm</th><th>N° de compte</th><th>Trader</th><th>Type</th><th>Statut</th><th>Créé par</th><th>Créé le</th><th></th></tr></thead>
+          <tbody>
+            ${dupGroups.map(g=>g.map((acc,i)=>`
+              <tr style="${i===0?'border-top:2px solid var(--border-soft);':''}">
+                <td>${i===0?escapeHtml(getFirm(acc.propFirmId)?.name||'—'):''}</td>
+                <td class="mono">${escapeHtml(acc.accountNumber||'—')}</td>
+                <td>${escapeHtml(getTrader(acc.traderId)?.pseudo||'—')}</td>
+                <td><span class="badge badge-slate">${TYPE_LABELS[acc.type]||acc.type}</span></td>
+                <td>${STATUS_LABELS[acc.status]||acc.status}</td>
+                <td class="text-dim">${escapeHtml((state.profiles.find(p=>p.id===acc.createdBy)||{}).email||'—')}</td>
+                <td class="text-dim mono">${acc.createdAt?fmtDate(acc.createdAt.slice(0,10)):'—'}</td>
+                <td><button class="btn btn-outline btn-sm" data-edit-account="${acc.id}">Ouvrir</button></td>
+              </tr>`).join('')).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`;
+
   const newMsgCount = state.support_messages.filter(m=>m.status==='nouveau').length;
   const messagesPanel = `
     <div class="panel" style="margin-bottom:16px;">
@@ -7358,13 +7419,14 @@ function viewAdmin(){
     <div class="admin-tabs">
       ${ADMIN_TABS.map(t=>`
         <button class="admin-tab-btn ${state.adminTab===t.id?'active':''}" data-admin-tab="${t.id}">
-          ${icon(t.icon)}${t.label}${t.id==='support' && newMsgCount ? ` <span class="badge badge-danger">${newMsgCount}</span>` : ''}
+          ${icon(t.icon)}${t.label}${t.id==='support' && newMsgCount ? ` <span class="badge badge-danger">${newMsgCount}</span>` : ''}${t.id==='duplicates' && dupGroups.length ? ` <span class="badge badge-danger">${dupGroups.length}</span>` : ''}
         </button>`).join('')}
     </div>`;
 
   const tabContent = {
     overview: dashboard,
     users: usersTable,
+    duplicates: duplicatesPanel,
     support: messagesPanel,
     settings: settingsPanel,
     log: logPanel,
@@ -8643,7 +8705,7 @@ function accountFormModal({ existing, type, parentChallenge }){
           <label>Montant personnalisé ($)</label><input id="af-customsize" type="number" value="${a.customSize||''}"/>
         </div>
       </div>
-      <div class="field"><label>Numéro de compte</label><input id="af-number" value="${a.accountNumber}"/></div>
+      <div class="field"><label>Numéro de compte <span style="color:var(--danger)">*</span></label><input id="af-number" value="${a.accountNumber}"/>${!isEdit?`<div class="field-hint">Obligatoire — doit être unique pour cette PropFirm (vérifié à l’enregistrement).</div>`:''}</div>
       <div class="field"><label>Mode de paiement</label>
         <div class="radio-group">
           <div class="radio-chip ${a.paymentType==='UNIQUE'?'selected':''}" data-pay="UNIQUE">Paiement unique</div>
@@ -8651,8 +8713,8 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field-row">
-        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat ($)</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
-        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel ($)</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
+        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat ($)${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
+        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel ($)${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
         <div class="field" id="af-purchase-date-wrap" style="display:${(a.type==='PA'||a.type==='LIVE')?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="af-date" type="date" value="${a.purchaseDate}"/></div>
       </div>
       <div id="af-pa-fields" style="display:${(a.type==='PA'||a.type==='LIVE')?'block':'none'};">
@@ -8748,6 +8810,12 @@ function accountFormModal({ existing, type, parentChallenge }){
         const accountNumber = document.getElementById('af-number').value.trim();
         const errorEl = document.getElementById('af-error');
         if(!traderId || !propFirmId || !accountNumber){ errorEl.textContent = 'Trader, PropFirm et numéro de compte sont obligatoires.'; return; }
+        const dupAccount = findDuplicateAccount(propFirmId, accountNumber, isEdit ? a.id : null);
+        if(dupAccount){
+          const dupTrader = getTrader(dupAccount.traderId);
+          errorEl.textContent = `Doublon détecté : ce numéro de compte existe déjà chez ${getFirm(propFirmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}). Vérifie le numéro ou modifie le compte existant plutôt que d’en créer un nouveau.`;
+          return;
+        }
         if(!isEdit && !perms().canUnlimitedAccounts){
           const ownAccountsForTrader = state.accounts.filter(x=>x.traderId===traderId && x.createdBy===currentUserId()).length;
           if(ownAccountsForTrader >= perms().maxFreeAccounts){
@@ -8764,6 +8832,13 @@ function accountFormModal({ existing, type, parentChallenge }){
         const customSize = size==='AUTRE' ? Number(document.getElementById('af-customsize').value)||0 : null;
         const purchasePrice = curPay==='UNIQUE' ? Number(document.getElementById('af-price').value)||0 : null;
         const monthlyAmount = curPay==='MENSUEL' ? Number(document.getElementById('af-monthly').value)||0 : null;
+        // Prix d'achat / montant mensuel obligatoires uniquement à la première création du compte
+        // (pas ré-imposé en modification, pour ne pas bloquer la correction d'anciens comptes
+        // saisis avant cette règle ou dont le montant n'est simplement pas encore connu).
+        if(!isEdit){
+          if(curPay==='UNIQUE' && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire à la création du compte.'; return; }
+          if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire à la création du compte.'; return; }
+        }
         let activationDate = a.activationDate, activationFee = a.activationFee, purchaseDate;
         if(curType==='PA' || curType==='LIVE'){
           activationDate = document.getElementById('af-activation-date').value;
