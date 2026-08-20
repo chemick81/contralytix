@@ -686,6 +686,9 @@ th.th-sort-active svg{opacity:1;}
 .dash-widget-drag{cursor:grab;padding:3px 7px;color:var(--text-faint);font-size:13px;line-height:1;user-select:none;border-radius:5px;}
 .dash-widget-drag:hover{background:var(--surface-3);color:var(--text);}
 .dash-widget-toolbar .dlw-size-btn{font-size:10px;padding:3px 6px;}
+.dash-widget-arrows{display:flex;align-items:center;gap:1px;border-right:1px solid var(--border-soft);padding-right:5px;margin-right:1px;}
+.dash-widget-arrow{padding:2px 3px !important;}
+.dash-widget-arrow svg{width:13px;height:13px;}
 .dash-widget.dw-dragging{opacity:.4;}
 .dash-widget.dw-drag-over{outline:2px dashed var(--accent);outline-offset:6px;border-radius:12px;}
 /* Module Alertes : en-tête cliquable pour replier/déplier */
@@ -4049,12 +4052,16 @@ function viewDashboard(){
   const visibleOrder = state.dashboardLayout.order.filter(id=>!state.dashboardLayout.hidden.includes(id) && widgetHtml[id]!==undefined);
   const dlSizes = state.dashboardLayout.sizes || {};
   const DASH_SIZE_LABELS = { sm:'Petit', md:'Moyen', lg:'Pleine largeur' };
-  const widgetsOut = `<div class="dash-grid">${visibleOrder.map(id=>{
+  const widgetsOut = `<div class="dash-grid">${visibleOrder.map((id,i)=>{
     const size = ['sm','md'].includes(dlSizes[id]) ? dlSizes[id] : 'lg';
     const sizeBtns = ['sm','md','lg'].map(s=>`<button type="button" class="dlw-size-btn ${s===size?'active':''}" data-dw-size="${id}" data-dw-size-val="${s}" title="${DASH_SIZE_LABELS[s]}">${s.toUpperCase()}</button>`).join('');
     return `<div class="dash-widget${size!=='lg'?` dash-widget-${size}`:''}" data-dash-widget="${id}">
       <div class="dash-widget-toolbar">
         <span class="dash-widget-drag" draggable="true" data-dw-drag="${id}" title="Glisser pour déplacer">⋮⋮</span>
+        <div class="dash-widget-arrows">
+          <button type="button" class="btn btn-ghost btn-sm dash-widget-arrow" data-dw-up="${id}" ${i===0?'disabled':''} title="Monter">${icon('arrowUp')}</button>
+          <button type="button" class="btn btn-ghost btn-sm dash-widget-arrow" data-dw-down="${id}" ${i===visibleOrder.length-1?'disabled':''} title="Descendre">${icon('arrowDown')}</button>
+        </div>
         <div class="dlw-size-select dash-widget-sizes">${sizeBtns}</div>
       </div>
       ${widgetHtml[id]}
@@ -7478,6 +7485,27 @@ function bindViewEvents(){
         saveDashboardLayout();
         renderView();
       };
+    });
+    // Flèches monter/descendre : déplace le widget par rapport à son voisin visible le plus proche
+    // (les modules masqués, eux, gardent leur position dans le tableau order — ils sont juste ignorés).
+    const moveDashWidget = (id, dir)=>{
+      const order = state.dashboardLayout.order;
+      const hidden = state.dashboardLayout.hidden || [];
+      const visible = order.filter(x=>!hidden.includes(x));
+      const vIdx = visible.indexOf(id);
+      const swapWith = visible[vIdx+dir];
+      if(!swapWith) return;
+      const i1 = order.indexOf(id), i2 = order.indexOf(swapWith);
+      if(i1<0 || i2<0) return;
+      [order[i1], order[i2]] = [order[i2], order[i1]];
+      saveDashboardLayout();
+      renderView();
+    };
+    document.querySelectorAll('[data-dw-up]').forEach(b=>{
+      b.onclick = (e)=>{ e.stopPropagation(); moveDashWidget(b.dataset.dwUp, -1); };
+    });
+    document.querySelectorAll('[data-dw-down]').forEach(b=>{
+      b.onclick = (e)=>{ e.stopPropagation(); moveDashWidget(b.dataset.dwDown, 1); };
     });
     let dwDragId = null;
     const dwRows = () => Array.from(document.querySelectorAll('[data-dash-widget]'));
