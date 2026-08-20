@@ -1108,9 +1108,12 @@ th.th-sort-active svg{opacity:1;}
   document.querySelectorAll('[data-ml-auth]').forEach(el=>{
     el.addEventListener('click', function(e){
       e.preventDefault();
-      state.authMode = el.dataset.mlAuth === 'signup' ? 'signup' : 'login';
+      // Flux unique désormais (plus de distinction connexion/inscription — voir renderAuthScreen) :
+      // on repart toujours de l'étape 1 (saisie e-mail), que le clic vienne du bouton
+      // "Créer un compte gratuit" ou "Se connecter" de la page d'accueil publique.
+      state.authStep = 'email';
       state.authError = '';
-      if(document.getElementById('tab-login')) renderAuthScreen();
+      if(typeof renderAuthScreen === 'function') renderAuthScreen();
       const loadingEl = document.getElementById('loading');
       if(loadingEl) loadingEl.scrollIntoView({ behavior:'smooth', block:'start' });
     });
@@ -1230,7 +1233,12 @@ const state = {
   profile: null,
   subscription: null,
   permissions: null,
-  authMode: (typeof location!=='undefined' && location.hash==='#signup') ? 'signup' : 'login',
+  // Connexion sans mot de passe : un seul flux (pas de distinction connexion/inscription),
+  // en 2 étapes — 'email' (saisie de l'adresse) puis 'code' (saisie du code à 6 chiffres reçu
+  // par e-mail). Voir sendAuthCode()/verifyAuthCode() et renderAuthScreen(). Seule la connexion
+  // Google reste séparée (bouton dédié, cf. signInWithGoogle()).
+  authStep: 'email',
+  authEmail: '',
   authError: '',
   traders: [],
   propfirms: [],
@@ -2313,53 +2321,88 @@ function openUpgradeModal(featureLabel){
     footHtml: `<button class="btn" onclick="closeModal()">Fermer</button>`
   });
 }
-async function signUpWithEmail(email, password){
+// Connexion/inscription sans mot de passe, par code à 6 chiffres envoyé par e-mail (Supabase
+// Auth OTP). Un seul et même appel crée le compte au premier envoi si l'adresse est inconnue
+// (shouldCreateUser:true), et se contente d'envoyer un code de connexion si le compte existe déjà —
+// d'où le flux unifié (pas d'onglets « Connexion » / « Inscription » séparés).
+// ⚠️ Élément de configuration Supabase (à faire une seule fois, hors de ce fichier) : dans
+// Dashboard Supabase > Authentication > Email Templates > "Magic Link", le template par défaut
+// envoie un lien cliquable. Pour recevoir un CODE à 6 chiffres comme ici, le corps du mail doit
+// utiliser la variable {{ .Token }} (ex: "Ton code de connexion : {{ .Token }}") plutôt que
+// {{ .ConfirmationURL }}. Sans ce réglage, l'utilisateur recevra un lien au lieu d'un code.
+async function sendAuthCode(email){
   state.authError = '';
-  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if(!email){ state.authError = 'Adresse e-mail requise.'; renderAuthScreen(); return; }
+  const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   if(error){ state.authError = error.message; renderAuthScreen(); return; }
-  state.authError = 'Compte créé. Si la confirmation par email est activée sur le projet, vérifie ta boîte mail avant de te connecter.';
+  state.authEmail = email;
+  state.authStep = 'code';
+  state.authError = '';
   renderAuthScreen();
 }
-async function signInWithEmail(email, password){
+async function verifyAuthCode(email, token){
   state.authError = '';
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(!token || token.length!==6){ state.authError = 'Saisis les 6 chiffres reçus par e-mail.'; renderAuthScreen(); return; }
+  const { error } = await supabaseClient.auth.verifyOtp({ email, token, type: 'email' });
   if(error){ state.authError = error.message; renderAuthScreen(); }
+  // Succès : onAuthStateChange (branché ailleurs, au boot) prend le relais et charge l'app —
+  // rien d'autre à faire ici.
+}
+async function resendAuthCode(){
+  if(!state.authEmail) return;
+  const { error } = await supabaseClient.auth.signInWithOtp({ email: state.authEmail, options: { shouldCreateUser: true } });
+  state.authError = error ? error.message : 'Nouveau code envoyé.';
+  renderAuthScreen();
 }
 async function signInWithGoogle(){
   await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
 }
 async function signOut(){
   await supabaseClient.auth.signOut();
+  // Repart de l'étape 1 (saisie e-mail) à la prochaine ouverture de l'écran de connexion,
+  // plutôt que de rester bloqué sur l'étape "code" d'une session précédente.
+  state.authStep = 'email';
+  state.authEmail = '';
+  state.authError = '';
 }
 
 /* ============================================================
    VIEW: AUTH SCREEN
 ============================================================ */
 function renderAuthScreen(){
-  const isSignup = state.authMode === 'signup';
+  const step = state.authStep === 'code' ? 'code' : 'email';
+  const stepNum = (n, active) => `<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${active?'#3ED6B5':'#1A222C'};color:${active?'#0B0F14':'#5B6673'};">${n}</div>`;
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('loading').innerHTML = `
     <div style="width:100%;max-width:360px;background:var(--surface,#12181F);border:1px solid var(--border,#232D38);border-radius:12px;padding:28px 26px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:7px;object-fit:cover;"/>
         <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#E8EDF2;">Contralytix</div>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:18px;background:#1A222C;padding:3px;border-radius:8px;">
-        <button id="tab-login" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;background:${!isSignup?'#3ED6B5':'transparent'};color:${!isSignup?'#0B0F14':'#8B98A5'};">Connexion</button>
-        <button id="tab-signup" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;background:${isSignup?'#3ED6B5':'transparent'};color:${isSignup?'#0B0F14':'#8B98A5'};">Inscription</button>
+      <div style="font-size:12px;color:#8B98A5;margin-bottom:20px;line-height:1.4;">Reçois un code temporaire par e-mail pour accéder à ton espace. Pas de mot de passe à retenir.</div>
+
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+        ${stepNum(1, true)}<label style="font-size:12px;font-weight:700;color:#E8EDF2;">Ton adresse e-mail</label>
       </div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:11.5px;color:#8B98A5;margin-bottom:5px;">Email</label>
-        <input id="auth-email" type="email" style="width:100%;background:#1A222C;border:1px solid #232D38;color:#E8EDF2;padding:9px 10px;border-radius:7px;font-size:13px;box-sizing:border-box;"/>
+      <input id="auth-email" type="email" placeholder="toi@email.fr" value="${escapeHtml(state.authEmail||'')}" ${step==='code'?'disabled':''} style="width:100%;background:${step==='code'?'#151B23':'#1A222C'};border:1px solid #232D38;color:${step==='code'?'#8B98A5':'#E8EDF2'};padding:9px 10px;border-radius:7px;font-size:13px;box-sizing:border-box;margin-bottom:10px;"/>
+      ${step==='email' ? `<button id="auth-send-code" style="width:100%;padding:10px;border:none;border-radius:7px;background:#3ED6B5;color:#0B0F14;font-weight:700;font-size:13.5px;cursor:pointer;">Envoyer un code</button>` : `<button id="auth-change-email" style="width:100%;padding:8px;border:1px solid #232D38;border-radius:7px;background:transparent;color:#8B98A5;font-weight:600;font-size:12px;cursor:pointer;">Modifier l’adresse e-mail</button>`}
+
+      ${step==='code' ? `
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:#5B6673;font-size:11px;">
+        <div style="flex:1;height:1px;background:#232D38;"></div>Puis<div style="flex:1;height:1px;background:#232D38;"></div>
       </div>
-      <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:11.5px;color:#8B98A5;margin-bottom:5px;">Mot de passe</label>
-        <input id="auth-password" type="password" style="width:100%;background:#1A222C;border:1px solid #232D38;color:#E8EDF2;padding:9px 10px;border-radius:7px;font-size:13px;box-sizing:border-box;"/>
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+        ${stepNum(2, true)}<label style="font-size:12px;font-weight:700;color:#E8EDF2;">Code reçu par e-mail</label>
       </div>
-      ${state.authError ? `<div style="color:#E85C4A;font-size:12px;margin-bottom:12px;line-height:1.4;">${state.authError}</div>` : ''}
-      <button id="auth-submit" style="width:100%;padding:10px;border:none;border-radius:7px;background:#3ED6B5;color:#0B0F14;font-weight:700;font-size:13.5px;cursor:pointer;margin-bottom:14px;">${isSignup?'Créer mon compte':'Se connecter'}</button>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:#5B6673;font-size:11px;">
+      <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 chiffres" style="width:100%;background:#1A222C;border:1px solid #232D38;color:#E8EDF2;padding:9px 10px;border-radius:7px;font-size:16px;letter-spacing:4px;text-align:center;box-sizing:border-box;margin-bottom:10px;"/>
+      <button id="auth-verify-code" disabled style="width:100%;padding:10px;border:none;border-radius:7px;background:#2A343F;color:#5B6673;font-weight:700;font-size:13.5px;cursor:not-allowed;transition:background .15s,color .15s;">Se connecter</button>
+      <div style="font-size:11px;color:#5B6673;margin-top:8px;line-height:1.4;">Le bouton s’active dès que les 6 chiffres sont renseignés. <a id="auth-resend-code" href="#" style="color:#8B98A5;text-decoration:underline;">Renvoyer un code</a></div>
+      ` : ''}
+
+      ${state.authError ? `<div style="color:#E85C4A;font-size:12px;margin-top:12px;line-height:1.4;">${escapeHtml(state.authError)}</div>` : ''}
+
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:#5B6673;font-size:11px;">
         <div style="flex:1;height:1px;background:#232D38;"></div>OU<div style="flex:1;height:1px;background:#232D38;"></div>
       </div>
       <button id="auth-google" style="width:100%;padding:10px;border:1px solid #232D38;border-radius:7px;background:transparent;color:#E8EDF2;font-weight:600;font-size:13px;cursor:pointer;">Continuer avec Google</button>
@@ -2372,15 +2415,30 @@ function renderAuthScreen(){
     e.preventDefault();
     openModal({ title:'Confidentialité & RGPD', bodyHtml: viewConfidentialite(), wide:true });
   };
-  document.getElementById('tab-login').onclick = ()=>{ state.authMode='login'; state.authError=''; renderAuthScreen(); };
-  document.getElementById('tab-signup').onclick = ()=>{ state.authMode='signup'; state.authError=''; renderAuthScreen(); };
-  document.getElementById('auth-submit').onclick = ()=>{
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
-    if(!email || !password){ state.authError='Email et mot de passe requis.'; renderAuthScreen(); return; }
-    if(isSignup) signUpWithEmail(email, password); else signInWithEmail(email, password);
-  };
   document.getElementById('auth-google').onclick = signInWithGoogle;
+  if(step==='email'){
+    const emailInput = document.getElementById('auth-email');
+    const submit = ()=> sendAuthCode(emailInput.value.trim());
+    document.getElementById('auth-send-code').onclick = submit;
+    emailInput.onkeydown = (e)=>{ if(e.key==='Enter') submit(); };
+    emailInput.focus();
+  } else {
+    document.getElementById('auth-change-email').onclick = ()=>{ state.authStep='email'; state.authError=''; renderAuthScreen(); };
+    document.getElementById('auth-resend-code').onclick = (e)=>{ e.preventDefault(); resendAuthCode(); };
+    const codeInput = document.getElementById('auth-code');
+    const verifyBtn = document.getElementById('auth-verify-code');
+    const refreshBtnState = ()=>{
+      const ready = codeInput.value.replace(/\D/g,'').length===6;
+      verifyBtn.disabled = !ready;
+      verifyBtn.style.background = ready ? '#3ED6B5' : '#2A343F';
+      verifyBtn.style.color = ready ? '#0B0F14' : '#5B6673';
+      verifyBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
+    };
+    codeInput.oninput = ()=>{ codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6); refreshBtnState(); };
+    codeInput.onkeydown = (e)=>{ if(e.key==='Enter' && codeInput.value.replace(/\D/g,'').length===6) verifyAuthCode(state.authEmail, codeInput.value.trim()); };
+    verifyBtn.onclick = ()=> verifyAuthCode(state.authEmail, codeInput.value.trim());
+    codeInput.focus();
+  }
 }
 
 /* ============================================================
@@ -3879,10 +3937,10 @@ function dashboardCalendarWidgetHtml(f, accIds){
     // réservé à la popup ouverte au clic (calendarDayModal), pour ne pas surcharger une case aussi
     // compacte.
     const dayTypes = [...new Set(dayItems.map(it=>it.type))];
-    const iconsHtml = dayTypes.length ? `<div class="cal-day-icons">${dayTypes.slice(0,3).map(t=>{
+    const iconsHtml = dayTypes.length ? `<div class="cal-day-icons">${dayTypes.map(t=>{
       const meta = CAL_EVENT_META[t] || { icon:'•', color:'slate' };
       return `<span class="cal-day-icon cal-day-icon-${meta.color}">${meta.icon}</span>`;
-    }).join('')}${dayTypes.length>3?`<span class="cal-day-icon-more">+${dayTypes.length-3}</span>`:''}</div>` : '';
+    }).join('')}</div>` : '';
     const evtTitle = dayItems.length ? dayItems.map(it=>(CAL_EVENT_META[it.type]||{label:it.type}).label).join(' · ') : '';
     return `<div class="cal-cell cal-cell-sm ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[evtTitle||(dayItems.length?'Voir le détail':''), holidayTitle].filter(Boolean).join(' · ')}">
       <div class="cal-daynum">${dayNum}${dayHolidays.length?`<span class="cal-holiday-flags" title="${holidayTitle}">${holidayFlags}</span>`:''}</div>
@@ -5282,7 +5340,7 @@ const MANUAL_CHAPTERS = [
     <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 15 « Abonnement et tarifs »).</p>` },
   { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
     <h3>Connexion et inscription</h3>
-    <p>L'écran d'accueil propose deux onglets : « Connexion » pour un compte existant, et « Inscription » pour créer un nouveau compte. Une adresse e-mail et un mot de passe suffisent.</p>
+    <p>La connexion se fait sans mot de passe : renseigne ton adresse e-mail, reçois un code à 6 chiffres, saisis-le pour accéder à ton espace. Le compte est créé automatiquement au premier code envoyé s'il n'existait pas encore — inutile de créer ou retenir un mot de passe. La connexion via Google reste disponible en alternative.</p>
     ${manualShot('02-connexion.jpg', "Écran de connexion / inscription.")}
     <h3>Interface générale</h3>
     <p>Une fois connecté, l'application se compose de deux zones principales :</p>
@@ -5504,7 +5562,7 @@ function viewConfidentialite(){
           <h2>2. Données collectées</h2>
           <table class="rgpd-table">
             <tr><th>Catégorie</th><th>Exemples</th><th>Origine</th></tr>
-            <tr><td>Compte</td><td>Adresse e-mail, mot de passe (haché), date d'inscription, dernière connexion</td><td>Renseignées à l'inscription</td></tr>
+            <tr><td>Compte</td><td>Adresse e-mail, date d'inscription, dernière connexion (aucun mot de passe stocké — connexion par code à usage unique envoyé par e-mail, ou via Google)</td><td>Renseignées à l'inscription</td></tr>
             <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
@@ -5558,7 +5616,7 @@ function viewConfidentialite(){
 
         <div class="rgpd-block">
           <h2>7. Sécurité</h2>
-          <p>L'accès aux données est protégé par une authentification par e-mail et mot de passe, et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 17 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
+          <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 17 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
         </div>
 
         <div class="rgpd-block">
