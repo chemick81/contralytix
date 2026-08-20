@@ -721,6 +721,14 @@ th.th-sort-active svg{opacity:1;}
 .donut-legend-label{flex:1;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .donut-legend-value{font-weight:600;}
 .donut-legend-pct{color:var(--text-faint);font-size:11px;min-width:32px;text-align:right;}
+.dash-split-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 28px;}
+.dash-split-col{min-width:0;}
+.dash-split-col + .dash-split-col{border-left:1px solid var(--border-soft);padding-left:28px;}
+.dash-split-col-title{display:flex;align-items:center;gap:7px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;margin-bottom:10px;}
+@media (max-width:760px){
+  .dash-split-grid{grid-template-columns:1fr;}
+  .dash-split-col + .dash-split-col{border-left:none;padding-left:0;border-top:1px solid var(--border-soft);padding-top:16px;}
+}
 
 /* MISC */
 .pill-select{display:flex;gap:6px;}
@@ -1086,8 +1094,7 @@ const DASHBOARD_WIDGETS = [
   { id:'kpi',            label:'Indicateurs clés' },
   { id:'delays',         label:'Délais moyens' },
   { id:'chart',          label:'Dépenses vs Payouts (6 derniers mois)' },
-  { id:'monthRecapRing', label:'Répartition du mois (anneau)' },
-  { id:'propfirmSplit',  label:'Répartition par PropFirm (anneau)' },
+  { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
   { id:'monthRecap',     label:'Récap du mois' },
   { id:'recentPayouts',  label:'Payouts récents' },
@@ -1132,7 +1139,7 @@ const state = {
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
-    dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false },
+    dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'' },
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
@@ -3652,14 +3659,24 @@ function dashboardCalendarWidgetHtml(f, accIds){
 function dashboardMonthRecapWidgetHtml(expenses, payouts){
   const mk = todayISO().slice(0,7);
   const r = computeRecapFor(expenses, payouts, mk, monthKey);
+  const ringSegments = [
+    { label:'Frais Challenge', value:r.challenge, color:'var(--danger)' },
+    { label:'Frais Activation', value:r.activation, color:'var(--gold)' },
+    { label:'Payouts', value:r.payout, color:'var(--accent)' },
+  ];
   return `
     <div class="panel">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span></div></div>
       <div class="panel-body">
-        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-          <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain')}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
-          <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost')}</div><div class="stat-sub">${recapMoney(r.challenge,'cost')} challenges · ${recapMoney(r.activation,'cost')} activation</div></div>
-          <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
+        <div class="dash-split-grid">
+          <div class="dash-split-col">
+            ${donutChartHtml(ringSegments, { centerLabel:'Total', centerValue: fmtMoney(r.challenge+r.activation+r.payout) })}
+          </div>
+          <div class="dash-split-col">
+            <div class="stat-tile" style="--rail:var(--accent);margin-bottom:10px;"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain')}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
+            <div class="stat-tile" style="--rail:var(--danger);margin-bottom:10px;"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost')}</div><div class="stat-sub">${recapMoney(r.challenge,'cost')} challenges · ${recapMoney(r.activation,'cost')} activation</div></div>
+            <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -3922,8 +3939,7 @@ function viewDashboard(){
           </div>
         </div>
       </div>`,
-    monthRecapRing: dashboardMonthRecapRingWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
-    propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF),
+    propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
     monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
     recentPayouts: dashboardRecentPayoutsWidgetHtml(payoutsUnfiltered),
@@ -4043,31 +4059,20 @@ function donutChartHtml(segments, opts={}){
       </div>
     </div>`;
 }
-// Widget "Répartition du mois" — anneau visuel des flux du mois en cours (frais Challenge,
-// frais Activation, Payouts), même source de calcul que le widget "Récap du mois"
-// (computeRecapFor) — toujours le mois en cours, indépendant du filtre de période du dashboard.
-function dashboardMonthRecapRingWidgetHtml(expenses, payouts){
-  const mk = todayISO().slice(0,7);
-  const r = computeRecapFor(expenses, payouts, mk, monthKey);
-  const segments = [
-    { label:'Frais Challenge', value:r.challenge, color:'var(--danger)' },
-    { label:'Frais Activation', value:r.activation, color:'var(--gold)' },
-    { label:'Payouts', value:r.payout, color:'var(--accent)' },
-  ];
-  return `
-    <div class="panel">
-      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Répartition du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span></div></div>
-      <div class="panel-body">
-        ${donutChartHtml(segments, { centerLabel:'Total', centerValue: fmtMoney(r.challenge+r.activation+r.payout) })}
-      </div>
-    </div>`;
-}
 // Widget "Répartition par PropFirm" — anneau du nombre de comptes par PropFirm, sur les comptes
 // actuellement filtrés du dashboard (respecte donc la restriction "mes données uniquement").
+// Deux filtres locaux, combinables entre eux (état persisté dans state.filters.dashboard) :
+// - pfSplitStatus : tous les comptes, ou uniquement les comptes actifs.
+// - pfSplitType   : tous types, ou Challenge / PA séparément (pour comparer où sont les
+//   Challenges en cours vs les comptes déjà financés, PropFirm par PropFirm).
 const DONUT_PALETTE = ['var(--accent)','var(--gold)','var(--danger)','var(--slate)','#8B5CF6','#EC4899','#22D3EE','#84CC16'];
-function dashboardPropfirmSplitWidgetHtml(accountsF){
+function dashboardPropfirmSplitWidgetHtml(accountsF, f){
+  let list = accountsF;
+  if(f.pfSplitStatus==='active') list = list.filter(a=>a.status==='ACTIF');
+  if(f.pfSplitType==='CHALLENGE' || f.pfSplitType==='PA') list = list.filter(a=>a.type===f.pfSplitType);
+
   const counts = {};
-  accountsF.forEach(a=>{
+  list.forEach(a=>{
     const key = a.propFirmId || '__none__';
     counts[key] = (counts[key]||0)+1;
   });
@@ -4085,9 +4090,23 @@ function dashboardPropfirmSplitWidgetHtml(accountsF){
   }));
   if(restCount>0) segments.push({ label:'Autres', value:restCount, color:'var(--text-faint)', valueLabel:`${restCount} compte${restCount>1?'s':''}` });
   const total = entries.reduce((s,e)=>s+e.count,0);
+
   return `
     <div class="panel">
-      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('building')}Répartition par PropFirm</div></div>
+      <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('building')}Répartition par PropFirm</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div class="recap-granularity">
+            <button type="button" class="recap-gran-btn ${f.pfSplitStatus==='all'?'active':''}" data-pf-split-status="all">Tous</button>
+            <button type="button" class="recap-gran-btn ${f.pfSplitStatus==='active'?'active':''}" data-pf-split-status="active">Actifs uniquement</button>
+          </div>
+          <div class="recap-granularity">
+            <button type="button" class="recap-gran-btn ${f.pfSplitType==='all'?'active':''}" data-pf-split-type="all">Tous types</button>
+            <button type="button" class="recap-gran-btn ${f.pfSplitType==='CHALLENGE'?'active':''}" data-pf-split-type="CHALLENGE">Challenge</button>
+            <button type="button" class="recap-gran-btn ${f.pfSplitType==='PA'?'active':''}" data-pf-split-type="PA">PA</button>
+          </div>
+        </div>
+      </div>
       <div class="panel-body">
         ${donutChartHtml(segments, { centerLabel:'Comptes', centerValue: String(total) })}
       </div>
@@ -7330,7 +7349,11 @@ function bindViewEvents(){
   bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   const fdClearBtn = document.getElementById('fd-clear');
-  if(fdClearBtn) fdClearBtn.onclick = ()=>{ state.filters.dashboard = {trader:[],propfirm:'',dateFrom:'',dateTo:'',calMonth:'',dateMenuOpen:false,traderMenuOpen:false}; setTraderFilterEverywhere([]); renderView(); };
+  if(fdClearBtn) fdClearBtn.onclick = ()=>{
+    const { pfSplitStatus, pfSplitType } = state.filters.dashboard;
+    state.filters.dashboard = {trader:[],propfirm:'',dateFrom:'',dateTo:'',calMonth:'',dateMenuOpen:false,traderMenuOpen:false,pfSplitStatus,pfSplitType};
+    setTraderFilterEverywhere([]); renderView();
+  };
   const dashCustomizeBtn = document.getElementById('dash-customize-btn');
   if(dashCustomizeBtn) dashCustomizeBtn.onclick = openDashboardCustomizeModal;
   const dashCalPrev = document.getElementById('dashcal-prev');
@@ -7345,6 +7368,14 @@ function bindViewEvents(){
     state.filters.dashboard.calMonth = addMonths(mk+'-01', 1).slice(0,7);
     renderView();
   };
+  document.querySelectorAll('[data-pf-split-status]').forEach(b=>b.onclick=()=>{
+    state.filters.dashboard.pfSplitStatus = b.dataset.pfSplitStatus;
+    renderView();
+  });
+  document.querySelectorAll('[data-pf-split-type]').forEach(b=>b.onclick=()=>{
+    state.filters.dashboard.pfSplitType = b.dataset.pfSplitType;
+    renderView();
+  });
   document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
     tile.onclick = ()=>openDelayDetailModal(tile.dataset.delayDetail);
   });
