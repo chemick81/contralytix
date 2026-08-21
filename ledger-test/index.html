@@ -9034,7 +9034,7 @@ function accountFormModal({ existing, type, parentChallenge }){
       <div class="field-row">
         <div class="field"><label>Devise</label>
           <select id="af-currency">
-            ${['USD','EUR','GBP'].map(c=>`<option value="${c}" ${(a.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
+            ${['USD','EUR'].map(c=>`<option value="${c}" ${(a.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
           </select>
         </div>
         <div class="field" id="af-fxrate-wrap" style="display:${(a.currency||'USD')==='EUR'?'none':'block'};">
@@ -9133,6 +9133,7 @@ function accountFormModal({ existing, type, parentChallenge }){
       if(dateFieldForFx) dateFieldForFx.addEventListener('change', autofillFxRate);
       const activationDateFieldForFx = document.getElementById('af-activation-date');
       if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', autofillFxRate);
+      autofillFxRate();
       const traderSelect = document.getElementById('af-trader');
       if(!lockTrader) traderSelect.onchange = refreshParentChallengeOptions;
       if(!lockTrader){
@@ -9329,7 +9330,7 @@ function payoutsModal(acc){
         <div class="field"><label>Montant</label><input id="pm-amount" type="number" value="${editing?editing.amount:''}"/></div>
         <div class="field"><label>Devise</label>
           <select id="pm-currency">
-            ${['USD','EUR','GBP'].map(c=>`<option value="${c}" ${(editing?editing.currency:'USD')===c?'selected':''}>${c}</option>`).join('')}
+            ${['USD','EUR'].map(c=>`<option value="${c}" ${(editing?editing.currency:'USD')===c?'selected':''}>${c}</option>`).join('')}
           </select>
         </div>
         <div class="field"><label>Date</label><input id="pm-date" type="date" value="${editing?editing.date:todayISO()}"/></div>
@@ -9386,6 +9387,7 @@ function payoutsModal(acc){
     if(pmCurrencySelect){
       pmCurrencySelect.addEventListener('change', autofillPmFxRate);
       document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
+      autofillPmFxRate();
     }
     const receiptViewLink = document.getElementById('pm-receipt-view');
     if(receiptViewLink) receiptViewLink.onclick = async (e)=>{
