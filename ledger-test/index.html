@@ -6780,6 +6780,16 @@ function toEur(amount, fxRateToEur){
 function fmtEur(n){
   return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
 }
+// Affiche un montant avec le symbole de SA propre devise (contrairement à fmtMoney(), qui
+// affiche toujours "$" quelle que soit la devise réelle — conservé tel quel partout ailleurs
+// dans l'app pour ne pas modifier le comportement existant des pages qui ne gèrent qu'une
+// seule devise). À utiliser uniquement là où une devise par ligne est vraiment disponible
+// (ex: liste des payouts d'un compte).
+function fmtMoneyCur(amount, currency){
+  const symbols = { USD:'$', EUR:'€', GBP:'£' };
+  const symbol = symbols[currency] || '$';
+  return Number(amount||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
+}
 
 function computeFiscalYearData(year){
   const mineAccounts = state.accounts.filter(isMineAccount);
@@ -9305,10 +9315,14 @@ function payoutsModal(acc){
   let editingId = null; // id of the payout currently being edited, or null when adding a new one
   function body(){
     const list = state.payouts.filter(p=>p.accountId===acc.id).sort((a,b)=>b.date.localeCompare(a.date));
-    const total = list.reduce((s,p)=>s+Number(p.amount),0);
+    // Des payouts d'un même compte peuvent être dans des devises différentes (voir le
+    // sélecteur "Devise" ci-dessous) : le total ne peut plus être une simple somme brute,
+    // on convertit chaque ligne en EUR avant de l'additionner (voir toEur(), module Fiscalité).
+    const totalEur = list.reduce((s,p)=>s + toEur(p.amount, p.fxRateToEur), 0);
+    const mixedCurrencies = new Set(list.map(p=>p.currency||'USD')).size > 1;
     const editing = editingId ? list.find(p=>p.id===editingId) : null;
     return `
-      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtMoney(total)}</span></div>
+      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtEur(totalEur)}</span>${mixedCurrencies?' <span class="text-faint">(converti, devises mixtes)</span>':''}</div>
       ${canEdit(acc) ? `
       ${editing ? `<div class="field-hint" style="margin-bottom:8px;color:var(--gold);">Modification du payout du ${fmtDate(editing.date)}</div>` : ''}
       <div class="field-row">
@@ -9342,7 +9356,7 @@ function payoutsModal(acc){
               list.map(p=>`<tr>
                 <td class="mono text-dim">${fmtDate(p.date)}</td>
                 <td class="text-dim">${p.note||'—'}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoney(p.amount)}</td>
+                <td class="num" style="color:var(--accent)">${fmtMoneyCur(p.amount, p.currency)}</td>
                 <td>${`<div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
                     <button class="btn btn-ghost btn-sm" data-receipt-payout="${p.id}" title="Reçu PDF">${icon('receipt')}</button>
                     ${canEdit(p) ? `<button class="btn btn-ghost btn-sm" data-edit-payout="${p.id}">${icon('edit')}</button>
