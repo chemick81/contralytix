@@ -1210,7 +1210,7 @@ const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL,
 // séance : elle est alors envoyée avec la requête (et uniquement stockée dans
 // son navigateur, via localStorage) pour servir de repli.
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
-const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings'];
+const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts'];
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
@@ -1245,6 +1245,10 @@ const state = {
   accounts: [],
   payouts: [],
   account_notes: [],
+  // Justificatifs de payout — plusieurs par payout possible (voir payoutReceiptsModal()), à la
+  // différence de accounts.receiptPath/payouts.receiptPath (un seul fichier, conservés tels quels
+  // pour compat, migrés vers cette table par migration_payout_receipts.sql).
+  payout_receipts: [],
   yt_sessions: [],
   market_prep: [],
   propfirm_ratings: [],
@@ -1365,7 +1369,7 @@ async function loadAll(){
   }
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts'];
 
 /* ============================================================
    RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
@@ -2520,10 +2524,10 @@ function accountingPeriodFilter(x, f){
 }
 // Formatage monétaire pour les tableaux/widgets de type "récap" (coûts en négatif, gains en positif).
 // Global (pas seulement viewAccounting) pour être réutilisable par le widget "Récap du mois" du dashboard.
-function recapMoney(v, kind){ // kind: 'cost' | 'gain' | 'net'
-  if(kind==='cost') return v>0 ? `-${fmtMoney(v)}` : '—';
-  if(kind==='gain') return v>0 ? `+${fmtMoney(v)}` : '—';
-  return v>=0 ? `+${fmtMoney(v)}` : fmtMoney(v);
+function recapMoney(v, kind, currency='USD'){ // kind: 'cost' | 'gain' | 'net'
+  if(kind==='cost') return v>0 ? `-${fmtMoneyCur(v,currency)}` : '—';
+  if(kind==='gain') return v>0 ? `+${fmtMoneyCur(v,currency)}` : '—';
+  return v>=0 ? `+${fmtMoneyCur(v,currency)}` : fmtMoneyCur(v,currency);
 }
 function recapRoi(roi){ return roi===null ? '—' : `${roi>=0?'+':''}${roi.toFixed(1)}%`; }
 // Calcule le récap Payouts/Challenges/Activation/Total coûts/Net/ROI pour un ensemble de mouvements
@@ -2531,13 +2535,17 @@ function recapRoi(roi){ return roi===null ? '—' : `${roi>=0?'+':''}${roi.toFix
 function computeRecapFor(expenses, payouts, pk, keyFn){
   const exp = expenses.filter(e=>keyFn(e.date)===pk);
   const pay = payouts.filter(p=>keyFn(p.date)===pk);
+  const all = [...exp, ...pay];
+  const mixed = new Set(all.map(it=>it.currency||'USD')).size>1;
+  const currency = mixed ? 'EUR' : (all.length ? (all[0].currency||'USD') : 'USD');
+  const val = (it)=> mixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   let challenge=0, activation=0;
-  exp.forEach(e=>{ if(e.type==='ACTIVATION') activation+=e.amount; else challenge+=e.amount; });
-  const payout = pay.reduce((s,p)=>s+Number(p.amount),0);
+  exp.forEach(e=>{ const v=val(e); if(e.type==='ACTIVATION') activation+=v; else challenge+=v; });
+  const payout = pay.reduce((s,p)=>s+val(p),0);
   const totalCosts = challenge+activation;
   const net = payout-totalCosts;
   const roi = totalCosts>0 ? (net/totalCosts*100) : null;
-  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi };
+  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi, currency, mixed };
 }
 /* ============================================================
    JOURS FÉRIÉS — France & États-Unis
@@ -2900,10 +2908,14 @@ function computeAccountExpenses(acc){
   const lines = [];
   const today = todayISO();
   const stopDate = acc.endDate && acc.endDate < today ? acc.endDate : today;
+  // Chaque ligne porte la devise/taux de change DU COMPTE (voir migration_fiscalite.sql) — permet
+  // à toute agrégation multi-comptes (Dashboard, Comptabilité, Bilan...) de sommer correctement
+  // même si les comptes ne sont pas tous dans la même devise (voir sumMoneyLines/sumMoneyNet).
+  const cur = acc.currency||'USD', fx = acc.fxRateToEur||1;
 
   if(acc.paymentType === 'UNIQUE'){
     if(acc.purchasePrice){
-      lines.push({ id: acc.id+'-ACHAT', accountId: acc.id, type:'ACHAT', amount:Number(acc.purchasePrice), date: acc.purchaseDate });
+      lines.push({ id: acc.id+'-ACHAT', accountId: acc.id, type:'ACHAT', amount:Number(acc.purchasePrice), date: acc.purchaseDate, currency:cur, fxRateToEur:fx });
     }
   } else if(acc.paymentType === 'MENSUEL'){
     if(acc.monthlyAmount){
@@ -2911,13 +2923,13 @@ function computeAccountExpenses(acc){
       for(let i=0;i<=n;i++){
         const d = addMonths(acc.purchaseDate, i);
         if(d <= stopDate){
-          lines.push({ id: acc.id+'-M-'+i, accountId: acc.id, type:'MENSUALITE', amount:Number(acc.monthlyAmount), date:d });
+          lines.push({ id: acc.id+'-M-'+i, accountId: acc.id, type:'MENSUALITE', amount:Number(acc.monthlyAmount), date:d, currency:cur, fxRateToEur:fx });
         }
       }
     }
   }
   if((acc.type === 'PA' || acc.type === 'LIVE') && acc.activationFee){
-    lines.push({ id: acc.id+'-ACTIV', accountId: acc.id, type:'ACTIVATION', amount:Number(acc.activationFee), date: acc.activationDate || acc.purchaseDate });
+    lines.push({ id: acc.id+'-ACTIV', accountId: acc.id, type:'ACTIVATION', amount:Number(acc.activationFee), date: acc.activationDate || acc.purchaseDate, currency:cur, fxRateToEur:fx });
   }
   return lines;
 }
@@ -3883,7 +3895,7 @@ function computeDashboardAlerts(accountsF){
         if(dLeft>=0 && dLeft<=7){
           alerts.push({
             kind:'mensualite', severity: dLeft<=2?'danger':'gold', accountId:a.id,
-            label: `Mensualité de ${fmtMoney(a.monthlyAmount)} due ${dLeft===0?'aujourd\u2019hui':(dLeft===1?'demain':`dans ${dLeft} jours`)}`,
+            label: `Mensualité de ${fmtMoneyCur(a.monthlyAmount, a.currency)} due ${dLeft===0?'aujourd\u2019hui':(dLeft===1?'demain':`dans ${dLeft} jours`)}`,
             sub: `${getTrader(a.traderId)?.pseudo||'—'} · ${getFirm(a.propFirmId)?.name||'—'} · ${TYPE_LABELS[a.type]}`,
           });
         }
@@ -3979,22 +3991,22 @@ function dashboardMonthRecapWidgetHtml(expenses, payouts){
   const mk = todayISO().slice(0,7);
   const r = computeRecapFor(expenses, payouts, mk, monthKey);
   const ringSegments = [
-    { label:'Frais Challenge', value:r.challenge, color:'var(--danger)' },
-    { label:'Frais Activation', value:r.activation, color:'var(--gold)' },
-    { label:'Payouts', value:r.payout, color:'var(--accent)' },
+    { label:'Frais Challenge', value:r.challenge, color:'var(--danger)', valueLabel:fmtMoneyCur(r.challenge, r.currency) },
+    { label:'Frais Activation', value:r.activation, color:'var(--gold)', valueLabel:fmtMoneyCur(r.activation, r.currency) },
+    { label:'Payouts', value:r.payout, color:'var(--accent)', valueLabel:fmtMoneyCur(r.payout, r.currency) },
   ];
   return `
     <div class="panel">
-      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span></div></div>
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span>${r.mixed?` <span class="text-faint" style="font-size:10.5px;">(converti, devises mixtes)</span>`:''}</div></div>
       <div class="panel-body">
         <div class="dash-split-grid">
           <div class="dash-split-col">
-            ${donutChartHtml(ringSegments, { centerLabel:'Total', centerValue: fmtMoney(r.challenge+r.activation+r.payout) })}
+            ${donutChartHtml(ringSegments, { centerLabel:'Total', centerValue: fmtMoneyCur(r.challenge+r.activation+r.payout, r.currency) })}
           </div>
           <div class="dash-split-col">
-            <div class="stat-tile" style="--rail:var(--accent);margin-bottom:10px;"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain')}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
-            <div class="stat-tile" style="--rail:var(--danger);margin-bottom:10px;"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost')}</div><div class="stat-sub">${recapMoney(r.challenge,'cost')} challenges · ${recapMoney(r.activation,'cost')} activation</div></div>
-            <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent);margin-bottom:10px;"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain',r.currency)}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
+            <div class="stat-tile" style="--rail:var(--danger);margin-bottom:10px;"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost',r.currency)}</div><div class="stat-sub">${recapMoney(r.challenge,'cost',r.currency)} challenges · ${recapMoney(r.activation,'cost',r.currency)} activation</div></div>
+            <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net',r.currency)}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
           </div>
         </div>
       </div>
@@ -4016,7 +4028,7 @@ function dashboardRecentPayoutsWidgetHtml(payoutsAll){
               <div style="font-size:13px;font-weight:600;">${trader?trader.pseudo:'—'} <span class="text-faint" style="font-weight:400;">· ${firm?firm.name:'—'}</span></div>
               <div class="text-faint" style="font-size:11.5px;">${fmtDate(p.date)}</div>
             </div>
-            <span style="font-weight:700;color:var(--accent);">+${fmtMoney(p.amount)}</span>
+            <span style="font-weight:700;color:var(--accent);">+${fmtMoneyCur(p.amount, p.currency)}</span>
           </div>`;
         }).join('')}
       </div>
@@ -4045,7 +4057,7 @@ function dashboardUpcomingWidgetHtml(accountsF){
           return `<div class="alert-row" data-alert-acc="${a.id}" style="--dot:var(--${it.dLeft<=7?'gold':'slate'})">
             <span class="alert-dot"></span>
             <div>
-              <div class="alert-label">${fmtMoney(a.monthlyAmount)} · ${trader?trader.pseudo:'—'} <span class="text-faint">· ${firm?firm.name:'—'}</span></div>
+              <div class="alert-label">${fmtMoneyCur(a.monthlyAmount, a.currency)} · ${trader?trader.pseudo:'—'} <span class="text-faint">· ${firm?firm.name:'—'}</span></div>
               <div class="alert-sub">${fmtDate(it.due)} · ${it.dLeft===0?'aujourd’hui':(it.dLeft===1?'demain':`dans ${it.dLeft} jours`)}</div>
             </div>
             <span class="alert-goto">${icon('chevRight')}</span>
@@ -4118,9 +4130,10 @@ function viewDashboard(){
     allExpenses = allExpenses.filter(e=>e.date && (!f.dateFrom || e.date>=f.dateFrom) && (!f.dateTo || e.date<=f.dateTo));
     payoutsF = payoutsF.filter(p=>p.date && (!f.dateFrom || p.date>=f.dateFrom) && (!f.dateTo || p.date<=f.dateTo));
   }
-  const totalExpenses = allExpenses.reduce((s,e)=>s+e.amount,0);
-  const totalPayouts = payoutsF.reduce((s,p)=>s+Number(p.amount),0);
-  const net = totalPayouts - totalExpenses;
+  const dashMoney = sumMoneyNet(allExpenses, payoutsF);
+  const totalExpenses = dashMoney.totalExp;
+  const totalPayouts = dashMoney.totalPay;
+  const net = dashMoney.net;
 
   // last 6 months chart data — construits par arithmétique calendaire locale, jamais via toISOString (UTC)
   const allExpensesUnfiltered = computeAllExpenses().filter(e=>accIds.has(e.accountId));
@@ -4133,9 +4146,11 @@ function viewDashboard(){
     const m = ((total % 12) + 12) % 12;
     months.push(`${y}-${pad2(m+1)}`);
   }
+  const chartMixed = new Set([...allExpensesUnfiltered, ...payoutsUnfiltered].map(it=>it.currency||'USD')).size>1;
+  const chartVal = (it)=> chartMixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const chartData = months.map(mk=>{
-    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+e.amount,0);
-    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+Number(p.amount),0);
+    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
   const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
@@ -4241,9 +4256,9 @@ function viewDashboard(){
           </div>
           <div class="stats-grid" style="margin-bottom:0;">
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalExpenses)}</div><div class="stat-sub">achats + mensualités + activation</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoney(net)}</div><div class="stat-sub">payouts − dépenses</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.mixed?' · converti, devises mixtes':''}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses</div></div>
           </div>
         </div>
       </div>`,
@@ -4658,8 +4673,8 @@ function viewTraders(){
           <tbody>
             ${state.traders.map((t,ti)=>{
               const accs = state.accounts.filter(a=>a.traderId===t.id);
-              const exp = accs.reduce((s,a)=>s+totalExpensesFor(a.id),0);
-              const pay = accs.reduce((s,a)=>s+totalPayoutsFor(a.id),0);
+              const accIdsT = new Set(accs.map(a=>a.id));
+              const trMoney = sumMoneyNet(computeAllExpenses().filter(e=>accIdsT.has(e.accountId)), state.payouts.filter(p=>accIdsT.has(p.accountId)));
               const badges = computeTraderBadges(t);
               const unlocked = badges.filter(b=>b.unlocked);
               return `<tr class="${freeBlurClass(ti,trBlurred)}">
@@ -4673,8 +4688,8 @@ function viewTraders(){
                   </div>
                 </td>
                 <td class="num">${accs.length}</td>
-                <td class="num" style="color:var(--danger)">${fmtMoney(exp)}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoney(pay)}</td>
+                <td class="num" style="color:var(--danger)">${fmtMoneyCur(trMoney.totalExp, trMoney.currency)}</td>
+                <td class="num" style="color:var(--accent)">${fmtMoneyCur(trMoney.totalPay, trMoney.currency)}</td>
                 <td>
                   <div style="display:flex;gap:4px;justify-content:flex-end;">
                     <button class="btn btn-ghost btn-sm" data-trader-regularity="${t.id}" title="Régularité des payouts">${icon('clock')}</button>
@@ -4847,10 +4862,9 @@ function viewComparatif(){
     const breached = challenges.filter(a=>a.status==='BREACHED').length;
     const tauxReussite = (reussis+breached)>0 ? Math.round(reussis/(reussis+breached)*100) : null;
     const accIds = new Set(accs.map(a=>a.id));
-    const totalExp = computeAllExpenses().filter(e=>accIds.has(e.accountId)).reduce((s,e)=>s+e.amount,0);
-    const totalPay = state.payouts.filter(p=>accIds.has(p.accountId)).reduce((s,p)=>s+Number(p.amount),0);
-    const net = totalPay - totalExp;
-    return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net };
+    const cfMoney = sumMoneyNet(computeAllExpenses().filter(e=>accIds.has(e.accountId)), state.payouts.filter(p=>accIds.has(p.accountId)));
+    const totalExp = cfMoney.totalExp, totalPay = cfMoney.totalPay, net = cfMoney.net;
+    return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net, currency:cfMoney.currency, mixed:cfMoney.mixed };
   });
 
   const { sortKey, sortDir } = state.filters.comparatif;
@@ -4875,9 +4889,9 @@ function viewComparatif(){
               <td class="num">${r.nbComptes}</td>
               <td class="num">${r.nbChallenges}</td>
               <td class="num">${r.tauxReussite===null ? '<span class="text-faint">—</span>' : r.tauxReussite+'%'}</td>
-              <td class="num" style="color:var(--danger)">${fmtMoney(r.totalExp)}</td>
-              <td class="num" style="color:var(--accent)">${fmtMoney(r.totalPay)}</td>
-              <td class="num" style="font-weight:700;color:${r.net>=0?'var(--accent)':'var(--danger)'}">${r.net>=0?'+':''}${fmtMoney(r.net)}</td>
+              <td class="num" style="color:var(--danger)">${fmtMoneyCur(r.totalExp, r.currency)}</td>
+              <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}</td>
+              <td class="num" style="font-weight:700;color:${r.net>=0?'var(--accent)':'var(--danger)'}">${r.net>=0?'+':''}${fmtMoneyCur(r.net, r.currency)}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -4924,9 +4938,13 @@ const CAL_EVENT_META = {
 // frais d'activation, payouts reçus, et issues de compte (réussi / breach / fermé) via endDate.
 function computeCalendarEvents(monthKeyStr){
   const events = [];
-  const pushEvt = (date, type, acc, amount)=>{
+  // curOverride permet de préciser la devise réelle de LA TRANSACTION (ex: un payout peut avoir sa
+  // propre devise/taux, distincte de la devise par défaut du compte) plutôt que celle du compte.
+  const pushEvt = (date, type, acc, amount, curOverride)=>{
     if(!date || monthKey(date)!==monthKeyStr) return;
-    events.push({ date, type, amount, account:acc, trader:getTrader(acc.traderId), firm:getFirm(acc.propFirmId) });
+    const currency = (curOverride && curOverride.currency) || (acc && acc.currency) || 'USD';
+    const fxRateToEur = (curOverride && curOverride.fxRateToEur) || (acc && acc.fxRateToEur) || 1;
+    events.push({ date, type, amount, currency, fxRateToEur, account:acc, trader:getTrader(acc.traderId), firm:getFirm(acc.propFirmId) });
   };
   state.accounts.forEach(acc=>{
     if(acc.paymentType==='UNIQUE' && acc.purchasePrice){
@@ -4945,7 +4963,7 @@ function computeCalendarEvents(monthKeyStr){
   state.payouts.forEach(p=>{
     const acc = getAccount(p.accountId);
     if(!acc) return;
-    pushEvt(p.date, 'PAYOUT', acc, Number(p.amount));
+    pushEvt(p.date, 'PAYOUT', acc, Number(p.amount), { currency:p.currency||'USD', fxRateToEur:p.fxRateToEur||1 });
   });
   events.sort((a,b)=> a.date.localeCompare(b.date) || (a.type||'').localeCompare(b.type||''));
   return events;
@@ -4964,8 +4982,9 @@ function buildCalendarGrid(monthKeyStr){
 }
 function calendarDayModal(dateStr){
   const items = computeCalendarEvents(monthKey(dateStr)).filter(it=>it.date===dateStr);
-  const total = items.reduce((s,it)=>s+(it.amount||0),0);
-  const hasAmounts = items.some(it=>it.amount);
+  const itemsWithAmount = items.filter(it=>it.amount!=null);
+  const totalMoney = sumMoneyLines(itemsWithAmount);
+  const hasAmounts = itemsWithAmount.length>0;
   openModal({
     title: `Événements du ${fmtDate(dateStr)}`,
     bodyHtml: `
@@ -4981,11 +5000,11 @@ function calendarDayModal(dateStr){
                 <div class="text-faint" style="font-size:11.5px;">${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}</div>
               </div>
             </div>
-            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoney(it.amount):''}</div>
+            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyCur(it.amount, it.currency):''}</div>
           </div>`;
         }).join('')}
         ${hasAmounts ? `<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700;">
-          <span>Total</span><span>${fmtMoney(total)}</span>
+          <span>Total</span><span>${fmtSumMoney(totalMoney)}</span>
         </div>` : ''}
       </div>`,
     footHtml: `<button class="btn btn-outline" id="cal-modal-close">Fermer</button>`,
@@ -5018,8 +5037,10 @@ function viewCalendrier(){
   const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
   const reussisMonth = items.filter(it=>it.type==='REUSSI');
   const breachesMonth = items.filter(it=>it.type==='BREACHED');
-  const totalPayouts = payoutsMonth.reduce((s,it)=>s+it.amount,0);
-  const totalDepenses = depensesMonth.reduce((s,it)=>s+it.amount,0);
+  const payoutsMonthSum = sumMoneyLines(payoutsMonth);
+  const depensesMonthSum = sumMoneyLines(depensesMonth);
+  const totalPayouts = payoutsMonthSum.amount;
+  const totalDepenses = depensesMonthSum.amount;
 
   const holidaysByDate = holidaysForMonth(mk);
 
@@ -5029,7 +5050,8 @@ function viewCalendrier(){
     const dayHolidays = holidaysByDate[dateStr]||[];
     const dayNum = Number(dateStr.slice(8,10));
     const isToday = dateStr===today;
-    const daySum = dayItems.reduce((s,it)=>s+(it.amount||0),0);
+    const daySumMoney = sumMoneyLines(dayItems.filter(it=>it.amount!=null));
+    const daySum = daySumMoney.amount;
     const holidayFlags = dayHolidays.map(h=>h.country==='FR'?'🇫🇷':'🇺🇸').join('');
     const holidayTitle = dayHolidays.map(h=>`${h.country} — ${h.label}`).join(' · ');
     return `<div class="cal-cell ${isToday?'cal-cell-today':''} ${dayItems.length?'cal-cell-has':''} ${dayHolidays.length?'cal-cell-holiday':''}" ${dayItems.length?`data-cal-day="${dateStr}"`:''} title="${[dayItems.length?'Voir le détail':'', holidayTitle].filter(Boolean).join(' · ')}">
@@ -5041,7 +5063,7 @@ function viewCalendrier(){
           return `<div class="cal-chip cal-chip-${meta.color}">${meta.icon} ${it.trader?it.trader.pseudo:'—'}</div>`;
         }).join('')}
         ${dayItems.length>3?`<div class="cal-chip-more">+${dayItems.length-3}</div>`:''}
-      </div>${daySum?`<div class="cal-day-total">${fmtMoney(daySum)}</div>`:''}`:''}
+      </div>${daySum?`<div class="cal-day-total">${fmtSumMoney(daySumMoney,{compact:true})}</div>`:''}`:''}
     </div>`;
   };
 
@@ -5076,8 +5098,8 @@ function viewCalendrier(){
       </div>
     </div>
     <div class="stats-grid">
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts reçus</div><div class="stat-value">${fmtMoney(totalPayouts)}</div><div class="stat-sub">${payoutsMonth.length} payout(s) ce mois</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois</div><div class="stat-value">${fmtMoney(totalDepenses)}</div><div class="stat-sub">achats, mensualités, activations</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts reçus</div><div class="stat-value">${fmtSumMoney(payoutsMonthSum)}</div><div class="stat-sub">${payoutsMonth.length} payout(s) ce mois</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois</div><div class="stat-value">${fmtSumMoney(depensesMonthSum)}</div><div class="stat-sub">achats, mensualités, activations</div></div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Challenges réussis</div><div class="stat-value">${reussisMonth.length}</div><div class="stat-sub">passages en PA ce mois</div></div>
       <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Breaches</div><div class="stat-value">${breachesMonth.length}</div><div class="stat-sub">comptes breached ce mois</div></div>
     </div>
@@ -5095,13 +5117,14 @@ function computeLeaderboard(){
     const accIds = new Set(accs.map(a=>a.id));
     let pays = state.payouts.filter(p=>accIds.has(p.accountId));
     if(mk) pays = pays.filter(p=>monthKey(p.date)===mk);
-    const totalPay = pays.reduce((s,p)=>s+Number(p.amount),0);
+    const paysMoney = sumMoneyLines(pays);
+    const totalPay = paysMoney.amount;
     const challenges = accs.filter(a=>a.type==='CHALLENGE');
     const reussis = challenges.filter(a=>a.status==='REUSSI').length;
     const breached = challenges.filter(a=>a.status==='BREACHED').length;
     const tauxReussite = (reussis+breached)>0 ? Math.round(reussis/(reussis+breached)*100) : null;
     const badges = computeTraderBadges(t).filter(b=>b.unlocked).length;
-    return { trader:t, totalPay, nbPayouts:pays.length, tauxReussite, badges };
+    return { trader:t, totalPay, currency:paysMoney.currency, mixed:paysMoney.mixed, nbPayouts:pays.length, tauxReussite, badges };
   }).sort((a,b)=> b.totalPay-a.totalPay || (b.tauxReussite||0)-(a.tauxReussite||0));
 }
 function viewClassement(){
@@ -5132,7 +5155,7 @@ function viewClassement(){
             <div class="lb-podium-card lb-rank-${i+1}">
               <div class="lb-medal">${medal[i]}</div>
               <div class="lb-pseudo">${r.trader.pseudo}</div>
-              <div class="lb-amount">${fmtMoney(r.totalPay)}</div>
+              <div class="lb-amount">${fmtMoneyCur(r.totalPay, r.currency)}</div>
               <div class="lb-sub">${r.tauxReussite===null?'—':r.tauxReussite+'% réussite'} · ${r.badges} badge(s)</div>
             </div>`).join('')}
         </div>
@@ -5144,7 +5167,7 @@ function viewClassement(){
               ${rest.map((r,i)=>`<tr>
                 <td class="text-faint">${i+4}</td>
                 <td style="font-weight:600;">${r.trader.pseudo}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoney(r.totalPay)}</td>
+                <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}</td>
                 <td class="num">${r.nbPayouts}</td>
                 <td class="num">${r.tauxReussite===null?'—':r.tauxReussite+'%'}</td>
                 <td class="num">${r.badges}</td>
@@ -5915,8 +5938,9 @@ function renderGroupedAccounts(list, keys, depth=0){
 
 function accountCard(a){
   const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
-  const exp = totalExpensesFor(a.id);
-  const pay = totalPayoutsFor(a.id);
+  const accMoney = sumMoneyNet(computeAccountExpenses(a), state.payouts.filter(p=>p.accountId===a.id));
+  const exp = accMoney.totalExp;
+  const pay = accMoney.totalPay;
   const child = state.accounts.find(x=>x.parentChallengeId===a.id);
 
   // Lien visuel Challenge <-> PA : les deux comptes d'une même paire partagent une couleur/vignette
@@ -5978,8 +6002,8 @@ function accountCard(a){
       <div class="acc-grid">
         <div><div class="acc-field-label">Taille</div><div class="acc-field-value">${sizeBadgeHtml(a)}</div></div>
         <div><div class="acc-field-label">Achat</div><div class="acc-field-value">${fmtDate(a.purchaseDate)}</div></div>
-        <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoney(exp)}</div></div>
-        <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoney(pay)}</div></div>
+        <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div></div>
+        <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
       </div>
 
     </div>
@@ -6039,15 +6063,7 @@ function exportAccountingCSV(){
 
 function buildAccountingRows(){
   const f = state.filters.accounting;
-  const { lines, pays } = myAccountingSource();
-  let all = [...lines, ...pays];
-  all = all.filter(x=>accountingPeriodFilter(x, f));
-  if(f.type){
-    if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
-    else all = all.filter(x=>x.kind==='expense' && x.type===f.type);
-  }
-  if(f.trader.length) all = all.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
-  if(f.propfirm) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
+  let all = filteredAccountingLines(f);
   all.sort((a,b)=>a.date.localeCompare(b.date));
   return all.map(x=>{
     const acc = getAccount(x.accountId);
@@ -6056,7 +6072,7 @@ function buildAccountingRows(){
     const isPayout = x.kind==='payout';
     const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
     const amount = isPayout ? Number(x.amount) : -Number(x.amount);
-    return { Date:x.date, Type:typeLabel, Trader: trader?trader.pseudo:'', PropFirm: firm?firm.name:'', 'Type de compte': acc?TYPE_LABELS[acc.type]:'', 'N° de compte': acc?acc.accountNumber:'', Montant: amount };
+    return { Date:x.date, Type:typeLabel, Trader: trader?trader.pseudo:'', PropFirm: firm?firm.name:'', 'Type de compte': acc?TYPE_LABELS[acc.type]:'', 'N° de compte': acc?acc.accountNumber:'', Devise: x.currency||'USD', Montant: amount };
   });
 }
 function exportAccountingExcel(){
@@ -6065,7 +6081,7 @@ function exportAccountingExcel(){
   const rows = buildAccountingRows();
   if(rows.length===0){ showToast('Aucune ligne à exporter pour ces filtres.', 'danger'); return; }
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:11},{wch:12},{wch:16},{wch:18},{wch:14},{wch:16},{wch:12}];
+  ws['!cols'] = [{wch:11},{wch:12},{wch:16},{wch:18},{wch:14},{wch:16},{wch:8},{wch:12}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Comptabilité');
   XLSX.writeFile(wb, `comptabilite_${todayISO()}.xlsx`);
@@ -6077,6 +6093,8 @@ function exportAccountingPDF(){
   const rows = buildAccountingRows();
   if(rows.length===0){ showToast('Aucune ligne à exporter pour ces filtres.', 'danger'); return; }
   const f = state.filters.accounting;
+  const pdfRawItems = filteredAccountingLines(f);
+  const pdfMoney = sumMoneyNet(pdfRawItems.filter(x=>x.kind==='expense'), pdfRawItems.filter(x=>x.kind==='payout'));
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'pt', format:'a4' });
   const pageBottom = 800;
@@ -6104,13 +6122,14 @@ function exportAccountingPDF(){
   doc.text(filterParts.join('   ·   '), 48, y);
   y += 28;
 
-  const totalExp = rows.filter(r=>r.Montant<0).reduce((s,r)=>s-r.Montant,0);
-  const totalPay = rows.filter(r=>r.Montant>0).reduce((s,r)=>s+r.Montant,0);
-  const net = totalPay - totalExp;
+  const totalExp = pdfMoney.totalExp;
+  const totalPay = pdfMoney.totalPay;
+  const net = pdfMoney.net;
+  const convSuffix = pdfMoney.mixed ? ' (converti)' : '';
   const kpis = [
-    ['Dépenses', fmtMoney(totalExp), [200,60,50]],
-    ['Payouts', fmtMoney(totalPay), [20,140,110]],
-    ['Net', (net>=0?'+':'')+fmtMoney(net), net>=0?[20,140,110]:[200,60,50]],
+    ['Dépenses'+convSuffix, fmtMoneyCur(totalExp, pdfMoney.currency), [200,60,50]],
+    ['Payouts'+convSuffix, fmtMoneyCur(totalPay, pdfMoney.currency), [20,140,110]],
+    ['Net'+convSuffix, (net>=0?'+':'')+fmtMoneyCur(net, pdfMoney.currency), net>=0?[20,140,110]:[200,60,50]],
   ];
   let x = 48;
   kpis.forEach(([label,val,color])=>{
@@ -6150,7 +6169,7 @@ function exportAccountingPDF(){
     });
     const posColor = r.Montant>=0 ? [20,140,110] : [200,60,50];
     doc.setTextColor(posColor[0],posColor[1],posColor[2]);
-    doc.text(fmtMoney(r.Montant), 547, y, { align:'right' });
+    doc.text(fmtMoneyCur(r.Montant, r.Devise||'USD'), 547, y, { align:'right' });
     y += 14;
   });
 
@@ -6164,12 +6183,12 @@ function exportAccountingPDF(){
 /* ============================================================
    VIEW: ACCOUNTING
 ============================================================ */
-function viewAccounting(){
-  const f = state.filters.accounting;
+// Filtre partagé Comptabilité : utilisé par la vue ET par les exports (buildAccountingRows /
+// exportAccountingPDF) — évite de dupliquer la logique de filtre et garde fxRateToEur disponible
+// pour les exports (les lignes exportées, elles, ne portent que Devise/Montant pour l'utilisateur).
+function filteredAccountingLines(f){
   const { lines, pays } = myAccountingSource();
   let all = [...lines, ...pays];
-  const totalLines = all.length;
-
   all = all.filter(x=>accountingPeriodFilter(x, f));
   if(f.type){
     if(f.type==='PAYOUT') all = all.filter(x=>x.kind==='payout');
@@ -6177,10 +6196,18 @@ function viewAccounting(){
   }
   if(f.trader.length) all = all.filter(x=>getAccount(x.accountId) && f.trader.includes(getAccount(x.accountId).traderId));
   if(f.propfirm) all = all.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
+  return all;
+}
+function viewAccounting(){
+  const f = state.filters.accounting;
+  const { lines: allLines0, pays: allPays0 } = myAccountingSource();
+  const totalLines = allLines0.length + allPays0.length;
+  let all = filteredAccountingLines(f);
   all.sort((a,b)=>b.date.localeCompare(a.date));
 
-  const totalExp = all.filter(x=>x.kind==='expense').reduce((s,x)=>s+x.amount,0);
-  const totalPay = all.filter(x=>x.kind==='payout').reduce((s,x)=>s+Number(x.amount),0);
+  const acctgMoney = sumMoneyNet(all.filter(x=>x.kind==='expense'), all.filter(x=>x.kind==='payout'));
+  const totalExp = acctgMoney.totalExp;
+  const totalPay = acctgMoney.totalPay;
 
   // Performance financière : respecte les filtres Trader/Type/PropFirm, mais pas le filtre Mois
   // (sinon on ne pourrait comparer qu'une seule période avec elle-même).
@@ -6193,14 +6220,18 @@ function viewAccounting(){
   if(f.propfirm) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   const recapGranularity = f.recapGranularity || 'month';
   const recapKeyFn = recapGranularity==='year' ? yearKey : recapGranularity==='quarter' ? quarterKey : monthKey;
+  const recapMixed = new Set(recapSource.map(x=>x.currency||'USD')).size>1;
+  const recapCurrency = recapMixed ? 'EUR' : (recapSource.length ? (recapSource[0].currency||'USD') : 'USD');
+  const recapVal = (x)=> recapMixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
   const recapGroups = {};
   recapSource.forEach(x=>{
     const pk = recapKeyFn(x.date);
     if(!recapGroups[pk]) recapGroups[pk] = { challenge:0, activation:0, payout:0, payoutCount:0 };
+    const v = recapVal(x);
     if(x.kind==='expense'){
-      if(x.type==='ACTIVATION') recapGroups[pk].activation += x.amount;
-      else recapGroups[pk].challenge += x.amount; // ACHAT + MENSUALITE
-    } else { recapGroups[pk].payout += Number(x.amount); recapGroups[pk].payoutCount++; }
+      if(x.type==='ACTIVATION') recapGroups[pk].activation += v;
+      else recapGroups[pk].challenge += v; // ACHAT + MENSUALITE
+    } else { recapGroups[pk].payout += v; recapGroups[pk].payoutCount++; }
   });
   const recapRows = Object.entries(recapGroups)
     .map(([pk,v])=>{
@@ -6252,14 +6283,14 @@ function viewAccounting(){
         <td>${trader?trader.pseudo:'—'}</td>
         <td class="text-dim">${firm?firm.name:'—'}</td>
         <td class="text-dim">${acc?maskAccountNumber(acc.accountNumber):'—'}</td>
-        <td class="num" style="color:${isPayout?'var(--accent)':'var(--danger)'}">${isPayout?'+':'−'}${fmtMoney(x.amount)}</td>
+        <td class="num" style="color:${isPayout?'var(--accent)':'var(--danger)'}">${isPayout?'+':'−'}${fmtMoneyCur(x.amount, x.currency)}</td>
       </tr>`;
     }).join('');
 
   const recapTable = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="section-title">Performance financière</div>
+        <div class="section-title">Performance financière${recapMixed?` <span class="text-faint" style="font-weight:400;font-size:11px;">(converti, devises mixtes)</span>`:''}</div>
         <div class="recap-granularity">
           <button type="button" class="recap-gran-btn ${recapGranularity==='month'?'active':''}" data-recap-gran="month">Par mois</button>
           <button type="button" class="recap-gran-btn ${recapGranularity==='quarter'?'active':''}" data-recap-gran="quarter">Par trimestre</button>
@@ -6278,11 +6309,11 @@ function viewAccounting(){
                 const isActive = (f.periodGranularity||'month')===recapGranularity && f.month===r.pk;
                 return `<tr data-select-period="${r.pk}" data-select-gran="${recapGranularity}" style="cursor:pointer;${isActive?'background:var(--surface-2);':''}">
                 <td style="font-weight:600;">${periodLabel(r.pk, recapGranularity)}${isActive?` <span class="badge badge-accent" style="margin-left:4px;">actif</span>`:''}</td>
-                <td class="num" style="color:${r.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(r.payout,'gain')}${r.payoutCount>1?` <span class="text-faint">×${r.payoutCount}</span>`:''}</td>
-                <td class="num" style="color:${r.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.challenge,'cost')}</td>
-                <td class="num" style="color:${r.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.activation,'cost')}</td>
-                <td class="num" style="color:${r.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.totalCosts,'cost')}</td>
-                <td class="num" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net')}</td>
+                <td class="num" style="color:${r.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(r.payout,'gain',recapCurrency)}${r.payoutCount>1?` <span class="text-faint">×${r.payoutCount}</span>`:''}</td>
+                <td class="num" style="color:${r.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.challenge,'cost',recapCurrency)}</td>
+                <td class="num" style="color:${r.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.activation,'cost',recapCurrency)}</td>
+                <td class="num" style="color:${r.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(r.totalCosts,'cost',recapCurrency)}</td>
+                <td class="num" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net',recapCurrency)}</td>
                 <td class="num" style="color:${r.roi===null?'var(--text-faint)':r.roi>=0?'var(--accent)':'var(--danger)'}">${recapRoi(r.roi)}</td>
               </tr>`;
               }).join('')}
@@ -6291,11 +6322,11 @@ function viewAccounting(){
           <tfoot>
             <tr class="recap-total-row">
               <td>Total</td>
-              <td class="num" style="color:${recapTotal.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(recapTotal.payout,'gain')}${recapTotal.payoutCount>1?` <span class="text-faint">×${recapTotal.payoutCount}</span>`:''}</td>
-              <td class="num" style="color:${recapTotal.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.challenge,'cost')}</td>
-              <td class="num" style="color:${recapTotal.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.activation,'cost')}</td>
-              <td class="num" style="color:${recapTotal.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.totalCosts,'cost')}</td>
-              <td class="num" style="color:${recapTotal.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(recapTotal.net,'net')}</td>
+              <td class="num" style="color:${recapTotal.payout>0?'var(--accent)':'var(--text-faint)'}">${recapMoney(recapTotal.payout,'gain',recapCurrency)}${recapTotal.payoutCount>1?` <span class="text-faint">×${recapTotal.payoutCount}</span>`:''}</td>
+              <td class="num" style="color:${recapTotal.challenge>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.challenge,'cost',recapCurrency)}</td>
+              <td class="num" style="color:${recapTotal.activation>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.activation,'cost',recapCurrency)}</td>
+              <td class="num" style="color:${recapTotal.totalCosts>0?'var(--danger)':'var(--text-faint)'}">${recapMoney(recapTotal.totalCosts,'cost',recapCurrency)}</td>
+              <td class="num" style="color:${recapTotal.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(recapTotal.net,'net',recapCurrency)}</td>
               <td class="num" style="color:${recapTotal.roi===null?'var(--text-faint)':recapTotal.roi>=0?'var(--accent)':'var(--danger)'}">${recapRoi(recapTotal.roi)}</td>
             </tr>
           </tfoot>` : ''}
@@ -6306,9 +6337,9 @@ function viewAccounting(){
   return `
     ${filterBar}
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)</div><div class="stat-value">${fmtMoney(totalExp)}</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)</div><div class="stat-value">${fmtMoney(totalPay)}</div></div>
-      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoney(totalPay-totalExp)}</div></div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div></div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div></div>
+      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div></div>
     </div>
     ${recapTable}
     <div class="panel">
@@ -6333,23 +6364,26 @@ function computeBilanData(month, traderIds){
   const map = new Map();
   function entryFor(tId, fId){
     const key = tId+'|'+fId;
-    if(!map.has(key)) map.set(key, { traderId:tId, firmId:fId, expense:0, payout:0 });
+    if(!map.has(key)) map.set(key, { traderId:tId, firmId:fId, expenseLines:[], payoutLines:[] });
     return map.get(key);
   }
   lines.forEach(e=>{
     const acc = getAccount(e.accountId);
     if(!acc) return;
     if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
-    entryFor(acc.traderId, acc.propFirmId).expense += e.amount;
+    entryFor(acc.traderId, acc.propFirmId).expenseLines.push(e);
   });
   pays.forEach(p=>{
     const acc = getAccount(p.accountId);
     if(!acc) return;
     if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
-    entryFor(acc.traderId, acc.propFirmId).payout += Number(p.amount);
+    entryFor(acc.traderId, acc.propFirmId).payoutLines.push(p);
   });
   return Array.from(map.values())
-    .map(e=>({ ...e, net: e.payout - e.expense, trader: getTrader(e.traderId), firm: getFirm(e.firmId) }))
+    .map(e=>{
+      const m = sumMoneyNet(e.expenseLines, e.payoutLines);
+      return { traderId:e.traderId, firmId:e.firmId, expense:m.totalExp, payout:m.totalPay, net:m.net, currency:m.currency, mixed:m.mixed, trader: getTrader(e.traderId), firm: getFirm(e.firmId) };
+    })
     .filter(e=>e.trader && e.firm)
     .sort((a,b)=> b.net - a.net || a.firm.name.localeCompare(b.firm.name,'fr',{sensitivity:'base'}));
 }
@@ -6376,24 +6410,31 @@ function currentPeriodKey(granularity){
 // période donnée — utilisé par la vue globale (PNG unique) du Bilan Visuel.
 function computeBilanFirmData(periodKey, granularity, traderIds){
   const keyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
-  const lines = computeAllExpenses().filter(e=>keyFn(e.date)===periodKey);
-  const pays = state.payouts.filter(p=>keyFn(p.date)===periodKey);
+  let lines = computeAllExpenses().filter(e=>keyFn(e.date)===periodKey);
+  let pays = state.payouts.filter(p=>keyFn(p.date)===periodKey);
+  if(traderIds && traderIds.length){
+    lines = lines.filter(e=>{ const acc=getAccount(e.accountId); return acc && traderIds.includes(acc.traderId); });
+    pays = pays.filter(p=>{ const acc=getAccount(p.accountId); return acc && traderIds.includes(acc.traderId); });
+  }
+  // Une seule devise pour toute la carte (cohérence visuelle d'un même PNG exporté) — convertie en
+  // EUR seulement si les lignes filtrées mélangent réellement plusieurs devises.
+  const mixed = new Set([...lines,...pays].map(x=>x.currency||'USD')).size>1;
+  const val = (x)=> mixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
+  const currency = mixed ? 'EUR' : ([...lines,...pays].length ? ([...lines,...pays][0].currency||'USD') : 'USD');
   const map = new Map();
   function entryFor(fId){ if(!map.has(fId)) map.set(fId, { firmId:fId, expense:0, payout:0 }); return map.get(fId); }
   lines.forEach(e=>{
     const acc = getAccount(e.accountId);
     if(!acc) return;
-    if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
-    entryFor(acc.propFirmId).expense += e.amount;
+    entryFor(acc.propFirmId).expense += val(e);
   });
   pays.forEach(p=>{
     const acc = getAccount(p.accountId);
     if(!acc) return;
-    if(traderIds && traderIds.length && !traderIds.includes(acc.traderId)) return;
-    entryFor(acc.propFirmId).payout += Number(p.amount);
+    entryFor(acc.propFirmId).payout += val(p);
   });
   return Array.from(map.values())
-    .map(e=>({ ...e, net: e.payout - e.expense, firm: getFirm(e.firmId) }))
+    .map(e=>({ ...e, net: e.payout - e.expense, currency, mixed, firm: getFirm(e.firmId) }))
     .filter(e=>e.firm)
     .sort((a,b)=> b.net - a.net || a.firm.name.localeCompare(b.firm.name,'fr',{sensitivity:'base'}));
 }
@@ -6403,6 +6444,8 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
   const totalExp = rows.reduce((s,r)=>s+r.expense,0);
   const totalPay = rows.reduce((s,r)=>s+r.payout,0);
   const totalNet = totalPay - totalExp;
+  const cardCurrency = rows.length ? rows[0].currency : 'USD';
+  const cardMixed = rows.length ? rows[0].mixed : false;
   const cardId = 'bilan-global-card';
   const label = periodLabel(periodKey, granularity);
   const fileName = `Bilan_Global_${periodKey}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_');
@@ -6414,7 +6457,7 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;">
           <div>
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;">Bilan par PropFirm</div>
-            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${label}</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${label}${cardMixed?' · converti':''}</div>
           </div>
         </div>
         ${rows.length===0 ? `<div style="font-size:12.5px;color:#8B98A5;padding:14px 0;position:relative;">Aucune donnée pour cette période.</div>` : `
@@ -6429,14 +6472,14 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
             <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
               ${firmLogoHtml(r.firm,26)}
               <div style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.firm.name}</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#E85C4A;min-width:70px;text-align:right;">${r.expense>0?'-'+fmtMoney(r.expense):'—'}</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#3ED6B5;min-width:70px;text-align:right;">${r.payout>0?'+'+fmtMoney(r.payout):'—'}</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:80px;text-align:right;color:${r.net>=0?'#3ED6B5':'#E85C4A'};">${r.net>=0?'+':''}${fmtMoney(r.net)}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#E85C4A;min-width:70px;text-align:right;">${r.expense>0?'-'+fmtMoneyCur(r.expense, cardCurrency):'—'}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#3ED6B5;min-width:70px;text-align:right;">${r.payout>0?'+'+fmtMoneyCur(r.payout, cardCurrency):'—'}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:80px;text-align:right;color:${r.net>=0?'#3ED6B5':'#E85C4A'};">${r.net>=0?'+':''}${fmtMoneyCur(r.net, cardCurrency)}</div>
             </div>`).join('')}
         </div>`}
         <div style="display:flex;align-items:center;justify-content:space-between;background:${totalNet>=0?'rgba(62,214,181,0.12)':'rgba(232,92,74,0.12)'};border-radius:12px;padding:13px 16px;position:relative;">
           <span style="font-size:11.5px;color:#8B98A5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total net</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:${totalNet>=0?'#3ED6B5':'#E85C4A'};">${totalNet>=0?'+':''}${fmtMoney(totalNet)}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:${totalNet>=0?'#3ED6B5':'#E85C4A'};">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, cardCurrency)}</span>
         </div>
         <div style="margin-top:16px;text-align:center;font-size:9.5px;color:#4B5560;letter-spacing:.1em;text-transform:uppercase;position:relative;">Contralytix · Gestion Propfirm</div>
       </div>
@@ -6445,7 +6488,7 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
 }
 
 function bilanCardHtml(entry, month){
-  const { trader, firm, expense, payout, net } = entry;
+  const { trader, firm, expense, payout, net, currency, mixed } = entry;
   const total = expense + payout;
   const expPct = total > 0 ? Math.round((expense/total)*100) : 0;
   const payPct = total > 0 ? 100 - expPct : 0;
@@ -6463,7 +6506,7 @@ function bilanCardHtml(entry, month){
           ${firmLogoHtml(firm,42)}
           <div style="flex:1;min-width:0;">
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firm.name}</div>
-            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${monthLabel(month)}</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${monthLabel(month)}${mixed?' · converti':''}</div>
           </div>
           <div style="background:rgba(62,214,181,0.14);color:#3ED6B5;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;">${trader.pseudo}</div>
         </div>
@@ -6471,11 +6514,11 @@ function bilanCardHtml(entry, month){
         <div style="display:flex;gap:12px;margin-bottom:16px;position:relative;">
           <div style="flex:1;background:rgba(232,92,74,0.08);border:1px solid rgba(232,92,74,0.20);border-radius:12px;padding:12px 14px;">
             <div style="font-size:10.5px;color:#E85C4A;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:5px;">Dépenses</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;">${fmtMoney(expense)}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;">${fmtMoneyCur(expense, currency)}</div>
           </div>
           <div style="flex:1;background:rgba(62,214,181,0.08);border:1px solid rgba(62,214,181,0.20);border-radius:12px;padding:12px 14px;">
             <div style="font-size:10.5px;color:#3ED6B5;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:5px;">Recette (Payouts)</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;">${fmtMoney(payout)}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;">${fmtMoneyCur(payout, currency)}</div>
           </div>
         </div>
 
@@ -6486,7 +6529,7 @@ function bilanCardHtml(entry, month){
 
         <div style="display:flex;align-items:center;justify-content:space-between;background:${netBg};border-radius:12px;padding:13px 16px;position:relative;">
           <span style="font-size:11.5px;color:#8B98A5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Résultat net</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:${netColor};">${net>=0?'+':''}${fmtMoney(net)}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:${netColor};">${net>=0?'+':''}${fmtMoneyCur(net, currency)}</span>
         </div>
 
         <div style="margin-top:16px;text-align:center;font-size:9.5px;color:#4B5560;letter-spacing:.1em;text-transform:uppercase;position:relative;">Contralytix · Gestion Propfirm</div>
@@ -6506,9 +6549,16 @@ function viewBilanVisuel(){
   if(f.viewMode==='cards'){
     const month = f.month || monthKey(todayISO());
     const entries = computeBilanData(month, f.trader);
-    const totalExp = entries.reduce((s,e)=>s+e.expense,0);
-    const totalPay = entries.reduce((s,e)=>s+e.payout,0);
-    const totalNet = totalPay - totalExp;
+    let bilanLines = computeAllExpenses().filter(e=>monthKey(e.date)===month);
+    let bilanPays = state.payouts.filter(p=>monthKey(p.date)===month);
+    if(f.trader && f.trader.length){
+      bilanLines = bilanLines.filter(e=>{ const acc=getAccount(e.accountId); return acc && f.trader.includes(acc.traderId); });
+      bilanPays = bilanPays.filter(p=>{ const acc=getAccount(p.accountId); return acc && f.trader.includes(acc.traderId); });
+    }
+    const bilanMoney = sumMoneyNet(bilanLines, bilanPays);
+    const totalExp = bilanMoney.totalExp;
+    const totalPay = bilanMoney.totalPay;
+    const totalNet = bilanMoney.net;
 
     const filterBar = `
       <div class="filter-bar">
@@ -6529,9 +6579,9 @@ function viewBilanVisuel(){
     return `
       ${modeToggle}
       <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)</div><div class="stat-value">${fmtMoney(totalExp)}</div></div>
-        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)</div><div class="stat-value">${fmtMoney(totalPay)}</div></div>
-        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoney(totalNet)}</div></div>
+        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)</div><div class="stat-value">${fmtMoneyCur(totalPay, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
       </div>
       ${filterBar}
       ${grid}
@@ -6738,6 +6788,20 @@ async function loadFiscalThresholds(){
   const { data, error } = await supabaseClient.from('app_settings').select('*').eq('key','fiscal_thresholds').maybeSingle();
   state.fiscalThresholds = (!error && data && data.value) ? data.value : FISCAL_THRESHOLDS_FALLBACK;
 }
+// Admin uniquement (Admin > Seuils fiscaux) — mêmes conventions que savePricingSettings() : clé
+// dédiée dans app_settings, écriture réservée aux admins (RLS), relecture par tous les utilisateurs
+// via loadFiscalThresholds() au chargement de l'app.
+async function saveFiscalThresholds(){
+  if(!isAdmin()) return false;
+  const payload = { key:'fiscal_thresholds', value: state.fiscalThresholds, updated_at: new Date().toISOString() };
+  const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
+  if(error){
+    showToast("Impossible d'enregistrer les seuils fiscaux : " + error.message + " — vérifie que la table 'app_settings' autorise cette écriture pour les admins.", 'danger');
+    return false;
+  }
+  showToast('Seuils fiscaux mis à jour.');
+  return true;
+}
 
 const FISCAL_CHECKLIST_ITEMS = [
   { id:'urssaf', title:'Déclarations URSSAF', sub:'Mensuelles ou trimestrielles selon ton option — vérifie que les 12 échéances sont à jour.' },
@@ -6789,6 +6853,39 @@ function fmtMoneyCur(amount, currency){
   const symbols = { USD:'$', EUR:'€', GBP:'£' };
   const symbol = symbols[currency] || '$';
   return Number(amount||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
+}
+// --- Agrégation multi-devises : la bonne façon de sommer des lignes financières partout dans
+// l'app (Dashboard, Comptabilité, Bilan, Classement, Calendrier...) depuis que chaque compte/
+// payout porte sa propre devise (voir migration_fiscalite.sql). Principe :
+//  - Si toutes les lignes partagent la même devise (le cas normal, ex: un utilisateur 100% USD),
+//    le total est exact, dans cette devise, SANS AUCUNE conversion ni arrondi — comportement
+//    identique à avant cette migration pour tous les utilisateurs mono-devise.
+//  - Si les lignes sont dans des devises différentes, le total est converti en EUR (devise pivot
+//    déjà utilisée pour la Fiscalité) et marqué mixed:true pour que l'affichage précise "converti".
+function sumMoneyLines(items){
+  if(!items || !items.length) return { amount:0, currency:'USD', mixed:false };
+  const currencies = new Set(items.map(it=>it.currency||'USD'));
+  if(currencies.size<=1){
+    return { amount: items.reduce((s,it)=>s+Number(it.amount||0),0), currency: items[0].currency||'USD', mixed:false };
+  }
+  return { amount: items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0), currency:'EUR', mixed:true };
+}
+// Affiche un total sumMoneyLines() avec le bon symbole, + une mention "(converti)" si mixte.
+function fmtSumMoney(sum, opts={}){
+  const txt = fmtMoneyCur(sum.amount, sum.currency);
+  if(sum.mixed && !(opts && opts.compact)) return txt + ' <span class="text-faint" style="font-size:10px;">(converti)</span>';
+  return txt;
+}
+// Combine dépenses + payouts dans UNE SEULE devise commune, pour calculer un Net cohérent même si
+// dépenses et payouts ne sont pas dans la même devise (rare, mais possible ligne par ligne).
+function sumMoneyNet(expenseItems, payoutItems){
+  const all = [...expenseItems, ...payoutItems];
+  const mixed = new Set(all.map(it=>it.currency||'USD')).size>1;
+  const val = (it)=> mixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const currency = mixed ? 'EUR' : (all.length ? (all[0].currency||'USD') : 'USD');
+  const totalExp = expenseItems.reduce((s,it)=>s+val(it),0);
+  const totalPay = payoutItems.reduce((s,it)=>s+val(it),0);
+  return { totalExp, totalPay, net: totalPay-totalExp, currency, mixed };
 }
 
 function computeFiscalYearData(year){
@@ -7594,6 +7691,7 @@ function viewAdmin(){
       </div>
       <div class="panel">
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('megaphone')}Message global</div></div>
+        <div class="panel-body">
         <div class="field-hint" style="margin:0 0 10px;">Affiche une bannière en haut de l\u2019application, pour tous les utilisateurs, tant qu\u2019elle est activée.</div>
         <div class="field" style="margin-bottom:10px;">
           <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;">
@@ -7613,10 +7711,12 @@ function viewAdmin(){
           </select>
         </div>
         <button class="btn btn-primary btn-sm" id="ann-save">${icon('check')}Enregistrer</button>
+        </div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Tarifs affichés</div></div>
+      <div class="panel-body">
       <div class="field-hint" style="margin:0 0 14px;">⚠️ Ceci ne change QUE le texte affiché sur la page Tarifs. Le montant réellement débité dépend uniquement de la configuration Stripe (prix associés à STRIPE_PRICE_MONTHLY / STRIPE_PRICE_YEARLY / STRIPE_PRICE_LIFETIME). Modifie les deux côtés pour rester cohérent.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
         <div>
@@ -7636,7 +7736,22 @@ function viewAdmin(){
           <div class="field"><label>Suffixe</label><input id="pr-lifetime-period" value="${escapeHtml(state.pricingSettings.LIFETIME.period)}" placeholder=" paiement unique"/></div>
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" id="pr-save" style="margin-top:14px;">${icon('check')}Enregistrer les tarifs</button>
+      <button class="btn btn-primary btn-sm" id="pr-save" style="margin-top:14px;">${icon('check')}      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Seuils fiscaux</div></div>
+      <div class="panel-body">
+      <div class="field-hint" style="margin:0 0 14px;">Utilisés par la page Fiscalité (jauges micro-BNC / franchise TVA et alertes) pour tous les utilisateurs. À revaloriser chaque année (barèmes URSSAF / service-public.fr).</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+        <div class="field"><label>Année de référence</label><input id="ft-year" type="number" value="${escapeHtml(String(state.fiscalThresholds.year||''))}" placeholder="2026"/></div>
+        <div class="field"><label>Plafond micro-BNC (€)</label><input id="ft-microbnc" type="number" value="${escapeHtml(String(state.fiscalThresholds.microBncCap||''))}" placeholder="83600"/></div>
+        <div class="field"><label>Franchise TVA — base (€)</label><input id="ft-tva-base" type="number" value="${escapeHtml(String(state.fiscalThresholds.tvaBase||''))}" placeholder="37500"/></div>
+        <div class="field"><label>Franchise TVA — majorée (€)</label><input id="ft-tva-majore" type="number" value="${escapeHtml(String(state.fiscalThresholds.tvaMajore||''))}" placeholder="41250"/></div>
+        <div class="field"><label>Abattement forfaitaire (%)</label><input id="ft-abattement" type="number" step="0.1" value="${escapeHtml(String(Math.round((state.fiscalThresholds.abattementForfaitaire||0)*1000)/10))}" placeholder="34"/></div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>Note de source</label><input id="ft-source-note" value="${escapeHtml(state.fiscalThresholds.sourceNote||'')}" placeholder="URSSAF / service-public.fr — à revalider chaque année"/></div>
+      <button class="btn btn-primary btn-sm" id="ft-save" style="margin-top:14px;">${icon('check')}Enregistrer les seuils</button>
+      </div>
     </div>`;
 
   // Panneau de contrôle des doublons : regroupe tous les comptes de la base qui partagent le même
@@ -8426,6 +8541,22 @@ function bindViewEvents(){
       LIFETIME: { amount: lifetimeAmount, period: document.getElementById('pr-lifetime-period').value.trim() || ' paiement unique' },
     };
     await savePricingSettings('Tarifs mis à jour.');
+    renderView();
+  };
+  const ftSaveBtn = document.getElementById('ft-save');
+  if(ftSaveBtn) ftSaveBtn.onclick = async ()=>{
+    const year = Number(document.getElementById('ft-year').value);
+    const microBncCap = Number(document.getElementById('ft-microbnc').value);
+    const tvaBase = Number(document.getElementById('ft-tva-base').value);
+    const tvaMajore = Number(document.getElementById('ft-tva-majore').value);
+    const abattementPct = Number(document.getElementById('ft-abattement').value);
+    if(!year || !microBncCap || !tvaBase || !tvaMajore || !abattementPct){ showToast('Renseigne une valeur pour chaque seuil.', 'danger'); return; }
+    state.fiscalThresholds = {
+      year, microBncCap, tvaBase, tvaMajore,
+      abattementForfaitaire: abattementPct/100,
+      sourceNote: document.getElementById('ft-source-note').value.trim() || 'URSSAF / service-public.fr — à revalider chaque année',
+    };
+    await saveFiscalThresholds();
     renderView();
   };
   document.querySelectorAll('[data-jump-to]').forEach(b=>b.onclick=(e)=>{
@@ -9311,6 +9442,9 @@ function statusHistoryModal(acc){
 /* ============================================================
    PAYOUTS MODAL
 ============================================================ */
+function payoutReceiptCount(payoutId){
+  return state.payout_receipts.filter(r=>r.payoutId===payoutId).length;
+}
 function payoutsModal(acc){
   const trader = getTrader(acc.traderId);
   let editingId = null; // id of the payout currently being edited, or null when adding a new one
@@ -9341,10 +9475,6 @@ function payoutsModal(acc){
         <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
       </div>
       <div class="field"><label>Note (optionnel)</label><input id="pm-note" placeholder="ex: payout mensuel" value="${editing?(editing.note||''):''}"/></div>
-      <div class="field"><label>Justificatif (optionnel)</label>
-        <input type="file" id="pm-receipt-file" accept="image/*,.pdf"/>
-        ${editing && editing.receiptPath ? `<div class="field-hint">Un justificatif est déjà attaché. <a href="#" id="pm-receipt-view">Voir</a></div>` : ''}
-      </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary btn-sm" id="pm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le payout'}</button>
         ${editing ? `<button class="btn btn-outline btn-sm" id="pm-cancel-edit">Annuler</button>` : ''}
@@ -9359,6 +9489,7 @@ function payoutsModal(acc){
                 <td class="text-dim">${p.note||'—'}</td>
                 <td class="num" style="color:var(--accent)">${fmtMoneyCur(p.amount, p.currency)}</td>
                 <td>${`<div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                    <button class="btn btn-ghost btn-sm" data-attachments-payout="${p.id}" title="Justificatifs">${icon('upload')}${payoutReceiptCount(p.id)>0?`<span class="badge badge-slate" style="margin-left:4px;">${payoutReceiptCount(p.id)}</span>`:''}</button>
                     <button class="btn btn-ghost btn-sm" data-receipt-payout="${p.id}" title="Reçu PDF">${icon('receipt')}</button>
                     ${canEdit(p) ? `<button class="btn btn-ghost btn-sm" data-edit-payout="${p.id}">${icon('edit')}</button>
                     <button class="btn btn-ghost btn-sm" data-del-payout="${p.id}" style="color:var(--danger)">${icon('trash')}</button>` : `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`}
@@ -9389,15 +9520,6 @@ function payoutsModal(acc){
       document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
       autofillPmFxRate();
     }
-    const receiptViewLink = document.getElementById('pm-receipt-view');
-    if(receiptViewLink) receiptViewLink.onclick = async (e)=>{
-      e.preventDefault();
-      const p = editingId ? state.payouts.find(x=>x.id===editingId) : null;
-      if(!p || !p.receiptPath) return;
-      const { data, error } = await supabaseClient.storage.from('fiscal-receipts').createSignedUrl(p.receiptPath, 300);
-      if(!error && data) window.open(data.signedUrl, '_blank');
-      else showToast('Impossible d’ouvrir le justificatif : ' + (error?error.message:'lien introuvable'), 'danger');
-    };
     const addBtn = document.getElementById('pm-add');
     if(addBtn) addBtn.onclick = async ()=>{
       const amount = Number(document.getElementById('pm-amount').value);
@@ -9406,24 +9528,16 @@ function payoutsModal(acc){
       const currency = document.getElementById('pm-currency').value;
       const fxRateToEur = Number(document.getElementById('pm-fxrate').value) || 1;
       if(!amount || amount<=0){ showToast('Montant invalide.', 'danger'); return; }
-      let receiptPath = (editingId && state.payouts.find(p=>p.id===editingId)) ? state.payouts.find(p=>p.id===editingId).receiptPath : null;
-      const file = document.getElementById('pm-receipt-file').files[0];
-      if(file){
-        const path = `${currentUserId()}/${acc.id}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabaseClient.storage.from('fiscal-receipts').upload(path, file, { upsert:true });
-        if(upErr) showToast('Justificatif non enregistré : ' + upErr.message, 'danger');
-        else receiptPath = path;
-      }
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
-        await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, receiptPath });
-        await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoney(amount)}`);
+        await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur });
+        await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
         showToast('Payout mis à jour.');
         editingId = null;
       } else {
         const newId = uid('pay');
-        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, receiptPath, createdAt: new Date().toISOString(), createdBy: currentUserId() });
-        await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoney(amount)}`);
+        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+        await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
         showToast('Payout ajouté.');
       }
       refresh();
@@ -9436,13 +9550,17 @@ function payoutsModal(acc){
         const p = state.payouts.find(x=>x.id===b.dataset.delPayout);
         if(editingId===b.dataset.delPayout) editingId=null;
         await remove('payouts', b.dataset.delPayout);
-        if(p) await logActivity('DELETE', 'payout', p.id, `Payout supprimé — ${trader.pseudo} · ${fmtMoney(p.amount)}`);
+        if(p) await logActivity('DELETE', 'payout', p.id, `Payout supprimé — ${trader.pseudo} · ${fmtMoneyCur(p.amount, p.currency)}`);
         refresh();
       });
     });
     document.querySelectorAll('[data-receipt-payout]').forEach(b=>b.onclick=()=>{
       const p = state.payouts.find(x=>x.id===b.dataset.receiptPayout);
       if(p) generatePayoutReceipt(acc, trader, p);
+    });
+    document.querySelectorAll('[data-attachments-payout]').forEach(b=>b.onclick=()=>{
+      const p = state.payouts.find(x=>x.id===b.dataset.attachmentsPayout);
+      if(p) payoutReceiptsModal(acc, p);
     });
   }
   function refresh(){
@@ -9451,6 +9569,76 @@ function payoutsModal(acc){
     renderView(); // keep account card counts in sync in background
   }
   openModal({ title:'Payouts', wide:true, bodyHtml: body(), onMount: mount });
+}
+
+/* ============================================================
+   JUSTIFICATIFS DE PAYOUT (plusieurs fichiers par payout)
+============================================================ */
+function payoutReceiptsModal(acc, payout){
+  const trader = getTrader(acc.traderId);
+  function body(){
+    const list = state.payout_receipts.filter(r=>r.payoutId===payout.id).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    return `
+      <div class="field-hint" style="margin-bottom:12px;">Justificatifs du payout du ${fmtDate(payout.date)} — ${trader?trader.pseudo:'—'} · ${fmtMoneyCur(payout.amount, payout.currency)}</div>
+      <div class="field"><label>Ajouter un ou plusieurs fichiers</label><input type="file" id="prm-files" accept="image/*,.pdf" multiple/></div>
+      <div style="margin-bottom:18px;"><button class="btn btn-primary btn-sm" id="prm-add">${icon('plus')}Téléverser</button></div>
+      <div id="prm-list">
+        ${list.length===0 ? emptyState('receipt','Aucun justificatif pour ce payout','Ajoute le premier fichier ci-dessus.') :
+          `<div class="table-wrap"><table>
+            <thead><tr><th>Fichier</th><th>Ajouté par</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+              ${list.map(r=>`<tr>
+                <td class="text-dim">${escapeHtml(r.fileName||'—')}</td>
+                <td class="text-dim">${escapeHtml(authorLabel(r.createdBy))}</td>
+                <td class="mono text-dim">${r.createdAt ? new Date(r.createdAt).toLocaleString('fr-FR') : ''}</td>
+                <td><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                  <button class="btn btn-ghost btn-sm" data-view-receipt="${r.id}" title="Voir">${icon('eye')}</button>
+                  ${(isAdmin()||r.createdBy===currentUserId()) ? `<button class="btn btn-ghost btn-sm" data-del-receipt="${r.id}" style="color:var(--danger)" title="Supprimer">${icon('trash')}</button>` : ''}
+                </div></td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>`}
+      </div>
+    `;
+  }
+  function mount(){
+    const addBtn = document.getElementById('prm-add');
+    if(addBtn) addBtn.onclick = async ()=>{
+      const files = Array.from(document.getElementById('prm-files').files||[]);
+      if(!files.length){ showToast('Aucun fichier sélectionné.', 'danger'); return; }
+      for(const file of files){
+        const path = `${currentUserId()}/${acc.id}/${payout.id}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabaseClient.storage.from('fiscal-receipts').upload(path, file, { upsert:true });
+        if(upErr){ showToast('Échec upload ' + file.name + ' : ' + upErr.message, 'danger'); continue; }
+        await upsert('payout_receipts', { id: uid('prc'), payoutId: payout.id, accountId: acc.id, path, fileName: file.name, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+      }
+      showToast('Justificatif(s) ajouté(s).');
+      refresh();
+    };
+    document.querySelectorAll('[data-view-receipt]').forEach(b=>b.onclick=async ()=>{
+      const r = state.payout_receipts.find(x=>x.id===b.dataset.viewReceipt);
+      if(!r) return;
+      const { data, error } = await supabaseClient.storage.from('fiscal-receipts').createSignedUrl(r.path, 300);
+      if(!error && data) window.open(data.signedUrl, '_blank');
+      else showToast('Impossible d’ouvrir le justificatif : ' + (error?error.message:'lien introuvable'), 'danger');
+    });
+    document.querySelectorAll('[data-del-receipt]').forEach(b=>b.onclick=()=>{
+      confirmModal('Supprimer ce justificatif ?', async ()=>{
+        const r = state.payout_receipts.find(x=>x.id===b.dataset.delReceipt);
+        if(r){
+          await supabaseClient.storage.from('fiscal-receipts').remove([r.path]);
+          await remove('payout_receipts', r.id);
+        }
+        refresh();
+      });
+    });
+  }
+  function refresh(){
+    document.querySelector('.modal-body').innerHTML = body();
+    mount();
+    renderView();
+  }
+  openModal({ title:'Justificatifs', wide:true, bodyHtml: body(), onMount: mount });
 }
 
 /* ============================================================
@@ -9538,7 +9726,7 @@ function generatePayoutReceipt(acc, trader, payout){
   doc.setFont('helvetica','bold'); doc.setFontSize(16);
   doc.text('Montant versé :', 48, y);
   doc.setTextColor(20,140,110);
-  doc.text(fmtMoney(payout.amount), 220, y);
+  doc.text(fmtMoneyCur(payout.amount, payout.currency||'USD'), 220, y);
   doc.setTextColor(150); doc.setFont('helvetica','normal'); doc.setFontSize(9);
   doc.text(`Généré le ${fmtDate(todayISO())} — document à usage interne, non fiscal.`, 48, 780);
 
@@ -10212,6 +10400,7 @@ function initBackToTop(){
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
       state.changelog_entries = [];
       state.support_messages = [];
+      state.payout_receipts = [];
       state.fiscalChecklist = {};
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
