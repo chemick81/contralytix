@@ -2020,6 +2020,7 @@ function computePermissions(){
     canCalendar: isPremiumRole,
     canBackup: isPremiumRole,
     canClassement: isPremiumRole,
+    canFiscalite: isPremiumRole,
     canUnlimitedAccounts: isPremiumRole,
     maxFreeAccounts: 3,
     maxFreeSessions: 5,
@@ -3336,6 +3337,7 @@ const BASE_NAV = [
   { id:'calendrier', label:'Calendrier', icon:'calendar' },
   { id:'accounting', label:'Comptabilité', icon:'book' },
   { id:'bilan', label:'Bilan Visuel', icon:'camera' },
+  { id:'fiscalite', label:'Fiscalité', icon:'wallet' },
   { id:'sessions', label:'Sessions de Trading', icon:'video' },
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
@@ -3370,7 +3372,7 @@ function getNav(){
 const NAV_GROUPS = [
   { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts'] },
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
-  { id:'finance',  label:'Finances',            items:['accounting','bilan'] },
+  { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite'] },
   { id:'perf',     label:'Performance',         items:['comparatif','classement'] },
   { id:'aide',     label:'Aide & Abonnement',   items:['aide-centre','manuel','changelog','subscription'] },
 ];
@@ -3839,6 +3841,7 @@ function renderView(){
   else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier');
   else if(state.route==='accounting') el.innerHTML = viewAccounting();
   else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)');
+  else if(state.route==='fiscalite') el.innerHTML = perms().canFiscalite ? viewFiscalite() : lockedFeatureView('Le module Fiscalité');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='classement') el.innerHTML = perms().canClassement ? viewClassement() : lockedFeatureView('Le classement');
@@ -6719,6 +6722,207 @@ async function loadNasdaqEarnings(){
 }
 
 
+/* ============================================================
+   VIEW: FISCALITÉ
+   Seuils calculés PAR UTILISATEUR (somme de tous ses traders, pas trader par
+   trader — un seul CA/micro-entreprise à déclarer). Réutilise le même filtre
+   "mine" que la page Comptabilité (myAccountingSource / isMineAccount).
+============================================================ */
+const FISCAL_THRESHOLDS_FALLBACK = {
+  year: 2026, microBncCap: 83600, tvaBase: 37500, tvaMajore: 41250,
+  abattementForfaitaire: 0.34, sourceNote: 'Valeurs de repli codées en dur — charge app_settings.fiscal_thresholds pour les rendre pilotables.',
+};
+
+async function loadFiscalThresholds(){
+  if(!SUPABASE_CONFIGURED) { state.fiscalThresholds = FISCAL_THRESHOLDS_FALLBACK; return; }
+  const { data, error } = await supabaseClient.from('app_settings').select('*').eq('key','fiscal_thresholds').maybeSingle();
+  state.fiscalThresholds = (!error && data && data.value) ? data.value : FISCAL_THRESHOLDS_FALLBACK;
+}
+
+const FISCAL_CHECKLIST_ITEMS = [
+  { id:'urssaf', title:'Déclarations URSSAF', sub:'Mensuelles ou trimestrielles selon ton option — vérifie que les 12 échéances sont à jour.' },
+  { id:'2042c', title:'2042‑C‑PRO — revenus BNC', sub:'Reporte le total payouts − charges déductibles de l’année.' },
+  { id:'3916bis', title:'Formulaire 3916‑bis — comptes à l’étranger', sub:'Un par compte/plateforme étranger détecté ci‑dessous. Amende jusqu’à 1 500 €/compte non déclaré.' },
+  { id:'registre', title:'Registre de recettes chronologique', sub:'Export du détail de tes payouts de l’année, daté et horodaté.' },
+  { id:'versement-liberatoire', title:'Choix versement libératoire', sub:'À arbitrer avant le 30 septembre de l’année précédente pour s’appliquer l’année suivante.' },
+];
+
+async function loadFiscalChecklist(year){
+  if(!SUPABASE_CONFIGURED) { state.fiscalChecklist = {}; return; }
+  const { data, error } = await supabaseClient.from('fiscal_checklist_items').select('*').eq('user_id', currentUserId()).eq('fiscal_year', year);
+  state.fiscalChecklist = {};
+  if(!error && data) data.forEach(row => { state.fiscalChecklist[row.item_id] = row.done; });
+}
+
+async function toggleFiscalChecklistItem(itemId, year){
+  const current = !!state.fiscalChecklist[itemId];
+  const next = !current;
+  state.fiscalChecklist[itemId] = next; // optimiste
+  render();
+  const { error } = await supabaseClient.from('fiscal_checklist_items').upsert({
+    user_id: currentUserId(), fiscal_year: year, item_id: itemId, done: next, updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,fiscal_year,item_id' });
+  if(error){
+    state.fiscalChecklist[itemId] = current; // rollback
+    showToast('Impossible d’enregistrer la checklist : ' + error.message, 'danger');
+    render();
+  }
+}
+
+// amount est stocké dans la devise d'origine (voir currency/fxRateToEur ajoutés sur accounts et
+// payouts). fxRateToEur = taux EUR/devise à la date de la transaction (1.08 = 1€ vaut 1.08$).
+// Tant que la colonne n'est pas renseignée (défaut 1), le montant est traité comme déjà en EUR
+// — comportement rétro-compatible avec toutes les données saisies avant cette migration.
+function toEur(amount, fxRateToEur){
+  const rate = Number(fxRateToEur) || 1;
+  return Number(amount || 0) / rate;
+}
+function fmtEur(n){
+  return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
+}
+
+function computeFiscalYearData(year){
+  const mineAccounts = state.accounts.filter(isMineAccount);
+  const mineAccountIds = new Set(mineAccounts.map(a=>a.id));
+
+  const yearPayouts = state.payouts.filter(p => mineAccountIds.has(p.accountId) && p.date && p.date.slice(0,4) === String(year));
+  const yearExpenses = computeAllExpenses().filter(e => mineAccountIds.has(e.accountId) && e.date && e.date.slice(0,4) === String(year));
+
+  const caEur = yearPayouts.reduce((s,p)=>s + toEur(p.amount, p.fxRateToEur), 0);
+  const feesEur = yearExpenses.reduce((s,e)=>s + toEur(e.amount, (getAccount(e.accountId)||{}).fxRateToEur), 0);
+
+  const byFirm = new Map();
+  function firmEntry(firmId){
+    if(!byFirm.has(firmId)) byFirm.set(firmId, { firmId, feesEur:0, payoutsEur:0, currencies:new Set() });
+    return byFirm.get(firmId);
+  }
+  yearExpenses.forEach(e=>{
+    const acc = getAccount(e.accountId); if(!acc) return;
+    const entry = firmEntry(acc.propFirmId);
+    entry.feesEur += toEur(e.amount, acc.fxRateToEur);
+    entry.currencies.add(acc.currency || 'USD');
+  });
+  yearPayouts.forEach(p=>{
+    const acc = getAccount(p.accountId); if(!acc) return;
+    const entry = firmEntry(acc.propFirmId);
+    entry.payoutsEur += toEur(p.amount, p.fxRateToEur);
+    entry.currencies.add(p.currency || 'USD');
+  });
+
+  // Comptes étrangers détectés (propfirm avec country_code renseigné et différent de 'FR').
+  // Un country_code absent n'est PAS compté comme étranger : mieux vaut un faux négatif (à
+  // vérifier manuellement) qu'une fausse alerte sur une donnée non renseignée.
+  const foreignFirms = [...byFirm.keys()]
+    .map(id=>getFirm(id))
+    .filter(f => f && f.countryCode && f.countryCode !== 'FR');
+
+  return {
+    year, caEur, feesEur,
+    byFirm: [...byFirm.values()].map(e=>({ ...e, firm:getFirm(e.firmId), currencies:[...e.currencies] })).sort((a,b)=>b.payoutsEur-a.payoutsEur),
+    foreignFirms,
+  };
+}
+
+function fiscalPillFor(ratio){
+  if(ratio >= 1) return ['crit','Dépassé'];
+  if(ratio >= 0.85) return ['warn','Proche'];
+  return ['good','OK'];
+}
+
+function viewFiscalite(){
+  const th = state.fiscalThresholds || FISCAL_THRESHOLDS_FALLBACK;
+  const year = state.fiscalYear || Number(todayISO().slice(0,4));
+  const data = computeFiscalYearData(year);
+
+  const bncRatio = data.caEur / th.microBncCap;
+  const [bncClass, bncLabel] = fiscalPillFor(bncRatio);
+  const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
+  const [tvaClass, tvaLabel] = fiscalPillFor(tvaRatioForClass);
+
+  const alerts = [];
+  if(data.caEur >= th.tvaMajore) alerts.push({level:'crit', title:'Franchise TVA dépassée', sub:'Facturation TVA obligatoire dès le mois de dépassement.'});
+  else if(data.caEur >= th.tvaBase) alerts.push({level:'warn', title:'Seuil de base TVA franchi', sub:`Franchise conservée jusqu’à ${fmtEur(th.tvaMajore)} si le seuil majoré n’est pas atteint.`});
+  if(bncRatio >= 1) alerts.push({level:'crit', title:'Plafond micro‑BNC dépassé', sub:'Bascule au régime réel dès l’année suivante.'});
+  else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro‑BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
+  if(data.foreignFirms.length) alerts.push({level:'info', title:`${data.foreignFirms.length} prop firm(s) étrangère(s) détectée(s)`, sub: data.foreignFirms.map(f=>f.name).join(', ') + ' — formulaire 3916‑bis requis.'});
+
+  const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
+
+  return `
+    <div class="field-hint" style="margin:0 0 14px;">
+      Seuils ${th.year} : plafond micro‑BNC ${fmtEur(th.microBncCap)}, franchise TVA ${fmtEur(th.tvaBase)} / ${fmtEur(th.tvaMajore)}.
+      ${escapeHtml(th.sourceNote||'')} — cet outil ne remplace pas l’avis d’un expert‑comptable.
+    </div>
+
+    <div class="panel-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;">
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Plafond micro‑BNC</div><span class="badge ${bncClass==='crit'?'badge-danger':bncClass==='warn'?'badge-gold':'badge-accent'}">${bncLabel}</span></div>
+        <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${Math.min(bncRatio,1)*100}%;background:${bncClass==='crit'?'var(--danger)':bncClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
+          <span class="mono">${fmtEur(data.caEur)}</span><span>Plafond ${fmtEur(th.microBncCap)}</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Franchise TVA</div><span class="badge ${tvaClass==='crit'?'badge-danger':tvaClass==='warn'?'badge-gold':'badge-accent'}">${tvaLabel}</span></div>
+        <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${Math.min(data.caEur/th.tvaMajore,1)*100}%;background:${tvaClass==='crit'?'var(--danger)':tvaClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
+          <span class="mono">${fmtEur(data.caEur)}</span><span>Majoré ${fmtEur(th.tvaMajore)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-grid" style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Flux par prop firm — ${year}</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prop firm</th><th class="num">Frais</th><th class="num">Payouts</th><th>Devise</th></tr></thead>
+            <tbody>
+              ${data.byFirm.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:16px 0;">Aucune donnée pour ${year}.</div></td></tr>` :
+                data.byFirm.map(r=>`<tr>
+                  <td>${r.firm?escapeHtml(r.firm.name):'—'}</td>
+                  <td class="num" style="color:var(--danger)">${fmtEur(r.feesEur)}</td>
+                  <td class="num" style="color:var(--accent)">${fmtEur(r.payoutsEur)}</td>
+                  <td class="text-dim">${r.currencies.join(', ')}${r.currencies.some(c=>c!=='EUR')?' → EUR':''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Alertes seuils</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${alerts.length===0 ? `<div class="empty-sub" style="padding:16px 0;text-align:center;">Aucune alerte pour ${year}.</div>` :
+            alerts.map(a=>`<div class="panel" style="padding:10px 12px;background:${a.level==='crit'?'var(--danger-soft,rgba(232,92,74,.1))':a.level==='warn'?'var(--gold-soft,rgba(181,112,44,.1))':'var(--surface-2)'};">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${escapeHtml(a.title)}</div>
+              <div style="font-size:12px;color:var(--text-faint);">${escapeHtml(a.sub)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="section-title">Checklist déclarative ${year} (${doneCount}/${FISCAL_CHECKLIST_ITEMS.length})</div></div>
+      <div>
+        ${FISCAL_CHECKLIST_ITEMS.map(it=>`
+          <div class="page-visibility-row" data-fiscal-check="${it.id}" style="cursor:pointer;">
+            <div class="page-visibility-left">
+              <label class="switch"><input type="checkbox" ${state.fiscalChecklist[it.id]?'checked':''} data-fiscal-check-box="${it.id}"/><span class="switch-track"></span></label>
+              <div>
+                <div style="font-weight:500;">${escapeHtml(it.title)}</div>
+                <div class="text-dim" style="font-size:12px;">${escapeHtml(it.sub)}</div>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function viewMeteo(){
   const list = [...state.market_prep].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const today = todayISO();
@@ -7706,6 +7910,10 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
+  // Module Fiscalité : checklist déclarative (cases à cocher, persistées par utilisateur/année)
+  document.querySelectorAll('[data-fiscal-check-box]').forEach(cb=>{
+    cb.onclick = (e) => { e.stopPropagation(); toggleFiscalChecklistItem(cb.dataset.fiscalCheckBox, state.fiscalYear || Number(todayISO().slice(0,4))); };
+  });
   // Manuel: sommaire (scroll fluide) + lien vers la page confidentialité
   document.querySelectorAll('[data-manual-anchor]').forEach(a=>{
     a.onclick = (e)=>{
@@ -8556,6 +8764,13 @@ function firmFormModal(existing){
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
       <div class="field"><label>Site web (optionnel)</label><input id="ff-web" value="${f.website||''}" placeholder="https://…"/></div>
       <div class="field"><label>Notes (optionnel)</label><textarea id="ff-notes" rows="3">${f.notes||''}</textarea></div>
+      <div class="field"><label>Pays d'immatriculation (optionnel)</label>
+        <select id="ff-country">
+          <option value="">— Non renseigné —</option>
+          ${['FR','CZ','CY','US','GB','AE','IL','LU','MT'].map(c=>`<option value="${c}" ${f.countryCode===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <div class="field-hint">Sert à repérer automatiquement les comptes "à l'étranger" pour le 3916‑bis (module Fiscalité). Vérifie auprès de la prop firm elle-même (mentions légales / CGU) avant de renseigner — une valeur fausse ici est pire qu'une case vide.</div>
+      </div>
       <div id="ff-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="ff-cancel">Annuler</button><button class="btn btn-primary" id="ff-save">Enregistrer</button>`,
@@ -8591,7 +8806,7 @@ function firmFormModal(existing){
         if(!name){ document.getElementById('ff-error').textContent = 'Le nom est obligatoire.'; return; }
         const dup = state.propfirms.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.id!==f.id);
         if(dup){ document.getElementById('ff-error').textContent = 'Cette PropFirm existe déjà.'; return; }
-        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl });
+        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl, countryCode: document.getElementById('ff-country').value || null });
         await logActivity(existing?'UPDATE':'CREATE', 'propfirm', f.id, `${name}`);
         showToast(existing ? 'PropFirm mise à jour.' : 'PropFirm créée.');
         closeModal(); render();
@@ -8798,9 +9013,21 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field-row">
-        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat ($)${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
-        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel ($)${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
+        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
+        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
         <div class="field" id="af-purchase-date-wrap" style="display:${(a.type==='PA'||a.type==='LIVE')?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="af-date" type="date" value="${a.purchaseDate}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Devise</label>
+          <select id="af-currency">
+            ${['USD','EUR','GBP'].map(c=>`<option value="${c}" ${(a.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="af-fxrate-wrap" style="display:${(a.currency||'USD')==='EUR'?'none':'block'};">
+          <label>Taux EUR/${a.currency||'USD'} à la date d'achat</label>
+          <input id="af-fxrate" type="number" step="0.0001" value="${a.fxRateToEur||''}" placeholder="ex: 1.0821"/>
+          <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
+        </div>
       </div>
       <div id="af-pa-fields" style="display:${(a.type==='PA'||a.type==='LIVE')?'block':'none'};">
         <div class="field-row">
@@ -8873,6 +9100,25 @@ function accountFormModal({ existing, type, parentChallenge }){
         curSize = e.target.value;
         document.getElementById('af-customsize-wrap').style.display = curSize==='AUTRE' ? 'block' : 'none';
       };
+      // Devise / taux de change — auto-rempli depuis la BCE, jamais écrasé si déjà saisi.
+      async function autofillFxRate(){
+        const currency = document.getElementById('af-currency').value;
+        const rateInput = document.getElementById('af-fxrate');
+        document.getElementById('af-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
+        if(currency==='EUR' || rateInput.value) return;
+        const dateField = document.getElementById('af-date') || document.getElementById('af-activation-date');
+        const date = dateField ? dateField.value : todayISO();
+        try{
+          const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date||todayISO()}&currency=${currency}`);
+          const data = await res.json();
+          if(res.ok && data.rateToEur) rateInput.value = data.rateToEur;
+        }catch(e){ /* silencieux : saisie manuelle toujours possible */ }
+      }
+      document.getElementById('af-currency').addEventListener('change', autofillFxRate);
+      const dateFieldForFx = document.getElementById('af-date');
+      if(dateFieldForFx) dateFieldForFx.addEventListener('change', autofillFxRate);
+      const activationDateFieldForFx = document.getElementById('af-activation-date');
+      if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', autofillFxRate);
       const traderSelect = document.getElementById('af-trader');
       if(!lockTrader) traderSelect.onchange = refreshParentChallengeOptions;
       if(!lockTrader){
@@ -8950,6 +9196,8 @@ function accountFormModal({ existing, type, parentChallenge }){
           accountNumber, paymentType:curPay, purchasePrice, monthlyAmount,
           purchaseDate, activationDate: (curType==='PA'||curType==='LIVE')?activationDate:null, activationFee: (curType==='PA'||curType==='LIVE')?activationFee:null,
           status, endDate, parentChallengeId,
+          currency: document.getElementById('af-currency').value,
+          fxRateToEur: Number(document.getElementById('af-fxrate').value) || 1,
         };
         await upsert('accounts', record);
         const accDesc = `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]}`;
@@ -9060,10 +9308,24 @@ function payoutsModal(acc){
       ${canEdit(acc) ? `
       ${editing ? `<div class="field-hint" style="margin-bottom:8px;color:var(--gold);">Modification du payout du ${fmtDate(editing.date)}</div>` : ''}
       <div class="field-row">
-        <div class="field"><label>Montant ($)</label><input id="pm-amount" type="number" value="${editing?editing.amount:''}"/></div>
+        <div class="field"><label>Montant</label><input id="pm-amount" type="number" value="${editing?editing.amount:''}"/></div>
+        <div class="field"><label>Devise</label>
+          <select id="pm-currency">
+            ${['USD','EUR','GBP'].map(c=>`<option value="${c}" ${(editing?editing.currency:'USD')===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
         <div class="field"><label>Date</label><input id="pm-date" type="date" value="${editing?editing.date:todayISO()}"/></div>
       </div>
+      <div class="field" id="pm-fxrate-wrap" style="display:${(editing?editing.currency:'USD')==='EUR'?'none':'block'};">
+        <label>Taux EUR/devise à la date du payout</label>
+        <input id="pm-fxrate" type="number" step="0.0001" value="${editing?(editing.fxRateToEur||''):''}" placeholder="ex: 1.0821"/>
+        <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
+      </div>
       <div class="field"><label>Note (optionnel)</label><input id="pm-note" placeholder="ex: payout mensuel" value="${editing?(editing.note||''):''}"/></div>
+      <div class="field"><label>Justificatif (optionnel)</label>
+        <input type="file" id="pm-receipt-file" accept="image/*,.pdf"/>
+        ${editing && editing.receiptPath ? `<div class="field-hint">Un justificatif est déjà attaché. <a href="#" id="pm-receipt-view">Voir</a></div>` : ''}
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary btn-sm" id="pm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le payout'}</button>
         ${editing ? `<button class="btn btn-outline btn-sm" id="pm-cancel-edit">Annuler</button>` : ''}
@@ -9089,21 +9351,58 @@ function payoutsModal(acc){
     `;
   }
   function mount(){
+    // Devise / taux de change — auto-rempli depuis la BCE, jamais écrasé si déjà saisi.
+    const pmCurrencySelect = document.getElementById('pm-currency');
+    async function autofillPmFxRate(){
+      const currency = pmCurrencySelect.value;
+      const rateInput = document.getElementById('pm-fxrate');
+      document.getElementById('pm-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
+      if(currency==='EUR' || rateInput.value) return;
+      const date = document.getElementById('pm-date').value || todayISO();
+      try{
+        const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date}&currency=${currency}`);
+        const data = await res.json();
+        if(res.ok && data.rateToEur) rateInput.value = data.rateToEur;
+      }catch(e){ /* silencieux : saisie manuelle toujours possible */ }
+    }
+    if(pmCurrencySelect){
+      pmCurrencySelect.addEventListener('change', autofillPmFxRate);
+      document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
+    }
+    const receiptViewLink = document.getElementById('pm-receipt-view');
+    if(receiptViewLink) receiptViewLink.onclick = async (e)=>{
+      e.preventDefault();
+      const p = editingId ? state.payouts.find(x=>x.id===editingId) : null;
+      if(!p || !p.receiptPath) return;
+      const { data, error } = await supabaseClient.storage.from('fiscal-receipts').createSignedUrl(p.receiptPath, 300);
+      if(!error && data) window.open(data.signedUrl, '_blank');
+      else showToast('Impossible d’ouvrir le justificatif : ' + (error?error.message:'lien introuvable'), 'danger');
+    };
     const addBtn = document.getElementById('pm-add');
     if(addBtn) addBtn.onclick = async ()=>{
       const amount = Number(document.getElementById('pm-amount').value);
       const date = document.getElementById('pm-date').value || todayISO();
       const note = document.getElementById('pm-note').value.trim();
+      const currency = document.getElementById('pm-currency').value;
+      const fxRateToEur = Number(document.getElementById('pm-fxrate').value) || 1;
       if(!amount || amount<=0){ showToast('Montant invalide.', 'danger'); return; }
+      let receiptPath = (editingId && state.payouts.find(p=>p.id===editingId)) ? state.payouts.find(p=>p.id===editingId).receiptPath : null;
+      const file = document.getElementById('pm-receipt-file').files[0];
+      if(file){
+        const path = `${currentUserId()}/${acc.id}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabaseClient.storage.from('fiscal-receipts').upload(path, file, { upsert:true });
+        if(upErr) showToast('Justificatif non enregistré : ' + upErr.message, 'danger');
+        else receiptPath = path;
+      }
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
-        await upsert('payouts', { ...existing, amount, date, note });
+        await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, receiptPath });
         await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoney(amount)}`);
         showToast('Payout mis à jour.');
         editingId = null;
       } else {
         const newId = uid('pay');
-        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, receiptPath, createdAt: new Date().toISOString(), createdBy: currentUserId() });
         await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoney(amount)}`);
         showToast('Payout ajouté.');
       }
@@ -9869,6 +10168,8 @@ function initBackToTop(){
     await loadAll();
     await loadAppSettings();
     await loadPricingSettings();
+    await loadFiscalThresholds();
+    await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
     await loadChangelog();
     if(isAdmin()) await loadPromoCodesAdmin();
     applyMyTraderDefaultFilters();
@@ -9891,6 +10192,7 @@ function initBackToTop(){
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
       state.changelog_entries = [];
       state.support_messages = [];
+      state.fiscalChecklist = {};
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
