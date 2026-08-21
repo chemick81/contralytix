@@ -1195,8 +1195,8 @@ document.getElementById('favicon').href = LOGO_DATA_URI;
 
 // ⚠️ CONFIGURATION OBLIGATOIRE ⚠️
 // Dashboard Supabase > Project Settings > API > "Project URL" et "anon public" key
-const SUPABASE_URL = 'https://cnqrcirxprzxxutojklm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucXJjaXJ4cHJ6eHh1dG9qa2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjUzMzcsImV4cCI6MjA5OTc0MTMzN30.oHq13DxXsh0xY2HApsL7dwsV8OjR-NWGp_1EhE-zDSw';
+const SUPABASE_URL = 'https://ijjagnowplglbcpzyfax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqamFnbm93cGxnbGJjcHp5ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzcxNTIsImV4cCI6MjEwMjkxMzE1Mn0.wF9MTreYLudRQbyO0Gn2Dtqju5m1G8BUizeayWyYV64';
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
