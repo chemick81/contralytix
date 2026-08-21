@@ -6857,20 +6857,24 @@ function viewFiscalite(){
     <div class="panel-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;">
       <div class="panel">
         <div class="panel-head"><div class="section-title">Plafond micro‑BNC</div><span class="badge ${bncClass==='crit'?'badge-danger':bncClass==='warn'?'badge-gold':'badge-accent'}">${bncLabel}</span></div>
-        <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
-          <div style="height:100%;width:${Math.min(bncRatio,1)*100}%;background:${bncClass==='crit'?'var(--danger)':bncClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
-          <span class="mono">${fmtEur(data.caEur)}</span><span>Plafond ${fmtEur(th.microBncCap)}</span>
+        <div class="panel-body">
+          <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
+            <div style="height:100%;width:${Math.min(bncRatio,1)*100}%;background:${bncClass==='crit'?'var(--danger)':bncClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
+            <span class="mono">${fmtEur(data.caEur)}</span><span>Plafond ${fmtEur(th.microBncCap)}</span>
+          </div>
         </div>
       </div>
       <div class="panel">
         <div class="panel-head"><div class="section-title">Franchise TVA</div><span class="badge ${tvaClass==='crit'?'badge-danger':tvaClass==='warn'?'badge-gold':'badge-accent'}">${tvaLabel}</span></div>
-        <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
-          <div style="height:100%;width:${Math.min(data.caEur/th.tvaMajore,1)*100}%;background:${tvaClass==='crit'?'var(--danger)':tvaClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
-          <span class="mono">${fmtEur(data.caEur)}</span><span>Majoré ${fmtEur(th.tvaMajore)}</span>
+        <div class="panel-body">
+          <div style="height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-bottom:8px;">
+            <div style="height:100%;width:${Math.min(data.caEur/th.tvaMajore,1)*100}%;background:${tvaClass==='crit'?'var(--danger)':tvaClass==='warn'?'var(--gold,#B5702C)':'var(--accent)'};"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);">
+            <span class="mono">${fmtEur(data.caEur)}</span><span>Majoré ${fmtEur(th.tvaMajore)}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -6895,7 +6899,7 @@ function viewFiscalite(){
       </div>
       <div class="panel">
         <div class="panel-head"><div class="section-title">Alertes seuils</div></div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
           ${alerts.length===0 ? `<div class="empty-sub" style="padding:16px 0;text-align:center;">Aucune alerte pour ${year}.</div>` :
             alerts.map(a=>`<div class="panel" style="padding:10px 12px;background:${a.level==='crit'?'var(--danger-soft,rgba(232,92,74,.1))':a.level==='warn'?'var(--gold-soft,rgba(181,112,44,.1))':'var(--surface-2)'};">
               <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${escapeHtml(a.title)}</div>
@@ -6907,7 +6911,7 @@ function viewFiscalite(){
 
     <div class="panel">
       <div class="panel-head"><div class="section-title">Checklist déclarative ${year} (${doneCount}/${FISCAL_CHECKLIST_ITEMS.length})</div></div>
-      <div>
+      <div class="panel-body">
         ${FISCAL_CHECKLIST_ITEMS.map(it=>`
           <div class="page-visibility-row" data-fiscal-check="${it.id}" style="cursor:pointer;">
             <div class="page-visibility-left">
