@@ -1502,8 +1502,17 @@ async function remove(collection, id){
   }
   return true;
 }
+// Ordre de suppression : les tables enfants d'abord, les tables parentes ensuite,
+// pour respecter les contraintes de clé étrangère (accounts référence traders/propfirms,
+// payouts/account_notes/propfirm_ratings référencent accounts/propfirms, etc.).
+// account_status_history n'est pas dans TABLES (elle n'est pas chargée dans `state`,
+// voir purgeStatusHistory) mais doit quand même être purgée avant les comptes, sinon
+// la suppression des comptes échoue sur account_status_history_account_id_fkey.
+const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','propfirm_ratings','market_prep','yt_sessions','accounts','traders','propfirms'];
 async function resetAllData(){
-  for(const t of TABLES){
+  const { error: histError } = await supabaseClient.from('account_status_history').delete().not('id','is',null);
+  if(histError) showToast('Erreur de réinitialisation (account_status_history) : ' + histError.message, 'danger');
+  for(const t of RESET_TABLE_ORDER){
     const { error } = await supabaseClient.from(t).delete().not('id','is',null);
     if(error) showToast('Erreur de réinitialisation (' + t + ') : ' + error.message, 'danger');
     state[t] = [];
