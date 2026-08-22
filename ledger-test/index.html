@@ -3958,7 +3958,10 @@ let dashboardDelayDetails = {};
 function dashboardCalendarWidgetHtml(f, accIds){
   const today = todayISO();
   const mk = f.calMonth || today.slice(0,7);
-  const items = computeCalendarEvents(mk).filter(it=>accIds.has(it.account.id));
+  // Les échéances fiscales (URSSAF / 2042-C-PRO) n'ont pas de compte (account:null) : elles sont
+  // par nature déclaratives à l'échelle de l'utilisateur, donc toujours affichées, indépendamment
+  // du filtre par compte du dashboard.
+  const items = computeCalendarEvents(mk).filter(it=>!it.account || accIds.has(it.account.id));
   const byDay = {};
   items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
   const holidaysByDate = holidaysForMonth(mk);
@@ -4960,7 +4963,26 @@ const CAL_EVENT_META = {
   REUSSI:     { label:'Challenge réussi',  short:'Réussi',   icon:'🏆', color:'accent' },
   BREACHED:   { label:'Breach',            short:'Breach',   icon:'💥', color:'danger' },
   FERME:      { label:'Compte fermé',      short:'Fermé',    icon:'⏹️', color:'slate'  },
+  URSSAF:     { label:'Échéance URSSAF',   short:'URSSAF',   icon:'🧾', color:'gold'   },
+  FISCAL_2042:{ label:'Échéance 2042-C-PRO', short:'2042-C', icon:'📋', color:'danger' },
 };
+// Toutes les échéances URSSAF réelles d'une année de période donnée (mêmes règles que
+// nextUrssafDeadline) : mensuelle = une échéance/mois (dernier jour du mois M+1, donc la 12e
+// tombe en janvier de l'année suivante) ; trimestrielle = 4 dates fixes 30 avril / 31 juillet /
+// 31 octobre / 31 janvier N+1. Utilisé pour peupler le Calendrier (computeCalendarEvents),
+// contrairement à nextUrssafDeadline qui ne calcule que la toute prochaine échéance à partir
+// d'aujourd'hui.
+function urssafDeadlinesForYear(periodicity, year){
+  if(periodicity === 'trimestrielle'){
+    return [`${year}-04-30`, `${year}-07-31`, `${year}-10-31`, `${year+1}-01-31`];
+  }
+  const dates = [];
+  for(let m=1; m<=12; m++){
+    const d = new Date(year, m+1, 0);
+    dates.push(`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`);
+  }
+  return dates;
+}
 // Tous les événements liés aux comptes/traders pour un mois donné : achats, mensualités dues,
 // frais d'activation, payouts reçus, et issues de compte (réussi / breach / fermé) via endDate.
 function computeCalendarEvents(monthKeyStr){
@@ -4987,6 +5009,25 @@ function computeCalendarEvents(monthKeyStr){
   computeMonthlyDueItems(monthKeyStr).forEach(it=>{
     pushEvt(it.date, 'MENSUALITE', getAccount(it.accountId), Number(it.amount));
   });
+  // Échéances fiscales déclaratives — pas liées à un compte/trader précis (account:null, voir les
+  // gardes correspondantes dans dashboardCalendarWidgetHtml et calendarDayModal) mais à
+  // l'utilisateur : périodicité URSSAF choisie (voir fiscalUrssafPeriodicity/urssafDeadlinesForYear)
+  // et échéance 2042-C-PRO administrable (state.fiscalThresholds.pro2042Deadline).
+  if(state.profile){
+    const [calYear] = monthKeyStr.split('-').map(Number);
+    const periodicity = fiscalUrssafPeriodicity();
+    [calYear-1, calYear].forEach(yr=>{
+      urssafDeadlinesForYear(periodicity, yr).forEach(date=>{
+        if(monthKey(date)===monthKeyStr){
+          events.push({ date, type:'URSSAF', amount:null, currency:null, fxRateToEur:1, account:null, trader:null, firm:null });
+        }
+      });
+    });
+    const th = state.fiscalThresholds || FISCAL_THRESHOLDS_FALLBACK;
+    if(th.pro2042Deadline && monthKey(th.pro2042Deadline)===monthKeyStr){
+      events.push({ date: th.pro2042Deadline, type:'FISCAL_2042', amount:null, currency:null, fxRateToEur:1, account:null, trader:null, firm:null });
+    }
+  }
   state.payouts.forEach(p=>{
     const acc = getAccount(p.accountId);
     if(!acc) return;
@@ -5018,13 +5059,16 @@ function calendarDayModal(dateStr){
       <div style="display:flex;flex-direction:column;">
         ${items.map(it=>{
           const meta = CAL_EVENT_META[it.type] || { label:it.type, icon:'•', color:'slate' };
+          // Les échéances fiscales (URSSAF / 2042-C-PRO) n'ont pas de compte associé (account:null)
+          // — pas de navigation "jump to account" ni de sous-titre compte/trader pour ces lignes.
+          const hasAcc = !!it.account;
           return `
-          <div class="clickable-row" data-jump-acc="${it.account.id}" style="display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border-soft);border-radius:6px;">
+          <div class="${hasAcc?'clickable-row':''}" ${hasAcc?`data-jump-acc="${it.account.id}"`:''} style="display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border-soft);border-radius:6px;${hasAcc?'':'cursor:default;'}">
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:15px;">${meta.icon}</span>
               <div>
-                <div style="font-weight:600;font-size:13px;">${it.trader?it.trader.pseudo:'—'} <span class="badge badge-${meta.color}" style="margin-left:4px;">${meta.label}</span></div>
-                <div class="text-faint" style="font-size:11.5px;">${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}</div>
+                <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : ''} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc?'4px':'0'};">${meta.label}</span></div>
+                <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
               </div>
             </div>
             <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyCur(it.amount, it.currency):''}</div>
@@ -6816,8 +6860,14 @@ async function loadNasdaqEarnings(){
    "mine" que la page Comptabilité (myAccountingSource / isMineAccount).
 ============================================================ */
 const FISCAL_THRESHOLDS_FALLBACK = {
-  year: 2026, microBncCap: 83600, tvaBase: 37500, tvaMajore: 41250,
+  // Plafond micro-BNC 2025/2026 (barème URSSAF/service-public.fr) : 77 700 € — corrigé le 22/08/2026,
+  // l'ancienne valeur de repli (83 600 €) était obsolète (c'est le plafond micro-BIC vente, pas BNC).
+  year: 2026, microBncCap: 77700, tvaBase: 37500, tvaMajore: 41250,
   abattementForfaitaire: 0.34, sourceNote: 'Valeurs de repli codées en dur — charge app_settings.fiscal_thresholds pour les rendre pilotables.',
+  // Échéance 2042-C-PRO administrable (varie chaque année selon la zone de département) : laissée
+  // vide par défaut tant qu'un admin ne l'a pas renseignée dans Admin > Seuils fiscaux — la date
+  // exacte 2026 par zone n'est pas encore confirmée par une source officielle de premier niveau.
+  pro2042Deadline: null,
 };
 
 async function loadFiscalThresholds(){
@@ -6853,6 +6903,59 @@ async function loadFiscalChecklist(year){
   const { data, error } = await supabaseClient.from('fiscal_checklist_items').select('*').eq('user_id', currentUserId()).eq('fiscal_year', year);
   state.fiscalChecklist = {};
   if(!error && data) data.forEach(row => { state.fiscalChecklist[row.item_id] = row.done; });
+}
+
+// Réglages déclaratifs PAR UTILISATEUR (colonnes urssaf_periodicity / versement_liberatoire sur
+// profiles, voir migration_fiscal_user_settings.sql) — même pattern que dashboard_layout
+// (saveDashboardLayout) : on lit/écrit directement sur profiles, pas de nouvelle table.
+function fiscalUrssafPeriodicity(){
+  return (state.profile && state.profile.urssafPeriodicity) || 'mensuelle';
+}
+function fiscalVersementLiberatoire(){
+  return !!(state.profile && state.profile.versementLiberatoire);
+}
+async function saveFiscalUserSettings(periodicity, vfl){
+  const uid = currentUserId();
+  if(!uid || !state.profile) return;
+  const prevPeriodicity = state.profile.urssafPeriodicity;
+  const prevVfl = state.profile.versementLiberatoire;
+  state.profile.urssafPeriodicity = periodicity; // optimiste
+  state.profile.versementLiberatoire = vfl;
+  render();
+  const { error } = await supabaseClient.from('profiles').update({
+    urssaf_periodicity: periodicity, versement_liberatoire: vfl,
+  }).eq('id', uid);
+  if(error){
+    state.profile.urssafPeriodicity = prevPeriodicity; // rollback
+    state.profile.versementLiberatoire = prevVfl;
+    showToast('Impossible d’enregistrer tes réglages déclaratifs (colonnes absentes ? voir migration_fiscal_user_settings.sql) : ' + error.message, 'danger');
+    render();
+    return;
+  }
+  showToast('Réglages déclaratifs mis à jour.');
+}
+// Prochaine échéance URSSAF réelle à partir d'aujourd'hui, selon la périodicité choisie :
+//  - mensuelle : dernier jour du mois suivant (M+1) ;
+//  - trimestrielle : dates fixes 30 avril / 31 juillet / 31 octobre / 31 janvier N+1 pour les
+//    déclarations T1/T2/T3/T4 respectivement.
+// Source : calendrier fiscal auto-entrepreneur (urssaf.fr / indy.fr/guide/fiscalite/declarations/
+// calendrier-fiscal/auto-entrepreneur). Retourne une date 'YYYY-MM-DD' (compatible fmtDate()).
+function nextUrssafDeadline(periodicity, fromISO){
+  const d = fromISO ? new Date(fromISO+'T00:00:00') : new Date();
+  const toISO = (dt)=> `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+  if(periodicity === 'trimestrielle'){
+    const y = d.getFullYear();
+    const fixed = [
+      new Date(y, 3, 30),    // 30 avril — T1
+      new Date(y, 6, 31),    // 31 juillet — T2
+      new Date(y, 9, 31),    // 31 octobre — T3
+      new Date(y+1, 0, 31),  // 31 janvier N+1 — T4
+    ];
+    const upcoming = fixed.find(f => f >= d);
+    return toISO(upcoming || new Date(y+1, 3, 30));
+  }
+  // Mensuelle (par défaut) : dernier jour du mois M+1 = jour 0 du mois M+2.
+  return toISO(new Date(d.getFullYear(), d.getMonth()+2, 0));
 }
 
 async function toggleFiscalChecklistItem(itemId, year){
@@ -7004,7 +7107,8 @@ function safeFileSegment(s){
 
 // Génère le PDF récapitulatif fiscal de l'année (mêmes sections que la page Fiscalité) et
 // retourne un Blob — utilisé à la fois par exportFiscalYearZip() et pour un export PDF seul.
-function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist){
+function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist, userSettings){
+  userSettings = userSettings || {};
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'pt', format:'a4' });
   const pageBottom = 800;
@@ -7024,6 +7128,9 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
   doc.text(pdfSafe(seuilsLine), 48, y);
   y += 14;
   if(th.sourceNote){ doc.setTextColor(140); doc.text(pdfSafe(th.sourceNote), 48, y); y += 14; }
+  const declarativeLine = `URSSAF : ${userSettings.periodicity==='trimestrielle'?'trimestrielle':'mensuelle'} — prochaine échéance ${fmtDate(userSettings.nextDeadline)} · Versement libératoire : ${userSettings.vfl?'Oui':'Non'}${th.pro2042Deadline ? ` · Échéance 2042-C-PRO : ${fmtDate(th.pro2042Deadline)}` : ''}.`;
+  doc.text(pdfSafe(declarativeLine), 48, y);
+  y += 14;
   y += 14;
 
   const bncRatio = data.caEur / th.microBncCap;
@@ -7173,7 +7280,10 @@ async function exportFiscalYearZip(){
     const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
     const zip = new JSZip();
-    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length));
+    const periodicity = fiscalUrssafPeriodicity();
+    const vfl = fiscalVersementLiberatoire();
+    const userSettings = { periodicity, vfl, nextDeadline: nextUrssafDeadline(periodicity) };
+    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length, userSettings));
 
     const receiptsFolder = zip.folder('Justificatifs');
     const payoutIds = new Set(data.yearPayouts.map(p=>p.id));
@@ -7242,7 +7352,20 @@ function viewFiscalite(){
 
   const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
+  const periodicity = fiscalUrssafPeriodicity();
+  const vfl = fiscalVersementLiberatoire();
+  const nextDeadline = nextUrssafDeadline(periodicity);
+
   return `
+    <div class="filter-bar" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="btn btn-ghost btn-sm" id="fiscal-year-prev">${icon('chevLeft')}</button>
+        <div style="font-weight:600;font-size:13px;min-width:70px;text-align:center;">${year}</div>
+        <button class="btn btn-ghost btn-sm" id="fiscal-year-next" ${year>=Number(todayISO().slice(0,4))?'disabled':''}>${icon('chevRight')}</button>
+      </div>
+      <div class="filter-bar-spacer"></div>
+      ${year!==Number(todayISO().slice(0,4)) ? `<button class="pill-reset" id="fiscal-year-reset">Année en cours</button>` : ''}
+    </div>
     <div class="field-hint" style="margin:0 0 14px;">
       Seuils ${th.year} : plafond micro‑BNC ${fmtEur(th.microBncCap)}, franchise TVA ${fmtEur(th.tvaBase)} / ${fmtEur(th.tvaMajore)}.
       ${escapeHtml(th.sourceNote||'')} — cet outil ne remplace pas l’avis d’un expert‑comptable.
@@ -7304,6 +7427,42 @@ function viewFiscalite(){
     </div>
 
     <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Mes réglages déclaratifs</div></div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:14px;">
+          <div class="field">
+            <label>Périodicité URSSAF</label>
+            <select id="fiscal-urssaf-periodicity">
+              <option value="mensuelle" ${periodicity==='mensuelle'?'selected':''}>Mensuelle</option>
+              <option value="trimestrielle" ${periodicity==='trimestrielle'?'selected':''}>Trimestrielle</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Versement libératoire de l'impôt sur le revenu</label>
+            <select id="fiscal-vfl">
+              <option value="non" ${!vfl?'selected':''}>Non</option>
+              <option value="oui" ${vfl?'selected':''}>Oui</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:28px;">
+          <div>
+            <div class="text-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;">Prochaine échéance URSSAF</div>
+            <div style="font-weight:700;font-size:15px;">${fmtDate(nextDeadline)}</div>
+          </div>
+          ${th.pro2042Deadline ? `<div>
+            <div class="text-dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;">Échéance 2042‑C‑PRO (revenus ${th.year||year})</div>
+            <div style="font-weight:700;font-size:15px;">${fmtDate(th.pro2042Deadline)}</div>
+          </div>` : ''}
+        </div>
+        <div class="field-hint" style="margin-top:12px;">
+          ${vfl ? "Versement libératoire actif : l'impôt sur le revenu est déjà réglé avec tes cotisations URSSAF, mais le chiffre d'affaires reste à reporter sur la 2042‑C‑PRO (pour le calcul du revenu fiscal de référence)." : "Sans versement libératoire, l'impôt sur le revenu est calculé au barème classique via ta 2042‑C‑PRO annuelle."}
+          Échéances indicatives — vérifie les dates exactes sur urssaf.fr / impots.gouv.fr selon ta situation.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title">Systèmes de paiement — ${year}</div></div>
       <div class="field-hint" style="margin:0 0 10px;">C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la prop firm elle-même, qui détermine si un compte doit être déclaré au titre du 3916‑bis. Coche la case une fois la déclaration faite pour ce système.</div>
       <div class="table-wrap">
@@ -7332,16 +7491,21 @@ function viewFiscalite(){
     <div class="panel">
       <div class="panel-head"><div class="section-title">Checklist déclarative ${year} (${doneCount}/${FISCAL_CHECKLIST_ITEMS.length})</div></div>
       <div class="panel-body">
-        ${FISCAL_CHECKLIST_ITEMS.map(it=>`
+        ${FISCAL_CHECKLIST_ITEMS.map(it=>{
+          let sub = it.sub;
+          if(it.id==='urssaf') sub = `${sub} Périodicité ${periodicity} — prochaine échéance : ${fmtDate(nextDeadline)}.`;
+          if(it.id==='2042c' && th.pro2042Deadline) sub = `${sub} Échéance ${th.year||year} : ${fmtDate(th.pro2042Deadline)}.`;
+          if(it.id==='versement-liberatoire') sub = vfl ? `${sub} Actif (voir « Mes réglages déclaratifs » ci-dessus).` : sub;
+          return `
           <div class="page-visibility-row" data-fiscal-check="${it.id}" style="cursor:pointer;">
             <div class="page-visibility-left">
               <label class="switch"><input type="checkbox" ${state.fiscalChecklist[it.id]?'checked':''} data-fiscal-check-box="${it.id}"/><span class="switch-track"></span></label>
               <div>
                 <div style="font-weight:500;">${escapeHtml(it.title)}</div>
-                <div class="text-dim" style="font-size:12px;">${escapeHtml(it.sub)}</div>
+                <div class="text-dim" style="font-size:12px;">${escapeHtml(sub)}</div>
               </div>
             </div>
-          </div>`).join('')}
+          </div>`;}).join('')}
       </div>
     </div>
   `;
@@ -8057,12 +8221,14 @@ function viewAdmin(){
       <div class="field-hint" style="margin:0 0 14px;">Utilisés par la page Fiscalité (jauges micro-BNC / franchise TVA et alertes) pour tous les utilisateurs. À revaloriser chaque année (barèmes URSSAF / service-public.fr).</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
         <div class="field"><label>Année de référence</label><input id="ft-year" type="number" value="${escapeHtml(String(state.fiscalThresholds.year||''))}" placeholder="2026"/></div>
-        <div class="field"><label>Plafond micro-BNC (€)</label><input id="ft-microbnc" type="number" value="${escapeHtml(String(state.fiscalThresholds.microBncCap||''))}" placeholder="83600"/></div>
+        <div class="field"><label>Plafond micro-BNC (€)</label><input id="ft-microbnc" type="number" value="${escapeHtml(String(state.fiscalThresholds.microBncCap||''))}" placeholder="77700"/></div>
         <div class="field"><label>Franchise TVA — base (€)</label><input id="ft-tva-base" type="number" value="${escapeHtml(String(state.fiscalThresholds.tvaBase||''))}" placeholder="37500"/></div>
         <div class="field"><label>Franchise TVA — majorée (€)</label><input id="ft-tva-majore" type="number" value="${escapeHtml(String(state.fiscalThresholds.tvaMajore||''))}" placeholder="41250"/></div>
         <div class="field"><label>Abattement forfaitaire (%)</label><input id="ft-abattement" type="number" step="0.1" value="${escapeHtml(String(Math.round((state.fiscalThresholds.abattementForfaitaire||0)*1000)/10))}" placeholder="34"/></div>
+        <div class="field"><label>Échéance 2042-C-PRO (revenus ${state.fiscalThresholds.year||''})</label><input id="ft-2042-deadline" type="date" value="${escapeHtml(state.fiscalThresholds.pro2042Deadline||'')}"/></div>
       </div>
       <div class="field" style="margin-top:12px;"><label>Note de source</label><input id="ft-source-note" value="${escapeHtml(state.fiscalThresholds.sourceNote||'')}" placeholder="URSSAF / service-public.fr — à revalider chaque année"/></div>
+      <div class="field-hint" style="margin:8px 0 0;">L'échéance 2042-C-PRO varie chaque année selon la zone de département (impots.gouv.fr) — à mettre à jour manuellement dès la publication du calendrier officiel de la campagne déclarative.</div>
       <button class="btn btn-primary btn-sm" id="ft-save" style="margin-top:14px;">${icon('check')}Enregistrer les seuils</button>
       </div>
     </div>`;
@@ -8356,6 +8522,26 @@ function bindViewEvents(){
   document.querySelectorAll('[data-fiscal-check-box]').forEach(cb=>{
     cb.onclick = (e) => { e.stopPropagation(); toggleFiscalChecklistItem(cb.dataset.fiscalCheckBox, state.fiscalYear || Number(todayISO().slice(0,4))); };
   });
+  // Module Fiscalité : sélecteur d'année (les seuils/checklist sont par nature annuels — voir
+  // computeFiscalYearData). Recharge la checklist (persistée par année) avant de re-render.
+  async function goToFiscalYear(newYear){
+    state.fiscalYear = newYear;
+    await loadFiscalChecklist(newYear);
+    renderView();
+  }
+  const fyPrev = document.getElementById('fiscal-year-prev');
+  if(fyPrev) fyPrev.onclick = ()=> goToFiscalYear((state.fiscalYear || Number(todayISO().slice(0,4))) - 1);
+  const fyNext = document.getElementById('fiscal-year-next');
+  if(fyNext) fyNext.onclick = ()=> goToFiscalYear((state.fiscalYear || Number(todayISO().slice(0,4))) + 1);
+  const fyReset = document.getElementById('fiscal-year-reset');
+  if(fyReset) fyReset.onclick = ()=> goToFiscalYear(Number(todayISO().slice(0,4)));
+  // Module Fiscalité : réglages déclaratifs par utilisateur (périodicité URSSAF + versement
+  // libératoire) — persistés sur profiles (voir saveFiscalUserSettings), pas de bouton "Enregistrer"
+  // séparé : chaque changement de select sauvegarde directement, comme le fait déjà le toggle 3916-bis.
+  const fiscalPeriodicitySelect = document.getElementById('fiscal-urssaf-periodicity');
+  if(fiscalPeriodicitySelect) fiscalPeriodicitySelect.onchange = ()=> saveFiscalUserSettings(fiscalPeriodicitySelect.value, fiscalVersementLiberatoire());
+  const fiscalVflSelect = document.getElementById('fiscal-vfl');
+  if(fiscalVflSelect) fiscalVflSelect.onchange = ()=> saveFiscalUserSettings(fiscalUrssafPeriodicity(), fiscalVflSelect.value==='oui');
   // Manuel: sommaire (scroll fluide) + lien vers la page confidentialité
   document.querySelectorAll('[data-manual-anchor]').forEach(a=>{
     a.onclick = (e)=>{
@@ -8868,6 +9054,7 @@ function bindViewEvents(){
       year, microBncCap, tvaBase, tvaMajore,
       abattementForfaitaire: abattementPct/100,
       sourceNote: document.getElementById('ft-source-note').value.trim() || 'URSSAF / service-public.fr — à revalider chaque année',
+      pro2042Deadline: document.getElementById('ft-2042-deadline').value || null,
     };
     await saveFiscalThresholds();
     renderView();
@@ -9789,12 +9976,14 @@ function payoutsModal(acc){
       </div>
       <div class="field"><label>Note (optionnel)</label><input id="pm-note" placeholder="ex: payout mensuel" value="${editing?(editing.note||''):''}"/></div>
       <div class="field">
-        <label>Système de paiement (optionnel)</label>
-        <input id="pm-payment-system" list="pm-payment-system-list" placeholder="ex: WISE" value="${editing?(editing.paymentSystem||''):''}"/>
-        <datalist id="pm-payment-system-list">
-          ${paymentSystemSuggestions().map(s=>`<option value="${escapeHtml(s)}"></option>`).join('')}
-        </datalist>
-        <div class="field-hint">Sert à la synthèse « 3916-bis » de la page Fiscalité — c'est le système de paiement (Wise, virement, etc.), pas la prop firm elle-même, qui détermine si un compte à l'étranger doit être déclaré.</div>
+        <label>Système de paiement</label>
+        <select id="pm-payment-system-select">
+          <option value="" ${!editing||!editing.paymentSystem?'selected':''} disabled>— Choisir —</option>
+          ${paymentSystemSuggestions().map(s=>`<option value="${escapeHtml(s)}" ${editing&&editing.paymentSystem===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
+          <option value="__NEW__">+ Ajouter un nouveau système…</option>
+        </select>
+        <input id="pm-payment-system-custom" placeholder="ex: DEEL" style="display:none;margin-top:6px;"/>
+        <div class="field-hint">Sert à la synthèse « 3916-bis » de la page Fiscalité — c'est le système de paiement (Wise, virement, etc.), pas la prop firm elle-même, qui détermine si un compte à l'étranger doit être déclaré. Un nouveau système est automatiquement enregistré en MAJUSCULES.</div>
         <div id="pm-payment-system-hint" style="margin-top:4px;"></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -9842,13 +10031,36 @@ function payoutsModal(acc){
       document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
       autofillPmFxRate();
     }
-    const pmSystemInput = document.getElementById('pm-payment-system');
+    const pmSystemSelect = document.getElementById('pm-payment-system-select');
+    const pmSystemCustom = document.getElementById('pm-payment-system-custom');
     const pmSystemHint = document.getElementById('pm-payment-system-hint');
+    // Valeur effective du système choisi : soit l'option sélectionnée, soit le texte libre
+    // "+ Ajouter un nouveau système…" — toujours renvoyée en MAJUSCULES, jamais telle quelle.
+    function currentPmSystemValue(){
+      if(pmSystemSelect.value==='__NEW__') return pmSystemCustom.value.trim().toUpperCase();
+      return pmSystemSelect.value;
+    }
     function refreshPmSystemHint(){
-      const g = paymentSystem3916Guidance(pmSystemInput.value);
+      const g = paymentSystem3916Guidance(currentPmSystemValue());
       pmSystemHint.innerHTML = !g ? '' : `<span class="badge ${g.level==='oui'?'badge-danger':g.level==='conditionnel'?'badge-gold':'badge-accent'}" title="${escapeHtml(g.note)}">${g.level==='oui'?'À déclarer (3916-bis)':g.level==='conditionnel'?'Selon les cas (3916-bis)':'Généralement non requis'}</span>`;
     }
-    if(pmSystemInput){ pmSystemInput.addEventListener('input', refreshPmSystemHint); refreshPmSystemHint(); }
+    if(pmSystemSelect){
+      pmSystemSelect.addEventListener('change', ()=>{
+        const isNew = pmSystemSelect.value==='__NEW__';
+        pmSystemCustom.style.display = isNew ? '' : 'none';
+        if(isNew) pmSystemCustom.focus();
+        refreshPmSystemHint();
+      });
+      // Toujours en MAJUSCULES en direct — l'utilisateur voit tout de suite ce qui sera enregistré,
+      // pas besoin de compter sur lui pour taper en majuscules (voir uid()/toUpperCase() à l'enregistrement).
+      pmSystemCustom.addEventListener('input', (e)=>{
+        const pos = e.target.selectionStart;
+        e.target.value = e.target.value.toUpperCase();
+        e.target.setSelectionRange(pos, pos);
+        refreshPmSystemHint();
+      });
+      refreshPmSystemHint();
+    }
     const addBtn = document.getElementById('pm-add');
     if(addBtn) addBtn.onclick = async ()=>{
       const amount = Number(document.getElementById('pm-amount').value);
@@ -9856,10 +10068,9 @@ function payoutsModal(acc){
       const note = document.getElementById('pm-note').value.trim();
       const currency = document.getElementById('pm-currency').value;
       const fxRateToEur = Number(document.getElementById('pm-fxrate').value) || 1;
-      // Toujours en MAJUSCULES, pour que la synthèse par système (page Fiscalité) regroupe
-      // correctement "Wise" / "wise" / "WISE" saisis par des utilisateurs différents.
-      const paymentSystem = document.getElementById('pm-payment-system').value.trim().toUpperCase() || null;
+      const paymentSystem = currentPmSystemValue();
       if(!amount || amount<=0){ showToast('Montant invalide.', 'danger'); return; }
+      if(!paymentSystem){ showToast('Le système de paiement est obligatoire.', 'danger'); return; }
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
         await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, paymentSystem });
