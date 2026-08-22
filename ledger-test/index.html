@@ -9832,8 +9832,8 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field-row">
-        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
-        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel${!isEdit?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
+        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
+        <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
         <div class="field" id="af-purchase-date-wrap" style="display:${(a.type==='PA'||a.type==='LIVE')?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="af-date" type="date" value="${a.purchaseDate}"/></div>
       </div>
       <div class="field-row">
