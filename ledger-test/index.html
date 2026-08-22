@@ -5239,16 +5239,22 @@ const HELP_CATEGORIES = [
     { q:"Combien de comptes puis-je suivre en formule Free ?", a:"3 comptes gratuits par trader. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de comptes illimité." },
     { q:"Comment un Challenge devient-il un compte PA ?", a:"Depuis la fiche du compte, marque le Challenge comme « Réussi » — Contralytix propose alors de créer automatiquement le compte PA correspondant, en reprenant les informations du challenge d'origine." },
     { q:"Puis-je masquer mes numéros de compte à l'écran ?", a:"Oui, le bouton « Afficher / Masquer les n° de compte » en bas de la barre latérale bascule entre le numéro complet et une version masquée (4 derniers chiffres visibles), pratique pour partager son écran." },
+    { q:"Combien de justificatifs puis-je attacher à un payout ?", a:"Autant que nécessaire : le bouton dédié sur chaque ligne de payout ouvre une fenêtre « Justificatifs » où l'on peut téléverser plusieurs fichiers, les consulter un par un, et supprimer individuellement ceux qui ne sont plus utiles (le créateur du justificatif ou un administrateur uniquement)." },
   ]},
   { id:'compta', label:'Comptabilité & Bilan', icon:'book', questions:[
     { q:"Que suit la page Comptabilité ?", a:"Toutes les dépenses (achats de challenge, mensualités, frais d'activation) et tous les payouts reçus, avec un tableau « Performance financière » basculable par mois, trimestre ou année, incluant le ROI." },
     { q:"Comment exporter mes données comptables ?", a:"Trois formats sont disponibles depuis la page Comptabilité : CSV, Excel et PDF récapitulatif. Les exports Excel et PDF nécessitent la formule Premium ou Lifetime." },
     { q:"C'est quoi le Bilan Visuel ?", a:"Une page qui génère une image (PNG) prête à partager : soit une vue globale de ton bilan regroupé par PropFirm sur la période choisie, soit une carte par trader et par PropFirm." },
+    { q:"Puis-je enregistrer des payouts et des dépenses dans plusieurs devises ?", a:"Oui. Chaque payout peut être saisi en dollar ($) ou en euro (€), avec un taux de change (rempli automatiquement depuis la Banque Centrale Européenne à la date du payout, modifiable si besoin). Tant que les montants d'une même vue (compte, mois, bilan…) sont dans une seule devise, le total reste exact et affiché dans cette devise, sans conversion. Ce n'est que si des montants dans des devises différentes se retrouvent mélangés dans un même total que Contralytix les convertit en euro pour pouvoir les additionner, et l'ajoute alors une mention « converti » pour que ce soit toujours visible." },
   ]},
   { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
     { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
     { q:"Comment fonctionnent les alertes du Dashboard ?", a:"Le panneau Alertes du Dashboard signale les mensualités qui arrivent à échéance sous 7 jours, et les comptes financés actifs sans payout récent. Un clic sur une alerte ouvre directement le compte concerné." },
     { q:"Le Calendrier est-il accessible en formule Free ?", a:"Non, c'est une fonctionnalité Premium/Lifetime — il reste visible en aperçu verrouillé sous forme de widget sur le Dashboard." },
+  ]},
+  { id:'fiscalite', label:'Fiscalité', icon:'receipt', questions:[
+    { q:"Le module Fiscalité couvre-t-il tous les régimes (EURL, SASU…) ?", a:"Non, il est conçu spécifiquement pour le régime micro-entreprise (micro-BNC) : plafond micro-BNC, franchise en base de TVA et abattement forfaitaire. Le régime réel et les structures en société ne sont pas couverts pour l'instant." },
+    { q:"Les seuils fiscaux (plafond micro-BNC, franchise TVA, abattement) sont-ils à jour et modifiables ?", a:"Oui. Un panneau « Seuils fiscaux » dans l'espace Admin permet à un administrateur de les revaloriser chaque année (barèmes URSSAF / service-public.fr) sans intervention technique — plus besoin de passer par une requête en base." },
   ]},
   { id:'sessions', label:'Sessions de Trading', icon:'video', questions:[
     { q:"À quoi sert la page Sessions de Trading ?", a:"C'est un journal de trading : chaque session peut inclure un replay YouTube, des notes et une performance (Excellent à Mauvais), pour garder une trace de ton activité au fil du temps." },
@@ -5453,7 +5459,7 @@ const MANUAL_CHAPTERS = [
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
     <h3>Payouts</h3>
     ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — ajout, historique et reçu PDF.")}
-    <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, date, note), de le modifier ou le supprimer, et de générer un reçu PDF pour chaque payout.</p>
+    <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, devise — dollar ou euro, avec taux de change auto-rempli depuis la Banque Centrale Européenne, date, note), de le modifier ou le supprimer, et de générer un reçu PDF récapitulatif pour chaque payout. Un bouton « Justificatifs » séparé, sur chaque ligne, ouvre une fenêtre dédiée permettant d'attacher autant de fichiers que nécessaire (factures, captures d'écran…), de les consulter et de les supprimer individuellement.</p>
     <h3>Notes / journal et historique</h3>
     <p>Chaque compte dispose d'un journal de notes horodatées et attribuées à leur auteur, ainsi que d'un historique complet des changements de statut avec date et motif.</p>
     <h3>Droits d'édition</h3>
@@ -5466,6 +5472,8 @@ const MANUAL_CHAPTERS = [
   { n:'8', id:'m-comptabilite', title:"Comptabilité", html:`
     <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports. Elle n'affiche et n'exporte jamais que les lignes rattachées à tes propres comptes (comptes que tu as créés, ou comptes d'un trader lié à ton adresse email) — quelle que soit ta formule, les données financières des autres utilisateurs n'y apparaissent jamais.</p>
     ${manualShot('08-comptabilite.jpg', "Registre comptable — dépenses et payouts, avec filtres et exports CSV / Excel / PDF.")}
+    <h3>Devises ($ / €)</h3>
+    <p>Chaque ligne est affichée dans sa devise d'origine (dollar ou euro). Tant qu'un total (une carte, un mois, un bilan…) ne regroupe que des lignes dans la même devise, il reste exact et affiché dans cette devise, sans aucune conversion. Si des devises différentes se retrouvent mélangées dans un même total, Contralytix convertit alors tout en euro (au taux de change enregistré à la date de chaque ligne) et l'indique par la mention « converti ». Cette règle s'applique de façon cohérente sur tout le site : Dashboard, Comptabilité, Bilan visuel, Classement, Calendrier et exports.</p>
     <h3>Filtres</h3>
     <p>Il est possible de filtrer les lignes par mois, par type de mouvement, par trader (choix multiple) et par PropFirm.</p>
     <h3>Exports</h3>
@@ -5530,6 +5538,8 @@ const MANUAL_CHAPTERS = [
     <p>Un panneau « Gestion des pages » liste toutes les pages du menu et permet, pour chacune, de la masquer ou de la réafficher pour l'ensemble des utilisateurs non-admin d'un simple interrupteur. Une page masquée disparaît du menu de tout le monde sauf des administrateurs, qui continuent à la voir (grisée, avec un badge « Masquée ») afin de pouvoir la réactiver à tout moment. Le Dashboard et l'espace Admin ne peuvent pas être masqués, pour éviter de bloquer l'accès à l'application.</p>
     <h3>Message global</h3>
     <p>Un panneau « Message global » permet d'afficher une bannière en haut de l'application, visible par tous les utilisateurs tant qu'elle est activée (par exemple pour annoncer une maintenance ou une nouveauté). Le message et son style (information, avertissement, urgent) sont modifiables à tout moment ; désactiver l'interrupteur masque immédiatement la bannière pour tout le monde.</p>
+    <h3>Seuils fiscaux</h3>
+    <p>Un panneau « Seuils fiscaux » permet de tenir à jour, chaque année, les valeurs utilisées par le module Fiscalité (année de référence, plafond micro-BNC, franchise en base de TVA — base et majorée —, abattement forfaitaire et note de source) sans intervention technique. Ces seuils sont partagés par tous les utilisateurs du site.</p>
     <h3>Gestion des utilisateurs</h3>
     <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès.</p>
     <h3>Journal d'activité</h3>
@@ -5551,7 +5561,7 @@ function viewManuel(){
     <div class="panel" style="margin-bottom:20px;">
       <div class="panel-body">
         <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Manuel d'utilisation — Contralytix</div>
-        <div class="field-hint" style="margin:0 0 14px;">Version du document : juillet 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 14).</div>
+        <div class="field-hint" style="margin:0 0 14px;">Version du document : août 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 14).</div>
         <div class="manual-toc">
           ${MANUAL_CHAPTERS.map(c=>`<a href="#${c.id}" data-manual-anchor="${c.id}"><span class="mn">${c.n}</span>${c.title}</a>`).join('')}
         </div>
