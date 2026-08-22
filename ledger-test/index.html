@@ -7464,7 +7464,7 @@ function viewFiscalite(){
 
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title">Systèmes de paiement — ${year}</div></div>
-      <div class="field-hint" style="margin:0 0 10px;">C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la prop firm elle-même, qui détermine si un compte doit être déclaré au titre du 3916‑bis. Coche la case une fois la déclaration faite pour ce système.</div>
+      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la prop firm elle-même, qui détermine si un compte doit être déclaré au titre du 3916‑bis. Coche la case une fois la déclaration faite pour ce système.</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Système</th><th class="num">Payouts</th><th>Devise</th><th>Repère indicatif</th><th>3916‑bis déclaré</th></tr></thead>
@@ -7485,7 +7485,7 @@ function viewFiscalite(){
           </tbody>
         </table>
       </div>
-      <div class="field-hint" style="margin:10px 0 0;">Le « Repère indicatif » est une aide générale, pas une qualification juridique — vérifie ta situation exacte avec un expert-comptable avant de cocher ou non la case.</div>
+      <div class="field-hint" style="margin:10px 0 0;padding:0 18px 16px;">Le « Repère indicatif » est une aide générale, pas une qualification juridique — vérifie ta situation exacte avec un expert-comptable avant de cocher ou non la case.</div>
     </div>
 
     <div class="panel">
@@ -8151,6 +8151,7 @@ function viewAdmin(){
     <div class="panel-grid" style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
       <div class="panel">
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('layout')}Gestion des pages</div></div>
+        <div class="panel-body">
         <div class="field-hint" style="margin:0 0 4px;">Masque une page du menu pour tous les utilisateurs non-admin. Le Dashboard et l\u2019Admin restent toujours accessibles.</div>
         <div>
           ${BASE_NAV.filter(n=>HIDEABLE_PAGE_IDS.includes(n.id)).map(n=>{
@@ -8164,6 +8165,7 @@ function viewAdmin(){
               </label>
             </div>`;
           }).join('')}
+        </div>
         </div>
       </div>
       <div class="panel">
@@ -8244,8 +8246,8 @@ function viewAdmin(){
   const duplicatesPanel = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('lock')}Contrôle des doublons (${dupGroups.length} groupe${dupGroups.length>1?'s':''}${dupGroups.length?`, ${dupAccountsCount} comptes`:''})</div></div>
-      <div class="field-hint" style="margin:0 0 14px;">Détecte les comptes qui partagent le même numéro de compte pour une même PropFirm, tous traders confondus. À la création, ce cas est désormais bloqué automatiquement ; ce tableau sert à repérer les doublons déjà présents en base (comptes créés avant le verrou, ou issus d'un import).</div>
-      ${dupGroups.length===0 ? `<div class="empty-sub" style="padding:16px 0;">Aucun doublon détecté.</div>` : `
+      <div class="field-hint" style="margin:0 0 14px;padding:14px 18px 0;">Détecte les comptes qui partagent le même numéro de compte pour une même PropFirm, tous traders confondus. À la création, ce cas est désormais bloqué automatiquement ; ce tableau sert à repérer les doublons déjà présents en base (comptes créés avant le verrou, ou issus d'un import).</div>
+      ${dupGroups.length===0 ? `<div class="empty-sub" style="padding:16px 18px;">Aucun doublon détecté.</div>` : `
       <div class="table-wrap">
         <table>
           <thead><tr><th>PropFirm</th><th>N° de compte</th><th>Trader</th><th>Type</th><th>Statut</th><th>Créé par</th><th>Créé le</th><th></th></tr></thead>
@@ -8270,7 +8272,7 @@ function viewAdmin(){
   const messagesPanel = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('mail')}Messages de contact (${state.support_messages.length})${newMsgCount ? ` <span class="badge badge-danger">${newMsgCount} nouveau${newMsgCount>1?'x':''}</span>` : ''}</div></div>
-      ${state.support_messages.length===0 ? `<div class="empty-sub" style="padding:16px 0;">Aucun message reçu pour l\u2019instant.</div>` : `
+      ${state.support_messages.length===0 ? `<div class="empty-sub" style="padding:16px 18px;">Aucun message reçu pour l\u2019instant.</div>` : `
       <div class="table-wrap">
         <table>
           <thead><tr><th>Date</th><th>De</th><th>Sujet</th><th>Message</th><th>Statut</th><th></th></tr></thead>
