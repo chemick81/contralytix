@@ -6894,7 +6894,9 @@ async function saveFiscalThresholds(){
 }
 
 const FISCAL_CHECKLIST_ITEMS = [
-  { id:'urssaf', title:'Déclarations URSSAF', sub:'Mensuelles ou trimestrielles selon ton option — vérifie que les 12 échéances sont à jour.' },
+  // L'entrée générique "Déclarations URSSAF" a été retirée le 22/08/2026 : elle est remplacée par
+  // le panneau "Déclarations URSSAF" de viewFiscalite(), qui suit une case par période réelle
+  // (mois ou trimestre selon la périodicité choisie) plutôt qu'une seule case pour toute l'année.
   { id:'2042c', title:'2042‑C‑PRO — revenus BNC', sub:'Reporte le total payouts − charges déductibles de l’année.' },
   { id:'3916bis', title:'Formulaire 3916‑bis — comptes à l’étranger', sub:'Un par système de paiement étranger utilisé (voir le panneau « Systèmes de paiement » ci‑dessous). Amende jusqu’à 1 500 €/compte non déclaré.' },
   { id:'registre', title:'Registre de recettes chronologique', sub:'Export du détail de tes payouts de l’année, daté et horodaté.' },
@@ -7101,6 +7103,53 @@ function computeFiscalYearData(year){
 function fiscal3916ItemId(system){
   return '3916bis-' + String(system).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
+// Identifiant stable de checklist pour la case "déclarée" d'UNE PÉRIODE URSSAF donnée (un mois ou
+// un trimestre). L'année et le découpage sont encodés dans l'id lui-même (ex: 'urssaf-2026-03' ou
+// 'urssaf-2026-q1') — si l'utilisateur change de périodicité en cours d'année, les cases de
+// l'ancien découpage restent simplement orphelines en base (inoffensif), pas de migration requise.
+function urssafPeriodItemId(year, periodicity, periodIndex){
+  return periodicity === 'trimestrielle' ? `urssaf-${year}-q${periodIndex}` : `urssaf-${year}-${pad2(periodIndex)}`;
+}
+// Découpe une année en périodes de déclaration URSSAF réelles (12 mois ou 4 trimestres selon la
+// périodicité choisie), avec pour chacune : le CA encaissé (payouts convertis en EUR) sur
+// EXACTEMENT cette période, et la vraie date d'échéance (mêmes règles que nextUrssafDeadline /
+// urssafDeadlinesForYear). Contrairement à computeFiscalYearData (total annuel uniquement), ceci
+// sert à préparer concrètement chaque déclaration : le CA à reporter, période par période, à
+// l'échéance qui va avec — c'est ce qui manquait pour que la page Fiscalité colle vraiment au
+// rythme réel de déclaration choisi par l'utilisateur (demande du 22/08/2026).
+function computeUrssafPeriods(year, periodicity, yearPayouts){
+  const sumPeriod = (fromISO, toISOExcl) => yearPayouts
+    .filter(p => p.date >= fromISO && p.date < toISOExcl)
+    .reduce((s,p) => s + toEur(p.amount, p.fxRateToEur), 0);
+
+  if(periodicity === 'trimestrielle'){
+    const quarters = [
+      { q:1, label:`T1 ${year} (janv.–mars)`,   from:`${year}-01-01`,   toExcl:`${year}-04-01`,   deadline:`${year}-04-30` },
+      { q:2, label:`T2 ${year} (avr.–juin)`,    from:`${year}-04-01`,   toExcl:`${year}-07-01`,   deadline:`${year}-07-31` },
+      { q:3, label:`T3 ${year} (juil.–sept.)`,  from:`${year}-07-01`,   toExcl:`${year}-10-01`,   deadline:`${year}-10-31` },
+      { q:4, label:`T4 ${year} (oct.–déc.)`,    from:`${year}-10-01`,   toExcl:`${year+1}-01-01`, deadline:`${year+1}-01-31` },
+    ];
+    return quarters.map(qd => ({
+      key: urssafPeriodItemId(year, 'trimestrielle', qd.q),
+      label: qd.label,
+      deadline: qd.deadline,
+      caEur: sumPeriod(qd.from, qd.toExcl),
+    }));
+  }
+  return Array.from({length:12}, (_,i) => {
+    const m = i+1;
+    const from = `${year}-${pad2(m)}-01`;
+    const toExcl = m===12 ? `${year+1}-01-01` : `${year}-${pad2(m+1)}-01`;
+    const d = new Date(year, m+1, 0); // dernier jour du mois m+1 — même calcul que urssafDeadlinesForYear
+    const deadline = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    return {
+      key: urssafPeriodItemId(year, 'mensuelle', m),
+      label: `${MONTH_NAMES_LONG[m-1]} ${year}`,
+      deadline,
+      caEur: sumPeriod(from, toExcl),
+    };
+  });
+}
 
 // Nettoie un segment de nom de fichier/dossier pour un usage sûr dans un ZIP (mêmes règles que
 // les autres exports de l'app, voir fileName dans bilanCardHtml/bilanGlobalCardHtml).
@@ -7110,8 +7159,9 @@ function safeFileSegment(s){
 
 // Génère le PDF récapitulatif fiscal de l'année (mêmes sections que la page Fiscalité) et
 // retourne un Blob — utilisé à la fois par exportFiscalYearZip() et pour un export PDF seul.
-function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist, userSettings){
+function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist, userSettings, urssafPeriods){
   userSettings = userSettings || {};
+  urssafPeriods = urssafPeriods || [];
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'pt', format:'a4' });
   const pageBottom = 800;
@@ -7186,6 +7236,38 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
     });
   }
   y += 20;
+
+  if(urssafPeriods.length){
+    if(y > pageBottom - 80){ doc.addPage(); y = 60; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+    doc.text(pdfSafe(`Déclarations URSSAF — ${year} (${userSettings.periodicity==='trimestrielle'?'trimestrielle':'mensuelle'})`), 48, y);
+    y += 18;
+    const todayStr = todayISO();
+    const urssafCols = [{ label:'Période', x:56 }, { label:'CA encaissé', x:260 }, { label:'Échéance', x:360 }, { label:'Déclarée', x:460 }];
+    function urssafTableHeader(){
+      doc.setFillColor(30,34,40);
+      doc.rect(48, y-12, 499, 20, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+      urssafCols.forEach(c=>doc.text(c.label, c.x, y+1));
+      y += 20;
+    }
+    urssafTableHeader();
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    urssafPeriods.forEach((p,i)=>{
+      if(y > pageBottom){ doc.addPage(); y = 60; urssafTableHeader(); }
+      if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
+      const declared = !!state.fiscalChecklist[p.key];
+      const overdue = !declared && p.deadline < todayStr;
+      doc.setTextColor(40,40,40);
+      doc.text(pdfSafe(p.label), 56, y+1, { maxWidth:190 });
+      doc.setTextColor(20,140,110); doc.text(pdfSafe(fmtEur(p.caEur)), 260, y+1);
+      doc.setTextColor(overdue?200:90, overdue?60:90, overdue?50:90); doc.text(pdfSafe(fmtDate(p.deadline)), 360, y+1);
+      doc.setTextColor(declared?20:overdue?200:150, declared?140:overdue?60:150, declared?110:overdue?50:150);
+      doc.text(declared?'Oui':(overdue?'En retard':'Non'), 460, y+1);
+      y += 16;
+    });
+    y += 16;
+  }
 
   if(y > pageBottom - 80){ doc.addPage(); y = 60; }
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
@@ -7279,14 +7361,16 @@ async function exportFiscalYearZip(){
     const year = state.fiscalYear || Number(todayISO().slice(0,4));
     const data = computeFiscalYearData(year);
 
-    const alerts = computeFiscalAlerts(th, data);
+    const periodicity = fiscalUrssafPeriodicity();
+    const vfl = fiscalVersementLiberatoire();
+    const urssafPeriods = computeUrssafPeriods(year, periodicity, data.yearPayouts);
+    const userSettings = { periodicity, vfl, nextDeadline: nextUrssafDeadline(periodicity) };
+
+    const alerts = computeFiscalAlerts(th, data, urssafPeriods);
     const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
     const zip = new JSZip();
-    const periodicity = fiscalUrssafPeriodicity();
-    const vfl = fiscalVersementLiberatoire();
-    const userSettings = { periodicity, vfl, nextDeadline: nextUrssafDeadline(periodicity) };
-    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length, userSettings));
+    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length, userSettings, urssafPeriods));
 
     const receiptsFolder = zip.folder('Justificatifs');
     const payoutIds = new Set(data.yearPayouts.map(p=>p.id));
@@ -7328,7 +7412,7 @@ function fiscalPillFor(ratio){
 // Alertes de seuils fiscaux — partagées par viewFiscalite() et exportFiscalYearZip() pour éviter
 // que les deux dérivent (voir le bug lines/pays de viewAccounting() : une même logique dupliquée
 // à deux endroits finit toujours par diverger).
-function computeFiscalAlerts(th, data){
+function computeFiscalAlerts(th, data, urssafPeriods){
   const bncRatio = data.caEur / th.microBncCap;
   const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
   const alerts = [];
@@ -7338,6 +7422,13 @@ function computeFiscalAlerts(th, data){
   else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro-BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
   const undeclared = data.bySystem.filter(s => !state.fiscalChecklist[fiscal3916ItemId(s.system)]);
   if(undeclared.length) alerts.push({level:'info', title:`${undeclared.length} système(s) de paiement sans case 3916-bis cochée`, sub: undeclared.map(s=>s.system).join(', ') + ' — vérifie dans le panneau « Systèmes de paiement » si une déclaration est nécessaire.'});
+  // urssafPeriods est optionnel (buildFiscalYearPdfBlob peut être appelé sans, selon le contexte) —
+  // en retard = échéance déjà passée et case "Déclarée" non cochée dans le panneau "Déclarations URSSAF".
+  if(urssafPeriods){
+    const today = todayISO();
+    const overdue = urssafPeriods.filter(p => p.deadline < today && !state.fiscalChecklist[p.key]);
+    if(overdue.length) alerts.push({level:'crit', title:`${overdue.length} déclaration(s) URSSAF en retard`, sub: overdue.map(p=>p.label).join(', ') + ' — voir le panneau « Déclarations URSSAF » ci-dessous.'});
+  }
   return alerts;
 }
 
@@ -7351,13 +7442,15 @@ function viewFiscalite(){
   const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
   const [tvaClass, tvaLabel] = fiscalPillFor(tvaRatioForClass);
 
-  const alerts = computeFiscalAlerts(th, data);
-
   const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
   const periodicity = fiscalUrssafPeriodicity();
   const vfl = fiscalVersementLiberatoire();
   const nextDeadline = nextUrssafDeadline(periodicity);
+  const urssafPeriods = computeUrssafPeriods(year, periodicity, data.yearPayouts);
+  const today = todayISO();
+
+  const alerts = computeFiscalAlerts(th, data, urssafPeriods);
 
   return `
     <div class="filter-bar" style="margin-bottom:14px;">
@@ -7466,6 +7559,31 @@ function viewFiscalite(){
     </div>
 
     <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Déclarations URSSAF — ${year}</div></div>
+      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">CA encaissé (payouts convertis en EUR) ${periodicity==='trimestrielle'?'par trimestre':'par mois'}, avec l'échéance réelle de chaque déclaration — change la périodicité ci-dessus si besoin. Coche une fois la déclaration faite auprès de l'URSSAF pour cette période.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Période</th><th class="num">CA encaissé</th><th>Échéance</th><th>Statut</th><th>Déclarée</th></tr></thead>
+          <tbody>
+            ${urssafPeriods.map(p=>{
+              const declared = !!state.fiscalChecklist[p.key];
+              const overdue = !declared && p.deadline < today;
+              const statusBadge = declared ? `<span class="badge badge-accent">Déclarée</span>` : overdue ? `<span class="badge badge-danger">En retard</span>` : `<span class="badge badge-slate">À venir</span>`;
+              return `<tr>
+                <td>${escapeHtml(p.label)}</td>
+                <td class="num" style="color:var(--accent)">${fmtEur(p.caEur)}</td>
+                <td class="text-dim">${fmtDate(p.deadline)}</td>
+                <td>${statusBadge}</td>
+                <td><label class="switch"><input type="checkbox" ${declared?'checked':''} data-fiscal-check-box="${p.key}"/><span class="switch-track"></span></label></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="field-hint" style="margin:10px 0 0;padding:0 18px 16px;">Le CA encaissé est le montant brut à reporter (avant frais/commissions de prop firm, non déductibles au régime micro-BNC) — vérifie ce total avec ton relevé bancaire avant de déclarer.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title">Systèmes de paiement — ${year}</div></div>
       <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la prop firm elle-même, qui détermine si un compte doit être déclaré au titre du 3916‑bis. Coche la case une fois la déclaration faite pour ce système.</div>
       <div class="table-wrap">
@@ -7496,7 +7614,6 @@ function viewFiscalite(){
       <div class="panel-body">
         ${FISCAL_CHECKLIST_ITEMS.map(it=>{
           let sub = it.sub;
-          if(it.id==='urssaf') sub = `${sub} Périodicité ${periodicity} — prochaine échéance : ${fmtDate(nextDeadline)}.`;
           if(it.id==='2042c' && th.pro2042Deadline) sub = `${sub} Échéance ${th.year||year} : ${fmtDate(th.pro2042Deadline)}.`;
           if(it.id==='versement-liberatoire') sub = vfl ? `${sub} Actif (voir « Mes réglages déclaratifs » ci-dessus).` : sub;
           return `
