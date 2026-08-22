@@ -412,7 +412,7 @@ th.th-sort-active svg{opacity:1;}
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:fadeIn .12s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;max-height:88vh;overflow:auto;box-shadow:var(--shadow);animation:pop .14s ease;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:pop .14s ease;}
 @keyframes pop{from{transform:translateY(6px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 .modal.wide{max-width:640px;}
 .modal.xwide{max-width:960px;}
@@ -609,10 +609,10 @@ th.th-sort-active svg{opacity:1;}
 .del-tr-status{font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:8px;margin-top:2px;}
 .del-tr-status.blocked{background:var(--gold-dim);color:var(--gold);}
 .del-tr-status.ready{background:var(--danger-dim);color:var(--danger);}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-soft);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-soft);flex:0 0 auto;}
 .modal-head h3{margin:0;font-size:15px;}
-.modal-body{padding:18px 20px;}
-.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border-soft);}
+.modal-body{padding:18px 20px;overflow-y:auto;flex:1 1 auto;min-height:0;}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border-soft);flex:0 0 auto;}
 .close-x{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);border:none;background:transparent;}
 .close-x:hover{background:var(--surface-2);color:var(--text);}
 .close-x svg{width:15px;height:15px;}
@@ -7019,7 +7019,7 @@ function toEur(amount, fxRateToEur){
   return Number(amount || 0) / rate;
 }
 function fmtEur(n){
-  return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
+  return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
 }
 // Affiche un montant avec le symbole de SA propre devise (contrairement à fmtMoney(), qui
 // affiche toujours "$" quelle que soit la devise réelle — conservé tel quel partout ailleurs
