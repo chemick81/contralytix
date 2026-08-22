@@ -9851,7 +9851,7 @@ function accountFormModal({ existing, type, parentChallenge }){
       <div id="af-pa-fields" style="display:${(a.type==='PA'||a.type==='LIVE')?'block':'none'};">
         <div class="field-row">
           <div class="field"><label>Date d'activation</label><input id="af-activation-date" type="date" value="${a.activationDate||todayISO()}"/><div class="field-hint">Sert aussi de date d'achat/ouverture du PA — les deux dates sont toujours identiques.</div></div>
-          <div class="field"><label>Frais d'activation ($, optionnel)</label><input id="af-activation-fee" type="number" value="${a.activationFee||''}"/></div>
+          <div class="field"><label id="af-activation-fee-label">Frais d'activation (${(a.currency||'USD')==='EUR'?'€':'$'}, optionnel)</label><input id="af-activation-fee" type="number" value="${a.activationFee||''}"/></div>
         </div>
         ${!parentChallenge ? `
         <div class="field">
@@ -9957,7 +9957,14 @@ function accountFormModal({ existing, type, parentChallenge }){
           rateInput.placeholder = 'ex: 1.0821';
         }
       }
-      document.getElementById('af-currency').addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
+      document.getElementById('af-currency').addEventListener('change', ()=>{
+        afFxFetchPromise = autofillFxRate();
+        const feeLabel = document.getElementById('af-activation-fee-label');
+        if(feeLabel){
+          const curSel = document.getElementById('af-currency').value;
+          feeLabel.textContent = `Frais d'activation (${curSel==='EUR'?'€':'$'}, optionnel)`;
+        }
+      });
       const dateFieldForFx = document.getElementById('af-date');
       if(dateFieldForFx) dateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(true); });
       const activationDateFieldForFx = document.getElementById('af-activation-date');
@@ -10011,7 +10018,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         // Prix d'achat / montant mensuel obligatoires uniquement à la première création du compte
         // (pas ré-imposé en modification, pour ne pas bloquer la correction d'anciens comptes
         // saisis avant cette règle ou dont le montant n'est simplement pas encore connu).
-        if(!isEdit){
+        if(!isEdit && !parentChallenge){
           if(curPay==='UNIQUE' && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire à la création du compte.'; return; }
           if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire à la création du compte.'; return; }
         }
