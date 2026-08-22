@@ -4201,7 +4201,7 @@ function viewDashboard(){
     const m = ((total % 12) + 12) % 12;
     months.push(`${y}-${pad2(m+1)}`);
   }
-  const chartMixed = new Set([...allExpensesUnfiltered, ...payoutsUnfiltered].map(it=>it.currency||'USD')).size>1;
+  const { useEur: chartMixed } = resolveDisplayCurrency([...allExpensesUnfiltered, ...payoutsUnfiltered]);
   const chartVal = (it)=> chartMixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const chartData = months.map(mk=>{
     const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
@@ -10165,13 +10165,13 @@ function payoutsModal(acc){
   function body(){
     const list = state.payouts.filter(p=>p.accountId===acc.id).sort((a,b)=>b.date.localeCompare(a.date));
     // Des payouts d'un même compte peuvent être dans des devises différentes (voir le
-    // sélecteur "Devise" ci-dessous) : le total ne peut plus être une simple somme brute,
-    // on convertit chaque ligne en EUR avant de l'additionner (voir toEur(), module Fiscalité).
-    const totalEur = list.reduce((s,p)=>s + toEur(p.amount, p.fxRateToEur), 0);
-    const mixedCurrencies = new Set(list.map(p=>p.currency||'USD')).size > 1;
+    // sélecteur "Devise" ci-dessous) : le total ne peut plus être une simple somme brute — on
+    // convertit chaque ligne en EUR avant de l'additionner si mélange réel OU si le switch
+    // d'affichage global €/$ est actif (voir sumMoneyLines/resolveDisplayCurrency).
+    const totalMoney = sumMoneyLines(list);
     const editing = editingId ? list.find(p=>p.id===editingId) : null;
     return `
-      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtEur(totalEur)}</span>${mixedCurrencies?' <span class="text-faint">(converti, devises mixtes)</span>':''}</div>
+      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtMoneyCur(totalMoney.amount, totalMoney.currency)}</span>${totalMoney.mixed?' <span class="text-faint">(converti, devises mixtes)</span>':''}</div>
       ${canEdit(acc) ? `
       ${editing ? `<div class="field-hint" style="margin-bottom:8px;color:var(--gold);">Modification du payout du ${fmtDate(editing.date)}</div>` : ''}
       <div class="field-row">
