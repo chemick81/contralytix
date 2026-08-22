@@ -9879,11 +9879,16 @@ function accountFormModal({ existing, type, parentChallenge }){
       // bloque l'enregistrement avec un message explicite si le taux reste introuvable, au lieu
       // de deviner une valeur fausse.
       let afFxFetchPromise = null;
-      async function autofillFxRate(){
+      // "force" = true pour un changement de date : le taux affiché correspondait à l'ancienne
+      // date, donc on le réactualise même s'il était déjà rempli (et on l'efface avant le fetch
+      // pour ne jamais garder par erreur le taux de l'ancienne date si le nouveau fetch échoue).
+      async function autofillFxRate(force){
         const currency = document.getElementById('af-currency').value;
         const rateInput = document.getElementById('af-fxrate');
         document.getElementById('af-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
-        if(currency==='EUR' || rateInput.value) return;
+        if(currency==='EUR') return;
+        if(!force && rateInput.value) return;
+        if(force) rateInput.value = '';
         const dateField = document.getElementById('af-date') || document.getElementById('af-activation-date');
         const date = dateField ? dateField.value : todayISO();
         rateInput.placeholder = 'Récupération du taux BCE...';
@@ -9905,9 +9910,9 @@ function accountFormModal({ existing, type, parentChallenge }){
       }
       document.getElementById('af-currency').addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
       const dateFieldForFx = document.getElementById('af-date');
-      if(dateFieldForFx) dateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
+      if(dateFieldForFx) dateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(true); });
       const activationDateFieldForFx = document.getElementById('af-activation-date');
-      if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
+      if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(true); });
       afFxFetchPromise = autofillFxRate();
       const traderSelect = document.getElementById('af-trader');
       if(!lockTrader) traderSelect.onchange = refreshParentChallengeOptions;
@@ -10183,11 +10188,16 @@ function payoutsModal(acc){
     // deviner une valeur fausse.
     const pmCurrencySelect = document.getElementById('pm-currency');
     let pmFxFetchPromise = null;
-    async function autofillPmFxRate(){
+    // "force" = true pour un changement de date : le taux affiché correspondait à l'ancienne
+    // date, donc on le réactualise même s'il était déjà rempli (et on l'efface avant le fetch
+    // pour ne jamais garder par erreur le taux de l'ancienne date si le nouveau fetch échoue).
+    async function autofillPmFxRate(force){
       const currency = pmCurrencySelect.value;
       const rateInput = document.getElementById('pm-fxrate');
       document.getElementById('pm-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
-      if(currency==='EUR' || rateInput.value) return;
+      if(currency==='EUR') return;
+      if(!force && rateInput.value) return;
+      if(force) rateInput.value = '';
       const date = document.getElementById('pm-date').value || todayISO();
       rateInput.placeholder = 'Récupération du taux BCE...';
       rateInput.disabled = true;
@@ -10208,7 +10218,7 @@ function payoutsModal(acc){
     }
     if(pmCurrencySelect){
       pmCurrencySelect.addEventListener('change', ()=>{ pmFxFetchPromise = autofillPmFxRate(); });
-      document.getElementById('pm-date').addEventListener('change', ()=>{ pmFxFetchPromise = autofillPmFxRate(); });
+      document.getElementById('pm-date').addEventListener('change', ()=>{ pmFxFetchPromise = autofillPmFxRate(true); });
       pmFxFetchPromise = autofillPmFxRate();
     }
     const pmSystemSelect = document.getElementById('pm-payment-system-select');
