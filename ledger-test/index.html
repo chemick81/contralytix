@@ -1173,6 +1173,7 @@ const ICONS = {
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3 3 10.5l7.5 3M21 3l-7.5 18-3-7.5M21 3 10.5 13.5"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
+  exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -1230,6 +1231,10 @@ const DASHBOARD_WIDGETS = [
 const state = {
   route: 'dashboard',
   theme: loadThemePrefs().theme, // 'dark' | 'light' | 'premium'
+  // Préférence d'affichage des montants : 'original' (devise réellement enregistrée sur chaque
+  // ligne, comportement historique) ou 'eur' (tout converti en EUR pour l'affichage, via le taux
+  // BCE stocké sur chaque compte/payout — voir resolveDisplayCurrency()). Persistée comme le thème.
+  currencyDisplayMode: loadCurrencyDisplayMode(), // 'original' | 'eur'
   session: null,
   profile: null,
   subscription: null,
@@ -2540,16 +2545,15 @@ function computeRecapFor(expenses, payouts, pk, keyFn){
   const exp = expenses.filter(e=>keyFn(e.date)===pk);
   const pay = payouts.filter(p=>keyFn(p.date)===pk);
   const all = [...exp, ...pay];
-  const mixed = new Set(all.map(it=>it.currency||'USD')).size>1;
-  const currency = mixed ? 'EUR' : (all.length ? (all[0].currency||'USD') : 'USD');
-  const val = (it)=> mixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const { useEur, currency } = resolveDisplayCurrency(all);
+  const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   let challenge=0, activation=0;
   exp.forEach(e=>{ const v=val(e); if(e.type==='ACTIVATION') activation+=v; else challenge+=v; });
   const payout = pay.reduce((s,p)=>s+val(p),0);
   const totalCosts = challenge+activation;
   const net = payout-totalCosts;
   const roi = totalCosts>0 ? (net/totalCosts*100) : null;
-  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi, currency, mixed };
+  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi, currency, mixed: useEur };
 }
 /* ============================================================
    JOURS FÉRIÉS — France & États-Unis
@@ -3434,6 +3438,18 @@ function loadThemePrefs(){
 function saveThemePrefs(){
   try{ localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ theme: state.theme })); }catch(e){}
 }
+// Préférence d'affichage des montants (devise d'origine vs tout converti en EUR) — persistée en
+// localStorage comme le thème (choix d'affichage durable, pas une info sensible comme numbersVisible
+// qui doit se réinitialiser à chaque rechargement).
+const CURRENCY_DISPLAY_STORAGE_KEY = 'ledger_currency_display_mode';
+function loadCurrencyDisplayMode(){
+  try{
+    return localStorage.getItem(CURRENCY_DISPLAY_STORAGE_KEY) === 'eur' ? 'eur' : 'original';
+  }catch(e){ return 'original'; }
+}
+function saveCurrencyDisplayMode(){
+  try{ localStorage.setItem(CURRENCY_DISPLAY_STORAGE_KEY, state.currencyDisplayMode); }catch(e){}
+}
 // Icône/label du bouton de thème = la DESTINATION du prochain clic (pas le thème actuel),
 // même convention que l'ancien toggle Clair/Sombre à 2 états.
 function nextTheme(theme){
@@ -3701,6 +3717,7 @@ function render(){
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="nav-label">${state.session.user.email}</div>
           <div class="nav-label">${planBadgeHtml()}</div>
         </div>
+        <button class="icon-btn" id="currency-display-toggle" title="Basculer l'affichage des montants entre devise d'origine et équivalent EUR">${icon('exchange')}<span class="nav-label">${state.currencyDisplayMode==='eur' ? 'Tout afficher en €' : 'Devise d’origine ($/€)'}</span></button>
         <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
         <button class="icon-btn" id="theme-toggle" title="Changer de thème (Sombre → Clair → Premium doré)">${icon(themeToggleTarget().icon)}<span class="nav-label">${themeToggleTarget().label}</span></button>
         ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
@@ -3756,6 +3773,11 @@ function render(){
   if(document.getElementById('global-search-btn')) document.getElementById('global-search-btn').onclick = globalSearchModal;
   if(document.getElementById('session-back-btn')) document.getElementById('session-back-btn').onclick = ()=>{ state.sessionDetailId = null; render(); };
   document.getElementById('theme-toggle').onclick = ()=>{ state.theme = nextTheme(state.theme); saveThemePrefs(); render(); };
+  document.getElementById('currency-display-toggle').onclick = ()=>{
+    state.currencyDisplayMode = state.currencyDisplayMode==='eur' ? 'original' : 'eur';
+    saveCurrencyDisplayMode();
+    render();
+  };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
   document.getElementById('contact-btn').onclick = openContactModal;
@@ -3925,7 +3947,7 @@ function computeDashboardAlerts(accountsF){
         if(dLeft>=0 && dLeft<=7){
           alerts.push({
             kind:'mensualite', severity: dLeft<=2?'danger':'gold', accountId:a.id,
-            label: `Mensualité de ${fmtMoneyCur(a.monthlyAmount, a.currency)} due ${dLeft===0?'aujourd\u2019hui':(dLeft===1?'demain':`dans ${dLeft} jours`)}`,
+            label: `Mensualité de ${fmtMoneyDisp(a.monthlyAmount, a.currency, a.fxRateToEur)} due ${dLeft===0?'aujourd\u2019hui':(dLeft===1?'demain':`dans ${dLeft} jours`)}`,
             sub: `${getTrader(a.traderId)?.pseudo||'—'} · ${getFirm(a.propFirmId)?.name||'—'} · ${TYPE_LABELS[a.type]}`,
           });
         }
@@ -4061,7 +4083,7 @@ function dashboardRecentPayoutsWidgetHtml(payoutsAll){
               <div style="font-size:13px;font-weight:600;">${trader?trader.pseudo:'—'} <span class="text-faint" style="font-weight:400;">· ${firm?firm.name:'—'}</span></div>
               <div class="text-faint" style="font-size:11.5px;">${fmtDate(p.date)}</div>
             </div>
-            <span style="font-weight:700;color:var(--accent);">+${fmtMoneyCur(p.amount, p.currency)}</span>
+            <span style="font-weight:700;color:var(--accent);">+${fmtMoneyDisp(p.amount, p.currency, p.fxRateToEur)}</span>
           </div>`;
         }).join('')}
       </div>
@@ -4090,7 +4112,7 @@ function dashboardUpcomingWidgetHtml(accountsF){
           return `<div class="alert-row" data-alert-acc="${a.id}" style="--dot:var(--${it.dLeft<=7?'gold':'slate'})">
             <span class="alert-dot"></span>
             <div>
-              <div class="alert-label">${fmtMoneyCur(a.monthlyAmount, a.currency)} · ${trader?trader.pseudo:'—'} <span class="text-faint">· ${firm?firm.name:'—'}</span></div>
+              <div class="alert-label">${fmtMoneyDisp(a.monthlyAmount, a.currency, a.fxRateToEur)} · ${trader?trader.pseudo:'—'} <span class="text-faint">· ${firm?firm.name:'—'}</span></div>
               <div class="alert-sub">${fmtDate(it.due)} · ${it.dLeft===0?'aujourd’hui':(it.dLeft===1?'demain':`dans ${it.dLeft} jours`)}</div>
             </div>
             <span class="alert-goto">${icon('chevRight')}</span>
@@ -5074,7 +5096,7 @@ function calendarDayModal(dateStr){
                 <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
               </div>
             </div>
-            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyCur(it.amount, it.currency):''}</div>
+            <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyDisp(it.amount, it.currency, it.fxRateToEur):''}</div>
           </div>`;
         }).join('')}
         ${hasAmounts ? `<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700;">
@@ -6156,7 +6178,8 @@ function buildAccountingRows(){
     const isPayout = x.kind==='payout';
     const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
     const amount = isPayout ? Number(x.amount) : -Number(x.amount);
-    return { Date:x.date, Type:typeLabel, Trader: trader?trader.pseudo:'', PropFirm: firm?firm.name:'', 'Type de compte': acc?TYPE_LABELS[acc.type]:'', 'N° de compte': acc?acc.accountNumber:'', Devise: x.currency||'USD', Montant: amount };
+    const d = displayMoney(amount, x.currency||'USD', x.fxRateToEur);
+    return { Date:x.date, Type:typeLabel, Trader: trader?trader.pseudo:'', PropFirm: firm?firm.name:'', 'Type de compte': acc?TYPE_LABELS[acc.type]:'', 'N° de compte': acc?acc.accountNumber:'', Devise: d.currency, Montant: d.amount };
   });
 }
 function exportAccountingExcel(){
@@ -6304,8 +6327,7 @@ function viewAccounting(){
   if(f.propfirm) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   const recapGranularity = f.recapGranularity || 'month';
   const recapKeyFn = recapGranularity==='year' ? yearKey : recapGranularity==='quarter' ? quarterKey : monthKey;
-  const recapMixed = new Set(recapSource.map(x=>x.currency||'USD')).size>1;
-  const recapCurrency = recapMixed ? 'EUR' : (recapSource.length ? (recapSource[0].currency||'USD') : 'USD');
+  const { useEur: recapMixed, currency: recapCurrency } = resolveDisplayCurrency(recapSource);
   const recapVal = (x)=> recapMixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
   const recapGroups = {};
   recapSource.forEach(x=>{
@@ -6367,7 +6389,7 @@ function viewAccounting(){
         <td>${trader?trader.pseudo:'—'}</td>
         <td class="text-dim">${firm?firm.name:'—'}</td>
         <td class="text-dim">${acc?maskAccountNumber(acc.accountNumber):'—'}</td>
-        <td class="num" style="color:${isPayout?'var(--accent)':'var(--danger)'}">${isPayout?'+':'−'}${fmtMoneyCur(x.amount, x.currency)}</td>
+        <td class="num" style="color:${isPayout?'var(--accent)':'var(--danger)'}">${isPayout?'+':'−'}${fmtMoneyDisp(x.amount, x.currency, x.fxRateToEur)}</td>
       </tr>`;
     }).join('');
 
@@ -6501,10 +6523,10 @@ function computeBilanFirmData(periodKey, granularity, traderIds){
     pays = pays.filter(p=>{ const acc=getAccount(p.accountId); return acc && traderIds.includes(acc.traderId); });
   }
   // Une seule devise pour toute la carte (cohérence visuelle d'un même PNG exporté) — convertie en
-  // EUR seulement si les lignes filtrées mélangent réellement plusieurs devises.
-  const mixed = new Set([...lines,...pays].map(x=>x.currency||'USD')).size>1;
+  // EUR si les lignes filtrées mélangent réellement plusieurs devises, ou si le switch d'affichage
+  // global €/$ de la barre latérale est sur "eur" (voir resolveDisplayCurrency).
+  const { useEur: mixed, currency } = resolveDisplayCurrency([...lines,...pays]);
   const val = (x)=> mixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
-  const currency = mixed ? 'EUR' : ([...lines,...pays].length ? ([...lines,...pays][0].currency||'USD') : 'USD');
   const map = new Map();
   function entryFor(fId){ if(!map.has(fId)) map.set(fId, { firmId:fId, expense:0, payout:0 }); return map.get(fId); }
   lines.forEach(e=>{
@@ -6999,6 +7021,34 @@ function fmtMoneyCur(amount, currency){
   const symbol = symbols[currency] || '$';
   return Number(amount||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
 }
+// Devise à utiliser pour afficher un ensemble de lignes (payouts/dépenses), en tenant compte à la
+// fois d'un éventuel mélange RÉEL de devises entre les lignes, ET de la préférence globale
+// d'affichage (state.currencyDisplayMode==='eur' — switch "€/$" de la barre latérale, ajouté le
+// 22/08/2026). Utilisé par sumMoneyLines/sumMoneyNet/computeRecapFor/computeBilanFirmData pour que
+// TOUTES les agrégations de l'app respectent ce switch sans dupliquer la logique partout.
+function resolveDisplayCurrency(items){
+  if(!items || !items.length) return { useEur:false, currency:'USD' };
+  const currencies = new Set(items.map(it=>it.currency||'USD'));
+  const nativelyEur = currencies.size===1 && currencies.has('EUR');
+  const useEur = currencies.size>1 || (state.currencyDisplayMode==='eur' && !nativelyEur);
+  return { useEur, currency: useEur ? 'EUR' : (items[0].currency||'USD') };
+}
+// Formate un montant UNITAIRE (une seule ligne : un compte, un payout...) en respectant la même
+// préférence globale — convertit en EUR via son propre taux BCE (fxRateToEur) si le switch est
+// actif, sinon affiche tel quel dans sa devise d'origine. À utiliser à la place de fmtMoneyCur()
+// partout où la ligne source (et donc son fxRateToEur) est disponible.
+function fmtMoneyDisp(amount, currency, fxRateToEur){
+  const d = displayMoney(amount, currency, fxRateToEur);
+  return fmtMoneyCur(d.amount, d.currency);
+}
+// Version "données brutes" de fmtMoneyDisp (pas juste une chaîne formatée) — utile pour les exports
+// (Excel/PDF) où le montant ET la devise doivent tous les deux refléter la préférence d'affichage.
+function displayMoney(amount, currency, fxRateToEur){
+  if(state.currencyDisplayMode==='eur' && currency!=='EUR'){
+    return { amount: toEur(amount, fxRateToEur), currency:'EUR' };
+  }
+  return { amount, currency };
+}
 // jsPDF (police Helvetica standard, encodage WinAnsi) ne connaît pas certains caractères Unicode
 // pourtant utilisés ailleurs dans l'app (rendus très bien par un navigateur) : sans nettoyage, le
 // caractère non supporté s'affiche mal ET désaligne l'espacement de TOUT le texte qui suit dans le
@@ -7027,9 +7077,9 @@ function pdfSafe(s){
 //    déjà utilisée pour la Fiscalité) et marqué mixed:true pour que l'affichage précise "converti".
 function sumMoneyLines(items){
   if(!items || !items.length) return { amount:0, currency:'USD', mixed:false };
-  const currencies = new Set(items.map(it=>it.currency||'USD'));
-  if(currencies.size<=1){
-    return { amount: items.reduce((s,it)=>s+Number(it.amount||0),0), currency: items[0].currency||'USD', mixed:false };
+  const { useEur, currency } = resolveDisplayCurrency(items);
+  if(!useEur){
+    return { amount: items.reduce((s,it)=>s+Number(it.amount||0),0), currency, mixed:false };
   }
   return { amount: items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0), currency:'EUR', mixed:true };
 }
@@ -7043,12 +7093,11 @@ function fmtSumMoney(sum, opts={}){
 // dépenses et payouts ne sont pas dans la même devise (rare, mais possible ligne par ligne).
 function sumMoneyNet(expenseItems, payoutItems){
   const all = [...expenseItems, ...payoutItems];
-  const mixed = new Set(all.map(it=>it.currency||'USD')).size>1;
-  const val = (it)=> mixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
-  const currency = mixed ? 'EUR' : (all.length ? (all[0].currency||'USD') : 'USD');
+  const { useEur, currency } = resolveDisplayCurrency(all);
+  const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const totalExp = expenseItems.reduce((s,it)=>s+val(it),0);
   const totalPay = payoutItems.reduce((s,it)=>s+val(it),0);
-  return { totalExp, totalPay, net: totalPay-totalExp, currency, mixed };
+  return { totalExp, totalPay, net: totalPay-totalExp, currency, mixed: useEur };
 }
 
 function computeFiscalYearData(year){
@@ -10163,7 +10212,7 @@ function payoutsModal(acc){
               list.map(p=>`<tr>
                 <td class="mono text-dim">${fmtDate(p.date)}</td>
                 <td class="text-dim">${p.note||'—'}${p.paymentSystem?` <span class="badge badge-slate" style="margin-left:4px;">${escapeHtml(p.paymentSystem)}</span>`:''}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoneyCur(p.amount, p.currency)}</td>
+                <td class="num" style="color:var(--accent)">${fmtMoneyDisp(p.amount, p.currency, p.fxRateToEur)}</td>
                 <td>${`<div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
                     <button class="btn btn-ghost btn-sm" data-attachments-payout="${p.id}" title="Justificatifs">${icon('upload')}${payoutReceiptCount(p.id)>0?`<span class="badge badge-slate" style="margin-left:4px;">${payoutReceiptCount(p.id)}</span>`:''}</button>
                     <button class="btn btn-ghost btn-sm" data-receipt-payout="${p.id}" title="Reçu PDF">${icon('receipt')}</button>
@@ -10269,13 +10318,13 @@ function payoutsModal(acc){
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
         await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, paymentSystem });
-        await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
+        await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoneyDisp(amount, currency, fxRateToEur)}`);
         showToast('Payout mis à jour.');
         editingId = null;
       } else {
         const newId = uid('pay');
         await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, paymentSystem, createdAt: new Date().toISOString(), createdBy: currentUserId() });
-        await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
+        await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoneyDisp(amount, currency, fxRateToEur)}`);
         showToast('Payout ajouté.');
       }
       refresh();
@@ -10288,7 +10337,7 @@ function payoutsModal(acc){
         const p = state.payouts.find(x=>x.id===b.dataset.delPayout);
         if(editingId===b.dataset.delPayout) editingId=null;
         await remove('payouts', b.dataset.delPayout);
-        if(p) await logActivity('DELETE', 'payout', p.id, `Payout supprimé — ${trader.pseudo} · ${fmtMoneyCur(p.amount, p.currency)}`);
+        if(p) await logActivity('DELETE', 'payout', p.id, `Payout supprimé — ${trader.pseudo} · ${fmtMoneyDisp(p.amount, p.currency, p.fxRateToEur)}`);
         refresh();
       });
     });
@@ -10317,7 +10366,7 @@ function payoutReceiptsModal(acc, payout){
   function body(){
     const list = state.payout_receipts.filter(r=>r.payoutId===payout.id).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     return `
-      <div class="field-hint" style="margin-bottom:12px;">Justificatifs du payout du ${fmtDate(payout.date)} — ${trader?trader.pseudo:'—'} · ${fmtMoneyCur(payout.amount, payout.currency)}</div>
+      <div class="field-hint" style="margin-bottom:12px;">Justificatifs du payout du ${fmtDate(payout.date)} — ${trader?trader.pseudo:'—'} · ${fmtMoneyDisp(payout.amount, payout.currency, payout.fxRateToEur)}</div>
       <div class="field"><label>Ajouter un ou plusieurs fichiers</label><input type="file" id="prm-files" accept="image/*,.pdf" multiple/></div>
       <div style="margin-bottom:18px;"><button class="btn btn-primary btn-sm" id="prm-add">${icon('plus')}Téléverser</button></div>
       <div id="prm-list">
