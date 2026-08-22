@@ -6221,7 +6221,7 @@ function viewAccounting(){
 
   // Performance financière : respecte les filtres Trader/Type/PropFirm, mais pas le filtre Mois
   // (sinon on ne pourrait comparer qu'une seule période avec elle-même).
-  let recapSource = [...lines, ...pays];
+  let recapSource = [...allLines0, ...allPays0];
   if(f.type){
     if(f.type==='PAYOUT') recapSource = recapSource.filter(x=>x.kind==='payout');
     else recapSource = recapSource.filter(x=>x.kind==='expense' && x.type===f.type);
