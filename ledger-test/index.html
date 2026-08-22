@@ -94,6 +94,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 <style>
 :root[data-theme="dark"]{
   --bg:#0B0F14; --surface:#12181F; --surface-2:#1A222C; --surface-3:#212A34;
@@ -3792,6 +3793,7 @@ function renderTopbarActions(){
         </div>` : ''}
       </div>`;
   else if(state.route==='bilan') el.innerHTML = `<button class="btn btn-primary" id="export-bilan-all">${icon('image')}Tout exporter (PNG)</button>`;
+  else if(state.route==='fiscalite') el.innerHTML = `<button class="btn btn-primary" id="export-fiscal-zip" title="PDF récapitulatif + tous les justificatifs de payout de l'année, dans un seul ZIP">${icon('download')}Export année (ZIP)</button>`;
   else if(state.route==='sessions'){
     const detail = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
     el.innerHTML = detail
@@ -3807,6 +3809,7 @@ function renderTopbarActions(){
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
   if(document.getElementById('export-bilan-all')) document.getElementById('export-bilan-all').onclick = exportAllBilanCards;
+  if(document.getElementById('export-fiscal-zip')) document.getElementById('export-fiscal-zip').onclick = exportFiscalYearZip;
   const adminToolsBtn = document.getElementById('admin-tools-btn');
   if(adminToolsBtn) adminToolsBtn.onclick = (e)=>{ e.stopPropagation(); state.adminToolsMenuOpen = !state.adminToolsMenuOpen; renderTopbarActions(); };
   const adminToolsMenu = document.getElementById('admin-tools-menu');
@@ -6937,7 +6940,189 @@ function computeFiscalYearData(year){
     year, caEur, feesEur,
     byFirm: [...byFirm.values()].map(e=>({ ...e, firm:getFirm(e.firmId), currencies:[...e.currencies] })).sort((a,b)=>b.payoutsEur-a.payoutsEur),
     foreignFirms,
+    // Lignes brutes de l'année — utilisées par exportFiscalYearZip() pour retrouver les
+    // justificatifs (payout_receipts) rattachés à chacun de ces payouts.
+    yearPayouts,
   };
+}
+
+// Nettoie un segment de nom de fichier/dossier pour un usage sûr dans un ZIP (mêmes règles que
+// les autres exports de l'app, voir fileName dans bilanCardHtml/bilanGlobalCardHtml).
+function safeFileSegment(s){
+  return String(s||'').replace(/[^a-zA-Z0-9_.\- ]+/g,'_').trim() || 'sans-nom';
+}
+
+// Génère le PDF récapitulatif fiscal de l'année (mêmes sections que la page Fiscalité) et
+// retourne un Blob — utilisé à la fois par exportFiscalYearZip() et pour un export PDF seul.
+function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const pageBottom = 800;
+  let y = 60;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(20);
+  doc.text(`Bilan fiscal ${year}`, 48, y);
+  y += 18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
+  doc.text('Contralytix — Gestion Propfirm', 48, y);
+  y += 10;
+  doc.setDrawColor(220); doc.line(48, y, 547, y);
+  y += 24;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(90);
+  const seuilsLine = `Seuils ${th.year} : plafond micro-BNC ${fmtEur(th.microBncCap)} — franchise TVA ${fmtEur(th.tvaBase)} / ${fmtEur(th.tvaMajore)}.`;
+  doc.text(seuilsLine, 48, y);
+  y += 14;
+  if(th.sourceNote){ doc.setTextColor(140); doc.text(String(th.sourceNote), 48, y); y += 14; }
+  y += 10;
+
+  const bncRatio = data.caEur / th.microBncCap;
+  const [, bncLabel] = fiscalPillFor(bncRatio);
+  const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
+  const [, tvaLabel] = fiscalPillFor(tvaRatioForClass);
+  const kpis = [
+    ['Chiffre d’affaires (payouts)', fmtEur(data.caEur), [20,140,110]],
+    ['Frais', fmtEur(data.feesEur), [200,60,50]],
+    [`Plafond micro-BNC : ${bncLabel}`, `${Math.round(Math.min(bncRatio,9.99)*100)}%`, bncRatio>=1?[200,60,50]:bncRatio>=0.85?[181,112,44]:[20,140,110]],
+    [`Franchise TVA : ${tvaLabel}`, `${Math.round(Math.min(tvaRatioForClass,9.99)*100)}%`, tvaRatioForClass>=1?[200,60,50]:tvaRatioForClass>=0.85?[181,112,44]:[20,140,110]],
+  ];
+  let x = 48;
+  kpis.forEach(([label,val,color])=>{
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(120);
+    doc.text(label, x, y, { maxWidth:120 });
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(color[0],color[1],color[2]);
+    doc.text(val, x, y+26);
+    x += 128;
+  });
+  y += 50;
+  doc.setDrawColor(220); doc.line(48, y, 547, y);
+  y += 20;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+  doc.text(`Flux par prop firm — ${year}`, 48, y);
+  y += 16;
+  const cols = [{ key:'firm', label:'Prop firm', x:48 }, { key:'fees', label:'Frais', x:250 }, { key:'payouts', label:'Payouts', x:350 }, { key:'currencies', label:'Devise', x:450 }];
+  function tableHeader(){
+    doc.setFillColor(30,34,40);
+    doc.rect(48, y-12, 499, 18, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+    cols.forEach(c=>doc.text(c.label, c.x, y));
+    y += 16;
+  }
+  tableHeader();
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  if(data.byFirm.length===0){
+    doc.setTextColor(140); doc.text(`Aucune donnée pour ${year}.`, 48, y); y += 16;
+  } else {
+    data.byFirm.forEach((r,i)=>{
+      if(y > pageBottom){ doc.addPage(); y = 60; tableHeader(); }
+      if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-10, 499, 14, 'F'); }
+      doc.setTextColor(40,40,40);
+      doc.text(r.firm?r.firm.name:'—', 48, y, { maxWidth:190 });
+      doc.setTextColor(200,60,50); doc.text(fmtEur(r.feesEur), 250, y);
+      doc.setTextColor(20,140,110); doc.text(fmtEur(r.payoutsEur), 350, y);
+      doc.setTextColor(90,90,90); doc.text(r.currencies.join(', '), 450, y);
+      y += 14;
+    });
+  }
+  y += 16;
+
+  if(y > pageBottom - 80){ doc.addPage(); y = 60; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+  doc.text('Alertes seuils', 48, y);
+  y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  if(alerts.length===0){
+    doc.setTextColor(140); doc.text(`Aucune alerte pour ${year}.`, 48, y); y += 16;
+  } else {
+    alerts.forEach(a=>{
+      if(y > pageBottom){ doc.addPage(); y = 60; }
+      doc.setTextColor(a.level==='crit'?200:a.level==='warn'?181:90, a.level==='crit'?60:a.level==='warn'?112:90, a.level==='crit'?50:a.level==='warn'?44:90);
+      doc.setFont('helvetica','bold'); doc.text('• ' + a.title, 48, y);
+      y += 12;
+      doc.setFont('helvetica','normal'); doc.setTextColor(120); doc.text(a.sub, 58, y, { maxWidth:480 });
+      y += 16;
+    });
+  }
+  y += 6;
+
+  if(y > pageBottom - 40){ doc.addPage(); y = 60; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+  doc.text(`Checklist déclarative (${doneCount}/${totalChecklist})`, 48, y);
+  y += 16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  FISCAL_CHECKLIST_ITEMS.forEach(it=>{
+    if(y > pageBottom){ doc.addPage(); y = 60; }
+    const done = !!state.fiscalChecklist[it.id];
+    doc.setTextColor(done?20:180, done?140:60, done?110:50);
+    doc.text((done?'[x] ':'[ ] ') + it.title, 48, y, { maxWidth:499 });
+    y += 14;
+  });
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text(`Généré le ${fmtDate(todayISO())} — document à usage interne, ne remplace pas l'avis d'un expert-comptable.`, 48, 822);
+
+  return doc.output('blob');
+}
+
+// Export ZIP complet de l'année fiscale (page Fiscalité) : le PDF récapitulatif ci-dessus +
+// tous les fichiers justificatifs des payouts de l'année (table payout_receipts), organisés par
+// prop firm — pensé pour être transmis tel quel à un expert-comptable.
+async function exportFiscalYearZip(){
+  if(!perms().canFiscalite){ openUpgradeModal('Export fiscal'); return; }
+  if(typeof JSZip==='undefined'){ showToast('Librairie ZIP indisponible (réseau bloqué ?).', 'danger'); return; }
+  if(!window.jspdf){ showToast('Librairie PDF indisponible (réseau bloqué ?).', 'danger'); return; }
+  const btn = document.getElementById('export-fiscal-zip');
+  const restoreBtn = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled = true; btn.innerHTML = `${icon('download')}Génération…`; }
+  try{
+    const th = state.fiscalThresholds || FISCAL_THRESHOLDS_FALLBACK;
+    const year = state.fiscalYear || Number(todayISO().slice(0,4));
+    const data = computeFiscalYearData(year);
+
+    const bncRatio = data.caEur / th.microBncCap;
+    const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
+    const alerts = [];
+    if(data.caEur >= th.tvaMajore) alerts.push({level:'crit', title:'Franchise TVA dépassée', sub:'Facturation TVA obligatoire dès le mois de dépassement.'});
+    else if(data.caEur >= th.tvaBase) alerts.push({level:'warn', title:'Seuil de base TVA franchi', sub:`Franchise conservée jusqu'à ${fmtEur(th.tvaMajore)} si le seuil majoré n'est pas atteint.`});
+    if(bncRatio >= 1) alerts.push({level:'crit', title:'Plafond micro-BNC dépassé', sub:'Bascule au régime réel dès l’année suivante.'});
+    else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro-BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
+    if(data.foreignFirms.length) alerts.push({level:'info', title:`${data.foreignFirms.length} prop firm(s) étrangère(s) détectée(s)`, sub: data.foreignFirms.map(f=>f.name).join(', ') + ' — formulaire 3916-bis requis.'});
+    const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
+
+    const zip = new JSZip();
+    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length));
+
+    const receiptsFolder = zip.folder('Justificatifs');
+    const payoutIds = new Set(data.yearPayouts.map(p=>p.id));
+    const receipts = state.payout_receipts.filter(r=>payoutIds.has(r.payoutId));
+    let included = 0, failed = 0;
+    for(const r of receipts){
+      const payout = data.yearPayouts.find(p=>p.id===r.payoutId);
+      const acc = payout ? getAccount(payout.accountId) : null;
+      const firm = acc ? getFirm(acc.propFirmId) : null;
+      const folderName = safeFileSegment(firm ? firm.name : 'Sans PropFirm');
+      const namePrefix = payout ? `${payout.date}_${payout.amount}${payout.currency||'USD'}_` : '';
+      const { data: blobData, error } = await supabaseClient.storage.from('fiscal-receipts').download(r.path);
+      if(error || !blobData){ failed++; continue; }
+      zip.folder('Justificatifs/' + folderName).file(safeFileSegment(namePrefix + (r.fileName||'justificatif')), blobData);
+      included++;
+    }
+    if(receipts.length===0) receiptsFolder.file('Aucun_justificatif.txt', `Aucun justificatif de payout n'est attaché pour l'année ${year}.`);
+
+    const zipBlob = await zip.generateAsync({ type:'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Fiscalite_${year}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+
+    showToast(`Export généré : PDF + ${included} justificatif(s)${failed>0?` (${failed} fichier(s) inaccessible(s) ignoré(s))`:''}.`, failed>0?'danger':'success');
+  } catch(e){
+    showToast('Échec de l’export fiscal : ' + e.message, 'danger');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = restoreBtn; }
+  }
 }
 
 function fiscalPillFor(ratio){
