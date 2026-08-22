@@ -2554,7 +2554,7 @@ function computeRecapFor(expenses, payouts, pk, keyFn){
   const exp = expenses.filter(e=>keyFn(e.date)===pk);
   const pay = payouts.filter(p=>keyFn(p.date)===pk);
   const all = [...exp, ...pay];
-  const { useEur, currency } = resolveDisplayCurrency(all);
+  const { useEur, currency, mixed } = resolveDisplayCurrency(all);
   const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   let challenge=0, activation=0;
   exp.forEach(e=>{ const v=val(e); if(e.type==='ACTIVATION') activation+=v; else challenge+=v; });
@@ -2562,7 +2562,7 @@ function computeRecapFor(expenses, payouts, pk, keyFn){
   const totalCosts = challenge+activation;
   const net = payout-totalCosts;
   const roi = totalCosts>0 ? (net/totalCosts*100) : null;
-  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi, currency, mixed: useEur };
+  return { challenge, activation, payout, payoutCount:pay.length, totalCosts, net, roi, currency, converted: useEur, mixed };
 }
 /* ============================================================
    JOURS FÉRIÉS — France & États-Unis
@@ -4061,7 +4061,7 @@ function dashboardMonthRecapWidgetHtml(expenses, payouts){
   ];
   return `
     <div class="panel">
-      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span>${r.mixed?` <span class="text-faint" style="font-size:10.5px;">(converti, devises mixtes)</span>`:''}</div></div>
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('receipt')}Récap du mois <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${monthLabelCap(mk)}</span>${r.converted?` <span class="text-faint" style="font-size:10.5px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</div></div>
       <div class="panel-body">
         <div class="dash-split-grid">
           <div class="dash-split-col">
@@ -4210,8 +4210,8 @@ function viewDashboard(){
     const m = ((total % 12) + 12) % 12;
     months.push(`${y}-${pad2(m+1)}`);
   }
-  const { useEur: chartMixed } = resolveDisplayCurrency([...allExpensesUnfiltered, ...payoutsUnfiltered]);
-  const chartVal = (it)=> chartMixed ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const { useEur: chartConverted, mixed: chartMixed } = resolveDisplayCurrency([...allExpensesUnfiltered, ...payoutsUnfiltered]);
+  const chartVal = (it)=> chartConverted ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const chartData = months.map(mk=>{
     const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
     const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
@@ -4320,9 +4320,9 @@ function viewDashboard(){
           </div>
           <div class="stats-grid" style="margin-bottom:0;">
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.mixed?' · converti, devises mixtes':''}</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
           </div>
         </div>
       </div>`,
@@ -4340,7 +4340,7 @@ function viewDashboard(){
       </div>`,
     chart: `
       <div class="panel">
-        <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois</div></div>
+        <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois${chartConverted?` <span class="text-faint" style="font-weight:400;font-size:11px;">${convertedLabel(chartConverted, chartMixed)}</span>`:''}</div></div>
         <div class="panel-body">
           ${renderMiniChart(chartData, maxVal)}
           <div class="chart-legend">
@@ -4928,7 +4928,7 @@ function viewComparatif(){
     const accIds = new Set(accs.map(a=>a.id));
     const cfMoney = sumMoneyNet(computeAllExpenses().filter(e=>accIds.has(e.accountId)), state.payouts.filter(p=>accIds.has(p.accountId)));
     const totalExp = cfMoney.totalExp, totalPay = cfMoney.totalPay, net = cfMoney.net;
-    return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net, currency:cfMoney.currency, mixed:cfMoney.mixed };
+    return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net, currency:cfMoney.currency, converted:cfMoney.converted, mixed:cfMoney.mixed };
   });
 
   const { sortKey, sortDir } = state.filters.comparatif;
@@ -4955,7 +4955,7 @@ function viewComparatif(){
               <td class="num">${r.tauxReussite===null ? '<span class="text-faint">—</span>' : r.tauxReussite+'%'}</td>
               <td class="num" style="color:var(--danger)">${fmtMoneyCur(r.totalExp, r.currency)}</td>
               <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}</td>
-              <td class="num" style="font-weight:700;color:${r.net>=0?'var(--accent)':'var(--danger)'}">${r.net>=0?'+':''}${fmtMoneyCur(r.net, r.currency)}</td>
+              <td class="num" style="font-weight:700;color:${r.net>=0?'var(--accent)':'var(--danger)'}">${r.net>=0?'+':''}${fmtMoneyCur(r.net, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;font-weight:400;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -5229,7 +5229,7 @@ function computeLeaderboard(){
     const breached = challenges.filter(a=>a.status==='BREACHED').length;
     const tauxReussite = (reussis+breached)>0 ? Math.round(reussis/(reussis+breached)*100) : null;
     const badges = computeTraderBadges(t).filter(b=>b.unlocked).length;
-    return { trader:t, totalPay, currency:paysMoney.currency, mixed:paysMoney.mixed, nbPayouts:pays.length, tauxReussite, badges };
+    return { trader:t, totalPay, currency:paysMoney.currency, converted:paysMoney.converted, mixed:paysMoney.mixed, nbPayouts:pays.length, tauxReussite, badges };
   }).sort((a,b)=> b.totalPay-a.totalPay || (b.tauxReussite||0)-(a.tauxReussite||0));
 }
 function viewClassement(){
@@ -5260,7 +5260,7 @@ function viewClassement(){
             <div class="lb-podium-card lb-rank-${i+1}">
               <div class="lb-medal">${medal[i]}</div>
               <div class="lb-pseudo">${r.trader.pseudo}</div>
-              <div class="lb-amount">${fmtMoneyCur(r.totalPay, r.currency)}</div>
+              <div class="lb-amount">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</div>
               <div class="lb-sub">${r.tauxReussite===null?'—':r.tauxReussite+'% réussite'} · ${r.badges} badge(s)</div>
             </div>`).join('')}
         </div>
@@ -5272,7 +5272,7 @@ function viewClassement(){
               ${rest.map((r,i)=>`<tr>
                 <td class="text-faint">${i+4}</td>
                 <td style="font-weight:600;">${r.trader.pseudo}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}</td>
+                <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</td>
                 <td class="num">${r.nbPayouts}</td>
                 <td class="num">${r.tauxReussite===null?'—':r.tauxReussite+'%'}</td>
                 <td class="num">${r.badges}</td>
@@ -6241,7 +6241,7 @@ function exportAccountingPDF(){
   const totalExp = pdfMoney.totalExp;
   const totalPay = pdfMoney.totalPay;
   const net = pdfMoney.net;
-  const convSuffix = pdfMoney.mixed ? ' (converti)' : '';
+  const convSuffix = pdfMoney.converted ? ' ' + convertedLabel(pdfMoney.converted, pdfMoney.mixed) : '';
   const kpis = [
     ['Dépenses'+convSuffix, fmtMoneyCur(totalExp, pdfMoney.currency), [200,60,50]],
     ['Payouts'+convSuffix, fmtMoneyCur(totalPay, pdfMoney.currency), [20,140,110]],
@@ -6336,8 +6336,8 @@ function viewAccounting(){
   if(f.propfirm) recapSource = recapSource.filter(x=>getAccount(x.accountId) && getAccount(x.accountId).propFirmId===f.propfirm);
   const recapGranularity = f.recapGranularity || 'month';
   const recapKeyFn = recapGranularity==='year' ? yearKey : recapGranularity==='quarter' ? quarterKey : monthKey;
-  const { useEur: recapMixed, currency: recapCurrency } = resolveDisplayCurrency(recapSource);
-  const recapVal = (x)=> recapMixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
+  const { useEur: recapConverted, mixed: recapMixed, currency: recapCurrency } = resolveDisplayCurrency(recapSource);
+  const recapVal = (x)=> recapConverted ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
   const recapGroups = {};
   recapSource.forEach(x=>{
     const pk = recapKeyFn(x.date);
@@ -6405,7 +6405,7 @@ function viewAccounting(){
   const recapTable = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
-        <div class="section-title">Performance financière${recapMixed?` <span class="text-faint" style="font-weight:400;font-size:11px;">(converti, devises mixtes)</span>`:''}</div>
+        <div class="section-title">Performance financière${recapConverted?` <span class="text-faint" style="font-weight:400;font-size:11px;">${convertedLabel(recapConverted, recapMixed)}</span>`:''}</div>
         <div class="recap-granularity">
           <button type="button" class="recap-gran-btn ${recapGranularity==='month'?'active':''}" data-recap-gran="month">Par mois</button>
           <button type="button" class="recap-gran-btn ${recapGranularity==='quarter'?'active':''}" data-recap-gran="quarter">Par trimestre</button>
@@ -6452,9 +6452,9 @@ function viewAccounting(){
   return `
     ${filterBar}
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div></div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div></div>
-      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div></div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
     </div>
     ${recapTable}
     <div class="panel">
@@ -6497,7 +6497,7 @@ function computeBilanData(month, traderIds){
   return Array.from(map.values())
     .map(e=>{
       const m = sumMoneyNet(e.expenseLines, e.payoutLines);
-      return { traderId:e.traderId, firmId:e.firmId, expense:m.totalExp, payout:m.totalPay, net:m.net, currency:m.currency, mixed:m.mixed, trader: getTrader(e.traderId), firm: getFirm(e.firmId) };
+      return { traderId:e.traderId, firmId:e.firmId, expense:m.totalExp, payout:m.totalPay, net:m.net, currency:m.currency, converted:m.converted, mixed:m.mixed, trader: getTrader(e.traderId), firm: getFirm(e.firmId) };
     })
     .filter(e=>e.trader && e.firm)
     .sort((a,b)=> b.net - a.net || a.firm.name.localeCompare(b.firm.name,'fr',{sensitivity:'base'}));
@@ -6534,8 +6534,8 @@ function computeBilanFirmData(periodKey, granularity, traderIds){
   // Une seule devise pour toute la carte (cohérence visuelle d'un même PNG exporté) — convertie en
   // EUR si les lignes filtrées mélangent réellement plusieurs devises, ou si le switch d'affichage
   // global €/$ de la barre latérale est sur "eur" (voir resolveDisplayCurrency).
-  const { useEur: mixed, currency } = resolveDisplayCurrency([...lines,...pays]);
-  const val = (x)=> mixed ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
+  const { useEur: converted, mixed, currency } = resolveDisplayCurrency([...lines,...pays]);
+  const val = (x)=> converted ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
   const map = new Map();
   function entryFor(fId){ if(!map.has(fId)) map.set(fId, { firmId:fId, expense:0, payout:0 }); return map.get(fId); }
   lines.forEach(e=>{
@@ -6549,7 +6549,7 @@ function computeBilanFirmData(periodKey, granularity, traderIds){
     entryFor(acc.propFirmId).payout += val(p);
   });
   return Array.from(map.values())
-    .map(e=>({ ...e, net: e.payout - e.expense, currency, mixed, firm: getFirm(e.firmId) }))
+    .map(e=>({ ...e, net: e.payout - e.expense, currency, converted, mixed, firm: getFirm(e.firmId) }))
     .filter(e=>e.firm)
     .sort((a,b)=> b.net - a.net || a.firm.name.localeCompare(b.firm.name,'fr',{sensitivity:'base'}));
 }
@@ -6560,6 +6560,7 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
   const totalPay = rows.reduce((s,r)=>s+r.payout,0);
   const totalNet = totalPay - totalExp;
   const cardCurrency = rows.length ? rows[0].currency : 'USD';
+  const cardConverted = rows.length ? rows[0].converted : false;
   const cardMixed = rows.length ? rows[0].mixed : false;
   const cardId = 'bilan-global-card';
   const label = periodLabel(periodKey, granularity);
@@ -6572,7 +6573,7 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;">
           <div>
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;">Bilan par PropFirm</div>
-            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${label}${cardMixed?' · converti':''}</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${label}${cardConverted?` · ${convertedLabel(cardConverted, cardMixed)}`:''}</div>
           </div>
         </div>
         ${rows.length===0 ? `<div style="font-size:12.5px;color:#8B98A5;padding:14px 0;position:relative;">Aucune donnée pour cette période.</div>` : `
@@ -6603,7 +6604,7 @@ function bilanGlobalCardHtml(rows, periodKey, granularity){
 }
 
 function bilanCardHtml(entry, month){
-  const { trader, firm, expense, payout, net, currency, mixed } = entry;
+  const { trader, firm, expense, payout, net, currency, converted, mixed } = entry;
   const total = expense + payout;
   const expPct = total > 0 ? Math.round((expense/total)*100) : 0;
   const payPct = total > 0 ? 100 - expPct : 0;
@@ -6621,7 +6622,7 @@ function bilanCardHtml(entry, month){
           ${firmLogoHtml(firm,42)}
           <div style="flex:1;min-width:0;">
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firm.name}</div>
-            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${monthLabel(month)}${mixed?' · converti':''}</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${monthLabel(month)}${converted?` · ${convertedLabel(converted, mixed)}`:''}</div>
           </div>
           <div style="background:rgba(62,214,181,0.14);color:#3ED6B5;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;">${trader.pseudo}</div>
         </div>
@@ -7036,19 +7037,31 @@ function fmtMoneyCur(amount, currency){
 // 22/08/2026). Utilisé par sumMoneyLines/sumMoneyNet/computeRecapFor/computeBilanFirmData pour que
 // TOUTES les agrégations de l'app respectent ce switch sans dupliquer la logique partout.
 function resolveDisplayCurrency(items){
-  if(!items || !items.length) return { useEur:false, currency:'USD' };
+  if(!items || !items.length) return { useEur:false, currency:'USD', mixed:false };
   const currencies = new Set(items.map(it=>it.currency||'USD'));
+  const mixed = currencies.size>1; // mélange RÉEL de devises entre les lignes (indépendant du switch)
   const nativelyEur = currencies.size===1 && currencies.has('EUR');
-  const useEur = currencies.size>1 || (state.currencyDisplayMode==='eur' && !nativelyEur);
-  return { useEur, currency: useEur ? 'EUR' : (items[0].currency||'USD') };
+  const useEur = mixed || (state.currencyDisplayMode==='eur' && !nativelyEur);
+  return { useEur, currency: useEur ? 'EUR' : (items[0].currency||'USD'), mixed };
+}
+// Mention "(converti)" / "(converti, devises mixtes)" à afficher à côté d'un montant, cohérente
+// partout : "devises mixtes" seulement si le mélange est RÉEL (plusieurs devises différentes dans
+// les lignes sommées), sinon juste "(converti)" quand la conversion vient uniquement du switch
+// global d'affichage €/$ — pour ne pas laisser croire à un mélange de devises qui n'existe pas.
+function convertedLabel(converted, mixed){
+  if(!converted) return '';
+  return mixed ? '(converti, devises mixtes)' : '(converti)';
 }
 // Formate un montant UNITAIRE (une seule ligne : un compte, un payout...) en respectant la même
 // préférence globale — convertit en EUR via son propre taux BCE (fxRateToEur) si le switch est
 // actif, sinon affiche tel quel dans sa devise d'origine. À utiliser à la place de fmtMoneyCur()
-// partout où la ligne source (et donc son fxRateToEur) est disponible.
+// partout où la ligne source (et donc son fxRateToEur) est disponible. Ajoute "(converti)" quand
+// la valeur affichée diffère réellement de la devise d'origine de la ligne.
 function fmtMoneyDisp(amount, currency, fxRateToEur){
-  const d = displayMoney(amount, currency, fxRateToEur);
-  return fmtMoneyCur(d.amount, d.currency);
+  const origCurrency = currency || 'USD';
+  const d = displayMoney(amount, origCurrency, fxRateToEur);
+  const converted = d.currency !== origCurrency;
+  return fmtMoneyCur(d.amount, d.currency) + (converted ? ' <span class="text-faint" style="font-size:10px;">(converti)</span>' : '');
 }
 // Version "données brutes" de fmtMoneyDisp (pas juste une chaîne formatée) — utile pour les exports
 // (Excel/PDF) où le montant ET la devise doivent tous les deux refléter la préférence d'affichage.
@@ -7085,28 +7098,29 @@ function pdfSafe(s){
 //  - Si les lignes sont dans des devises différentes, le total est converti en EUR (devise pivot
 //    déjà utilisée pour la Fiscalité) et marqué mixed:true pour que l'affichage précise "converti".
 function sumMoneyLines(items){
-  if(!items || !items.length) return { amount:0, currency:'USD', mixed:false };
-  const { useEur, currency } = resolveDisplayCurrency(items);
+  if(!items || !items.length) return { amount:0, currency:'USD', converted:false, mixed:false };
+  const { useEur, currency, mixed } = resolveDisplayCurrency(items);
   if(!useEur){
-    return { amount: items.reduce((s,it)=>s+Number(it.amount||0),0), currency, mixed:false };
+    return { amount: items.reduce((s,it)=>s+Number(it.amount||0),0), currency, converted:false, mixed:false };
   }
-  return { amount: items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0), currency:'EUR', mixed:true };
+  return { amount: items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0), currency:'EUR', converted:true, mixed };
 }
-// Affiche un total sumMoneyLines() avec le bon symbole, + une mention "(converti)" si mixte.
+// Affiche un total sumMoneyLines() avec le bon symbole, + une mention "(converti)"/"(converti,
+// devises mixtes)" — la distinction ne s'affiche que si le mélange est réel, pas juste dû au switch.
 function fmtSumMoney(sum, opts={}){
   const txt = fmtMoneyCur(sum.amount, sum.currency);
-  if(sum.mixed && !(opts && opts.compact)) return txt + ' <span class="text-faint" style="font-size:10px;">(converti)</span>';
+  if(sum.converted && !(opts && opts.compact)) return txt + ` <span class="text-faint" style="font-size:10px;">${convertedLabel(sum.converted, sum.mixed)}</span>`;
   return txt;
 }
 // Combine dépenses + payouts dans UNE SEULE devise commune, pour calculer un Net cohérent même si
 // dépenses et payouts ne sont pas dans la même devise (rare, mais possible ligne par ligne).
 function sumMoneyNet(expenseItems, payoutItems){
   const all = [...expenseItems, ...payoutItems];
-  const { useEur, currency } = resolveDisplayCurrency(all);
+  const { useEur, currency, mixed } = resolveDisplayCurrency(all);
   const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const totalExp = expenseItems.reduce((s,it)=>s+val(it),0);
   const totalPay = payoutItems.reduce((s,it)=>s+val(it),0);
-  return { totalExp, totalPay, net: totalPay-totalExp, currency, mixed: useEur };
+  return { totalExp, totalPay, net: totalPay-totalExp, currency, converted: useEur, mixed };
 }
 
 function computeFiscalYearData(year){
@@ -7163,8 +7177,29 @@ function computeFiscalYearData(year){
     bySystem,
     // Lignes brutes de l'année — utilisées par exportFiscalYearZip() pour retrouver les
     // justificatifs (payout_receipts) rattachés à chacun de ces payouts.
-    yearPayouts,
+    yearPayouts, yearExpenses,
   };
+}
+// Frais (challenge + activation + mensualités) déductibles au régime réel, mois par mois — au
+// contraire du micro-BNC (abattement forfaitaire, frais réels non pris en compte individuellement),
+// le régime réel demande le détail des charges réellement engagées période par période. Toujours
+// mensuel (indépendant de la périodicité URSSAF, qui ne concerne que le CA à déclarer) : demande du
+// 22/08/2026, "au cas où le passage au régime réel doit se faire" — pour ne pas avoir à reconstituer
+// cet historique après coup si le besoin se présente.
+function computeMonthlyFraisData(year, yearExpenses){
+  return Array.from({length:12}, (_,i)=>{
+    const m = i+1;
+    const mk = `${year}-${pad2(m)}`;
+    const lines = yearExpenses.filter(e=>monthKey(e.date)===mk);
+    let challenge=0, activation=0, monthly=0;
+    lines.forEach(e=>{
+      const v = toEur(e.amount, e.fxRateToEur);
+      if(e.type==='ACTIVATION') activation += v;
+      else if(e.type==='MENSUALITE') monthly += v;
+      else challenge += v; // ACHAT
+    });
+    return { mk, label:`${MONTH_NAMES_LONG[m-1]} ${year}`, challenge, activation, monthly, total: challenge+activation+monthly, count: lines.length };
+  });
 }
 // Identifiant stable de checklist pour la case "3916-bis déclaré" d'un système de paiement donné
 // (persisté via la table générique fiscal_checklist_items, voir toggleFiscalChecklistItem).
@@ -7227,9 +7262,10 @@ function safeFileSegment(s){
 
 // Génère le PDF récapitulatif fiscal de l'année (mêmes sections que la page Fiscalité) et
 // retourne un Blob — utilisé à la fois par exportFiscalYearZip() et pour un export PDF seul.
-function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist, userSettings, urssafPeriods){
+function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklist, userSettings, urssafPeriods, monthlyFrais){
   userSettings = userSettings || {};
   urssafPeriods = urssafPeriods || [];
+  monthlyFrais = monthlyFrais || [];
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'pt', format:'a4' });
   const pageBottom = 800;
@@ -7337,6 +7373,40 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
     y += 16;
   }
 
+  if(monthlyFrais && monthlyFrais.length){
+    if(y > pageBottom - 80){ doc.addPage(); y = 60; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+    doc.text(pdfSafe(`Frais par mois — ${year}`), 48, y);
+    y += 18;
+    const fraisCols = [{ label:'Mois', x:56 }, { label:'Challenge', x:200 }, { label:'Activation', x:300 }, { label:'Mensualités', x:400 }, { label:'Total', x:490 }];
+    function fraisTableHeader(){
+      doc.setFillColor(30,34,40);
+      doc.rect(48, y-12, 499, 20, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+      fraisCols.forEach(c=>doc.text(c.label, c.x, y+1));
+      y += 20;
+    }
+    const fraisRows = monthlyFrais.filter(m=>m.count>0);
+    if(!fraisRows.length){
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(140);
+      doc.text(pdfSafe(`Aucun frais pour ${year}.`), 56, y); y += 18;
+    } else {
+      fraisTableHeader();
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      fraisRows.forEach((m,i)=>{
+        if(y > pageBottom){ doc.addPage(); y = 60; fraisTableHeader(); }
+        if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
+        doc.setTextColor(40,40,40); doc.text(pdfSafe(m.label), 56, y+1, { maxWidth:135 });
+        doc.setTextColor(90,90,90); doc.text(pdfSafe(m.challenge>0?fmtEur(m.challenge):'—'), 200, y+1);
+        doc.text(pdfSafe(m.activation>0?fmtEur(m.activation):'—'), 300, y+1);
+        doc.text(pdfSafe(m.monthly>0?fmtEur(m.monthly):'—'), 400, y+1);
+        doc.setTextColor(200,60,50); doc.text(pdfSafe(m.total>0?fmtEur(m.total):'—'), 490, y+1);
+        y += 16;
+      });
+    }
+    y += 16;
+  }
+
   if(y > pageBottom - 80){ doc.addPage(); y = 60; }
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
   doc.text(pdfSafe(`Systèmes de paiement — ${year}`), 48, y);
@@ -7432,13 +7502,14 @@ async function exportFiscalYearZip(){
     const periodicity = fiscalUrssafPeriodicity();
     const vfl = fiscalVersementLiberatoire();
     const urssafPeriods = computeUrssafPeriods(year, periodicity, data.yearPayouts);
+    const monthlyFrais = computeMonthlyFraisData(year, data.yearExpenses);
     const userSettings = { periodicity, vfl, nextDeadline: nextUrssafDeadline(periodicity) };
 
     const alerts = computeFiscalAlerts(th, data, urssafPeriods);
     const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
     const zip = new JSZip();
-    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length, userSettings, urssafPeriods));
+    zip.file(`Bilan_fiscal_${year}.pdf`, buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, FISCAL_CHECKLIST_ITEMS.length, userSettings, urssafPeriods, monthlyFrais));
 
     const receiptsFolder = zip.folder('Justificatifs');
     const payoutIds = new Set(data.yearPayouts.map(p=>p.id));
@@ -7516,6 +7587,7 @@ function viewFiscalite(){
   const vfl = fiscalVersementLiberatoire();
   const nextDeadline = nextUrssafDeadline(periodicity);
   const urssafPeriods = computeUrssafPeriods(year, periodicity, data.yearPayouts);
+  const monthlyFrais = computeMonthlyFraisData(year, data.yearExpenses);
   const today = todayISO();
 
   const alerts = computeFiscalAlerts(th, data, urssafPeriods);
@@ -7649,6 +7721,27 @@ function viewFiscalite(){
         </table>
       </div>
       <div class="field-hint" style="margin:10px 0 0;padding:0 18px 16px;">Le CA encaissé est le montant brut à reporter (avant frais/commissions de prop firm, non déductibles au régime micro-BNC) — vérifie ce total avec ton relevé bancaire avant de déclarer.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Frais par mois — ${year}</div></div>
+      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">Au régime micro-BNC, ces frais ne changent rien (abattement forfaitaire) — ce tableau sert surtout à garder l'historique prêt au cas où un passage au régime réel deviendrait pertinent, puisque ce régime demande le détail des charges réellement engagées, mois par mois.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mois</th><th class="num">Frais Challenge</th><th class="num">Frais Activation</th><th class="num">Mensualités</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            ${monthlyFrais.every(m=>m.count===0) ? `<tr><td colspan="5"><div class="empty-sub" style="padding:16px 0;">Aucun frais pour ${year}.</div></td></tr>` :
+              monthlyFrais.map(m=>`<tr>
+                <td>${escapeHtml(m.label)}</td>
+                <td class="num text-dim">${m.challenge>0?fmtEur(m.challenge):'—'}</td>
+                <td class="num text-dim">${m.activation>0?fmtEur(m.activation):'—'}</td>
+                <td class="num text-dim">${m.monthly>0?fmtEur(m.monthly):'—'}</td>
+                <td class="num" style="font-weight:600;color:var(--danger)">${m.total>0?fmtEur(m.total):'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="field-hint" style="margin:10px 0 0;padding:0 18px 16px;">Montants convertis en EUR au taux de change de chaque ligne d'origine — toujours par mois, indépendamment de la périodicité URSSAF choisie ci-dessus.</div>
     </div>
 
     <div class="panel" style="margin-bottom:16px;">
@@ -10187,7 +10280,7 @@ function payoutsModal(acc){
     const totalMoney = sumMoneyLines(list);
     const editing = editingId ? list.find(p=>p.id===editingId) : null;
     return `
-      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtMoneyCur(totalMoney.amount, totalMoney.currency)}</span>${totalMoney.mixed?' <span class="text-faint">(converti, devises mixtes)</span>':''}</div>
+      <div class="field-hint" style="margin-bottom:12px;">PA de <strong>${trader.pseudo}</strong> — Total versé : <span class="mono" style="color:var(--accent)">${fmtMoneyCur(totalMoney.amount, totalMoney.currency)}</span>${totalMoney.converted?` <span class="text-faint">${convertedLabel(totalMoney.converted, totalMoney.mixed)}</span>`:''}</div>
       ${canEdit(acc) ? `
       ${editing ? `<div class="field-hint" style="margin-bottom:8px;color:var(--gold);">Modification du payout du ${fmtDate(editing.date)}</div>` : ''}
       <div class="field-row">
@@ -10206,7 +10299,7 @@ function payoutsModal(acc){
       </div>
       <div class="field"><label>Note (optionnel)</label><input id="pm-note" placeholder="ex: payout mensuel" value="${editing?(editing.note||''):''}"/></div>
       <div class="field">
-        <label>Système de paiement</label>
+        <label>Système de paiement <span style="color:var(--danger)">*</span></label>
         <select id="pm-payment-system-select">
           <option value="" ${!editing||!editing.paymentSystem?'selected':''} disabled>— Choisir —</option>
           ${paymentSystemSuggestions().map(s=>`<option value="${escapeHtml(s)}" ${editing&&editing.paymentSystem===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
@@ -10216,6 +10309,12 @@ function payoutsModal(acc){
         <div class="field-hint">Sert à la synthèse « 3916-bis » de la page Fiscalité — c'est le système de paiement (Wise, virement, etc.), pas la prop firm elle-même, qui détermine si un compte à l'étranger doit être déclaré. Un nouveau système est automatiquement enregistré en MAJUSCULES.</div>
         <div id="pm-payment-system-hint" style="margin-top:4px;"></div>
       </div>
+      ${!editing ? `
+      <div class="field">
+        <label>Justificatif (optionnel)</label>
+        <input id="pm-receipt-files" type="file" multiple/>
+        <div class="field-hint">Ajouté automatiquement au payout dès qu'il est créé. Tu peux aussi en ajouter/retirer plus tard via l'icône ${icon('upload')}.</div>
+      </div>` : ''}
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary btn-sm" id="pm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le payout'}</button>
         ${editing ? `<button class="btn btn-outline btn-sm" id="pm-cancel-edit">Annuler</button>` : ''}
@@ -10341,7 +10440,25 @@ function payoutsModal(acc){
         const newId = uid('pay');
         await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, paymentSystem, createdAt: new Date().toISOString(), createdBy: currentUserId() });
         await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoneyDisp(amount, currency, fxRateToEur)}`);
-        showToast('Payout ajouté.');
+        // Justificatif(s) sélectionné(s) à la création : uploadés juste après, une fois le
+        // payout créé (payout_receipts a besoin d'un payoutId existant — voir migration_prod).
+        const receiptInput = document.getElementById('pm-receipt-files');
+        const receiptFiles = receiptInput ? Array.from(receiptInput.files||[]) : [];
+        let receiptErrors = 0;
+        for(const file of receiptFiles){
+          const path = `${currentUserId()}/${acc.id}/${newId}/${Date.now()}-${file.name}`;
+          const { error: upErr } = await supabaseClient.storage.from('fiscal-receipts').upload(path, file, { upsert:true });
+          if(upErr){ receiptErrors++; console.warn('Échec upload justificatif ' + file.name + ' :', upErr.message); continue; }
+          await upsert('payout_receipts', { id: uid('prc'), payoutId: newId, accountId: acc.id, path, fileName: file.name, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+        }
+        showToast(
+          receiptFiles.length
+            ? (receiptErrors
+                ? `Payout ajouté, mais ${receiptErrors} justificatif(s) n'ont pas pu être envoyés (réessaie via le bouton Justificatifs sur la ligne).`
+                : `Payout ajouté avec ${receiptFiles.length} justificatif(s).`)
+            : 'Payout ajouté.',
+          receiptErrors ? 'danger' : undefined
+        );
       }
       refresh();
     };
