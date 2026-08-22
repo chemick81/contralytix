@@ -1541,10 +1541,13 @@ async function loadProfilesAdmin(){
   if(error){ showToast('Erreur de chargement des utilisateurs : ' + error.message, 'danger'); return; }
   state.profiles = data.map(fromRow);
   // RLS bloque silencieusement (pas d'erreur renvoyée par Postgrest) : si un admin ne voit
-  // que sa propre ligne (ou aucune), c'est le signe qu'il manque une policy SELECT admin
-  // sur la table 'profiles' (idem sur 'subscriptions' plus bas).
+  // que sa propre ligne (ou aucune), ça PEUT être le signe qu'il manque une policy SELECT admin
+  // sur la table 'profiles' (idem sur 'subscriptions' plus bas) — mais ça peut aussi, tout
+  // simplement, être une base avec un seul compte pour l'instant (dev/test). Impossible de
+  // distinguer les deux cas côté client (le RLS masque les lignes sans renvoyer d'erreur), donc
+  // le message reste prudent plutôt que d'affirmer un problème à tort.
   if(state.profiles.length <= 1){
-    showToast("Seul ton propre profil est visible : il manque probablement une policy RLS SELECT pour les admins sur la table 'profiles' dans Supabase.", 'danger');
+    showToast("Un seul profil visible ici. Si tu sais qu'il existe d'autres comptes sur ce site, il manque probablement une policy RLS SELECT pour les admins sur la table 'profiles' dans Supabase — sinon (base avec un seul compte pour l'instant), c'est normal.");
   }
   const { data: subs, error: subsErr } = await supabaseClient.from('subscriptions').select('*');
   if(!subsErr && subs){
