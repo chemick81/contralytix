@@ -10310,10 +10310,10 @@ function payoutsModal(acc){
         <div id="pm-payment-system-hint" style="margin-top:4px;"></div>
       </div>
       ${!editing ? `
-      <div class="field">
+      <div class="field" style="margin-bottom:10px;">
         <label>Justificatif (optionnel)</label>
-        <input id="pm-receipt-files" type="file" multiple/>
-        <div class="field-hint">Ajouté automatiquement au payout dès qu'il est créé. Tu peux aussi en ajouter/retirer plus tard via l'icône ${icon('upload')}.</div>
+        <input id="pm-receipt-files" type="file" multiple style="margin-top:4px;"/>
+        <div class="field-hint" style="margin-top:3px;">Ajouté automatiquement à la création. Modifiable ensuite via le bouton Justificatifs de la ligne.</div>
       </div>` : ''}
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary btn-sm" id="pm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le payout'}</button>
