@@ -6999,13 +6999,23 @@ function fmtMoneyCur(amount, currency){
   const symbol = symbols[currency] || '$';
   return Number(amount||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
 }
-// jsPDF (police Helvetica standard) ne connaît pas l'espace fine insécable (U+202F) que
-// toLocaleString('fr-FR') utilise comme séparateur de milliers (ex: "84 969") : sans ce
-// nettoyage, ce caractère s'affiche comme un "/" et désaligne l'espacement de tout le texte
-// qui suit dans le même appel doc.text(). À appliquer sur CHAQUE chaîne passée à doc.text()
-// dans les exports PDF (voir buildFiscalYearPdfBlob, exportAccountingPDF, generatePayoutReceipt).
+// jsPDF (police Helvetica standard, encodage WinAnsi) ne connaît pas certains caractères Unicode
+// pourtant utilisés ailleurs dans l'app (rendus très bien par un navigateur) : sans nettoyage, le
+// caractère non supporté s'affiche mal ET désaligne l'espacement de TOUT le texte qui suit dans le
+// même appel doc.text() (lettres anormalement espacées). Repérés jusqu'ici :
+//  - U+202F/U+00A0 (espaces fine/insécable) : toLocaleString('fr-FR') les utilise comme séparateur
+//    de milliers (ex: "84 969") — rendu comme un "/" sans ce nettoyage.
+//  - U+2011 (trait d'union insécable, ex: "2042\u2011C\u2011PRO", "3916\u2011bis" dans
+//    FISCAL_CHECKLIST_ITEMS) — visuellement identique à un tiret normal mais absent de la police
+//    standard jsPDF, provoque le même désalignement (repéré sur la checklist déclarative du PDF
+//    fiscal, 22/08/2026).
+// À appliquer sur CHAQUE chaîne passée à doc.text() dans les exports PDF (voir buildFiscalYearPdfBlob,
+// exportAccountingPDF, generatePayoutReceipt) — pas seulement les chaînes formatées dynamiquement :
+// des constantes comme FISCAL_CHECKLIST_ITEMS peuvent tout aussi bien contenir ces caractères.
 function pdfSafe(s){
-  return String(s==null?'':s).replace(/[\u202f\u00a0]/g, ' ');
+  return String(s==null?'':s)
+    .replace(/[\u202f\u00a0]/g, ' ')
+    .replace(/\u2011/g, '-');
 }
 // --- Agrégation multi-devises : la bonne façon de sommer des lignes financières partout dans
 // l'app (Dashboard, Comptabilité, Bilan, Classement, Calendrier...) depuis que chaque compte/
