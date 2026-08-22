@@ -2655,6 +2655,30 @@ function sizeLabel(acc){ return acc.size==='AUTRE' ? (fmtMoney(acc.customSize)) 
 const STATUS_LABELS = { REUSSI:'Réussi', BREACHED:'Breached', ACTIF:'Actif', FERME:'Fermé' };
 const STATUS_OPTIONS_BY_TYPE = { CHALLENGE:['ACTIF','REUSSI','BREACHED'], PA:['ACTIF','BREACHED','FERME'], LIVE:['ACTIF','BREACHED','FERME'] };
 const TYPE_LABELS = { CHALLENGE:'Challenge', PA:'PA', LIVE:'Live' };
+// Systèmes de paiement usuels des prop firms pour verser les payouts (suggestions dans le champ
+// "Système de paiement" du formulaire Payout — voir payoutsModal). Liste non figée : l'utilisateur
+// peut toujours saisir autre chose, systématiquement mis en MAJUSCULES pour que la synthèse de la
+// page Fiscalité regroupe correctement les payouts par système (voir computeFiscalYearData).
+// C'est le système de paiement, et non la PropFirm elle-même, qui détermine si un compte doit être
+// déclaré au titre du 3916-bis (compte détenu à l'étranger) — voir le panneau dédié en Fiscalité.
+const PAYMENT_SYSTEMS = ['WISE','PAYPAL','PAYONEER','PLANE','RISEWORKS','WORKMARKET (ADP)','HYPERWALLET','VIREMENT BANCAIRE (WIRE / ACH)','CRYPTO (USDT / USDC)'];
+// Repère indicatif (PAS une qualification juridique) sur l'obligation 3916-bis par système, pour
+// aider à décider quoi cocher dans le panneau "Systèmes de paiement" — la case elle-même reste
+// TOUJOURS auto-déclarative (jamais cochée automatiquement à partir de ceci). Values : 'oui'
+// (compte de paiement à l'étranger, généralement à déclarer), 'non' (pas de compte détenu à
+// l'étranger), 'conditionnel' (dépend d'un solde conservé ou d'un seuil de montant).
+const PAYMENT_SYSTEM_3916_GUIDANCE = {
+  'WISE': { level:'oui', note:'Compte de paiement chez Wise Europe SA (Belgique) — généralement à déclarer.' },
+  'PAYONEER': { level:'oui', note:'Compte de paiement/e-money irlandais — généralement à déclarer.' },
+  'HYPERWALLET': { level:'oui', note:'Compte/Pay Portal international — à déclarer si un compte est ouvert à ton nom.' },
+  'RISEWORKS': { level:'conditionnel', note:'Wallet/compte chez une société US — à déclarer par prudence si tu conserves un solde.' },
+  'PAYPAL': { level:'conditionnel', note:'Compte PayPal (Luxembourg) — dépend du montant annuel reçu (voir seuil légal).' },
+  'PLANE': { level:'non', note:'Pas de wallet pour le contractor : paiement direct sur ta banque.' },
+  'WORKMARKET (ADP)': { level:'non', note:'Plateforme de gestion/paiement — pas de compte financier à déclarer si aucun solde conservé.' },
+};
+function paymentSystem3916Guidance(system){
+  return PAYMENT_SYSTEM_3916_GUIDANCE[String(system||'').toUpperCase()] || null;
+}
 // Couleurs dédiées au type de compte (Challenge / PA / Live), distinctes des couleurs de statut,
 // pour rendre le type immédiatement identifiable sur les cartes de la page Comptes.
 const TYPE_COLORS = { CHALLENGE:'#5B8DEF', PA:'#6C5CE7', LIVE:'#E84393' };
@@ -6132,7 +6156,7 @@ function exportAccountingPDF(){
   if(f.propfirm) filterParts.push(`PropFirm : ${getFirm(f.propfirm)?.name||''}`);
   if(f.type) filterParts.push(`Type : ${f.type==='PAYOUT'?'Payouts':f.type}`);
   doc.setFontSize(10); doc.setTextColor(90);
-  doc.text(filterParts.join('   ·   '), 48, y);
+  doc.text(pdfSafe(filterParts.join('   ·   ')), 48, y);
   y += 28;
 
   const totalExp = pdfMoney.totalExp;
@@ -6147,9 +6171,9 @@ function exportAccountingPDF(){
   let x = 48;
   kpis.forEach(([label,val,color])=>{
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
-    doc.text(label, x, y);
+    doc.text(pdfSafe(label), x, y);
     doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(color[0],color[1],color[2]);
-    doc.text(val, x, y+18);
+    doc.text(pdfSafe(val), x, y+18);
     x += 170;
   });
   y += 44;
@@ -6178,16 +6202,16 @@ function exportAccountingPDF(){
     cols.forEach(c=>{
       let v = String(r[c.key]||'');
       if(v.length>17) v = v.slice(0,16)+'…';
-      doc.text(v, c.x, y);
+      doc.text(pdfSafe(v), c.x, y);
     });
     const posColor = r.Montant>=0 ? [20,140,110] : [200,60,50];
     doc.setTextColor(posColor[0],posColor[1],posColor[2]);
-    doc.text(fmtMoneyCur(r.Montant, r.Devise||'USD'), 547, y, { align:'right' });
+    doc.text(pdfSafe(fmtMoneyCur(r.Montant, r.Devise||'USD')), 547, y, { align:'right' });
     y += 14;
   });
 
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text(`Généré le ${fmtDate(todayISO())} — ${rows.length} ligne(s) — document à usage interne, non fiscal.`, 48, 822);
+  doc.text(pdfSafe(`Généré le ${fmtDate(todayISO())} — ${rows.length} ligne(s) — document à usage interne, non fiscal.`), 48, 822);
 
   doc.save(`recap_comptable_${f.month || 'toutes-periodes'}.pdf`);
   showToast('Récapitulatif PDF généré.');
@@ -6819,7 +6843,7 @@ async function saveFiscalThresholds(){
 const FISCAL_CHECKLIST_ITEMS = [
   { id:'urssaf', title:'Déclarations URSSAF', sub:'Mensuelles ou trimestrielles selon ton option — vérifie que les 12 échéances sont à jour.' },
   { id:'2042c', title:'2042‑C‑PRO — revenus BNC', sub:'Reporte le total payouts − charges déductibles de l’année.' },
-  { id:'3916bis', title:'Formulaire 3916‑bis — comptes à l’étranger', sub:'Un par compte/plateforme étranger détecté ci‑dessous. Amende jusqu’à 1 500 €/compte non déclaré.' },
+  { id:'3916bis', title:'Formulaire 3916‑bis — comptes à l’étranger', sub:'Un par système de paiement étranger utilisé (voir le panneau « Systèmes de paiement » ci‑dessous). Amende jusqu’à 1 500 €/compte non déclaré.' },
   { id:'registre', title:'Registre de recettes chronologique', sub:'Export du détail de tes payouts de l’année, daté et horodaté.' },
   { id:'versement-liberatoire', title:'Choix versement libératoire', sub:'À arbitrer avant le 30 septembre de l’année précédente pour s’appliquer l’année suivante.' },
 ];
@@ -6866,6 +6890,14 @@ function fmtMoneyCur(amount, currency){
   const symbols = { USD:'$', EUR:'€', GBP:'£' };
   const symbol = symbols[currency] || '$';
   return Number(amount||0).toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + symbol;
+}
+// jsPDF (police Helvetica standard) ne connaît pas l'espace fine insécable (U+202F) que
+// toLocaleString('fr-FR') utilise comme séparateur de milliers (ex: "84 969") : sans ce
+// nettoyage, ce caractère s'affiche comme un "/" et désaligne l'espacement de tout le texte
+// qui suit dans le même appel doc.text(). À appliquer sur CHAQUE chaîne passée à doc.text()
+// dans les exports PDF (voir buildFiscalYearPdfBlob, exportAccountingPDF, generatePayoutReceipt).
+function pdfSafe(s){
+  return String(s==null?'':s).replace(/[\u202f\u00a0]/g, ' ');
 }
 // --- Agrégation multi-devises : la bonne façon de sommer des lignes financières partout dans
 // l'app (Dashboard, Comptabilité, Bilan, Classement, Calendrier...) depuis que chaque compte/
@@ -6929,21 +6961,39 @@ function computeFiscalYearData(year){
     entry.currencies.add(p.currency || 'USD');
   });
 
-  // Comptes étrangers détectés (propfirm avec country_code renseigné et différent de 'FR').
-  // Un country_code absent n'est PAS compté comme étranger : mieux vaut un faux négatif (à
-  // vérifier manuellement) qu'une fausse alerte sur une donnée non renseignée.
-  const foreignFirms = [...byFirm.keys()]
-    .map(id=>getFirm(id))
-    .filter(f => f && f.countryCode && f.countryCode !== 'FR');
+  // Synthèse par système de paiement (Wise, virement, RiseWorks…) — c'est le système utilisé
+  // pour recevoir les payouts, et non la PropFirm elle-même, qui détermine si un compte doit
+  // être déclaré au titre du 3916-bis (comptes détenus à l'étranger). "NON RENSEIGNÉ" regroupe
+  // les payouts sans système saisi, pour rester visible plutôt que silencieusement omis.
+  const bySystemMap = new Map();
+  function systemEntry(sys){
+    const key = sys || 'NON RENSEIGNÉ';
+    if(!bySystemMap.has(key)) bySystemMap.set(key, { system:key, payoutsEur:0, count:0, currencies:new Set() });
+    return bySystemMap.get(key);
+  }
+  yearPayouts.forEach(p=>{
+    const entry = systemEntry(p.paymentSystem);
+    entry.payoutsEur += toEur(p.amount, p.fxRateToEur);
+    entry.count++;
+    entry.currencies.add(p.currency || 'USD');
+  });
+  const bySystem = [...bySystemMap.values()]
+    .map(e=>({ ...e, currencies:[...e.currencies] }))
+    .sort((a,b)=>b.payoutsEur-a.payoutsEur);
 
   return {
     year, caEur, feesEur,
     byFirm: [...byFirm.values()].map(e=>({ ...e, firm:getFirm(e.firmId), currencies:[...e.currencies] })).sort((a,b)=>b.payoutsEur-a.payoutsEur),
-    foreignFirms,
+    bySystem,
     // Lignes brutes de l'année — utilisées par exportFiscalYearZip() pour retrouver les
     // justificatifs (payout_receipts) rattachés à chacun de ces payouts.
     yearPayouts,
   };
+}
+// Identifiant stable de checklist pour la case "3916-bis déclaré" d'un système de paiement donné
+// (persisté via la table générique fiscal_checklist_items, voir toggleFiscalChecklistItem).
+function fiscal3916ItemId(system){
+  return '3916bis-' + String(system).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
 
 // Nettoie un segment de nom de fichier/dossier pour un usage sûr dans un ZIP (mêmes règles que
@@ -6961,20 +7011,20 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
   let y = 60;
 
   doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(20);
-  doc.text(`Bilan fiscal ${year}`, 48, y);
+  doc.text(pdfSafe(`Bilan fiscal ${year}`), 48, y);
   y += 18;
   doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
   doc.text('Contralytix — Gestion Propfirm', 48, y);
   y += 10;
   doc.setDrawColor(220); doc.line(48, y, 547, y);
-  y += 24;
+  y += 26;
 
   doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(90);
   const seuilsLine = `Seuils ${th.year} : plafond micro-BNC ${fmtEur(th.microBncCap)} — franchise TVA ${fmtEur(th.tvaBase)} / ${fmtEur(th.tvaMajore)}.`;
-  doc.text(seuilsLine, 48, y);
+  doc.text(pdfSafe(seuilsLine), 48, y);
   y += 14;
-  if(th.sourceNote){ doc.setTextColor(140); doc.text(String(th.sourceNote), 48, y); y += 14; }
-  y += 10;
+  if(th.sourceNote){ doc.setTextColor(140); doc.text(pdfSafe(th.sourceNote), 48, y); y += 14; }
+  y += 14;
 
   const bncRatio = data.caEur / th.microBncCap;
   const [, bncLabel] = fiscalPillFor(bncRatio);
@@ -6989,78 +7039,117 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
   let x = 48;
   kpis.forEach(([label,val,color])=>{
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(120);
-    doc.text(label, x, y, { maxWidth:120 });
+    doc.text(pdfSafe(label), x, y, { maxWidth:128 });
     doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(color[0],color[1],color[2]);
-    doc.text(val, x, y+26);
-    x += 128;
+    doc.text(pdfSafe(val), x, y+30);
+    x += 135;
   });
-  y += 50;
+  y += 56;
   doc.setDrawColor(220); doc.line(48, y, 547, y);
-  y += 20;
+  y += 26;
 
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
-  doc.text(`Flux par prop firm — ${year}`, 48, y);
-  y += 16;
-  const cols = [{ key:'firm', label:'Prop firm', x:48 }, { key:'fees', label:'Frais', x:250 }, { key:'payouts', label:'Payouts', x:350 }, { key:'currencies', label:'Devise', x:450 }];
+  doc.text(pdfSafe(`Flux par prop firm — ${year}`), 48, y);
+  y += 18;
+  const cols = [{ key:'firm', label:'Prop firm', x:56 }, { key:'fees', label:'Frais', x:260 }, { key:'payouts', label:'Payouts', x:360 }, { key:'currencies', label:'Devise', x:460 }];
   function tableHeader(){
     doc.setFillColor(30,34,40);
-    doc.rect(48, y-12, 499, 18, 'F');
+    doc.rect(48, y-12, 499, 20, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
-    cols.forEach(c=>doc.text(c.label, c.x, y));
-    y += 16;
+    cols.forEach(c=>doc.text(c.label, c.x, y+1));
+    y += 20;
   }
   tableHeader();
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
   if(data.byFirm.length===0){
-    doc.setTextColor(140); doc.text(`Aucune donnée pour ${year}.`, 48, y); y += 16;
+    doc.setTextColor(140); doc.text(pdfSafe(`Aucune donnée pour ${year}.`), 56, y); y += 18;
   } else {
     data.byFirm.forEach((r,i)=>{
       if(y > pageBottom){ doc.addPage(); y = 60; tableHeader(); }
-      if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-10, 499, 14, 'F'); }
+      if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
       doc.setTextColor(40,40,40);
-      doc.text(r.firm?r.firm.name:'—', 48, y, { maxWidth:190 });
-      doc.setTextColor(200,60,50); doc.text(fmtEur(r.feesEur), 250, y);
-      doc.setTextColor(20,140,110); doc.text(fmtEur(r.payoutsEur), 350, y);
-      doc.setTextColor(90,90,90); doc.text(r.currencies.join(', '), 450, y);
-      y += 14;
+      doc.text(pdfSafe(r.firm?r.firm.name:'—'), 56, y+1, { maxWidth:190 });
+      doc.setTextColor(200,60,50); doc.text(pdfSafe(fmtEur(r.feesEur)), 260, y+1);
+      doc.setTextColor(20,140,110); doc.text(pdfSafe(fmtEur(r.payoutsEur)), 360, y+1);
+      doc.setTextColor(90,90,90); doc.text(pdfSafe(r.currencies.join(', ')), 460, y+1);
+      y += 16;
     });
+  }
+  y += 20;
+
+  if(y > pageBottom - 80){ doc.addPage(); y = 60; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+  doc.text(pdfSafe(`Systèmes de paiement — ${year}`), 48, y);
+  y += 18;
+  const sysCols = [{ label:'Système', x:56 }, { label:'Payouts', x:230 }, { label:'Devise', x:310 }, { label:'Repère', x:400 }, { label:'3916-bis', x:475 }];
+  function sysTableHeader(){
+    doc.setFillColor(30,34,40);
+    doc.rect(48, y-12, 499, 20, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+    sysCols.forEach(c=>doc.text(c.label, c.x, y+1));
+    y += 20;
+  }
+  sysTableHeader();
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  if(data.bySystem.length===0){
+    doc.setTextColor(140); doc.text(pdfSafe(`Aucun payout pour ${year}.`), 56, y); y += 18;
+  } else {
+    data.bySystem.forEach((s,i)=>{
+      if(y > pageBottom){ doc.addPage(); y = 60; sysTableHeader(); }
+      if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
+      const declared = !!state.fiscalChecklist[fiscal3916ItemId(s.system)];
+      const guidance = paymentSystem3916Guidance(s.system);
+      const guidanceLabel = !guidance ? '—' : guidance.level==='oui' ? 'À déclarer' : guidance.level==='conditionnel' ? 'Selon cas' : 'Non requis';
+      doc.setTextColor(40,40,40);
+      doc.text(pdfSafe(s.system), 56, y+1, { maxWidth:170 });
+      doc.setTextColor(20,140,110); doc.text(pdfSafe(fmtEur(s.payoutsEur)), 230, y+1);
+      doc.setTextColor(90,90,90); doc.text(pdfSafe(s.currencies.join(', ')), 310, y+1);
+      doc.setTextColor(!guidance?150:guidance.level==='oui'?200:guidance.level==='conditionnel'?181:20, !guidance?150:guidance.level==='oui'?60:guidance.level==='conditionnel'?112:140, !guidance?150:guidance.level==='oui'?50:guidance.level==='conditionnel'?44:110);
+      doc.text(guidanceLabel, 400, y+1, { maxWidth:70 });
+      doc.setTextColor(declared?20:180, declared?140:60, declared?110:50);
+      doc.text(declared?'Oui':'Non', 475, y+1);
+      y += 16;
+    });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(150);
+    doc.text(pdfSafe("Repère indicatif, pas une qualification juridique — vérifie ta situation avec un expert-comptable."), 56, y+2);
+    y += 12;
   }
   y += 16;
 
   if(y > pageBottom - 80){ doc.addPage(); y = 60; }
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
   doc.text('Alertes seuils', 48, y);
-  y += 16;
+  y += 18;
   doc.setFont('helvetica','normal'); doc.setFontSize(9);
   if(alerts.length===0){
-    doc.setTextColor(140); doc.text(`Aucune alerte pour ${year}.`, 48, y); y += 16;
+    doc.setTextColor(140); doc.text(pdfSafe(`Aucune alerte pour ${year}.`), 48, y); y += 18;
   } else {
     alerts.forEach(a=>{
       if(y > pageBottom){ doc.addPage(); y = 60; }
       doc.setTextColor(a.level==='crit'?200:a.level==='warn'?181:90, a.level==='crit'?60:a.level==='warn'?112:90, a.level==='crit'?50:a.level==='warn'?44:90);
-      doc.setFont('helvetica','bold'); doc.text('• ' + a.title, 48, y);
-      y += 12;
-      doc.setFont('helvetica','normal'); doc.setTextColor(120); doc.text(a.sub, 58, y, { maxWidth:480 });
-      y += 16;
+      doc.setFont('helvetica','bold'); doc.text(pdfSafe('• ' + a.title), 48, y);
+      y += 13;
+      doc.setFont('helvetica','normal'); doc.setTextColor(120); doc.text(pdfSafe(a.sub), 58, y, { maxWidth:480 });
+      y += 18;
     });
   }
-  y += 6;
+  y += 10;
 
   if(y > pageBottom - 40){ doc.addPage(); y = 60; }
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
-  doc.text(`Checklist déclarative (${doneCount}/${totalChecklist})`, 48, y);
-  y += 16;
+  doc.text(pdfSafe(`Checklist déclarative (${doneCount}/${totalChecklist})`), 48, y);
+  y += 18;
   doc.setFont('helvetica','normal'); doc.setFontSize(9);
   FISCAL_CHECKLIST_ITEMS.forEach(it=>{
     if(y > pageBottom){ doc.addPage(); y = 60; }
     const done = !!state.fiscalChecklist[it.id];
     doc.setTextColor(done?20:180, done?140:60, done?110:50);
-    doc.text((done?'[x] ':'[ ] ') + it.title, 48, y, { maxWidth:499 });
+    doc.text(pdfSafe((done?'[x] ':'[ ] ') + it.title), 48, y, { maxWidth:499 });
     y += 14;
   });
 
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text(`Généré le ${fmtDate(todayISO())} — document à usage interne, ne remplace pas l'avis d'un expert-comptable.`, 48, 822);
+  doc.text(pdfSafe(`Généré le ${fmtDate(todayISO())} — document à usage interne, ne remplace pas l'avis d'un expert-comptable.`), 48, 822);
 
   return doc.output('blob');
 }
@@ -7080,14 +7169,7 @@ async function exportFiscalYearZip(){
     const year = state.fiscalYear || Number(todayISO().slice(0,4));
     const data = computeFiscalYearData(year);
 
-    const bncRatio = data.caEur / th.microBncCap;
-    const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
-    const alerts = [];
-    if(data.caEur >= th.tvaMajore) alerts.push({level:'crit', title:'Franchise TVA dépassée', sub:'Facturation TVA obligatoire dès le mois de dépassement.'});
-    else if(data.caEur >= th.tvaBase) alerts.push({level:'warn', title:'Seuil de base TVA franchi', sub:`Franchise conservée jusqu'à ${fmtEur(th.tvaMajore)} si le seuil majoré n'est pas atteint.`});
-    if(bncRatio >= 1) alerts.push({level:'crit', title:'Plafond micro-BNC dépassé', sub:'Bascule au régime réel dès l’année suivante.'});
-    else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro-BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
-    if(data.foreignFirms.length) alerts.push({level:'info', title:`${data.foreignFirms.length} prop firm(s) étrangère(s) détectée(s)`, sub: data.foreignFirms.map(f=>f.name).join(', ') + ' — formulaire 3916-bis requis.'});
+    const alerts = computeFiscalAlerts(th, data);
     const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
     const zip = new JSZip();
@@ -7130,6 +7212,21 @@ function fiscalPillFor(ratio){
   if(ratio >= 0.85) return ['warn','Proche'];
   return ['good','OK'];
 }
+// Alertes de seuils fiscaux — partagées par viewFiscalite() et exportFiscalYearZip() pour éviter
+// que les deux dérivent (voir le bug lines/pays de viewAccounting() : une même logique dupliquée
+// à deux endroits finit toujours par diverger).
+function computeFiscalAlerts(th, data){
+  const bncRatio = data.caEur / th.microBncCap;
+  const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
+  const alerts = [];
+  if(data.caEur >= th.tvaMajore) alerts.push({level:'crit', title:'Franchise TVA dépassée', sub:'Facturation TVA obligatoire dès le mois de dépassement.'});
+  else if(data.caEur >= th.tvaBase) alerts.push({level:'warn', title:'Seuil de base TVA franchi', sub:`Franchise conservée jusqu’à ${fmtEur(th.tvaMajore)} si le seuil majoré n’est pas atteint.`});
+  if(bncRatio >= 1) alerts.push({level:'crit', title:'Plafond micro-BNC dépassé', sub:'Bascule au régime réel dès l’année suivante.'});
+  else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro-BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
+  const undeclared = data.bySystem.filter(s => !state.fiscalChecklist[fiscal3916ItemId(s.system)]);
+  if(undeclared.length) alerts.push({level:'info', title:`${undeclared.length} système(s) de paiement sans case 3916-bis cochée`, sub: undeclared.map(s=>s.system).join(', ') + ' — vérifie dans le panneau « Systèmes de paiement » si une déclaration est nécessaire.'});
+  return alerts;
+}
 
 function viewFiscalite(){
   const th = state.fiscalThresholds || FISCAL_THRESHOLDS_FALLBACK;
@@ -7141,12 +7238,7 @@ function viewFiscalite(){
   const tvaRatioForClass = data.caEur >= th.tvaMajore ? 1.1 : data.caEur / th.tvaBase;
   const [tvaClass, tvaLabel] = fiscalPillFor(tvaRatioForClass);
 
-  const alerts = [];
-  if(data.caEur >= th.tvaMajore) alerts.push({level:'crit', title:'Franchise TVA dépassée', sub:'Facturation TVA obligatoire dès le mois de dépassement.'});
-  else if(data.caEur >= th.tvaBase) alerts.push({level:'warn', title:'Seuil de base TVA franchi', sub:`Franchise conservée jusqu’à ${fmtEur(th.tvaMajore)} si le seuil majoré n’est pas atteint.`});
-  if(bncRatio >= 1) alerts.push({level:'crit', title:'Plafond micro‑BNC dépassé', sub:'Bascule au régime réel dès l’année suivante.'});
-  else if(bncRatio >= 0.85) alerts.push({level:'warn', title:'Plafond micro‑BNC bientôt atteint', sub:'Envisage de lisser un payout sur l’exercice suivant.'});
-  if(data.foreignFirms.length) alerts.push({level:'info', title:`${data.foreignFirms.length} prop firm(s) étrangère(s) détectée(s)`, sub: data.foreignFirms.map(f=>f.name).join(', ') + ' — formulaire 3916‑bis requis.'});
+  const alerts = computeFiscalAlerts(th, data);
 
   const doneCount = FISCAL_CHECKLIST_ITEMS.filter(it => state.fiscalChecklist[it.id]).length;
 
@@ -7209,6 +7301,32 @@ function viewFiscalite(){
             </div>`).join('')}
         </div>
       </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title">Systèmes de paiement — ${year}</div></div>
+      <div class="field-hint" style="margin:0 0 10px;">C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la prop firm elle-même, qui détermine si un compte doit être déclaré au titre du 3916‑bis. Coche la case une fois la déclaration faite pour ce système.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Système</th><th class="num">Payouts</th><th>Devise</th><th>Repère indicatif</th><th>3916‑bis déclaré</th></tr></thead>
+          <tbody>
+            ${data.bySystem.length===0 ? `<tr><td colspan="5"><div class="empty-sub" style="padding:16px 0;">Aucun payout pour ${year}.</div></td></tr>` :
+              data.bySystem.map(s=>{
+                const g = paymentSystem3916Guidance(s.system);
+                const gBadge = !g ? `<span class="text-faint">—</span>` :
+                  `<span class="badge ${g.level==='oui'?'badge-danger':g.level==='conditionnel'?'badge-gold':'badge-accent'}" title="${escapeHtml(g.note)}">${g.level==='oui'?'À déclarer':g.level==='conditionnel'?'Selon les cas':'Non requis'}</span>`;
+                return `<tr>
+                <td>${escapeHtml(s.system)}</td>
+                <td class="num" style="color:var(--accent)">${fmtEur(s.payoutsEur)}</td>
+                <td class="text-dim">${s.currencies.join(', ')}${s.currencies.some(c=>c!=='EUR')?' → EUR':''}</td>
+                <td>${gBadge}</td>
+                <td><label class="switch"><input type="checkbox" ${state.fiscalChecklist[fiscal3916ItemId(s.system)]?'checked':''} data-fiscal-check-box="${fiscal3916ItemId(s.system)}"/><span class="switch-track"></span></label></td>
+              </tr>`;
+              }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="field-hint" style="margin:10px 0 0;">Le « Repère indicatif » est une aide générale, pas une qualification juridique — vérifie ta situation exacte avec un expert-comptable avant de cocher ou non la case.</div>
     </div>
 
     <div class="panel">
@@ -9104,13 +9222,6 @@ function firmFormModal(existing){
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
       <div class="field"><label>Site web (optionnel)</label><input id="ff-web" value="${f.website||''}" placeholder="https://…"/></div>
       <div class="field"><label>Notes (optionnel)</label><textarea id="ff-notes" rows="3">${f.notes||''}</textarea></div>
-      <div class="field"><label>Pays d'immatriculation (optionnel)</label>
-        <select id="ff-country">
-          <option value="">— Non renseigné —</option>
-          ${['FR','CZ','CY','US','GB','AE','IL','LU','MT'].map(c=>`<option value="${c}" ${f.countryCode===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-        <div class="field-hint">Sert à repérer automatiquement les comptes "à l'étranger" pour le 3916‑bis (module Fiscalité). Vérifie auprès de la prop firm elle-même (mentions légales / CGU) avant de renseigner — une valeur fausse ici est pire qu'une case vide.</div>
-      </div>
       <div id="ff-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="ff-cancel">Annuler</button><button class="btn btn-primary" id="ff-save">Enregistrer</button>`,
@@ -9146,7 +9257,7 @@ function firmFormModal(existing){
         if(!name){ document.getElementById('ff-error').textContent = 'Le nom est obligatoire.'; return; }
         const dup = state.propfirms.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.id!==f.id);
         if(dup){ document.getElementById('ff-error').textContent = 'Cette PropFirm existe déjà.'; return; }
-        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl, countryCode: document.getElementById('ff-country').value || null });
+        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl });
         await logActivity(existing?'UPDATE':'CREATE', 'propfirm', f.id, `${name}`);
         showToast(existing ? 'PropFirm mise à jour.' : 'PropFirm créée.');
         closeModal(); render();
@@ -9637,6 +9748,13 @@ function statusHistoryModal(acc){
 /* ============================================================
    PAYOUTS MODAL
 ============================================================ */
+// Suggestions du champ "Système de paiement" : la liste de base (PAYMENT_SYSTEMS) + tout système
+// déjà saisi par n'importe quel utilisateur sur un payout existant (grandit naturellement avec
+// l'usage réel, sans table de configuration séparée à maintenir).
+function paymentSystemSuggestions(){
+  const used = new Set(state.payouts.map(p=>p.paymentSystem).filter(Boolean));
+  return [...new Set([...PAYMENT_SYSTEMS, ...used])].sort((a,b)=>a.localeCompare(b,'fr'));
+}
 function payoutReceiptCount(payoutId){
   return state.payout_receipts.filter(r=>r.payoutId===payoutId).length;
 }
@@ -9670,6 +9788,15 @@ function payoutsModal(acc){
         <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
       </div>
       <div class="field"><label>Note (optionnel)</label><input id="pm-note" placeholder="ex: payout mensuel" value="${editing?(editing.note||''):''}"/></div>
+      <div class="field">
+        <label>Système de paiement (optionnel)</label>
+        <input id="pm-payment-system" list="pm-payment-system-list" placeholder="ex: WISE" value="${editing?(editing.paymentSystem||''):''}"/>
+        <datalist id="pm-payment-system-list">
+          ${paymentSystemSuggestions().map(s=>`<option value="${escapeHtml(s)}"></option>`).join('')}
+        </datalist>
+        <div class="field-hint">Sert à la synthèse « 3916-bis » de la page Fiscalité — c'est le système de paiement (Wise, virement, etc.), pas la prop firm elle-même, qui détermine si un compte à l'étranger doit être déclaré.</div>
+        <div id="pm-payment-system-hint" style="margin-top:4px;"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn btn-primary btn-sm" id="pm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le payout'}</button>
         ${editing ? `<button class="btn btn-outline btn-sm" id="pm-cancel-edit">Annuler</button>` : ''}
@@ -9681,7 +9808,7 @@ function payoutsModal(acc){
             ${list.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:16px 0;">Aucun payout enregistré.</div></td></tr>` :
               list.map(p=>`<tr>
                 <td class="mono text-dim">${fmtDate(p.date)}</td>
-                <td class="text-dim">${p.note||'—'}</td>
+                <td class="text-dim">${p.note||'—'}${p.paymentSystem?` <span class="badge badge-slate" style="margin-left:4px;">${escapeHtml(p.paymentSystem)}</span>`:''}</td>
                 <td class="num" style="color:var(--accent)">${fmtMoneyCur(p.amount, p.currency)}</td>
                 <td>${`<div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
                     <button class="btn btn-ghost btn-sm" data-attachments-payout="${p.id}" title="Justificatifs">${icon('upload')}${payoutReceiptCount(p.id)>0?`<span class="badge badge-slate" style="margin-left:4px;">${payoutReceiptCount(p.id)}</span>`:''}</button>
@@ -9715,6 +9842,13 @@ function payoutsModal(acc){
       document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
       autofillPmFxRate();
     }
+    const pmSystemInput = document.getElementById('pm-payment-system');
+    const pmSystemHint = document.getElementById('pm-payment-system-hint');
+    function refreshPmSystemHint(){
+      const g = paymentSystem3916Guidance(pmSystemInput.value);
+      pmSystemHint.innerHTML = !g ? '' : `<span class="badge ${g.level==='oui'?'badge-danger':g.level==='conditionnel'?'badge-gold':'badge-accent'}" title="${escapeHtml(g.note)}">${g.level==='oui'?'À déclarer (3916-bis)':g.level==='conditionnel'?'Selon les cas (3916-bis)':'Généralement non requis'}</span>`;
+    }
+    if(pmSystemInput){ pmSystemInput.addEventListener('input', refreshPmSystemHint); refreshPmSystemHint(); }
     const addBtn = document.getElementById('pm-add');
     if(addBtn) addBtn.onclick = async ()=>{
       const amount = Number(document.getElementById('pm-amount').value);
@@ -9722,16 +9856,19 @@ function payoutsModal(acc){
       const note = document.getElementById('pm-note').value.trim();
       const currency = document.getElementById('pm-currency').value;
       const fxRateToEur = Number(document.getElementById('pm-fxrate').value) || 1;
+      // Toujours en MAJUSCULES, pour que la synthèse par système (page Fiscalité) regroupe
+      // correctement "Wise" / "wise" / "WISE" saisis par des utilisateurs différents.
+      const paymentSystem = document.getElementById('pm-payment-system').value.trim().toUpperCase() || null;
       if(!amount || amount<=0){ showToast('Montant invalide.', 'danger'); return; }
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
-        await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur });
+        await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, paymentSystem });
         await logActivity('UPDATE', 'payout', existing.id, `Payout modifié — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
         showToast('Payout mis à jour.');
         editingId = null;
       } else {
         const newId = uid('pay');
-        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+        await upsert('payouts', { id: newId, accountId: acc.id, amount, date, note, currency, fxRateToEur, paymentSystem, createdAt: new Date().toISOString(), createdBy: currentUserId() });
         await logActivity('CREATE', 'payout', newId, `Payout ajouté — ${trader.pseudo} · ${fmtMoneyCur(amount, currency)}`);
         showToast('Payout ajouté.');
       }
@@ -9911,8 +10048,8 @@ function generatePayoutReceipt(acc, trader, payout){
   ];
   let y = 122;
   rows.forEach(([k,v])=>{
-    doc.setFont('helvetica','bold'); doc.text(k, 48, y);
-    doc.setFont('helvetica','normal'); doc.text(String(v), 200, y);
+    doc.setFont('helvetica','bold'); doc.text(pdfSafe(k), 48, y);
+    doc.setFont('helvetica','normal'); doc.text(pdfSafe(String(v)), 200, y);
     y += 22;
   });
   y += 14;
@@ -9921,9 +10058,9 @@ function generatePayoutReceipt(acc, trader, payout){
   doc.setFont('helvetica','bold'); doc.setFontSize(16);
   doc.text('Montant versé :', 48, y);
   doc.setTextColor(20,140,110);
-  doc.text(fmtMoneyCur(payout.amount, payout.currency||'USD'), 220, y);
+  doc.text(pdfSafe(fmtMoneyCur(payout.amount, payout.currency||'USD')), 220, y);
   doc.setTextColor(150); doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.text(`Généré le ${fmtDate(todayISO())} — document à usage interne, non fiscal.`, 48, 780);
+  doc.text(pdfSafe(`Généré le ${fmtDate(todayISO())} — document à usage interne, non fiscal.`), 48, 780);
 
   doc.save(`recu_payout_${(trader?trader.pseudo:'trader')}_${payout.date}.pdf`);
 }
