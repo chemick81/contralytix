@@ -9871,6 +9871,14 @@ function accountFormModal({ existing, type, parentChallenge }){
         document.getElementById('af-customsize-wrap').style.display = curSize==='AUTRE' ? 'block' : 'none';
       };
       // Devise / taux de change — auto-rempli depuis la BCE, jamais écrasé si déjà saisi.
+      // IMPORTANT (bug corrigé le 22/08/2026) : avant, si le fetch BCE échouait ou n'avait
+      // simplement pas eu le temps de répondre avant le clic sur Enregistrer, le taux retombait
+      // SILENCIEUSEMENT à 1 (voir plus bas "|| 1") — un compte en USD se retrouvait alors traité
+      // comme si 1 USD = 1 EUR, ce qui fausse tout le CA converti en EUR (page Fiscalité). On
+      // garde maintenant la promesse en cours (afFxFetchPromise, attendue dans af-save) et on
+      // bloque l'enregistrement avec un message explicite si le taux reste introuvable, au lieu
+      // de deviner une valeur fausse.
+      let afFxFetchPromise = null;
       async function autofillFxRate(){
         const currency = document.getElementById('af-currency').value;
         const rateInput = document.getElementById('af-fxrate');
@@ -9878,18 +9886,29 @@ function accountFormModal({ existing, type, parentChallenge }){
         if(currency==='EUR' || rateInput.value) return;
         const dateField = document.getElementById('af-date') || document.getElementById('af-activation-date');
         const date = dateField ? dateField.value : todayISO();
+        rateInput.placeholder = 'Récupération du taux BCE...';
+        rateInput.disabled = true;
         try{
           const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date||todayISO()}&currency=${currency}`);
           const data = await res.json();
-          if(res.ok && data.rateToEur) rateInput.value = data.rateToEur;
-        }catch(e){ /* silencieux : saisie manuelle toujours possible */ }
+          if(res.ok && data.rateToEur){
+            rateInput.value = data.rateToEur;
+          } else {
+            showToast(`Taux BCE ${currency} introuvable pour cette date : merci de le saisir toi-meme (sinon le compte serait enregistre avec un taux incorrect).`, 'danger');
+          }
+        }catch(e){
+          showToast(`Impossible de recuperer le taux BCE pour ${currency} : merci de le saisir toi-meme (sinon le compte serait enregistre avec un taux incorrect).`, 'danger');
+        } finally {
+          rateInput.disabled = false;
+          rateInput.placeholder = 'ex: 1.0821';
+        }
       }
-      document.getElementById('af-currency').addEventListener('change', autofillFxRate);
+      document.getElementById('af-currency').addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
       const dateFieldForFx = document.getElementById('af-date');
-      if(dateFieldForFx) dateFieldForFx.addEventListener('change', autofillFxRate);
+      if(dateFieldForFx) dateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
       const activationDateFieldForFx = document.getElementById('af-activation-date');
-      if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', autofillFxRate);
-      autofillFxRate();
+      if(activationDateFieldForFx) activationDateFieldForFx.addEventListener('change', ()=>{ afFxFetchPromise = autofillFxRate(); });
+      afFxFetchPromise = autofillFxRate();
       const traderSelect = document.getElementById('af-trader');
       if(!lockTrader) traderSelect.onchange = refreshParentChallengeOptions;
       if(!lockTrader){
@@ -9907,6 +9926,7 @@ function accountFormModal({ existing, type, parentChallenge }){
       };
       document.getElementById('af-cancel').onclick = closeModal;
       document.getElementById('af-save').onclick = async ()=>{
+        if(afFxFetchPromise) await afFxFetchPromise;
         const traderId = document.getElementById('af-trader').value;
         const propFirmId = document.getElementById('af-firm').value;
         const accountNumber = document.getElementById('af-number').value.trim();
@@ -9962,13 +9982,21 @@ function accountFormModal({ existing, type, parentChallenge }){
           const parentSel = document.getElementById('af-parent-challenge');
           parentChallengeId = parentSel ? (parentSel.value || null) : null;
         }
+        const currency = document.getElementById('af-currency').value;
+        const fxRateInputVal = document.getElementById('af-fxrate').value;
+        // Ne jamais enregistrer un taux devine a 1 : si la BCE n'a pas repondu a temps (ou pas
+        // du tout), on bloque plutot que de fausser silencieusement le CA converti en EUR.
+        if(currency!=='EUR' && !fxRateInputVal){
+          errorEl.textContent = 'Taux de change introuvable automatiquement : merci de le saisir toi-meme avant d\'enregistrer (champ juste au-dessus de la devise).';
+          return;
+        }
+        const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal);
         const record = {
           ...a, traderId, propFirmId, type:curType, size, customSize,
           accountNumber, paymentType:curPay, purchasePrice, monthlyAmount,
           purchaseDate, activationDate: (curType==='PA'||curType==='LIVE')?activationDate:null, activationFee: (curType==='PA'||curType==='LIVE')?activationFee:null,
           status, endDate, parentChallengeId,
-          currency: document.getElementById('af-currency').value,
-          fxRateToEur: Number(document.getElementById('af-fxrate').value) || 1,
+          currency, fxRateToEur,
         };
         await upsert('accounts', record);
         const accDesc = `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]}`;
@@ -10145,23 +10173,43 @@ function payoutsModal(acc){
   }
   function mount(){
     // Devise / taux de change — auto-rempli depuis la BCE, jamais écrasé si déjà saisi.
+    // IMPORTANT (bug corrigé le 22/08/2026) : avant, si le fetch BCE échouait ou n'avait
+    // simplement pas eu le temps de répondre avant le clic sur "Ajouter le payout", le taux
+    // retombait SILENCIEUSEMENT à 1 plus bas (voir l'ancien "|| 1") — un payout en USD se
+    // retrouvait alors traité comme si 1 USD = 1 EUR, ce qui fausse tout le CA converti en EUR
+    // utilisé par la page Fiscalité (dont le nouveau panneau "Déclarations URSSAF"). On garde
+    // maintenant la promesse en cours (pmFxFetchPromise, attendue dans pm-add) et on bloque
+    // l'enregistrement avec un message explicite si le taux reste introuvable, au lieu de
+    // deviner une valeur fausse.
     const pmCurrencySelect = document.getElementById('pm-currency');
+    let pmFxFetchPromise = null;
     async function autofillPmFxRate(){
       const currency = pmCurrencySelect.value;
       const rateInput = document.getElementById('pm-fxrate');
       document.getElementById('pm-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
       if(currency==='EUR' || rateInput.value) return;
       const date = document.getElementById('pm-date').value || todayISO();
+      rateInput.placeholder = 'Récupération du taux BCE...';
+      rateInput.disabled = true;
       try{
         const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date}&currency=${currency}`);
         const data = await res.json();
-        if(res.ok && data.rateToEur) rateInput.value = data.rateToEur;
-      }catch(e){ /* silencieux : saisie manuelle toujours possible */ }
+        if(res.ok && data.rateToEur){
+          rateInput.value = data.rateToEur;
+        } else {
+          showToast(`Taux BCE ${currency} introuvable pour cette date : merci de le saisir toi-meme (sinon le payout serait enregistre avec un taux incorrect).`, 'danger');
+        }
+      }catch(e){
+        showToast(`Impossible de recuperer le taux BCE pour ${currency} : merci de le saisir toi-meme (sinon le payout serait enregistre avec un taux incorrect).`, 'danger');
+      } finally {
+        rateInput.disabled = false;
+        rateInput.placeholder = 'ex: 1.0821';
+      }
     }
     if(pmCurrencySelect){
-      pmCurrencySelect.addEventListener('change', autofillPmFxRate);
-      document.getElementById('pm-date').addEventListener('change', autofillPmFxRate);
-      autofillPmFxRate();
+      pmCurrencySelect.addEventListener('change', ()=>{ pmFxFetchPromise = autofillPmFxRate(); });
+      document.getElementById('pm-date').addEventListener('change', ()=>{ pmFxFetchPromise = autofillPmFxRate(); });
+      pmFxFetchPromise = autofillPmFxRate();
     }
     const pmSystemSelect = document.getElementById('pm-payment-system-select');
     const pmSystemCustom = document.getElementById('pm-payment-system-custom');
@@ -10195,14 +10243,19 @@ function payoutsModal(acc){
     }
     const addBtn = document.getElementById('pm-add');
     if(addBtn) addBtn.onclick = async ()=>{
+      if(pmFxFetchPromise) await pmFxFetchPromise;
       const amount = Number(document.getElementById('pm-amount').value);
       const date = document.getElementById('pm-date').value || todayISO();
       const note = document.getElementById('pm-note').value.trim();
       const currency = document.getElementById('pm-currency').value;
-      const fxRateToEur = Number(document.getElementById('pm-fxrate').value) || 1;
+      const fxRateInputVal = document.getElementById('pm-fxrate').value;
       const paymentSystem = currentPmSystemValue();
       if(!amount || amount<=0){ showToast('Montant invalide.', 'danger'); return; }
       if(!paymentSystem){ showToast('Le système de paiement est obligatoire.', 'danger'); return; }
+      // Ne jamais enregistrer un taux deviné à 1 : si la BCE n'a pas répondu à temps (ou pas du
+      // tout), on bloque plutôt que de fausser silencieusement le CA converti en EUR.
+      if(currency!=='EUR' && !fxRateInputVal){ showToast('Taux de change introuvable automatiquement : merci de le saisir toi-même avant d\'enregistrer.', 'danger'); return; }
+      const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal);
       if(editingId){
         const existing = state.payouts.find(p=>p.id===editingId);
         await upsert('payouts', { ...existing, amount, date, note, currency, fxRateToEur, paymentSystem });
