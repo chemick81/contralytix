@@ -10484,9 +10484,15 @@ function payoutsModal(acc){
     });
   }
   function refresh(){
-    document.querySelector('.modal-body').innerHTML = body();
-    mount();
-    renderView(); // keep account card counts in sync in background
+    // confirmModal() réutilise le même #modal-root : ouvrir la confirmation de
+    // suppression remplace déjà cette modale Payouts, donc au moment où ce refresh()
+    // s'exécute (après confirmation), `.modal-body` peut ne plus exister. Sans ce
+    // garde-fou, le .innerHTML plantait ici et renderView() n'était jamais atteint :
+    // le payout était bien supprimé en base, mais le compteur/cumul restait affiché
+    // à l'ancienne valeur sur la carte du compte jusqu'au prochain rechargement.
+    const body_el = document.querySelector('.modal-body');
+    if(body_el){ body_el.innerHTML = body(); mount(); }
+    renderView(); // garder les compteurs de la carte compte à jour même si la modale s'est fermée
   }
   openModal({ title:'Payouts', wide:true, bodyHtml: body(), onMount: mount });
 }
@@ -10554,8 +10560,12 @@ function payoutReceiptsModal(acc, payout){
     });
   }
   function refresh(){
-    document.querySelector('.modal-body').innerHTML = body();
-    mount();
+    // Voir le commentaire équivalent dans payoutsModal() : confirmModal() remplace
+    // le contenu de #modal-root, donc `.modal-body` peut ne plus exister ici après
+    // confirmation d'une suppression — sans ce garde-fou, renderView() n'était jamais
+    // atteint et l'arrière-plan restait désynchronisé.
+    const body_el = document.querySelector('.modal-body');
+    if(body_el){ body_el.innerHTML = body(); mount(); }
     renderView();
   }
   openModal({ title:'Justificatifs', wide:true, bodyHtml: body(), onMount: mount });
@@ -10604,8 +10614,10 @@ function notesModal(acc){
     });
   }
   function refresh(){
-    document.querySelector('.modal-body').innerHTML = body();
-    mount();
+    // Voir le commentaire équivalent dans payoutsModal() : même garde-fou nécessaire
+    // ici après une suppression via confirmModal().
+    const body_el = document.querySelector('.modal-body');
+    if(body_el){ body_el.innerHTML = body(); mount(); }
     renderView();
   }
   openModal({ title:'Notes / Journal', wide:true, bodyHtml: body(), onMount: mount });
