@@ -990,6 +990,10 @@ th.th-sort-active svg{opacity:1;}
           <p>Achats, mensualités, frais d'activation et payouts sont calculés et classés automatiquement, exportables en CSV, Excel ou PDF pour votre suivi comptable.</p>
         </article>
         <article class="ml-feature-card">
+          <h3>Module Fiscalité (micro-BNC)</h3>
+          <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
+        </article>
+        <article class="ml-feature-card">
           <h3>Calendrier des échéances</h3>
           <p>Visualisez en un coup d'œil vos prochaines mensualités et vos payouts reçus, mois par mois, pour ne plus jamais rater une échéance.</p>
         </article>
@@ -1038,6 +1042,7 @@ th.th-sort-active svg{opacity:1;}
             <li>✓ Exports CSV, Excel &amp; PDF</li>
             <li>✓ Calendrier des échéances</li>
             <li>✓ Bilan visuel &amp; classement</li>
+            <li>✓ Module Fiscalité (micro-BNC)</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
@@ -1065,7 +1070,7 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix remplace-t-il un expert-comptable ?</summary>
-          <p>Non : Contralytix automatise le suivi financier de tes comptes prop firm (dépenses, payouts, exports CSV/Excel/PDF) mais ne remplace pas un expert-comptable pour tes déclarations fiscales.</p>
+          <p>Non : Contralytix automatise le suivi financier de tes comptes prop firm (dépenses, payouts, exports CSV/Excel/PDF) et, pour le régime micro-BNC, suit tes seuils et tes échéances de déclaration (URSSAF, 3916-bis) via le module Fiscalité — mais il ne remplace pas l'avis d'un expert-comptable pour tes déclarations.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix est-il gratuit ?</summary>
@@ -5359,7 +5364,12 @@ const HELP_CATEGORIES = [
   ]},
   { id:'fiscalite', label:'Fiscalité', icon:'receipt', questions:[
     { q:"Le module Fiscalité couvre-t-il tous les régimes (EURL, SASU…) ?", a:"Non, il est conçu spécifiquement pour le régime micro-entreprise (micro-BNC) : plafond micro-BNC, franchise en base de TVA et abattement forfaitaire. Le régime réel et les structures en société ne sont pas couverts pour l'instant." },
+    { q:"Le module Fiscalité est-il accessible en formule Free ?", a:"Non, comme le Calendrier, le Bilan Visuel et le Classement, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
     { q:"Les seuils fiscaux (plafond micro-BNC, franchise TVA, abattement) sont-ils à jour et modifiables ?", a:"Oui. Un panneau « Seuils fiscaux » dans l'espace Admin permet à un administrateur de les revaloriser chaque année (barèmes URSSAF / service-public.fr) sans intervention technique — plus besoin de passer par une requête en base." },
+    { q:"Comment sont calculées mes échéances de déclaration URSSAF ?", a:"À partir de deux réglages personnels dans la page Fiscalité : la périodicité (mensuelle ou trimestrielle) et l'option de versement libératoire de l'impôt sur le revenu. Le tableau « Déclarations URSSAF » affiche ensuite, période par période, le chiffre d'affaires encaissé (tes payouts convertis en euro) et l'échéance réelle, avec une case à cocher pour marquer chaque déclaration comme faite." },
+    { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation et mensualités. Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
+    { q:"C'est quoi la déclaration 3916-bis et comment Contralytix m'aide à la suivre ?", a:"Le 3916-bis déclare les comptes détenus à l'étranger. C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la PropFirm elle-même, qui détermine si une déclaration est nécessaire. Le panneau « Systèmes de paiement » de la page Fiscalité regroupe tes payouts par système avec un repère indicatif, et une case à cocher par système pour suivre ce qui a déjà été déclaré — ce repère reste une aide générale, à vérifier avec un expert-comptable." },
+    { q:"Puis-je exporter mes données fiscales pour mon expert-comptable ?", a:"Oui, le bouton « Export année (ZIP) » en haut de la page Fiscalité génère une archive avec un PDF récapitulatif complet de l'année (seuils, déclarations URSSAF, frais par mois, systèmes de paiement) et les données associées." },
   ]},
   { id:'sessions', label:'Sessions de Trading', icon:'video', questions:[
     { q:"À quoi sert la page Sessions de Trading ?", a:"C'est un journal de trading : chaque session peut inclure un replay YouTube, des notes et une performance (Excellent à Mauvais), pour garder une trace de ton activité au fil du temps." },
@@ -5495,7 +5505,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Sessions de Trading, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Sessions de Trading, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -5564,7 +5574,7 @@ const MANUAL_CHAPTERS = [
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
     <h3>Payouts</h3>
     ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — ajout, historique et reçu PDF.")}
-    <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, devise — dollar ou euro, avec taux de change auto-rempli depuis la Banque Centrale Européenne, date, note), de le modifier ou le supprimer, et de générer un reçu PDF récapitulatif pour chaque payout. Un bouton « Justificatifs » séparé, sur chaque ligne, ouvre une fenêtre dédiée permettant d'attacher autant de fichiers que nécessaire (factures, captures d'écran…), de les consulter et de les supprimer individuellement.</p>
+    <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, devise — dollar ou euro, avec taux de change auto-rempli depuis la Banque Centrale Européenne, date, note, système de paiement), de le modifier ou le supprimer, et de générer un reçu PDF récapitulatif pour chaque payout. Un justificatif (facture, capture d'écran…) peut être joint directement au moment de l'ajout du payout ; un bouton « Justificatifs » séparé, sur chaque ligne, ouvre ensuite une fenêtre dédiée permettant d'en attacher d'autres, de les consulter et de les supprimer individuellement. Ces justificatifs restent strictement privés (visibles uniquement par le créateur du payout et les administrateurs), même si le trader et ses payouts sont publics par ailleurs.</p>
     <h3>Notes / journal et historique</h3>
     <p>Chaque compte dispose d'un journal de notes horodatées et attribuées à leur auteur, ainsi que d'un historique complet des changements de statut avec date et motif.</p>
     <h3>Droits d'édition</h3>
@@ -5617,11 +5627,29 @@ const MANUAL_CHAPTERS = [
     <p>Le classement peut être calculé sur un mois donné, ou en cumul « Tout temps ».</p>
     <h3>Badges et succès</h3>
     <p>Un système de succès valorise les étapes marquantes du parcours de chaque trader (premier Challenge, premier payout, paliers de payouts cumulés, régularité, absence d'échec « Sans faute »…), consultables depuis la section Traders.</p>` },
-  { n:'14', id:'m-nouveautes', title:"Nouveautés", html:`
+  { n:'14', id:'m-fiscalite', title:"Fiscalité", html:`
+    <p>La section Fiscalité aide un trader en micro-entreprise (micro-BNC) à garder un œil sur ses seuils et ses échéances déclaratives, à partir des payouts déjà enregistrés dans l'application. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b> Elle ne couvre que le régime micro-BNC (franchise en base de TVA, abattement forfaitaire) : le régime réel et les structures en société (EURL, SASU…) ne sont pas couverts, et cet outil ne remplace en aucun cas l'avis d'un expert-comptable.</p>
+    ${manualShot('14-fiscalite.jpg', "Page Fiscalité — seuils, réglages déclaratifs et alertes.")}
+    <h3>Sélecteur d'année et seuils</h3>
+    <p>Un sélecteur en haut de page permet de changer d'année fiscale. Les seuils affichés (plafond micro-BNC, franchise en base de TVA — base et majorée) sont ceux de l'année sélectionnée, avec leur source ; ils sont tenus à jour par un administrateur depuis l'espace Admin (voir chapitre 17) et partagés par tous les utilisateurs du site.</p>
+    <h3>Jauges et alertes</h3>
+    <p>Deux jauges suivent en temps réel le chiffre d'affaires encaissé (tous les payouts de l'année, convertis en euro) face au plafond micro-BNC et à la franchise de TVA, avec un badge de couleur (OK, vigilance, dépassement). Un panneau « Alertes seuils » regroupe automatiquement les situations à surveiller : approche ou dépassement d'un seuil, déclarations URSSAF en retard, systèmes de paiement sans case 3916-bis renseignée. Un tableau « Flux par prop firm » détaille, pour l'année, les frais et les payouts de chaque PropFirm utilisée, avec leurs devises d'origine.</p>
+    <h3>Mes réglages déclaratifs</h3>
+    <p>Deux réglages personnels pilotent les échéances calculées automatiquement : la périodicité de déclaration URSSAF (mensuelle ou trimestrielle) et l'option de versement libératoire de l'impôt sur le revenu. Ils déterminent la prochaine échéance URSSAF affichée, ainsi que l'échéance indicative de la déclaration annuelle 2042-C-PRO. Ces échéances restent indicatives : elles sont à vérifier sur urssaf.fr / impots.gouv.fr selon la situation de chacun.</p>
+    <h3>Déclarations URSSAF</h3>
+    <p>Un tableau liste, période par période (selon la périodicité choisie), le chiffre d'affaires encaissé, l'échéance réelle et un statut (Déclarée / En retard / À venir). Une case à cocher par ligne permet de marquer une déclaration comme faite auprès de l'URSSAF ; l'information est conservée d'une visite à l'autre.</p>
+    <h3>Frais par mois</h3>
+    ${manualShot('14b-fiscalite-frais.jpg', "Tableau « Frais par mois » — historique des charges, mois par mois.")}
+    <p>Un tableau récapitule, mois par mois, les frais de challenge, les frais d'activation et les mensualités payées. Au régime micro-BNC ces frais ne changent rien au calcul (abattement forfaitaire), mais le tableau garde cet historique prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois.</p>
+    <h3>Systèmes de paiement et 3916-bis</h3>
+    <p>Un tableau regroupe les payouts par système de paiement utilisé pour les recevoir (Wise, virement, RiseWorks…) — c'est ce système, et non la PropFirm elle-même, qui détermine si un compte détenu à l'étranger doit être déclaré au titre du formulaire 3916-bis. Un repère indicatif (À déclarer / Selon les cas / Non requis) aide à s'orienter, et une case à cocher par système permet de suivre les déclarations déjà faites. Ce repère reste une aide générale, à vérifier avec un expert-comptable avant de cocher ou non une case.</p>
+    <h3>Checklist déclarative et export</h3>
+    <p>Une checklist récapitule, avec un compteur d'avancement, l'ensemble des démarches déclaratives de l'année (déclarations URSSAF, 2042-C-PRO, versement libératoire…). Le bouton « Export année (ZIP) », en haut de page, génère une archive contenant un PDF récapitulatif complet de l'année (seuils, déclarations, frais, systèmes de paiement) ainsi que les données associées, prête à transmettre à un expert-comptable ou à conserver pour ses archives.</p>` },
+  { n:'15', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
-  { n:'15', id:'m-abonnement', title:"Abonnement et tarifs", html:`
+  { n:'16', id:'m-abonnement', title:"Abonnement et tarifs", html:`
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
@@ -5634,7 +5662,7 @@ const MANUAL_CHAPTERS = [
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
-  { n:'16', id:'m-admin', title:"Espace Admin", html:`
+  { n:'17', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
     ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
@@ -5651,7 +5679,7 @@ const MANUAL_CHAPTERS = [
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
     <p>Deux outils d'import sont disponibles : « Importer (PropDesk) », qui lit un export JSON de PropDesk et fait correspondre automatiquement traders et PropFirms avant un aperçu détaillé et sélectif ; et « Importer migration (ancien site) », pour une sauvegarde JSON issue d'une ancienne version. Le bouton « Sauvegarde JSON » exporte l'intégralité des données du site pour archivage ou migration.</p>` },
-  { n:'17', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
+  { n:'18', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
     <p>Contralytix distingue plusieurs niveaux de droits sur les données, applicables à tous les enregistrements (traders, PropFirms, comptes, sessions, prépas de séance).</p>
     <h3>Propriété des enregistrements</h3>
     <p>Chaque enregistrement appartient à l'utilisateur qui l'a créé. Seuls ce créateur et les administrateurs peuvent le modifier ou le supprimer ; les autres utilisateurs le voient en lecture seule, signalé par un badge « Lecture seule ».</p>
@@ -5704,7 +5732,8 @@ function viewConfidentialite(){
           <table class="rgpd-table">
             <tr><th>Catégorie</th><th>Exemples</th><th>Origine</th></tr>
             <tr><td>Compte</td><td>Adresse e-mail, date d'inscription, dernière connexion (aucun mot de passe stocké — connexion par code à usage unique envoyé par e-mail, ou via Google)</td><td>Renseignées à l'inscription</td></tr>
-            <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
+            <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, justificatifs de payout (fichiers), notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
+            <tr><td>Données déclaratives (Fiscalité)</td><td>Réglages déclaratifs (périodicité URSSAF, versement libératoire), déclarations et cases cochées de la checklist fiscale</td><td>Saisies par vous dans la page Fiscalité</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
@@ -11286,6 +11315,18 @@ function initBackToTop(){
 ============================================================ */
 (async function boot(){
   initBackToTop();
+  // Retour d'une connexion Google (OAuth) : contrairement au flux email+code (100% côté
+  // client, jamais de rechargement de page), signInWithOAuth() fait quitter puis revenir
+  // le navigateur sur cette page — un vrai rechargement complet. #marketing-landing est
+  // visible par défaut dans le HTML brut et n'est masqué que dans enterApp(), donc le
+  // temps que getSession()/loadAll() ci-dessous se terminent, l'utilisateur revoyait la
+  // page d'accueil marketing s'afficher au-dessus du spinner. On la masque immédiatement
+  // ici, avant tout appel async, dès qu'on détecte les paramètres de retour OAuth de Supabase
+  // (jeton dans le hash pour le flux implicite, ou ?code= pour PKCE).
+  if(/access_token=|refresh_token=/.test(location.hash) || /[?&]code=/.test(location.search)){
+    const ml = document.getElementById('marketing-landing');
+    if(ml) ml.style.display = 'none';
+  }
   if(!SUPABASE_CONFIGURED){
     document.getElementById('loading').innerHTML = `
       <div style="max-width:480px;text-align:center;padding:0 20px;">
