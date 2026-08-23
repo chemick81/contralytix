@@ -5488,7 +5488,7 @@ const MANUAL_CHAPTERS = [
   { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
     <h3>Connexion et inscription</h3>
     <p>La connexion se fait sans mot de passe : renseigne ton adresse e-mail, reçois un code à 6 chiffres, saisis-le pour accéder à ton espace. Le compte est créé automatiquement au premier code envoyé s'il n'existait pas encore — inutile de créer ou retenir un mot de passe. La connexion via Google reste disponible en alternative.</p>
-    ${manualShot('02-connexion.jpg', "Écran de connexion / inscription.")}
+    ${manualShot('02-connexion.jpg', "Écran de connexion — code reçu par e-mail, ou connexion Google.")}
     <h3>Interface générale</h3>
     <p>Une fois connecté, l'application se compose de deux zones principales :</p>
     <ul>
@@ -5573,7 +5573,7 @@ const MANUAL_CHAPTERS = [
     ${manualShot('06-comptes.jpg', "Liste des comptes, avec filtres et cartes détaillées par compte.")}
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
     <h3>Payouts</h3>
-    ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — ajout, historique et reçu PDF.")}
+    ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — devise, système de paiement, justificatif à la création et historique.")}
     <p>La fenêtre « Payouts » d'un compte permet d'ajouter un versement (montant, devise — dollar ou euro, avec taux de change auto-rempli depuis la Banque Centrale Européenne, date, note, système de paiement), de le modifier ou le supprimer, et de générer un reçu PDF récapitulatif pour chaque payout. Un justificatif (facture, capture d'écran…) peut être joint directement au moment de l'ajout du payout ; un bouton « Justificatifs » séparé, sur chaque ligne, ouvre ensuite une fenêtre dédiée permettant d'en attacher d'autres, de les consulter et de les supprimer individuellement. Ces justificatifs restent strictement privés (visibles uniquement par le créateur du payout et les administrateurs), même si le trader et ses payouts sont publics par ailleurs.</p>
     <h3>Notes / journal et historique</h3>
     <p>Chaque compte dispose d'un journal de notes horodatées et attribuées à leur auteur, ainsi que d'un historique complet des changements de statut avec date et motif.</p>
@@ -5608,7 +5608,7 @@ const MANUAL_CHAPTERS = [
     ${manualShot('10b-sessions-detail.jpg', "Page de détail d'une session : replay vidéo, notes et détails (chronologie, performance).")}` },
   { n:'11', id:'m-meteo', title:"Préparation de séance", html:`
     <p>Cette section (« Météo ») génère une prépa de séance quotidienne à l'aide d'une IA, avec en complément un calendrier économique et les résultats d'entreprises du jour.</p>
-    ${manualShot('11-meteo.jpg', "Prépa de séance générée par IA, avec calendrier économique et résultats d'entreprises.")}
+    ${manualShot('11-meteo.jpg', "Page Préparation de séance, avec le calendrier économique du jour — le brief IA s'affiche en tête de page une fois généré.")}
     <h3>Brief météo IA</h3>
     <p>Le bouton « Nouvelle prépa » envoie un prompt (personnalisable) à un moteur d'intelligence artificielle pour générer un brief structuré autour de quatre axes : le contexte du jour, la texture attendue du carnet d'ordres à l'ouverture, la dynamique récente du marché, et une recommandation « feu vert / feu rouge » sur la taille de position. Un champ « Biais du jour » permet d'ajouter une note manuelle libre. La prépa du jour s'affiche en tête de page ; les prépas précédentes restent consultables sous « Historique ».</p>
     <h3>Calendrier économique et résultats d'entreprises</h3>
@@ -5653,7 +5653,7 @@ const MANUAL_CHAPTERS = [
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
-    ${manualShot('15-abonnement.jpg', "Comparatif des formules Free, Premium et Lifetime.")}
+    ${manualShot('15-abonnement.jpg', "Page Tarifs — ici pour un compte Admin (accès illimité) ; un compte Free, Premium ou Lifetime y voit à la place le comparatif des formules.")}
     <h3>Comparatif des formules</h3>
     <ul>
       <li><b>Free</b> — gratuite : jusqu'à 2 traders, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité et Dashboard toujours limités à tes propres traders et comptes, support communautaire.</li>
