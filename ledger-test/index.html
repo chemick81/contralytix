@@ -1203,8 +1203,8 @@ document.getElementById('favicon').href = LOGO_DATA_URI;
 
 // ⚠️ CONFIGURATION OBLIGATOIRE ⚠️
 // Dashboard Supabase > Project Settings > API > "Project URL" et "anon public" key
-const SUPABASE_URL = 'https://cnqrcirxprzxxutojklm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucXJjaXJ4cHJ6eHh1dG9qa2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjUzMzcsImV4cCI6MjA5OTc0MTMzN30.oHq13DxXsh0xY2HApsL7dwsV8OjR-NWGp_1EhE-zDSw';
+const SUPABASE_URL = 'https://ijjagnowplglbcpzyfax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqamFnbm93cGxnbGJjcHp5ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzcxNTIsImV4cCI6MjEwMjkxMzE1Mn0.wF9MTreYLudRQbyO0Gn2Dtqju5m1G8BUizeayWyYV64';
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -1324,6 +1324,15 @@ function myLinkedTrader(){
 function myTraders(){
   if(!state.session) return [];
   return state.traders.filter(isMineTrader);
+}
+// Version générique de isMineTrader/myTraders pour un profil ARBITRAIRE (pas forcément
+// l'utilisateur connecté) — sert à la colonne "Trader(s) lié(s)" de Admin > Utilisateurs,
+// pour qu'un admin voie d'un coup d'œil quel(s) trader(s) correspondent à quel compte
+// (créateur du trader, OU email du trader === email du profil, même logique que ci-dessus).
+function tradersForProfile(p){
+  if(!p) return [];
+  const email = (p.email||'').toLowerCase();
+  return state.traders.filter(t => t.createdBy===p.id || (email && t.email && t.email.toLowerCase()===email));
 }
 // Applique ce trader par défaut sur tous les filtres "trader" existants, une seule fois
 // à la connexion (sans écraser un filtre déjà modifié manuellement par l'utilisateur).
@@ -5687,7 +5696,7 @@ const MANUAL_CHAPTERS = [
     <h3>Seuils fiscaux</h3>
     <p>Un panneau « Seuils fiscaux » permet de tenir à jour, chaque année, les valeurs utilisées par le module Fiscalité (année de référence, plafond micro-BNC, franchise en base de TVA — base et majorée —, abattement forfaitaire et note de source) sans intervention technique. Ces seuils sont partagés par tous les utilisateurs du site.</p>
     <h3>Gestion des utilisateurs</h3>
-    <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès.</p>
+    <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès. Une colonne « Trader(s) lié(s) » indique, pour chaque compte, quel(s) trader(s) lui correspondent — un trader créé par ce compte, ou dont l'email correspond à celui du compte (même règle que le rattachement automatique des filtres à « son » trader à la connexion). Utile pour identifier rapidement, par exemple, un utilisateur inscrit mais sans aucun trader créé.</p>
     <h3>Journal d'activité</h3>
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
@@ -8446,13 +8455,16 @@ function viewAdmin(){
       <div class="panel-head"><div class="section-title">Utilisateurs (${state.profiles.length})</div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Email</th><th>Plan</th><th>Formule</th><th>Inscrit le</th><th>Dernière connexion</th><th></th></tr></thead>
+          <thead><tr><th>Email</th><th>Plan</th><th>Formule</th><th>Trader(s) lié(s)</th><th>Inscrit le</th><th>Dernière connexion</th><th></th></tr></thead>
           <tbody>
-            ${state.profiles.length===0 ? `<tr><td colspan="6"><div class="empty-sub" style="padding:16px 0;">Aucun utilisateur.</div></td></tr>` :
-              state.profiles.map(p=>`<tr>
+            ${state.profiles.length===0 ? `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;">Aucun utilisateur.</div></td></tr>` :
+              state.profiles.map(p=>{
+                const linkedTraders = tradersForProfile(p);
+                return `<tr>
                 <td>${p.email||'—'}${p.id===currentUserId()?' <span class="text-faint">(toi)</span>':''}</td>
                 <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':'badge-slate'}">${p.role}</span></td>
                 <td class="text-dim">${(p.role==='PREMIUM' && p.subscription && p.subscription.billingCycle) ? p.subscription.billingCycle : '—'}</td>
+                <td>${linkedTraders.length ? linkedTraders.map(t=>`<span class="badge badge-slate" style="margin:1px 3px 1px 0;" title="${t.status==='INACTIF'?'Trader inactif':''}">${escapeHtml(t.pseudo)}${t.status==='INACTIF'?' (inactif)':''}</span>`).join('') : '<span class="text-faint">— aucun</span>'}</td>
                 <td class="text-dim mono">${p.createdAt?fmtDate(p.createdAt.slice(0,10)):'—'}</td>
                 <td class="text-dim mono">${p.lastLogin?fmtDate(p.lastLogin.slice(0,10)):'—'}</td>
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -8463,7 +8475,8 @@ function viewAdmin(){
                     <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);" data-delete-user="${p.id}" data-email="${(p.email||'cet utilisateur').replace(/"/g,'&quot;')}">Supprimer</button>
                   `}
                 </td>
-              </tr>`).join('')}
+              </tr>`;
+              }).join('')}
           </tbody>
         </table>
       </div>
