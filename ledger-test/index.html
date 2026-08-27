@@ -1136,6 +1136,7 @@ const ICONS = {
   card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h5"/></svg>',
   book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4.5c0-.8.7-1.5 2-1.5h6.5v17H6c-1.3 0-2 .5-2 1.5V4.5Z"/><path d="M20 4.5c0-.8-.7-1.5-2-1.5h-6.5v17H18c1.3 0 2 .5 2 1.5V4.5Z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>',
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5Z"/><path d="M3 13l9 5 9-5"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>',
@@ -3840,7 +3841,7 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
-  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -3868,6 +3869,7 @@ function renderTopbarActions(){
   if(document.getElementById('add-trader')) document.getElementById('add-trader').onclick = ()=>traderFormModal();
   if(document.getElementById('add-firm')) document.getElementById('add-firm').onclick = ()=>firmFormModal();
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
+  if(document.getElementById('bulk-add-account')) document.getElementById('bulk-add-account').onclick = ()=>bulkAccountFormModal();
   if(document.getElementById('export-accounting')) document.getElementById('export-accounting').onclick = exportAccountingCSV;
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
@@ -5569,6 +5571,8 @@ const MANUAL_CHAPTERS = [
     <p>Le bouton « Grouper par type » réorganise la liste en trois blocs — Challenges, PA, Live — chacun avec son propre en-tête et son compteur, plutôt que de mélanger tous les comptes par date d'achat. Pratique pour comparer d'un coup d'œil tous les Challenges entre eux, ou tous les PA entre eux.</p>
     <h3>Créer un compte</h3>
     <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
+    <h3>Ajout en masse</h3>
+    <p>Le bouton « Ajout en masse » permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
     <h3>La carte d'un compte</h3>
     ${manualShot('06-comptes.jpg', "Liste des comptes, avec filtres et cartes détaillées par compte.")}
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
@@ -10204,6 +10208,292 @@ function accountFormModal({ existing, type, parentChallenge }){
           await logStatusChange(parent.id, parent.status, 'REUSSI', 'PA créé à partir de ce challenge');
         }
         showToast(isEdit ? 'Compte mis à jour.' : 'Compte créé.');
+        closeModal(); render();
+      };
+    }
+  });
+}
+
+/* ============================================================
+   FORM: ACCOUNT — AJOUT EN MASSE
+   Cas d'usage : plusieurs comptes identiques achetés d'un coup chez la même
+   PropFirm, pour le même trader (même type, même taille, même prix/mensualité,
+   même devise, même date d'achat) — seul le numéro de compte change d'un
+   exemplaire à l'autre. On réutilise volontairement les mêmes règles que le
+   formulaire "Nouveau compte" (comptes gratuits/trader, anti-doublon global
+   normAccNum/findDuplicateAccount) pour ne jamais créer un lot dans un état
+   incohérent avec le reste de l'appli.
+============================================================ */
+function bulkAccountFormModal(){
+  if(state.traders.length===0 || state.propfirms.length===0){
+    showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
+    return;
+  }
+  const base = {
+    traderId: myLinkedTrader() ? myLinkedTrader().id : '',
+    propFirmId: '',
+    type: 'CHALLENGE',
+    size: 'S25K',
+    customSize: '',
+    paymentType: 'UNIQUE',
+    purchaseDate: todayISO(),
+    activationDate: todayISO(),
+  };
+  let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = 2;
+
+  function numberFieldsHtml(prevValues){
+    return Array.from({length:qty}).map((_,i)=>`
+      <div class="field" style="margin-bottom:8px;">
+        <label style="font-size:12px;">Compte ${i+1} — Numéro de compte <span style="color:var(--danger)">*</span></label>
+        <input class="baf-number" data-idx="${i}" value="${escapeHtml((prevValues&&prevValues[i])||'')}"/>
+        <div class="baf-number-error error-text" data-idx="${i}"></div>
+      </div>`).join('');
+  }
+
+  openModal({
+    title: 'Ajout en masse — comptes identiques',
+    wide: true,
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:14px;">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
+      <div class="field-row">
+        <div class="field"><label>Trader</label>
+          <select id="baf-trader">
+            <option value="">— Sélectionner —</option>
+            ${state.traders.map(t=>`<option value="${t.id}" ${base.traderId===t.id?'selected':''}>${t.pseudo}${t.status==='INACTIF'?' (inactif)':''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>PropFirm</label>
+          <div class="firm-picker" id="baf-firm-picker">
+            ${sortedFirms().map(f=>`<div class="firm-pick" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
+          </div>
+          <input type="hidden" id="baf-firm" value=""/>
+        </div>
+      </div>
+      <div class="field"><label>Type de compte</label>
+        <div class="radio-group">
+          <div class="radio-chip ${curType==='CHALLENGE'?'selected':''}" data-type="CHALLENGE">Challenge</div>
+          <div class="radio-chip ${curType==='PA'?'selected':''}" data-type="PA">PA</div>
+          <div class="radio-chip ${curType==='LIVE'?'selected':''}" data-type="LIVE">Live</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Taille du compte</label>
+          <select id="baf-size">
+            ${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${curSize===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="baf-customsize-wrap" style="display:none;">
+          <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number"/>
+        </div>
+      </div>
+      <div class="field"><label>Mode de paiement</label>
+        <div class="radio-group">
+          <div class="radio-chip ${curPay==='UNIQUE'?'selected':''}" data-pay="UNIQUE">Paiement unique</div>
+          <div class="radio-chip ${curPay==='MENSUEL'?'selected':''}" data-pay="MENSUEL">Mensualités</div>
+        </div>
+        <div class="field-hint">Le montant saisi est appliqué à l’identique sur chacun des comptes du lot.</div>
+      </div>
+      <div class="field-row">
+        <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/></div>
+        <div class="field" id="baf-monthly-wrap" style="display:${curPay==='MENSUEL'?'block':'none'};"><label>Montant mensuel (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-monthly" type="number"/></div>
+        <div class="field" id="baf-purchase-date-wrap"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Devise</label>
+          <select id="baf-currency">
+            ${['USD','EUR'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="baf-fxrate-wrap" style="display:block;">
+          <label>Taux EUR/USD à la date d'achat</label>
+          <input id="baf-fxrate" type="number" step="0.0001" placeholder="ex: 1.0821"/>
+          <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
+        </div>
+      </div>
+      <div id="baf-pa-fields" style="display:none;">
+        <div class="field-row">
+          <div class="field"><label>Date d'activation</label><input id="baf-activation-date" type="date" value="${base.activationDate}"/><div class="field-hint">Sert aussi de date d'achat/ouverture — appliquée à chaque compte du lot.</div></div>
+          <div class="field"><label id="baf-activation-fee-label">Frais d'activation ($, optionnel)</label><input id="baf-activation-fee" type="number"/></div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:6px;">
+        <label>Quantité de comptes à créer</label>
+        <input id="baf-qty" type="number" min="2" max="50" value="${qty}"/>
+        <div class="field-hint">Génère automatiquement un champ « Numéro de compte » par exemplaire.</div>
+      </div>
+      <div id="baf-numbers">${numberFieldsHtml()}</div>
+      <div id="baf-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="baf-cancel">Annuler</button><button class="btn btn-primary" id="baf-save">Créer les comptes</button>`,
+    onMount(){
+      function currentNumberValues(){
+        return Array.from(document.querySelectorAll('.baf-number')).map(inp=>inp.value);
+      }
+      function regenerateNumberFields(){
+        const prev = currentNumberValues();
+        document.getElementById('baf-numbers').innerHTML = numberFieldsHtml(prev);
+      }
+      document.getElementById('baf-qty').addEventListener('input', (e)=>{
+        let v = Math.round(Number(e.target.value)||0);
+        if(v<1) v = 1;
+        if(v>50) v = 50;
+        qty = v;
+        regenerateNumberFields();
+      });
+      document.querySelectorAll('[data-type]').forEach(chip=>chip.onclick=()=>{
+        curType = chip.dataset.type;
+        document.querySelectorAll('[data-type]').forEach(c=>c.classList.toggle('selected', c.dataset.type===curType));
+        document.getElementById('baf-pa-fields').style.display = (curType==='PA'||curType==='LIVE') ? 'block' : 'none';
+        document.getElementById('baf-purchase-date-wrap').style.display = (curType==='PA'||curType==='LIVE') ? 'none' : 'block';
+      });
+      document.querySelectorAll('[data-pay]').forEach(chip=>chip.onclick=()=>{
+        curPay = chip.dataset.pay;
+        document.querySelectorAll('[data-pay]').forEach(c=>c.classList.toggle('selected', c.dataset.pay===curPay));
+        document.getElementById('baf-price-wrap').style.display = curPay==='UNIQUE' ? 'block' : 'none';
+        document.getElementById('baf-monthly-wrap').style.display = curPay==='MENSUEL' ? 'block' : 'none';
+      });
+      document.getElementById('baf-size').onchange = (e)=>{
+        curSize = e.target.value;
+        document.getElementById('baf-customsize-wrap').style.display = curSize==='AUTRE' ? 'block' : 'none';
+      };
+      document.querySelectorAll('[data-firm-pick]').forEach(el=>el.onclick=()=>{
+        document.querySelectorAll('[data-firm-pick]').forEach(x=>x.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('baf-firm').value = el.dataset.firmPick;
+      });
+      let bafFxFetchPromise = null;
+      async function autofillFxRate(force){
+        const currency = document.getElementById('baf-currency').value;
+        const rateInput = document.getElementById('baf-fxrate');
+        document.getElementById('baf-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
+        const feeLabel = document.getElementById('baf-activation-fee-label');
+        if(feeLabel) feeLabel.textContent = `Frais d'activation (${currency==='EUR'?'€':'$'}, optionnel)`;
+        if(currency==='EUR') return;
+        if(!force && rateInput.value) return;
+        if(force) rateInput.value = '';
+        const dateField = document.getElementById('baf-date') || document.getElementById('baf-activation-date');
+        const date = dateField ? dateField.value : todayISO();
+        rateInput.placeholder = 'Récupération du taux BCE...';
+        rateInput.disabled = true;
+        try{
+          const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date||todayISO()}&currency=${currency}`);
+          const data = await res.json();
+          if(res.ok && data.rateToEur){
+            rateInput.value = data.rateToEur;
+          } else {
+            showToast(`Taux BCE ${currency} introuvable pour cette date : merci de le saisir toi-meme (sinon les comptes seraient enregistrés avec un taux incorrect).`, 'danger');
+          }
+        }catch(e){
+          showToast(`Impossible de recuperer le taux BCE pour ${currency} : merci de le saisir toi-meme (sinon les comptes seraient enregistrés avec un taux incorrect).`, 'danger');
+        } finally {
+          rateInput.disabled = false;
+          rateInput.placeholder = 'ex: 1.0821';
+        }
+      }
+      document.getElementById('baf-currency').addEventListener('change', ()=>{ bafFxFetchPromise = autofillFxRate(); });
+      document.getElementById('baf-date').addEventListener('change', ()=>{ bafFxFetchPromise = autofillFxRate(true); });
+      document.getElementById('baf-activation-date').addEventListener('change', ()=>{ bafFxFetchPromise = autofillFxRate(true); });
+      bafFxFetchPromise = autofillFxRate();
+
+      document.getElementById('baf-cancel').onclick = closeModal;
+      document.getElementById('baf-save').onclick = async ()=>{
+        if(bafFxFetchPromise) await bafFxFetchPromise;
+        const errorEl = document.getElementById('baf-error');
+        errorEl.textContent = '';
+        document.querySelectorAll('.baf-number-error').forEach(e=>e.textContent='');
+        document.querySelectorAll('.baf-number').forEach(inp=>inp.style.borderColor='');
+
+        const traderId = document.getElementById('baf-trader').value;
+        const propFirmId = document.getElementById('baf-firm').value;
+        if(!traderId || !propFirmId){ errorEl.textContent = 'Trader et PropFirm sont obligatoires.'; return; }
+        const trader = getTrader(traderId);
+        if(curType==='CHALLENGE' && trader.status==='INACTIF'){
+          errorEl.textContent = 'Impossible : ce trader est inactif. Réactive-le pour créer de nouveaux challenges.'; return;
+        }
+
+        const size = document.getElementById('baf-size').value;
+        const customSize = size==='AUTRE' ? Number(document.getElementById('baf-customsize').value)||0 : null;
+        const purchasePrice = curPay==='UNIQUE' ? Number(document.getElementById('baf-price').value)||0 : null;
+        const monthlyAmount = curPay==='MENSUEL' ? Number(document.getElementById('baf-monthly').value)||0 : null;
+        if(curPay==='UNIQUE' && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire.'; return; }
+        if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire.'; return; }
+
+        let activationDate = null, activationFee = null, purchaseDate;
+        if(curType==='PA' || curType==='LIVE'){
+          activationDate = document.getElementById('baf-activation-date').value;
+          activationFee = Number(document.getElementById('baf-activation-fee').value)||0;
+          purchaseDate = activationDate;
+        } else {
+          purchaseDate = document.getElementById('baf-date').value;
+        }
+
+        const currency = document.getElementById('baf-currency').value;
+        const fxRateInputVal = document.getElementById('baf-fxrate').value;
+        if(currency!=='EUR' && !fxRateInputVal){
+          errorEl.textContent = 'Taux de change introuvable automatiquement : merci de le saisir toi-meme avant d\'enregistrer (champ juste au-dessus de la devise).';
+          return;
+        }
+        const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal);
+
+        // Numéros de compte : chacun obligatoire, pas de doublon dans le lot, pas de doublon en base.
+        const numberInputs = Array.from(document.querySelectorAll('.baf-number'));
+        const rawNumbers = numberInputs.map(inp=>inp.value.trim());
+        let hasError = false;
+        const seenInBatch = new Map(); // normAccNum -> premier index
+        rawNumbers.forEach((num, idx)=>{
+          const errCell = document.querySelector(`.baf-number-error[data-idx="${idx}"]`);
+          const inputCell = numberInputs[idx];
+          if(!num){
+            errCell.textContent = 'Numéro obligatoire.';
+            inputCell.style.borderColor = 'var(--danger)';
+            hasError = true;
+            return;
+          }
+          const key = normAccNum(num);
+          if(seenInBatch.has(key)){
+            errCell.textContent = `Doublon avec le compte ${seenInBatch.get(key)+1} de ce même lot.`;
+            inputCell.style.borderColor = 'var(--danger)';
+            hasError = true;
+            return;
+          }
+          seenInBatch.set(key, idx);
+          const dupAccount = findDuplicateAccount(propFirmId, num, null);
+          if(dupAccount){
+            const dupTrader = getTrader(dupAccount.traderId);
+            errCell.textContent = `Déjà utilisé chez ${getFirm(propFirmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}).`;
+            inputCell.style.borderColor = 'var(--danger)';
+            hasError = true;
+          }
+        });
+        if(hasError){
+          errorEl.textContent = 'Corrige les numéros de compte signalés en rouge avant d\'enregistrer — rien n\'a été créé.';
+          return;
+        }
+
+        if(!perms().canUnlimitedAccounts){
+          const ownAccountsForTrader = state.accounts.filter(x=>x.traderId===traderId && x.createdBy===currentUserId()).length;
+          if(ownAccountsForTrader + rawNumbers.length > perms().maxFreeAccounts){
+            closeModal();
+            openUpgradeModal(`La création de plus de ${perms().maxFreeAccounts} comptes pour ce trader`);
+            return;
+          }
+        }
+
+        for(const accountNumber of rawNumbers){
+          const record = {
+            id: uid('acc'), traderId, propFirmId, type:curType,
+            parentChallengeId: null,
+            size, customSize, accountNumber,
+            paymentType:curPay, purchasePrice, monthlyAmount,
+            purchaseDate, activationDate, activationFee,
+            status: 'ACTIF', endDate: null,
+            currency, fxRateToEur,
+            createdAt: new Date().toISOString(), createdBy: currentUserId(),
+          };
+          await upsert('accounts', record);
+          await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]} (ajout en masse)`);
+        }
+        showToast(`${rawNumbers.length} comptes créés.`);
         closeModal(); render();
       };
     }
