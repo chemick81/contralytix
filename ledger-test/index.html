@@ -2401,7 +2401,14 @@ async function resendAuthCode(){
   renderAuthScreen();
 }
 async function signInWithGoogle(){
-  await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+  // IMPORTANT : sans "redirectTo" explicite, Supabase retombe sur la "Site URL" configurée
+  // dans son tableau de bord (Authentication > URL Configuration) — qui peut pointer vers le
+  // mauvais domaine (ex: le sous-domaine Netlify par défaut au lieu du domaine personnalisé
+  // contralytix.fr), surtout si le site tourne sur plusieurs domaines (dev/prod). On force donc
+  // toujours le retour vers le domaine depuis lequel la connexion a été lancée, quel qu'il soit.
+  // Ce domaine doit malgré tout être présent dans Redirect URLs côté Supabase (l'app ne peut
+  // pas contourner cette liste blanche) — voir claude/migration-prod.md pour le rappel.
+  await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
 }
 async function signOut(){
   await supabaseClient.auth.signOut();
