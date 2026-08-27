@@ -989,7 +989,7 @@ th.th-sort-active svg{opacity:1;}
           <h3>Comptabilité automatique</h3>
           <p>Achats, mensualités, frais d'activation et payouts sont calculés et classés automatiquement, exportables en CSV, Excel ou PDF pour votre suivi comptable.</p>
         </article>
-        <article class="ml-feature-card">
+        <article class="ml-feature-card" id="ml-feature-fiscalite">
           <h3>Module Fiscalité (micro-BNC)</h3>
           <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
         </article>
@@ -1042,7 +1042,7 @@ th.th-sort-active svg{opacity:1;}
             <li>✓ Exports CSV, Excel &amp; PDF</li>
             <li>✓ Calendrier des échéances</li>
             <li>✓ Bilan visuel &amp; classement</li>
-            <li>✓ Module Fiscalité (micro-BNC)</li>
+            <li id="ml-pricing-fiscalite">✓ Module Fiscalité (micro-BNC)</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
@@ -1068,7 +1068,7 @@ th.th-sort-active svg{opacity:1;}
           <summary>Contralytix convient-il à un trader funded sur plusieurs PropFirms ?</summary>
           <p>Oui : Contralytix regroupe tous tes comptes prop firm (Challenge, PA, Live) quelle que soit la PropFirm, avec un comparatif des performances (taux de réussite, dépenses, payouts, résultat net) par PropFirm.</p>
         </details>
-        <details class="ml-faq-item">
+        <details class="ml-faq-item" id="ml-faq-fiscalite">
           <summary>Contralytix remplace-t-il un expert-comptable ?</summary>
           <p>Non : Contralytix automatise le suivi financier de tes comptes prop firm (dépenses, payouts, exports CSV/Excel/PDF) et, pour le régime micro-BNC, suit tes seuils et tes échéances de déclaration (URSSAF, 3916-bis) via le module Fiscalité — mais il ne remplace pas l'avis d'un expert-comptable pour tes déclarations.</p>
         </details>
@@ -1420,7 +1420,15 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','sessions','meteo','comparatif','classement','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','sessions','meteo','comparatif','classement','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
+// Coupe-circuit spécifique au module Fiscalité (ex: migration prod pas encore terminée/validée
+// sur la vraie base — voir claude/migration-prod.md et claude/module-fiscalite.md) : réutilise le
+// même mécanisme que "Gestion des pages" (Admin > Gestion des pages > Fiscalité), mais un admin
+// garde toujours l'accès (page grisée avec badge "Masquée" dans le menu, contenu et route
+// accessibles) pour pouvoir vérifier seuils/migrations avant de la rouvrir à tout le monde.
+function fiscalModuleEnabled(){
+  return isAdmin() || !(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('fiscalite'));
+}
 async function toggleHiddenPage(pageId){
   if(!isAdmin() || !HIDEABLE_PAGE_IDS.includes(pageId)) return;
   const hidden = new Set(state.appSettings.hiddenPages);
@@ -5054,7 +5062,7 @@ function computeCalendarEvents(monthKeyStr){
   // gardes correspondantes dans dashboardCalendarWidgetHtml et calendarDayModal) mais à
   // l'utilisateur : périodicité URSSAF choisie (voir fiscalUrssafPeriodicity/urssafDeadlinesForYear)
   // et échéance 2042-C-PRO administrable (state.fiscalThresholds.pro2042Deadline).
-  if(state.profile){
+  if(state.profile && fiscalModuleEnabled()){
     const [calYear] = monthKeyStr.split('-').map(Number);
     const periodicity = fiscalUrssafPeriodicity();
     [calYear-1, calYear].forEach(yr=>{
@@ -5673,6 +5681,7 @@ const MANUAL_CHAPTERS = [
     <p>Un ensemble d'indicateurs résume l'activité du site : nombre total d'utilisateurs, répartition Premium / Free, nombre de Lifetime, MRR, ARR, revenus cumulés et nombre de résiliations, ainsi que les dernières inscriptions.</p>
     <h3>Gestion des pages</h3>
     <p>Un panneau « Gestion des pages » liste toutes les pages du menu et permet, pour chacune, de la masquer ou de la réafficher pour l'ensemble des utilisateurs non-admin d'un simple interrupteur. Une page masquée disparaît du menu de tout le monde sauf des administrateurs, qui continuent à la voir (grisée, avec un badge « Masquée ») afin de pouvoir la réactiver à tout moment. Le Dashboard et l'espace Admin ne peuvent pas être masqués, pour éviter de bloquer l'accès à l'application.</p>
+    <p>Masquer « Fiscalité » a un effet plus large que les autres pages : les échéances URSSAF / 2042-C-PRO disparaissent aussi du Calendrier, et les mentions du module sur la page publique (carte fonctionnalité, ligne de l'offre Premium, FAQ) se masquent également — utile comme coupe-circuit rapide si une migration de base de données touchant ce module doit être vérifiée avant réouverture à tous les utilisateurs.</p>
     <h3>Message global</h3>
     <p>Un panneau « Message global » permet d'afficher une bannière en haut de l'application, visible par tous les utilisateurs tant qu'elle est activée (par exemple pour annoncer une maintenance ou une nouveauté). Le message et son style (information, avertissement, urgent) sont modifiables à tout moment ; désactiver l'interrupteur masque immédiatement la bannière pour tout le monde.</p>
     <h3>Seuils fiscaux</h3>
@@ -11603,8 +11612,29 @@ function initBackToTop(){
 /* ============================================================
    BOOT
 ============================================================ */
+// Masque sur la landing page publique (visiteur non connecté) les 3 mentions du module
+// Fiscalité — carte fonctionnalité, ligne Premium, FAQ — quand un admin l'a désactivé via
+// Admin > Gestion des pages > Fiscalité (voir HIDEABLE_PAGE_IDS/fiscalModuleEnabled). Ne
+// dépend PAS de isAdmin()/state.session (le visiteur n'est pas encore connecté) : uniquement
+// du drapeau global chargé par loadAppSettings(), qui doit donc être lisible en lecture par
+// un visiteur anonyme (policy RLS SELECT sur app_settings ouverte à 'anon', pas seulement
+// 'authenticated' — à vérifier/ajouter côté Supabase si cette fonction reste sans effet ici).
+function applyFiscalLandingVisibility(){
+  const hidden = !!(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('fiscalite'));
+  ['ml-feature-fiscalite','ml-pricing-fiscalite','ml-faq-fiscalite'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = hidden ? 'none' : '';
+  });
+}
 (async function boot(){
   initBackToTop();
+  // Chargé avant même la vérification de session : pilote aussi la visibilité du module
+  // Fiscalité sur la landing publique pour un visiteur pas encore connecté (voir
+  // applyFiscalLandingVisibility ci-dessus). Sans effet silencieux si la policy RLS
+  // n'autorise pas encore la lecture anonyme de app_settings (state.appSettings garde ses
+  // valeurs par défaut, rien n'est masqué sur la landing tant que ce n'est pas corrigé côté DB).
+  await loadAppSettings();
+  applyFiscalLandingVisibility();
   // Retour d'une connexion Google (OAuth) : contrairement au flux email+code (100% côté
   // client, jamais de rechargement de page), signInWithOAuth() fait quitter puis revenir
   // le navigateur sur cette page — un vrai rechargement complet. #marketing-landing est
@@ -11654,7 +11684,7 @@ function initBackToTop(){
     maybeShowWelcomeModal();
   }
 
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if(session && !appStarted){ enterApp(session); }
     else if(session && appStarted){ state.session = session; }
     else if(!session){
@@ -11672,6 +11702,10 @@ function initBackToTop(){
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
       renderAuthScreen();
+      // Recharge le drapeau global (retombé aux valeurs par défaut ci-dessus à la déconnexion)
+      // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages.
+      await loadAppSettings();
+      applyFiscalLandingVisibility();
     }
   });
 
