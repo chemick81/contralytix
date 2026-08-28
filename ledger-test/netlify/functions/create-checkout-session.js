@@ -46,15 +46,30 @@ async function checkPromoCode(promoCode, billingCycle) {
     valid: true,
     discountType: r.discount_type,   // 'PERCENT' | 'FIXED'
     discountValue: Number(r.discount_value),
+    // 'ONCE' (1re échéance seulement) | 'REPEATING' (pendant N mois) | 'FOREVER' (tant que
+    // l'abonnement est actif) — voir la colonne duration_type de promo_codes, réglée depuis
+    // Admin > Codes promo. Valeur par défaut 'ONCE' pour les codes créés avant cette migration.
+    durationType: r.duration_type || 'ONCE',
+    durationInMonths: r.duration_in_months != null ? Number(r.duration_in_months) : null,
   };
 }
 
 // Crée un Stripe Coupon éphémère à partir du résultat de validation.
-// 'once' = la réduction ne s'applique qu'au premier paiement (1re facture d'abonnement,
-// ou le paiement unique Lifetime). Change en 'forever' si tu veux une remise récurrente
-// tant que l'abonnement mensuel/annuel est actif.
-async function createStripeCoupon(promo) {
-  const params = { duration: 'once', name: 'Code promo' };
+// Pour un abonnement (Mensuel/Annuel), la durée vient du code promo (once/repeating/forever).
+// Pour le paiement unique Lifetime, il n'y a pas d'abonnement à répéter : la réduction ne
+// s'applique de toute façon qu'à ce seul paiement, quelle que soit la durée configurée.
+async function createStripeCoupon(promo, isLifetime) {
+  const params = { name: 'Code promo' };
+  if (isLifetime) {
+    params.duration = 'once';
+  } else if (promo.durationType === 'FOREVER') {
+    params.duration = 'forever';
+  } else if (promo.durationType === 'REPEATING' && promo.durationInMonths > 0) {
+    params.duration = 'repeating';
+    params.duration_in_months = promo.durationInMonths;
+  } else {
+    params.duration = 'once';
+  }
   if (promo.discountType === 'PERCENT') {
     params.percent_off = promo.discountValue;
   } else {
@@ -88,6 +103,8 @@ exports.handler = async (event) => {
     }
     const user = userData.user;
 
+    const isLifetime = billingCycle === 'LIFETIME';
+
     // Code promo : revalidé côté serveur, indépendamment de ce que le front a affiché.
     // Si un code est fourni mais invalide/inapplicable, on bloque avec un message clair
     // plutôt que de facturer silencieusement le plein tarif.
@@ -97,7 +114,7 @@ exports.handler = async (event) => {
       if (!promoResult.valid) {
         return { statusCode: 400, body: JSON.stringify({ error: promoResult.reason }) };
       }
-      coupon = await createStripeCoupon(promoResult);
+      coupon = await createStripeCoupon(promoResult, isLifetime);
     }
 
     // Récupère ou crée le customer Stripe, réutilisé s'il existe déjà
@@ -115,8 +132,6 @@ exports.handler = async (event) => {
       });
       customerId = customer.id;
     }
-
-    const isLifetime = billingCycle === 'LIFETIME';
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
