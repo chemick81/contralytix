@@ -2304,7 +2304,16 @@ async function validatePromoCode(code){
     discountType: r.discount_type,
     discountValue: r.discount_value,
     appliesTo: r.applies_to || [],
+    durationType: r.duration_type || 'ONCE',
+    durationInMonths: r.duration_in_months,
   };
+}
+// Libellé lisible de la durée d'un code promo, pour l'admin et pour la confirmation
+// affichée à l'utilisateur sur la page Tarifs.
+function promoDurationLabel(durationType, durationInMonths){
+  if(durationType==='FOREVER') return 'tant que l’abonnement est actif';
+  if(durationType==='REPEATING') return `pendant ${durationInMonths||'?'} mois`;
+  return 'sur la 1ère échéance uniquement';
 }
 
 // Ouvre Stripe Checkout pour la formule choisie (appelle la fonction Netlify)
@@ -8807,7 +8816,7 @@ function viewSubscription(){
         <button class="btn btn-outline" id="promo-apply-btn">Appliquer</button>
       </div>
       ${promoResult ? (promoResult.valid
-        ? `<div style="margin-top:8px;font-size:12.5px;color:var(--accent);">✓ Code appliqué (${promoResult.discountType==='PERCENT' ? promoResult.discountValue+'%' : promoResult.discountValue+'€'} de réduction sur ${promoResult.appliesTo.map(c=>({MONTHLY:'Mensuel',YEARLY:'Annuel',LIFETIME:'Lifetime'}[c]||c)).join(', ')}).</div>`
+        ? `<div style="margin-top:8px;font-size:12.5px;color:var(--accent);">✓ Code appliqué (${promoResult.discountType==='PERCENT' ? promoResult.discountValue+'%' : promoResult.discountValue+'€'} de réduction sur ${promoResult.appliesTo.map(c=>({MONTHLY:'Mensuel',YEARLY:'Annuel',LIFETIME:'Lifetime'}[c]||c)).join(', ')}, ${promoDurationLabel(promoResult.durationType, promoResult.durationInMonths)}).</div>`
         : `<div style="margin-top:8px;font-size:12.5px;color:var(--danger,#e5484d);">${escapeHtml(promoResult.reason||'Code invalide.')}</div>`
       ) : ''}
     </div>`;
@@ -8820,13 +8829,14 @@ function viewSubscription(){
       </div>
       ${state.promo_codes.length===0 ? `<div class="text-faint" style="font-size:13px;">Aucun code promo pour l'instant.</div>` : `
       <table class="table">
-        <thead><tr><th>Code</th><th>Libellé</th><th>Réduction</th><th>Formules</th><th>Validité</th><th>Utilisations</th><th>Statut</th><th></th></tr></thead>
+        <thead><tr><th>Code</th><th>Libellé</th><th>Réduction</th><th>Durée</th><th>Formules</th><th>Validité</th><th>Utilisations</th><th>Statut</th><th></th></tr></thead>
         <tbody>
           ${state.promo_codes.map(p=>`
             <tr>
               <td><b>${escapeHtml(p.code)}</b></td>
               <td class="text-dim">${escapeHtml(p.label||'—')}</td>
               <td>${p.discountType==='PERCENT' ? p.discountValue+'%' : p.discountValue+'€'}</td>
+              <td class="text-dim">${promoDurationLabel(p.durationType||'ONCE', p.durationInMonths)}</td>
               <td class="text-dim">${(p.appliesTo||[]).map(c=>({MONTHLY:'Mensuel',YEARLY:'Annuel',LIFETIME:'Lifetime'}[c]||c)).join(', ')||'—'}</td>
               <td class="text-dim">${p.validFrom?fmtDate(p.validFrom):'…'} → ${p.validUntil?fmtDate(p.validUntil):'…'}</td>
               <td class="text-dim">${p.usesCount||0}${p.maxUses?' / '+p.maxUses:''}</td>
@@ -9579,6 +9589,7 @@ function promoCodeFormModal(existing){
     id: uid('promo'), code:'', label:'', discountType:'PERCENT', discountValue:10,
     appliesTo:['MONTHLY','YEARLY','LIFETIME'], active:true, validFrom:'', validUntil:'',
     maxUses:'', usesCount:0, createdBy: currentUserId(),
+    durationType:'ONCE', durationInMonths:'',
   };
   openModal({
     title: existing ? 'Modifier le code promo' : 'Nouveau code promo',
@@ -9594,6 +9605,15 @@ function promoCodeFormModal(existing){
         </div>
       </div>
       <div class="field"><label>Valeur de la réduction</label><input id="pf-value" type="number" min="0" step="0.01" value="${p.discountValue}"/></div>
+      <div class="field"><label>Durée de la réduction</label>
+        <div class="radio-group">
+          <div class="radio-chip ${(p.durationType||'ONCE')==='ONCE'?'selected':''}" data-duration-type="ONCE">1ère échéance</div>
+          <div class="radio-chip ${p.durationType==='REPEATING'?'selected':''}" data-duration-type="REPEATING">Pendant N mois</div>
+          <div class="radio-chip ${p.durationType==='FOREVER'?'selected':''}" data-duration-type="FOREVER">À vie</div>
+        </div>
+        <div class="field-hint">Pour Mensuel/Annuel : « 1ère échéance » = réduction sur le tout premier paiement seulement, les renouvellements repassent au plein tarif. « À vie » n'a de sens que pour un abonnement (sans effet sur Lifetime, déjà un paiement unique).</div>
+      </div>
+      <div class="field" id="pf-duration-months-field" style="${p.durationType==='REPEATING'?'':'display:none;'}"><label>Nombre de mois</label><input id="pf-duration-months" type="number" min="1" step="1" value="${p.durationInMonths||''}"/></div>
       <div class="field"><label>Formules concernées</label>
         <div class="radio-group">
           <div class="radio-chip ${p.appliesTo.includes('MONTHLY')?'selected':''}" data-cycle="MONTHLY">Mensuel</div>
@@ -9618,11 +9638,17 @@ function promoCodeFormModal(existing){
     footHtml: `<button class="btn btn-outline" id="pf-cancel">Annuler</button><button class="btn btn-primary" id="pf-save">Enregistrer</button>`,
     onMount(){
       let discountType = p.discountType;
+      let durationType = p.durationType || 'ONCE';
       let appliesTo = [...p.appliesTo];
       let active = p.active !== false;
       document.querySelectorAll('[data-disc-type]').forEach(chip=>chip.onclick=()=>{
         discountType = chip.dataset.discType;
         document.querySelectorAll('[data-disc-type]').forEach(c=>c.classList.toggle('selected', c.dataset.discType===discountType));
+      });
+      document.querySelectorAll('[data-duration-type]').forEach(chip=>chip.onclick=()=>{
+        durationType = chip.dataset.durationType;
+        document.querySelectorAll('[data-duration-type]').forEach(c=>c.classList.toggle('selected', c.dataset.durationType===durationType));
+        document.getElementById('pf-duration-months-field').style.display = durationType==='REPEATING' ? '' : 'none';
       });
       document.querySelectorAll('[data-cycle]').forEach(chip=>chip.onclick=()=>{
         const cy = chip.dataset.cycle;
@@ -9642,14 +9668,17 @@ function promoCodeFormModal(existing){
         const validUntil = document.getElementById('pf-until').value || null;
         const maxUsesRaw = document.getElementById('pf-maxuses').value;
         const maxUses = maxUsesRaw ? parseInt(maxUsesRaw, 10) : null;
+        const durationInMonthsRaw = document.getElementById('pf-duration-months').value;
+        const durationInMonths = durationInMonthsRaw ? parseInt(durationInMonthsRaw, 10) : null;
         const errEl = document.getElementById('pf-error');
         if(!code){ errEl.textContent = 'Le code est obligatoire.'; return; }
         if(!discountValue || discountValue <= 0){ errEl.textContent = 'La valeur de la réduction doit être supérieure à 0.'; return; }
         if(discountType==='PERCENT' && discountValue > 100){ errEl.textContent = 'Un pourcentage ne peut pas dépasser 100.'; return; }
+        if(durationType==='REPEATING' && (!durationInMonths || durationInMonths <= 0)){ errEl.textContent = 'Indique un nombre de mois supérieur à 0.'; return; }
         if(appliesTo.length===0){ errEl.textContent = 'Sélectionne au moins une formule.'; return; }
         const dup = state.promo_codes.find(x=>x.code.toUpperCase()===code && x.id!==p.id);
         if(dup){ errEl.textContent = 'Ce code existe déjà.'; return; }
-        await upsert('promo_codes', { ...p, code, label, discountType, discountValue, appliesTo, validFrom, validUntil, maxUses, active });
+        await upsert('promo_codes', { ...p, code, label, discountType, discountValue, durationType, durationInMonths: durationType==='REPEATING' ? durationInMonths : null, appliesTo, validFrom, validUntil, maxUses, active });
         await loadPromoCodesAdmin();
         showToast(existing ? 'Code promo mis à jour.' : 'Code promo créé.');
         closeModal(); renderView();
