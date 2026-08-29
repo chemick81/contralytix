@@ -189,6 +189,12 @@ a{color:var(--accent);text-decoration:none;}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
 .nav-group-chev{display:flex;width:11px;height:11px;flex-shrink:0;transition:transform .15s;}
+.nav-group-chev svg{width:11px;height:11px;flex-shrink:0;}
+/* Chevron de repli du panneau "Alertes" du Dashboard : même bug que le cadenas de
+   lockedWidgetInline() (icon() sans taille intrinsèque, aucune règle ne la contraignait — seul un
+   style inline display:inline-flex existait, sans largeur/hauteur). Signalé le 29/08/2026, corrigé
+   avec les autres icônes trouvées dans le même balayage ("corrige partout"). */
+.dash-alerts-chev svg{width:11px;height:11px;flex-shrink:0;}
 .nav-group-items{display:flex;flex-direction:column;gap:3px;margin-top:2px;margin-bottom:2px;}
 .nav-foot{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border-soft);}
 .legal-foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;padding:4px 4px 0;font-size:10px;}
@@ -291,6 +297,7 @@ tr[data-open-session]:hover{background:var(--surface-2);}
 .wysiwyg-body hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
 .session-lock-panel{padding:26px 18px;text-align:center;border-top:1px solid var(--border-soft);}
 .session-lock-panel svg{width:24px;height:24px;color:var(--text-faint);}
+.locked-widget-icon svg{width:24px;height:24px;color:var(--text-faint);}
 .field-row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .time-select{display:flex;align-items:center;gap:6px;}
 .time-select select{flex:1;min-width:0;text-align:center;}
@@ -622,6 +629,12 @@ th.th-sort-active svg{opacity:1;}
 .import-warn{background:var(--gold-dim);border:1px solid var(--gold);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text);}
 .import-warn.danger{background:var(--danger-dim);border-color:var(--danger);}
 .import-warn-title{font-weight:600;font-size:12.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.import-warn-title svg{width:16px;height:16px;flex-shrink:0;}
+/* Icônes soleil/lune (avant-ouverture/après-clôture) du calendrier des résultats — remplace un
+   style inline display:inline-flex;width;height directement sur le <span> (fragile, jamais réutilisé
+   ailleurs) par la même convention classe + "X svg{width}" que le reste du fichier. */
+.time-icon{display:inline-flex;width:15px;height:15px;vertical-align:-3px;}
+.time-icon svg{width:15px;height:15px;flex-shrink:0;}
 .import-warn ul{margin:4px 0 0;padding-left:18px;font-size:11.5px;color:var(--text-dim);max-height:110px;overflow:auto;}
 .import-warn ul li{margin-bottom:2px;}
 .import-empty{text-align:center;padding:30px 0;color:var(--text-faint);font-size:13px;}
@@ -698,7 +711,12 @@ th.th-sort-active svg{opacity:1;}
 .alert-dot{width:8px;height:8px;border-radius:50%;background:var(--dot,var(--slate));flex-shrink:0;}
 .alert-label{font-size:13px;font-weight:600;}
 .alert-sub{font-size:11.5px;color:var(--text-faint);margin-top:1px;}
-.alert-goto{margin-left:auto;color:var(--text-faint);width:16px;height:16px;flex-shrink:0;}
+/* display:inline-flex ajouté le 29/08/2026 : un <span> reste "inline" par défaut, et width/height
+   n'ont aucun effet sur un élément inline non remplacé (règle CSS de base) — la taille déclarée
+   ci-dessous n'a donc jamais été appliquée, laissant l'icône (icon(), sans taille intrinsèque)
+   s'afficher à sa taille par défaut du navigateur. Même famille de bug que lockedWidgetInline(). */
+.alert-goto{display:inline-flex;margin-left:auto;color:var(--text-faint);width:16px;height:16px;flex-shrink:0;}
+.alert-goto svg{width:16px;height:16px;flex-shrink:0;}
 
 /* CALENDRIER MENSUALITÉS */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
@@ -4349,8 +4367,14 @@ function dashboardLastSessionWidgetHtml(f, myTraderIds){
     </div>`;
 }
 function lockedWidgetInline(label){
+  // icon() renvoie un <svg> sans taille intrinsèque : sans classe dédiée pour le contraindre, il
+  // s'étire à la taille de son conteneur (bug récurrent déjà rencontré ailleurs — voir les règles
+  // ".empty svg"/".session-lock-panel svg"/etc.). Ce widget (calendrier verrouillé du Dashboard
+  // notamment) n'en avait pas : icône cadenas énorme signalée le 29/08/2026. Nouvelle classe
+  // ".locked-widget-icon" pour corriger, en suivant le même gabarit que les autres icônes d'état
+  // verrouillé/vide de l'app (~22-24px).
   return `<div class="panel"><div class="panel-body" style="text-align:center;padding:22px 16px;">
-    ${icon('lock')}
+    <div class="locked-widget-icon">${icon('lock')}</div>
     <div style="font-size:12.5px;color:var(--text-dim);margin:8px 0 10px;">${label} est réservé aux comptes Premium.</div>
     <button class="btn btn-primary btn-sm upgrade-cta" onclick="openUpgradeModal('${label.replace(/'/g,"\\'")}')">🚀 Passer à Premium</button>
   </div></div>`;
@@ -7083,9 +7107,9 @@ async function loadNasdaqEarnings(){
       return;
     }
     const timeIcon = t => t==='time-pre-market'
-        ? `<span title="Avant ouverture" style="display:inline-flex;color:var(--warning, #e6b800);width:15px;height:15px;vertical-align:-3px;">${icon('sun')}</span>`
+        ? `<span class="time-icon" title="Avant ouverture" style="color:var(--warning, #e6b800);">${icon('sun')}</span>`
         : t==='time-after-hours'
-        ? `<span title="Après clôture" style="display:inline-flex;color:var(--text-faint);width:15px;height:15px;vertical-align:-3px;">${icon('moon')}</span>`
+        ? `<span class="time-icon" title="Après clôture" style="color:var(--text-faint);">${icon('moon')}</span>`
         : '<span style="color:var(--text-faint);">—</span>';
     const parseCap = v => { if(v===null||v===undefined||v==='') return 0; const n = Number(String(v).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
     const fmtCap = v => { const n = parseCap(v); if(!n) return '—'; if(n>=1e9) return '$'+(n/1e9).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'B'; if(n>=1e6) return '$'+(n/1e6).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'M'; return '$'+n.toLocaleString('fr-FR'); };
