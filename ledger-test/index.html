@@ -1178,7 +1178,7 @@ function icon(name){ return ICONS[name] || ''; }
 // initInfoTips() (délégation d'événements globale, voir BOOT) — pas de logique par page à
 // dupliquer. `text` peut contenir du HTML simple (ex: <br>, <strong>) déjà échappé si besoin.
 function infoTip(text){
-  return `<button type="button" class="info-tip" data-info-tip="${escapeHtml(text)}" aria-label="Explication" onclick="event.stopPropagation()">${icon('info')}</button>`;
+  return `<button type="button" class="info-tip" data-info-tip="${escapeHtml(text)}" aria-label="Explication" onclick="event.stopPropagation();toggleInfoTip(this)">${icon('info')}</button>`;
 }
 
 // Numéro de version de l'application, affiché en bas de la barre latérale.
@@ -11623,43 +11623,43 @@ function initBackToTop(){
   btn.onclick = ()=> window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Bulles d'info (ⓘ) : un seul écouteur global (délégation) plutôt qu'un par bouton — les
-// boutons .info-tip sont réinjectés à chaque render() de n'importe quelle page, donc toute
-// logique attachée par élément serait perdue au rendu suivant. Un clic sur ⓘ ouvre une bulle
-// positionnée sous (ou au-dessus si pas de place) le bouton ; un second clic sur le même
-// bouton, un clic ailleurs, un scroll, un resize ou Échap la referme.
+// Bulles d'info (ⓘ) : état + fonctions au niveau module (pas de logique par bouton à
+// recréer) — les boutons .info-tip sont réinjectés à chaque render() de n'importe quelle
+// page, donc tout ce qui doit survivre au rendu suivant est branché une seule fois ici,
+// dans initInfoTips(), appelé depuis boot().
+let __infoTipBubble = null, __infoTipBtn = null;
+function closeInfoTip(){
+  if(__infoTipBubble){ __infoTipBubble.remove(); __infoTipBubble = null; }
+  if(__infoTipBtn){ __infoTipBtn.classList.remove('active'); __infoTipBtn = null; }
+}
+// Appelée directement depuis l'attribut onclick de chaque bouton .info-tip (voir infoTip()) —
+// pas via une délégation sur document, car event.stopPropagation() doit s'exécuter dès la
+// phase cible pour empêcher un parent cliquable (ex: tuile "Délais moyens") de réagir au même
+// clic ; une fois l'event remonté jusqu'à document il est déjà trop tard pour l'arrêter.
+function toggleInfoTip(btn){
+  if(__infoTipBtn === btn){ closeInfoTip(); return; }
+  closeInfoTip();
+  const bubble = document.createElement('div');
+  bubble.className = 'info-tip-bubble';
+  bubble.textContent = btn.getAttribute('data-info-tip') || '';
+  document.body.appendChild(bubble); // pour mesurer sa taille réelle avant de la positionner
+  const r = btn.getBoundingClientRect();
+  const margin = 8;
+  const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+  let left = r.left + r.width/2 - bw/2;
+  left = Math.max(margin, Math.min(left, window.innerWidth - bw - margin));
+  let top = r.bottom + 6;
+  if(top + bh > window.innerHeight - margin) top = r.top - bh - 6; // pas de place en dessous → au-dessus
+  bubble.style.left = left + 'px';
+  bubble.style.top = Math.max(margin, top) + 'px';
+  btn.classList.add('active');
+  __infoTipBubble = bubble; __infoTipBtn = btn;
+}
+// Fermeture : clic ailleurs, scroll, resize ou touche Échap. Un clic sur le bouton ⓘ
+// lui-même ne remonte jamais jusqu'ici (stoppé dans toggleInfoTip via l'attribut onclick).
 function initInfoTips(){
-  let bubbleEl = null, activeBtn = null;
-  function closeInfoTip(){
-    if(bubbleEl){ bubbleEl.remove(); bubbleEl = null; }
-    if(activeBtn){ activeBtn.classList.remove('active'); activeBtn = null; }
-  }
-  function positionBubble(btn, bubble){
-    const r = btn.getBoundingClientRect();
-    const margin = 8;
-    document.body.appendChild(bubble); // pour mesurer sa taille réelle avant de la positionner
-    const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
-    let left = r.left + r.width/2 - bw/2;
-    left = Math.max(margin, Math.min(left, window.innerWidth - bw - margin));
-    let top = r.bottom + 6;
-    if(top + bh > window.innerHeight - margin) top = r.top - bh - 6; // pas de place en dessous → au-dessus
-    bubble.style.left = left + 'px';
-    bubble.style.top = Math.max(margin, top) + 'px';
-  }
   document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.info-tip');
-    if(btn){
-      if(activeBtn === btn){ closeInfoTip(); return; }
-      closeInfoTip();
-      const bubble = document.createElement('div');
-      bubble.className = 'info-tip-bubble';
-      bubble.textContent = btn.getAttribute('data-info-tip') || '';
-      positionBubble(btn, bubble);
-      btn.classList.add('active');
-      bubbleEl = bubble; activeBtn = btn;
-      return;
-    }
-    if(bubbleEl && !e.target.closest('.info-tip-bubble')) closeInfoTip();
+    if(__infoTipBubble && !e.target.closest('.info-tip-bubble') && !e.target.closest('.info-tip')) closeInfoTip();
   });
   window.addEventListener('scroll', closeInfoTip, true);
   window.addEventListener('resize', closeInfoTip);
