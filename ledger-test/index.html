@@ -208,6 +208,13 @@ a{color:var(--accent);text-decoration:none;}
 .stat-value{font-size:24px;font-weight:700;margin-top:8px;font-family:'JetBrains Mono',monospace;}
 .stat-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
 
+/* BULLE D'INFO (ⓘ) — réutilisable partout (KPI, titres de section, libellés de champ...) */
+.info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;padding:0;margin-left:4px;border:none;background:transparent;color:var(--text-faint);cursor:pointer;vertical-align:-2px;flex-shrink:0;}
+.info-tip svg{width:14px;height:14px;display:block;}
+.info-tip:hover,.info-tip:focus-visible,.info-tip.active{color:var(--accent);}
+.info-tip-bubble{position:fixed;z-index:4000;max-width:280px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.5;font-weight:400;text-transform:none;letter-spacing:normal;color:var(--text,#E8EDF2);box-shadow:0 8px 24px rgba(0,0,0,.28);animation:infoTipIn .12s ease-out;}
+@keyframes infoTipIn{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:translateY(0);}}
+
 /* CARDS / PANELS */
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;}
 .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-soft);}
@@ -1161,8 +1168,18 @@ const ICONS = {
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
   exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.05" fill="currentColor" stroke="none"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
+
+// Bulle d'info (ⓘ) réutilisable : à insérer dans n'importe quel libellé (KPI, titre de
+// section, etc) pour expliquer en langage simple ce qui est affiché/comment c'est calculé.
+// Le texte est porté par un data-attribute et affiché dans une bulle flottante gérée par
+// initInfoTips() (délégation d'événements globale, voir BOOT) — pas de logique par page à
+// dupliquer. `text` peut contenir du HTML simple (ex: <br>, <strong>) déjà échappé si besoin.
+function infoTip(text){
+  return `<button type="button" class="info-tip" data-info-tip="${escapeHtml(text)}" aria-label="Explication" onclick="event.stopPropagation()">${icon('info')}</button>`;
+}
 
 // Numéro de version de l'application, affiché en bas de la barre latérale.
 // Valeur de repli si aucune entrée du journal "Nouveautés" n'a de champ "version" renseigné.
@@ -4086,9 +4103,9 @@ function dashboardMonthRecapWidgetHtml(expenses, payouts){
             ${donutChartHtml(ringSegments, { centerLabel:'Total', centerValue: fmtMoneyCur(r.challenge+r.activation+r.payout, r.currency) })}
           </div>
           <div class="dash-split-col">
-            <div class="stat-tile" style="--rail:var(--accent);margin-bottom:10px;"><div class="stat-label">Payouts</div><div class="stat-value">${recapMoney(r.payout,'gain',r.currency)}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
-            <div class="stat-tile" style="--rail:var(--danger);margin-bottom:10px;"><div class="stat-label">Total coûts</div><div class="stat-value">${recapMoney(r.totalCosts,'cost',r.currency)}</div><div class="stat-sub">${recapMoney(r.challenge,'cost',r.currency)} challenges · ${recapMoney(r.activation,'cost',r.currency)} activation</div></div>
-            <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net',r.currency)}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent);margin-bottom:10px;"><div class="stat-label">Payouts${infoTip("Somme des versements reçus ce mois-ci, tous comptes confondus.")}</div><div class="stat-value">${recapMoney(r.payout,'gain',r.currency)}</div><div class="stat-sub">${r.payoutCount} versement(s)</div></div>
+            <div class="stat-tile" style="--rail:var(--danger);margin-bottom:10px;"><div class="stat-label">Total coûts${infoTip("Frais de challenge + frais d'activation payés ce mois-ci (hors mensualités).")}</div><div class="stat-value">${recapMoney(r.totalCosts,'cost',r.currency)}</div><div class="stat-sub">${recapMoney(r.challenge,'cost',r.currency)} challenges · ${recapMoney(r.activation,'cost',r.currency)} activation</div></div>
+            <div class="stat-tile" style="--rail:${r.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net · ROI${infoTip("Net = Payouts − Total coûts du mois. ROI = ce net rapporté aux coûts du mois, en %.")}</div><div class="stat-value" style="color:${r.net>=0?'var(--accent)':'var(--danger)'}">${recapMoney(r.net,'net',r.currency)}</div><div class="stat-sub">ROI ${recapRoi(r.roi)}</div></div>
           </div>
         </div>
       </div>
@@ -4378,16 +4395,16 @@ function viewDashboard(){
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('layout')}Vue d'ensemble</div></div>
         <div class="panel-body">
           <div class="stats-grid">
-            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
-            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
-            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs${infoTip("Traders dont le statut est « Actif », sur le total de traders que tu gères.")}</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours${infoTip("Comptes de type Challenge dont le statut est « Actif » (pas encore réussi, ni breach, ni clôturé).")}</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs${infoTip("Comptes de type « Prop Account » (compte financé après réussite d'un challenge) actuellement au statut Actif.")}</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite${infoTip("Part des challenges passés en statut « Réussi », parmi tous les challenges réussis + breachés (les challenges encore en cours ne comptent pas).")}</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
           </div>
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs${infoTip("Comptes de type « Live » (capital réel après validation d'un PA) actuellement au statut Actif.")}</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des achats de challenges, des mensualités et des frais d'activation, sur la période filtrée. Convertie dans une seule devise si tes comptes utilisent des devises différentes.")}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des versements (payouts) reçus sur la période filtrée, tous comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net${infoTip("Payouts reçus moins dépenses engagées sur la période filtrée. Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
           </div>
         </div>
       </div>`,
@@ -4396,11 +4413,11 @@ function viewDashboard(){
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; rendement</div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
-            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
-            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
-            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
-            <div class="stat-tile" style="--rail:${avgRegularity===null?'var(--slate)':regularityTier(avgRegularity).color}"><div class="stat-label">Régularité des payouts</div><div class="stat-value">${avgRegularity===null?'—':avgRegularity+'%'}</div><div class="stat-sub">${avgRegularity===null?'aucun payout enregistré pour le moment':`${regularityTier(avgRegularity).label.toLowerCase()} · moyenne sur ${regularityScores.length} trader(s)`}</div></div>
+            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Résultat net divisé par les dépenses engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé${infoTip("Total de toutes tes dépenses (tout l'historique, pas seulement la période filtrée) divisé par le nombre de challenges réussis. Donne une idée du prix moyen réel d'un compte financé.")}</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion${infoTip("Somme des tailles de compte (25K, 50K, 100K...) de tous les PA et Live actuellement au statut Actif — le capital que les propfirms te laissent gérer aujourd'hui.")}</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir${infoTip("Somme des montants mensuels des comptes actifs facturés à l'abonnement (paiement « Mensuel »). C'est une charge récurrente, pas un montant déjà payé.")}</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
+            <div class="stat-tile" style="--rail:${avgRegularity===null?'var(--slate)':regularityTier(avgRegularity).color}"><div class="stat-label">Régularité des payouts${infoTip("Moyenne, sur tes traders, d'un score de régularité des versements (calculé sur l'historique complet de chacun) : plus les payouts arrivent à intervalles réguliers, plus le score est élevé.")}</div><div class="stat-value">${avgRegularity===null?'—':avgRegularity+'%'}</div><div class="stat-sub">${avgRegularity===null?'aucun payout enregistré pour le moment':`${regularityTier(avgRegularity).label.toLowerCase()} · moyenne sur ${regularityScores.length} trader(s)`}</div></div>
           </div>
         </div>
       </div>`,
@@ -4409,10 +4426,10 @@ function viewDashboard(){
         <div class="panel-head"><div class="section-title">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
-            <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
-            <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
-            <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
+            <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture${infoTip("Nombre moyen de jours entre la date d'ouverture d'un compte et son tout premier payout, moyenné sur tous les comptes ayant reçu au moins un payout.")}</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
+            <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)${infoTip("Nombre moyen de jours entre deux payouts consécutifs sur un même compte — indique le rythme de versement habituel de tes propfirms.")}</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
+            <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach${infoTip("Nombre moyen de jours entre l'ouverture d'un challenge et son passage en statut Breached, sur les challenges qui ont breach.")}</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
+            <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA${infoTip("Nombre moyen de jours entre l'ouverture d'un challenge et sa réussite (passage en PA), sur les challenges réussis.")}</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
           </div>
         </div>
       </div>`,
@@ -11606,6 +11623,49 @@ function initBackToTop(){
   btn.onclick = ()=> window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Bulles d'info (ⓘ) : un seul écouteur global (délégation) plutôt qu'un par bouton — les
+// boutons .info-tip sont réinjectés à chaque render() de n'importe quelle page, donc toute
+// logique attachée par élément serait perdue au rendu suivant. Un clic sur ⓘ ouvre une bulle
+// positionnée sous (ou au-dessus si pas de place) le bouton ; un second clic sur le même
+// bouton, un clic ailleurs, un scroll, un resize ou Échap la referme.
+function initInfoTips(){
+  let bubbleEl = null, activeBtn = null;
+  function closeInfoTip(){
+    if(bubbleEl){ bubbleEl.remove(); bubbleEl = null; }
+    if(activeBtn){ activeBtn.classList.remove('active'); activeBtn = null; }
+  }
+  function positionBubble(btn, bubble){
+    const r = btn.getBoundingClientRect();
+    const margin = 8;
+    document.body.appendChild(bubble); // pour mesurer sa taille réelle avant de la positionner
+    const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+    let left = r.left + r.width/2 - bw/2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - bw - margin));
+    let top = r.bottom + 6;
+    if(top + bh > window.innerHeight - margin) top = r.top - bh - 6; // pas de place en dessous → au-dessus
+    bubble.style.left = left + 'px';
+    bubble.style.top = Math.max(margin, top) + 'px';
+  }
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.info-tip');
+    if(btn){
+      if(activeBtn === btn){ closeInfoTip(); return; }
+      closeInfoTip();
+      const bubble = document.createElement('div');
+      bubble.className = 'info-tip-bubble';
+      bubble.textContent = btn.getAttribute('data-info-tip') || '';
+      positionBubble(btn, bubble);
+      btn.classList.add('active');
+      bubbleEl = bubble; activeBtn = btn;
+      return;
+    }
+    if(bubbleEl && !e.target.closest('.info-tip-bubble')) closeInfoTip();
+  });
+  window.addEventListener('scroll', closeInfoTip, true);
+  window.addEventListener('resize', closeInfoTip);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeInfoTip(); });
+}
+
 /* ============================================================
    BOOT
 ============================================================ */
@@ -11625,6 +11685,7 @@ function applyFiscalLandingVisibility(){
 }
 (async function boot(){
   initBackToTop();
+  initInfoTips();
   // Chargé avant même la vérification de session : pilote aussi la visibilité du module
   // Fiscalité sur la landing publique pour un visiteur pas encore connecté (voir
   // applyFiscalLandingVisibility ci-dessus). Sans effet silencieux si la policy RLS
