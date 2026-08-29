@@ -338,20 +338,22 @@ th.th-sort-active svg{opacity:1;}
 .badge-danger{background:var(--danger-dim);color:var(--danger);}
 .badge-gold{background:var(--gold-dim);color:var(--gold);}
 .badge-slate{background:var(--slate-dim);color:var(--slate);}
-.type-pill{display:inline-flex;align-items:center;padding:3px 11px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
-.size-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;}
+.type-pill{display:inline-flex;align-items:center;padding:3px 11px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+.size-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--radius-pill);font-size:13px;font-weight:700;white-space:nowrap;}
+.pay-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border-soft);}
+.pay-pill svg{width:11px;height:11px;flex-shrink:0;}
 
 /* FILTER BAR — bulles façon comparateur (résultats, filtres, tri, réinitialiser) */
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
-.filter-bar input[type=text],.filter-bar select,.filter-bar input[type=month]{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 15px;border-radius:999px;font-size:12.5px;font-family:inherit;}
+.filter-bar input[type=text],.filter-bar select,.filter-bar input[type=month]{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 15px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;}
 .filter-bar input[type=text]{min-width:200px;padding-left:15px;}
 .status-multiselect{position:relative;}
-.status-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:999px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s;}
+.status-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s;}
 .status-ms-btn:hover{border-color:var(--accent);}
 /* Bouton d'action rattaché à une barre de filtres (ex : "Personnaliser" du dashboard) — même
    langage visuel que les pilules de filtre (fond, bordure, rayon 999px) pour rester homogène,
    avec l'icône et le texte teintés accent au repos pour se distinguer d'un simple filtre. */
-.filter-action-btn{background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:9px 16px;border-radius:999px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s,color .12s;}
+.filter-action-btn{background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .12s,background .12s,color .12s;}
 .filter-action-btn svg{width:14px;height:14px;flex-shrink:0;}
 .filter-action-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
 .status-ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:40;min-width:170px;flex-direction:column;gap:1px;}
@@ -364,7 +366,7 @@ th.th-sort-active svg{opacity:1;}
 .acc-group-header{display:flex;align-items:center;gap:8px;margin:22px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 .acc-group-header:first-child{margin-top:4px;}
 .acc-group-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
-.acc-group-count{font-size:11.5px;color:var(--text-faint);background:var(--surface-2);border-radius:100px;padding:2px 9px;}
+.acc-group-count{font-size:11.5px;color:var(--text-faint);background:var(--surface-2);border-radius:var(--radius-pill);padding:2px 9px;}
 .stat-tile-clickable{cursor:pointer;transition:transform .1s ease,border-color .1s ease;}
 .stat-tile-clickable:hover{border-color:var(--rail,var(--accent));transform:translateY(-1px);}
 .clickable-row{cursor:pointer;}
@@ -377,7 +379,7 @@ th.th-sort-active svg{opacity:1;}
 .month-filter svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-faint);pointer-events:none;}
 .month-filter input{padding-left:32px !important;}
 .date-range-filter{position:relative;}
-.drf-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:999px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.drf-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;}
 .drf-btn svg{width:13px;height:13px;color:var(--text-faint);flex-shrink:0;}
 .drf-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);z-index:40;display:flex;overflow:hidden;}
 .drf-menu-right{left:auto;right:0;}
@@ -419,7 +421,7 @@ th.th-sort-active svg{opacity:1;}
 .results-counter-label{font-size:9.5px;color:var(--text-faint);letter-spacing:1.3px;text-transform:uppercase;font-weight:700;margin-bottom:2px;}
 .results-counter-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);}
 .results-counter-value .rc-total{font-size:13px;font-weight:500;color:var(--text-faint);margin-left:2px;}
-.pill-reset{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:9px 18px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .12s;}
+.pill-reset{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:9px 18px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .12s;}
 .pill-reset:hover{background:var(--danger-dim);}
 .recap-granularity{display:flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px;}
 .recap-gran-btn{background:none;border:none;color:var(--text-dim);font-size:12px;font-weight:600;font-family:inherit;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;}
@@ -659,14 +661,14 @@ th.th-sort-active svg{opacity:1;}
 /* ACCOUNT ROW CARD */
 .acc-card{border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:var(--radius-md);padding:14px 16px;margin-bottom:10px;background:var(--surface);}
 .acc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
-.acc-title{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;}
+.acc-title{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;}
 .acc-meta{font-size:11.5px;color:var(--text-faint);margin-top:3px;}
 .acc-actions{display:flex;gap:6px;flex-wrap:wrap;}
 .acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:12px;}
 .acc-field-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;}
 .acc-field-value{font-size:13px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
 .link-parent{font-size:11px;color:var(--text-dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
-.link-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;border:1px solid currentColor;cursor:pointer;background:transparent;}
+.link-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;border:1px solid currentColor;cursor:pointer;background:transparent;}
 .link-tag svg{width:11px;height:11px;flex-shrink:0;}
 .link-tag:hover{filter:brightness(1.15);}
 .acc-card{transition:box-shadow .3s ease, border-color .3s ease;}
@@ -790,7 +792,7 @@ th.th-sort-active svg{opacity:1;}
 .chat-msg-assistant{align-self:flex-start;background:var(--surface-2);color:var(--text);border-bottom-left-radius:3px;}
 .chat-typing{opacity:.6;font-style:italic;}
 .chat-panel-foot{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
-.chat-panel-foot input{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:999px;font-size:13px;font-family:inherit;}
+.chat-panel-foot input{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius-pill);font-size:13px;font-family:inherit;}
 .chat-panel-foot button{flex-shrink:0;width:36px;height:36px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;}
 .chat-panel-foot button svg{width:16px;height:16px;}
 .toast{background:var(--surface-3);border:1px solid var(--border);border-left:3px solid var(--accent);color:var(--text);padding:11px 16px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);min-width:220px;animation:slideIn .15s ease;}
@@ -2789,6 +2791,16 @@ function typeBadgeHtml(type){
 function sizeBadgeHtml(acc){
   const c = SIZE_COLORS[acc.size] || '#7C8B9A';
   return `<span class="size-pill" style="background:${hexToRgba(c,0.16)};color:${c};">${sizeLabel(acc)}</span>`;
+}
+// Tag type de paiement (unique vs mensuel) sur la carte compte — demandé lors de l'audit design
+// du 29/08/2026 : l'info existait déjà en base (paymentType) mais n'était visible nulle part sur
+// la carte, seulement dans le formulaire d'édition. Neutre (gris) volontairement : ce n'est pas un
+// statut (comme .badge) ni une catégorie colorée (comme type/taille), juste une info de facturation.
+function paymentTypeBadgeHtml(acc){
+  const monthly = acc.paymentType === 'MENSUEL';
+  const amount = monthly ? acc.monthlyAmount : acc.purchasePrice;
+  const amountHtml = amount ? ` · ${fmtMoneyDisp(amount, acc.currency, acc.fxRateToEur)}${monthly?'/mois':''}` : '';
+  return `<span class="pay-pill" title="${monthly?'Facturation mensuelle':'Payé en une fois à l’achat'}">${icon(monthly?'calendar':'check')}${monthly?'Mensuel':'Unique'}${amountHtml}</span>`;
 }
 
 // Palette dédiée aux vignettes de lien Challenge -> PA (distincte des couleurs de statut de l'app)
@@ -6224,6 +6236,7 @@ function accountCard(a){
           <div class="acc-title">
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
             ${typeBadgeHtml(a.type)} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${firm?firm.name:'—'}</span>
+            ${paymentTypeBadgeHtml(a)}
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
             ${linkTag}
           </div>
