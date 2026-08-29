@@ -168,16 +168,16 @@ a{color:var(--accent);text-decoration:none;}
 .brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;}
 .brand-sub{font-size:10px;color:var(--text-faint);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px;}
 
-.nav{display:flex;flex-direction:column;gap:2px;flex:1;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--text-dim);font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:background .12s,color .12s;}
+.nav{display:flex;flex-direction:column;gap:3px;flex:1;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);color:var(--text-dim);font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:background .12s,color .12s;}
 .nav-item svg{width:16px;height:16px;flex-shrink:0;}
 .nav-item:hover{background:var(--surface-2);color:var(--text);}
 .nav-item.active{background:var(--accent-dim);color:var(--text);border-left-color:var(--accent);}
-.nav-group{display:flex;flex-direction:column;margin-bottom:2px;}
-.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
+.nav-group{display:flex;flex-direction:column;margin-bottom:10px;}
+.nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
 .nav-group-chev{display:flex;width:11px;height:11px;flex-shrink:0;transition:transform .15s;}
-.nav-group-items{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+.nav-group-items{display:flex;flex-direction:column;gap:3px;margin-top:2px;margin-bottom:2px;}
 .nav-foot{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border-soft);}
 .legal-foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;padding:4px 4px 0;font-size:10px;}
 .legal-foot-links a{color:var(--text-faint);text-decoration:none;}
@@ -290,7 +290,14 @@ tr[data-open-session]:hover{background:var(--surface-2);}
 .session-details-toggle[open] .session-details-chev{transform:rotate(90deg);}
 
 /* TABLE */
-.table-wrap{overflow-x:auto;}
+/* -webkit-overflow-scrolling: défilement "momentum" fluide sur iOS (sans ça, le scroll horizontal
+   d'un tableau large est saccadé au doigt). Le dégradé de bord droit (::after) est un indice visuel
+   discret : sur mobile, rien ne montrait qu'un tableau plus large que l'écran pouvait se faire
+   glisser horizontalement — retour d'audit design du 29/08/2026, étape 5. */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;}
+@media (max-width:760px){
+  .table-wrap{-webkit-mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);}
+}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
 td{padding:11px 12px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
@@ -918,6 +925,12 @@ th.th-sort-active svg{opacity:1;}
   .acc-top{flex-direction:column;align-items:stretch;}
   .acc-actions{width:100%;}
   table{font-size:12px;}
+  /* En dessous de 520px, la grille 2x2 de la carte compte (Taille/Achat/Dépenses/Payouts) devient
+     trop étroite pour des montants/dates qui peuvent être longs (ex: montant converti) — on repasse
+     en 1 colonne pour que chaque valeur reste lisible sans se couper. Audit design 29/08/2026, étape 5. */
+  .acc-grid{grid-template-columns:1fr;gap:10px;}
+  .filter-bar{gap:8px;}
+  .filter-bar input[type=text]{min-width:0;flex:1 1 100%;}
 }
 </style>
 </head>
@@ -2473,43 +2486,43 @@ async function signOut(){
 ============================================================ */
 function renderAuthScreen(){
   const step = state.authStep === 'code' ? 'code' : 'email';
-  const stepNum = (n, active) => `<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${active?'#3ED6B5':'#1A222C'};color:${active?'#0B0F14':'#5B6673'};">${n}</div>`;
+  const stepNum = (n, active) => `<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${active?'var(--accent)':'var(--surface-2)'};color:${active?'var(--accent-text)':'var(--text-faint)'};">${n}</div>`;
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('loading').innerHTML = `
-    <div style="width:100%;max-width:360px;background:var(--surface,#12181F);border:1px solid var(--border,#232D38);border-radius:12px;padding:28px 26px;">
+    <div style="width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:7px;object-fit:cover;"/>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#E8EDF2;">Contralytix</div>
+        <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:var(--radius-sm);object-fit:cover;"/>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text);">Contralytix</div>
       </div>
-      <div style="font-size:12px;color:#8B98A5;margin-bottom:20px;line-height:1.4;">Reçois un code temporaire par e-mail pour accéder à ton espace. Pas de mot de passe à retenir.</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.4;">Reçois un code temporaire par e-mail pour accéder à ton espace. Pas de mot de passe à retenir.</div>
 
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
-        ${stepNum(1, true)}<label style="font-size:12px;font-weight:700;color:#E8EDF2;">Ton adresse e-mail</label>
+        ${stepNum(1, true)}<label style="font-size:12px;font-weight:700;color:var(--text);">Ton adresse e-mail</label>
       </div>
-      <input id="auth-email" type="email" placeholder="toi@email.fr" value="${escapeHtml(state.authEmail||'')}" ${step==='code'?'disabled':''} style="width:100%;background:${step==='code'?'#151B23':'#1A222C'};border:1px solid #232D38;color:${step==='code'?'#8B98A5':'#E8EDF2'};padding:9px 10px;border-radius:7px;font-size:13px;box-sizing:border-box;margin-bottom:10px;"/>
-      ${step==='email' ? `<button id="auth-send-code" style="width:100%;padding:10px;border:none;border-radius:7px;background:#3ED6B5;color:#0B0F14;font-weight:700;font-size:13.5px;cursor:pointer;">Envoyer un code</button>` : `<button id="auth-change-email" style="width:100%;padding:8px;border:1px solid #232D38;border-radius:7px;background:transparent;color:#8B98A5;font-weight:600;font-size:12px;cursor:pointer;">Modifier l’adresse e-mail</button>`}
+      <input id="auth-email" type="email" placeholder="toi@email.fr" value="${escapeHtml(state.authEmail||'')}" ${step==='code'?'disabled':''} style="width:100%;background:${step==='code'?'var(--surface)':'var(--surface-2)'};border:1px solid var(--border);color:${step==='code'?'var(--text-dim)':'var(--text)'};padding:9px 10px;border-radius:var(--radius-sm);font-size:13px;box-sizing:border-box;margin-bottom:10px;"/>
+      ${step==='email' ? `<button id="auth-send-code" style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-text);font-weight:700;font-size:13.5px;cursor:pointer;">Envoyer un code</button>` : `<button id="auth-change-email" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text-dim);font-weight:600;font-size:12px;cursor:pointer;">Modifier l’adresse e-mail</button>`}
 
       ${step==='code' ? `
-      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:#5B6673;font-size:11px;">
-        <div style="flex:1;height:1px;background:#232D38;"></div>Puis<div style="flex:1;height:1px;background:#232D38;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:var(--text-faint);font-size:11px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>Puis<div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
-        ${stepNum(2, true)}<label style="font-size:12px;font-weight:700;color:#E8EDF2;">Code reçu par e-mail</label>
+        ${stepNum(2, true)}<label style="font-size:12px;font-weight:700;color:var(--text);">Code reçu par e-mail</label>
       </div>
-      <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 chiffres" style="width:100%;background:#1A222C;border:1px solid #232D38;color:#E8EDF2;padding:9px 10px;border-radius:7px;font-size:16px;letter-spacing:4px;text-align:center;box-sizing:border-box;margin-bottom:10px;"/>
-      <button id="auth-verify-code" disabled style="width:100%;padding:10px;border:none;border-radius:7px;background:#2A343F;color:#5B6673;font-weight:700;font-size:13.5px;cursor:not-allowed;transition:background .15s,color .15s;">Se connecter</button>
-      <div style="font-size:11px;color:#5B6673;margin-top:8px;line-height:1.4;">Le bouton s’active dès que les 6 chiffres sont renseignés. <a id="auth-resend-code" href="#" style="color:#8B98A5;text-decoration:underline;">Renvoyer un code</a></div>
+      <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 chiffres" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:9px 10px;border-radius:var(--radius-sm);font-size:16px;letter-spacing:4px;text-align:center;box-sizing:border-box;margin-bottom:10px;"/>
+      <button id="auth-verify-code" disabled style="width:100%;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--surface-3);color:var(--text-faint);font-weight:700;font-size:13.5px;cursor:not-allowed;transition:background .15s,color .15s;">Se connecter</button>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.4;">Le bouton s’active dès que les 6 chiffres sont renseignés. <a id="auth-resend-code" href="#" style="color:var(--text-dim);text-decoration:underline;">Renvoyer un code</a></div>
       ` : ''}
 
-      ${state.authError ? `<div style="color:#E85C4A;font-size:12px;margin-top:12px;line-height:1.4;">${escapeHtml(state.authError)}</div>` : ''}
+      ${state.authError ? `<div style="color:var(--danger);font-size:12px;margin-top:12px;line-height:1.4;">${escapeHtml(state.authError)}</div>` : ''}
 
-      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:#5B6673;font-size:11px;">
-        <div style="flex:1;height:1px;background:#232D38;"></div>OU<div style="flex:1;height:1px;background:#232D38;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:var(--text-faint);font-size:11px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>OU<div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
-      <button id="auth-google" style="width:100%;padding:10px;border:1px solid #232D38;border-radius:7px;background:transparent;color:#E8EDF2;font-weight:600;font-size:13px;cursor:pointer;">Continuer avec Google</button>
+      <button id="auth-google" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text);font-weight:600;font-size:13px;cursor:pointer;">Continuer avec Google</button>
       <div style="text-align:center;margin-top:16px;">
-        <a id="auth-privacy-link" href="#" style="font-size:11.5px;color:#5B6673;text-decoration:underline;">Confidentialité &amp; RGPD</a>
+        <a id="auth-privacy-link" href="#" style="font-size:11.5px;color:var(--text-faint);text-decoration:underline;">Confidentialité &amp; RGPD</a>
       </div>
     </div>
   `;
@@ -2532,8 +2545,8 @@ function renderAuthScreen(){
     const refreshBtnState = ()=>{
       const ready = codeInput.value.replace(/\D/g,'').length===6;
       verifyBtn.disabled = !ready;
-      verifyBtn.style.background = ready ? '#3ED6B5' : '#2A343F';
-      verifyBtn.style.color = ready ? '#0B0F14' : '#5B6673';
+      verifyBtn.style.background = ready ? 'var(--accent)' : 'var(--surface-3)';
+      verifyBtn.style.color = ready ? 'var(--accent-text)' : 'var(--text-faint)';
       verifyBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
     };
     codeInput.oninput = ()=>{ codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6); refreshBtnState(); };
@@ -3759,7 +3772,11 @@ function openDashboardCustomizeModal(){
   });
 }
 function navItemHtml(n){
-  return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${n.hiddenForOthers?'Masquée pour les autres utilisateurs':''}">
+  // title = libellé toujours présent (pas seulement le cas "masqué") : en dessous de 880px, la
+  // sidebar repasse en icônes seules (voir @media max-width:880px) et sans ce title natif, un
+  // item n'était identifiable qu'en cliquant dessus.
+  const title = n.hiddenForOthers ? `${n.label} — Masquée pour les autres utilisateurs` : n.label;
+  return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
     ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}
   </div>`;
 }
@@ -11948,6 +11965,12 @@ function applyFiscalLandingVisibility(){
   });
 }
 (async function boot(){
+  // Applique le thème choisi (localStorage, voir loadThemePrefs()) dès le boot, avant le premier
+  // rendu. Avant ce correctif, l'attribut data-theme n'était posé que dans render() (l'app une
+  // fois connecté) — l'écran de connexion et la landing marketing restaient donc toujours sur le
+  // data-theme="dark" statique du HTML, même pour un visiteur ayant choisi Light/Premium (audit
+  // design du 29/08/2026, étape 3).
+  document.documentElement.setAttribute('data-theme', state.theme);
   initBackToTop();
   initInfoTips();
   // Chargé avant même la vérification de session : pilote aussi la visibilité du module
@@ -11972,8 +11995,8 @@ function applyFiscalLandingVisibility(){
   if(!SUPABASE_CONFIGURED){
     document.getElementById('loading').innerHTML = `
       <div style="max-width:480px;text-align:center;padding:0 20px;">
-        <div style="font-size:15px;font-weight:600;color:var(--text,#E8EDF2);margin-bottom:10px;">Configuration Supabase requise</div>
-        <div style="font-size:13px;line-height:1.6;color:#8B98A5;">
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:10px;">Configuration Supabase requise</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--text-dim);">
           Ouvre le fichier <code>propfirm-app.html</code>, cherche <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code>
           tout en haut du script, et remplace-les par les valeurs de ton projet Supabase
           (Project Settings &gt; API). Voir le README fourni pour les étapes complètes.
