@@ -9691,7 +9691,7 @@ function promoCodeFormModal(existing){
    FORM: TRADER
 ============================================================ */
 function traderFormModal(existing){
-  const t = existing || { id: uid('trd'), firstName:'', lastName:'', pseudo:'', email: (state.session ? state.session.user.email : '') || '', status:'ACTIF', isPublic:true, createdBy: currentUserId() };
+  const t = existing || { id: uid('trd'), firstName:'', lastName:'', pseudo:'', email: (state.session ? state.session.user.email : '') || '', status:'ACTIF', isPublic:false, createdBy: currentUserId() };
   openModal({
     title: existing ? 'Modifier le trader' : 'Nouveau trader',
     bodyHtml: `
