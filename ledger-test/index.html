@@ -746,21 +746,6 @@ th.th-sort-active svg{opacity:1;}
 .dash-alerts-head{cursor:pointer;user-select:none;}
 .dash-alerts-collapse-btn{pointer-events:none;}
 
-/* CLASSEMENT (leaderboard) */
-.lb-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;}
-.lb-podium-card{border:1px solid var(--border);border-radius:10px;padding:18px 12px;text-align:center;background:var(--surface-2);}
-.lb-rank-1{order:2;border-color:var(--gold);background:var(--gold-dim);transform:scale(1.045);}
-.lb-rank-2{order:1;}
-.lb-rank-3{order:3;}
-.lb-medal{font-size:30px;line-height:1;}
-.lb-pseudo{font-weight:700;font-size:14px;margin-top:8px;}
-.lb-amount{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:19px;color:var(--accent);margin-top:5px;}
-.lb-sub{font-size:11px;color:var(--text-faint);margin-top:5px;}
-@media (max-width:760px){
-  .lb-podium{grid-template-columns:1fr;}
-  .lb-rank-1,.lb-rank-2,.lb-rank-3{order:initial;transform:none;}
-}
-
 /* TOASTS */
 #toast-root{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200;}
 /* CHATBOT IA — bulle flottante + panneau de discussion (assistant Contralytix) */
@@ -1010,10 +995,6 @@ th.th-sort-active svg{opacity:1;}
           <p>Gérez plusieurs traders sous un même compte : idéal pour les équipes, les formateurs ou les clubs de trading qui suivent plusieurs comptes à la fois.</p>
         </article>
         <article class="ml-feature-card">
-          <h3>Classement &amp; badges de progression</h3>
-          <p>Suivez la régularité de vos payouts, débloquez des badges et comparez-vous aux autres traders de votre équipe.</p>
-        </article>
-        <article class="ml-feature-card">
           <h3>Sessions live &amp; prépa de séance</h3>
           <p>Archivez vos sessions de trading YouTube avec vos notes, et générez une prépa de séance quotidienne assistée par IA avant l'ouverture.</p>
         </article>
@@ -1041,7 +1022,7 @@ th.th-sort-active svg{opacity:1;}
             <li>✓ Comptes illimités par trader</li>
             <li>✓ Exports CSV, Excel &amp; PDF</li>
             <li>✓ Calendrier des échéances</li>
-            <li>✓ Bilan visuel &amp; classement</li>
+            <li>✓ Bilan visuel</li>
             <li id="ml-pricing-fiscalite">✓ Module Fiscalité (micro-BNC)</li>
           </ul>
         </div>
@@ -1224,6 +1205,7 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 const DASHBOARD_WIDGETS = [
   { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
+  { id:'performance',    label:'Performance & rendement' },
   { id:'delays',         label:'Délais moyens' },
   { id:'chart',          label:'Dépenses vs Payouts (6 derniers mois)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
@@ -1289,7 +1271,6 @@ const state = {
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
-    classement: { month: '', allTime: false, monthMenuOpen:false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
@@ -1429,7 +1410,7 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','sessions','meteo','comparatif','classement','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','sessions','meteo','comparatif','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
 // Coupe-circuit spécifique au module Fiscalité (ex: migration prod pas encore terminée/validée
 // sur la vraie base — voir claude/migration-prod.md et claude/module-fiscalite.md) : réutilise le
 // même mécanisme que "Gestion des pages" (Admin > Gestion des pages > Fiscalité), mais un admin
@@ -2064,7 +2045,6 @@ function computePermissions(){
     canStatistics: isPremiumRole,
     canCalendar: isPremiumRole,
     canBackup: isPremiumRole,
-    canClassement: isPremiumRole,
     canFiscalite: isPremiumRole,
     canUnlimitedAccounts: isPremiumRole,
     maxFreeAccounts: 3,
@@ -2080,7 +2060,7 @@ function perms(){ return state.permissions || computePermissions(); }
    En Free, les listes (Traders, PropFirms, Comptes, Comptabilité) affichent
    ~30% de leurs éléments normalement, le reste flouté avec une carte "Passe
    à Premium" en overlay — sans bloquer complètement la page comme le fait
-   lockedFeatureView() pour Calendrier / Bilan Visuel / Classement.
+   lockedFeatureView() pour Calendrier / Bilan Visuel.
    Important : les données du compte connecté (isMineFn) ne sont JAMAIS
    floutées, quel que soit leur rang dans la liste — sinon le trader ou le
    compte qu'on vient tout juste de créer pourrait se retrouver caché
@@ -2179,7 +2159,7 @@ function maybeShowWelcomeModal(){
 const WELCOME_PREMIUM_HIGHLIGHTS = [
   { icon:'card',     label:'Comptes illimités', desc:'Suis autant de Challenges et de comptes financés que tu veux, sans plafond.' },
   { icon:'calendar', label:'Calendrier', desc:'Visualise tes échéances, mensualités et payouts sur un vrai calendrier.' },
-  { icon:'camera',   label:'Bilan Visuel & Classement', desc:'Statistiques avancées et classement entre traders, pour progresser.' },
+  { icon:'camera',   label:'Bilan Visuel', desc:'Statistiques avancées sur tes performances, pour progresser.' },
   { icon:'download', label:'Exports CSV, Excel & PDF', desc:'Exporte tes données comptables en un clic (CSV, Excel, PDF).' },
 ];
 function openWelcomeModal(){
@@ -3107,7 +3087,7 @@ function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onCha
    - dateRangeFilterHtml/bindDateRangeFilter : plage libre avec préréglages
      + double calendrier (Dashboard — période arbitraire, pas de notion de mois).
    - monthFilterHtml/bindMonthFilter : même habillage visuel, mais liste de
-     mois (Comptabilité / Bilan visuel / Classement — ces pages sont
+     mois (Comptabilité / Bilan visuel — ces pages sont
      structurellement organisées par mois calendaire, une plage libre n'y a
      pas de sens fonctionnel).
 ============================================================ */
@@ -3433,7 +3413,6 @@ const BASE_NAV = [
   { id:'sessions', label:'Sessions de Trading', icon:'video' },
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
-  { id:'classement', label:'Classement', icon:'trophy' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
   { id:'subscription', label:'Tarifs', icon:'wallet' },
   { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
@@ -3465,7 +3444,7 @@ const NAV_GROUPS = [
   { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts'] },
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
   { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite'] },
-  { id:'perf',     label:'Performance',         items:['comparatif','classement'] },
+  { id:'perf',     label:'Performance',         items:['comparatif'] },
   { id:'aide',     label:'Aide & Abonnement',   items:['aide-centre','manuel','changelog','subscription'] },
 ];
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
@@ -3957,7 +3936,6 @@ function renderView(){
   else if(state.route==='fiscalite') el.innerHTML = perms().canFiscalite ? viewFiscalite() : lockedFeatureView('Le module Fiscalité');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
-  else if(state.route==='classement') el.innerHTML = perms().canClassement ? viewClassement() : lockedFeatureView('Le classement');
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
   else if(state.route==='aide-centre') el.innerHTML = viewCentreAide();
@@ -4311,7 +4289,54 @@ function viewDashboard(){
     return txt;
   };
 
+  // --- Widget "Performance & rendement" -----------------------------------------------------
+  // Rendement : le résultat net rapporté aux dépenses engagées, en % — répond à "combien je
+  // récupère pour chaque euro/dollar mis" plutôt qu'un montant brut (déjà affiché par ailleurs).
+  // Respecte les mêmes filtres (trader/propfirm/période) que les tuiles Dépenses/Payouts/Net.
+  const rendementPct = totalExpenses>0 ? Math.round((net/totalExpenses)*100) : null;
 
+  // Coût moyen par compte financé : dépenses TOTALES (tout l'historique, pas la période choisie —
+  // même logique que le Taux de réussite ci-dessus, qui ignore aussi le filtre de dates) divisées
+  // par le nombre de Challenges réussis. Répond à "combien ça me coûte en moyenne d'obtenir un
+  // compte financé", indépendamment de la période affichée sur le reste du Dashboard.
+  const allExpensesMoney = sumMoneyLines(allExpensesUnfiltered);
+  const coutMoyenReussi = reussis>0 ? allExpensesMoney.amount/reussis : null;
+
+  // Capital actif sous gestion : somme des tailles nominales des comptes PA/Live actuellement
+  // actifs. Les tailles (SIZE_LABELS) sont toujours exprimées en $ par convention dans l'app (voir
+  // sizeLabelRaw()), donc pas de conversion de devise ici — juste une addition de tailles.
+  const SIZE_VALUES = { S25K:25000, S50K:50000, S100K:100000, S150K:150000, S250K:250000 };
+  const sizeValue = (a)=> a.size==='AUTRE' ? Number(a.customSize)||0 : (SIZE_VALUES[a.size]||0);
+  const capitalActif = accountsF
+    .filter(a=>(a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF')
+    .reduce((s,a)=>s+sizeValue(a), 0);
+
+  // Mensualités à venir : charge récurrente des comptes actifs en paiement mensuel — vision
+  // "cash-flow à venir", complémentaire du récap du mois (qui regarde en arrière).
+  const monthlyAccounts = accountsF.filter(a=>a.paymentType==='MENSUEL' && a.monthlyAmount && a.status==='ACTIF');
+  const monthlyMoney = sumMoneyLines(monthlyAccounts.map(a=>({ amount:a.monthlyAmount, currency:a.currency, fxRateToEur:a.fxRateToEur })));
+
+  // Régularité des payouts : moyenne des scores individuels (computePayoutRegularity, déjà utilisé
+  // par la modale "Régularité" de la page Traders) sur mes traders ayant au moins un payout — vue
+  // d'ensemble sans avoir à ouvrir chaque trader un par un.
+  const regularityScores = myTraders.map(t=>computePayoutRegularity(t)).filter(r=>r.hasData).map(r=>r.score);
+  const avgRegularity = regularityScores.length ? Math.round(regularityScores.reduce((s,v)=>s+v,0)/regularityScores.length) : null;
+
+  // Tendance vs mois précédent : réutilise chartData (6 derniers mois, déjà dans la devise
+  // d'affichage courante) — chartData[5] = mois en cours, chartData[4] = mois précédent. Pas de
+  // pourcentage affiché si le mois précédent est à 0 (division non significative), juste la
+  // direction (l'utilisateur voit déjà les deux montants sur le graphique juste en dessous).
+  const trendPct = (curr, prev)=> prev ? Math.round((curr-prev)/Math.abs(prev)*100) : null;
+  const currMonth = chartData[chartData.length-1], prevMonth = chartData[chartData.length-2];
+  const payoutsTrend = trendPct(currMonth.pay, prevMonth.pay);
+  const netTrend = trendPct(currMonth.pay-currMonth.exp, prevMonth.pay-prevMonth.exp);
+  const trendBadge = (pct)=>{
+    // Masqué dès qu'une plage de dates personnalisée est active : le total affiché sur la tuile ne
+    // représente alors plus "ce mois-ci", et comparer au mois précédent n'aurait plus de sens.
+    if(pct===null || f.dateFrom || f.dateTo) return '';
+    const up = pct>=0;
+    return ` <span class="text-faint" style="font-size:10px;color:${up?'var(--accent)':'var(--danger)'};">${up?'▲':'▼'} ${Math.abs(pct)}% vs mois préc.</span>`;
+  };
 
   const filterBar = `
     <div class="filter-bar">
@@ -4361,8 +4386,21 @@ function viewDashboard(){
           <div class="stats-grid" style="margin-bottom:0;">
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
+          </div>
+        </div>
+      </div>`,
+    performance: `
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; rendement</div></div>
+        <div class="panel-body">
+          <div class="stats-grid" style="margin-bottom:0;">
+            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
+            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
+            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
+            <div class="stat-tile" style="--rail:${avgRegularity===null?'var(--slate)':regularityTier(avgRegularity).color}"><div class="stat-label">Régularité des payouts</div><div class="stat-value">${avgRegularity===null?'—':avgRegularity+'%'}</div><div class="stat-sub">${avgRegularity===null?'aucun payout enregistré pour le moment':`${regularityTier(avgRegularity).label.toLowerCase()} · moyenne sur ${regularityScores.length} trader(s)`}</div></div>
           </div>
         </div>
       </div>`,
@@ -4418,7 +4456,7 @@ function viewDashboard(){
   return `
     ${!perms().isPremium ? `
       <div class="panel" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--gold-dim);border-color:rgba(217,166,90,0.3);">
-        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier, classement et statistiques avancées.</div>
+        <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
     ${filterBar}
@@ -5252,101 +5290,6 @@ function viewCalendrier(){
 }
 
 /* ============================================================
-   CLASSEMENT ENTRE TRADERS (leaderboard)
-============================================================ */
-function computeLeaderboard(){
-  const f = state.filters.classement;
-  const mk = f.allTime ? null : (f.month || todayISO().slice(0,7));
-  return state.traders.map(t=>{
-    const accs = state.accounts.filter(a=>a.traderId===t.id);
-    const accIds = new Set(accs.map(a=>a.id));
-    let pays = state.payouts.filter(p=>accIds.has(p.accountId));
-    if(mk) pays = pays.filter(p=>monthKey(p.date)===mk);
-    const paysMoney = sumMoneyLines(pays);
-    const totalPay = paysMoney.amount;
-    const challenges = accs.filter(a=>a.type==='CHALLENGE');
-    const reussis = challenges.filter(a=>a.status==='REUSSI').length;
-    const breached = challenges.filter(a=>a.status==='BREACHED').length;
-    const tauxReussite = (reussis+breached)>0 ? Math.round(reussis/(reussis+breached)*100) : null;
-    const badges = computeTraderBadges(t).filter(b=>b.unlocked).length;
-    return { trader:t, totalPay, currency:paysMoney.currency, converted:paysMoney.converted, mixed:paysMoney.mixed, nbPayouts:pays.length, tauxReussite, badges };
-  }).sort((a,b)=> b.totalPay-a.totalPay || (b.tauxReussite||0)-(a.tauxReussite||0));
-}
-function viewClassement(){
-  if(state.traders.length===0){
-    return emptyState('trophy','Aucun classement','Ajoute des traders et enregistre des payouts pour voir le classement.');
-  }
-  const f = state.filters.classement;
-  const mk = f.month || todayISO().slice(0,7);
-  const rows = computeLeaderboard();
-  const top3 = rows.slice(0,3);
-  const rest = rows.slice(3);
-  const medal = ['🥇','🥈','🥉'];
-  const noActivity = rows.every(r=>r.totalPay===0);
-  // Un trader privé n'apparaît dans le classement de PERSONNE d'autre que son propriétaire
-  // (filtré côté RLS avant même d'arriver dans state.traders) — seuls ses propres traders
-  // privés se retrouvent donc ici, mélangés aux traders publics des autres. On les repère pour
-  // afficher un badge "Privé" sur leur ligne, et pour proposer de les rendre publics : sans ça,
-  // avec le nouveau défaut privé, un trader n'a aucun moyen de savoir depuis cette page qu'il
-  // est invisible aux autres.
-  const myPrivateTraders = state.traders.filter(t=>t.createdBy===currentUserId() && t.isPublic===false);
-  const privacyBanner = myPrivateTraders.length ? `
-    <div class="panel" style="margin-bottom:14px;border-color:var(--accent);">
-      <div class="panel-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:220px;font-size:13px;">
-          ${icon('lock')} ${myPrivateTraders.length===1
-            ? `Ton trader <b>${myPrivateTraders[0].pseudo}</b> est privé : il n'apparaît que dans ton classement, pas dans celui des autres.`
-            : `${myPrivateTraders.length} de tes traders sont privés : ils n'apparaissent que dans ton classement, pas dans celui des autres.`}
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${myPrivateTraders.map(t=>`<button class="btn btn-outline btn-sm" data-lb-make-public="${t.id}">Rendre ${myPrivateTraders.length===1?'public':`« ${t.pseudo} » public`}</button>`).join('')}
-        </div>
-      </div>
-    </div>` : '';
-
-  return `
-    ${privacyBanner}
-    <div class="panel">
-      <div class="panel-head">
-        <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('trophy')}Classement des traders</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          ${monthFilterHtml('lb-month', f, { allowAll:true, allTimeField:'allTime', align:'right' })}
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="field-hint" style="margin-bottom:14px;">${f.allTime ? 'Classement calculé sur l\u2019ensemble des payouts enregistrés.' : `Classement des payouts reçus en ${monthLabel(mk)}.`}</div>
-        ${noActivity ? `<div class="empty-sub" style="margin-bottom:14px;">Aucun payout enregistré ${f.allTime?'pour le moment':'sur cette période'}.</div>` : ''}
-        <div class="lb-podium">
-          ${top3.map((r,i)=>`
-            <div class="lb-podium-card lb-rank-${i+1}">
-              <div class="lb-medal">${medal[i]}</div>
-              <div class="lb-pseudo">${r.trader.pseudo}${r.trader.isPublic===false?` <span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div>
-              <div class="lb-amount">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</div>
-              <div class="lb-sub">${r.tauxReussite===null?'—':r.tauxReussite+'% réussite'} · ${r.badges} badge(s)</div>
-            </div>`).join('')}
-        </div>
-        ${rest.length ? `
-        <div class="table-wrap" style="margin-top:18px;">
-          <table>
-            <thead><tr><th>#</th><th>Trader</th><th class="num">Payouts</th><th class="num">Versements</th><th class="num">Taux de réussite</th><th class="num">Badges</th></tr></thead>
-            <tbody>
-              ${rest.map((r,i)=>`<tr>
-                <td class="text-faint">${i+4}</td>
-                <td style="font-weight:600;">${r.trader.pseudo}${r.trader.isPublic===false?` <span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</td>
-                <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</td>
-                <td class="num">${r.nbPayouts}</td>
-                <td class="num">${r.tauxReussite===null?'—':r.tauxReussite+'%'}</td>
-                <td class="num">${r.badges}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>` : ''}
-      </div>
-    </div>
-  `;
-}
-
-/* ============================================================
    VIEW: NOUVEAUTÉS (changelog)
    Journal des évolutions du site — à compléter à chaque itération.
 ============================================================ */
@@ -5396,7 +5339,7 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel, le Classement et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
   ]},
   { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
@@ -5420,7 +5363,7 @@ const HELP_CATEGORIES = [
   ]},
   { id:'fiscalite', label:'Fiscalité', icon:'receipt', questions:[
     { q:"Le module Fiscalité couvre-t-il tous les régimes (EURL, SASU…) ?", a:"Non, il est conçu spécifiquement pour le régime micro-entreprise (micro-BNC) : plafond micro-BNC, franchise en base de TVA et abattement forfaitaire. Le régime réel et les structures en société ne sont pas couverts pour l'instant." },
-    { q:"Le module Fiscalité est-il accessible en formule Free ?", a:"Non, comme le Calendrier, le Bilan Visuel et le Classement, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
+    { q:"Le module Fiscalité est-il accessible en formule Free ?", a:"Non, comme le Calendrier et le Bilan Visuel, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
     { q:"Les seuils fiscaux (plafond micro-BNC, franchise TVA, abattement) sont-ils à jour et modifiables ?", a:"Oui. Un panneau « Seuils fiscaux » dans l'espace Admin permet à un administrateur de les revaloriser chaque année (barèmes URSSAF / service-public.fr) sans intervention technique — plus besoin de passer par une requête en base." },
     { q:"Comment sont calculées mes échéances de déclaration URSSAF ?", a:"À partir de deux réglages personnels dans la page Fiscalité : la périodicité (mensuelle ou trimestrielle) et l'option de versement libératoire de l'impôt sur le revenu. Le tableau « Déclarations URSSAF » affiche ensuite, période par période, le chiffre d'affaires encaissé (tes payouts convertis en euro) et l'échéance réelle, avec une case à cocher pour marquer chaque déclaration comme faite." },
     { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation et mensualités. Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
@@ -5432,17 +5375,13 @@ const HELP_CATEGORIES = [
     { q:"Combien de sessions puis-je consulter en formule Free ?", a:"Les 5 sessions les plus récentes restent consultables gratuitement ; l'historique complet est réservé aux formules Premium et Lifetime." },
     { q:"La vidéo YouTube ne s'affiche pas, que faire ?", a:"Vérifie que la vidéo n'est pas configurée en « non répertoriée » avec lecture externe désactivée côté YouTube Studio. Un lien « Ouvrir sur YouTube » reste toujours disponible en secours." },
   ]},
-  { id:'classement', label:'Classement', icon:'trophy', questions:[
-    { q:"Comment fonctionne le Classement entre traders ?", a:"Il classe les traders suivis par total des payouts reçus sur la période choisie (un mois précis, ou « Tout temps »), avec le taux de réussite et les badges débloqués." },
-    { q:"Le Classement est-il visible en formule Free ?", a:"Non, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
-  ]},
   { id:'abonnement', label:'Abonnement & Tarifs', icon:'wallet', questions:[
     { q:"Comment passer en Premium ?", a:"Depuis la page Tarifs, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
     { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Tarifs, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
-    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est privé : lui, ses comptes, payouts et notes ne sont visibles que par toi et les admins. Tu peux le passer en « Visible par tous » depuis sa fiche (ou directement depuis le Classement) si tu veux apparaître dans le Classement et le Comparatif entre traders — c'est réversible à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. Le Dashboard et la page Comptabilité font exception : ils n'affichent jamais que les données de tes propres traders et comptes, quelle que soit ta formule." },
+    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est privé : lui, ses comptes, payouts et notes ne sont visibles que par toi et les admins. Tu peux le passer en « Visible par tous » depuis sa fiche si tu veux apparaître dans le Comparatif entre traders — c'est réversible à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. Le Dashboard et la page Comptabilité font exception : ils n'affichent jamais que les données de tes propres traders et comptes, quelle que soit ta formule." },
     { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose des exports CSV, Excel et PDF, réservés aux comptes Premium/Lifetime ; un export individuel complet peut aussi être demandé au support." },
   ]},
 ];
@@ -5561,7 +5500,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Sessions de Trading, Préparation séance, Comparatif, Classement, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -5646,7 +5585,7 @@ const MANUAL_CHAPTERS = [
     <p>La section Comptabilité liste, ligne par ligne, toutes les dépenses (achats, mensualités, frais d'activation) et tous les payouts, avec des filtres et des exports. Elle n'affiche et n'exporte jamais que les lignes rattachées à tes propres comptes (comptes que tu as créés, ou comptes d'un trader lié à ton adresse email) — quelle que soit ta formule, les données financières des autres utilisateurs n'y apparaissent jamais.</p>
     ${manualShot('08-comptabilite.jpg', "Registre comptable — dépenses et payouts, avec filtres et exports CSV / Excel / PDF.")}
     <h3>Devises ($ / €)</h3>
-    <p>Chaque ligne est affichée dans sa devise d'origine (dollar ou euro). Tant qu'un total (une carte, un mois, un bilan…) ne regroupe que des lignes dans la même devise, il reste exact et affiché dans cette devise, sans aucune conversion. Si des devises différentes se retrouvent mélangées dans un même total, Contralytix convertit alors tout en euro (au taux de change enregistré à la date de chaque ligne) et l'indique par la mention « converti ». Cette règle s'applique de façon cohérente sur tout le site : Dashboard, Comptabilité, Bilan visuel, Classement, Calendrier et exports.</p>
+    <p>Chaque ligne est affichée dans sa devise d'origine (dollar ou euro). Tant qu'un total (une carte, un mois, un bilan…) ne regroupe que des lignes dans la même devise, il reste exact et affiché dans cette devise, sans aucune conversion. Si des devises différentes se retrouvent mélangées dans un même total, Contralytix convertit alors tout en euro (au taux de change enregistré à la date de chaque ligne) et l'indique par la mention « converti ». Cette règle s'applique de façon cohérente sur tout le site : Dashboard, Comptabilité, Bilan visuel, Calendrier et exports.</p>
     <h3>Filtres</h3>
     <p>Il est possible de filtrer les lignes par mois, par type de mouvement, par trader (choix multiple) et par PropFirm.</p>
     <h3>Exports</h3>
@@ -5676,16 +5615,7 @@ const MANUAL_CHAPTERS = [
     ${manualShot('12-comparatif.jpg', "Comparatif des PropFirms — dépenses, payouts, taux de réussite et résultat net.")}
     <h3>Trier le tableau</h3>
     <p>Un clic sur l'en-tête d'une colonne (PropFirm, Comptes, Challenges, Taux de réussite, Dépenses, Payouts, Net) trie le tableau selon cette colonne ; un second clic sur la même colonne inverse le sens du tri (croissant / décroissant). La flèche affichée dans l'en-tête indique la colonne et le sens de tri actifs.</p>` },
-  { n:'13', id:'m-classement', title:"Classement", html:`
-    <p>Le Classement met en avant les traders les plus performants, façon leaderboard. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
-    ${manualShot('13-classement.jpg', "Classement des traders — podium et tableau détaillé.")}
-    <h3>Podium et tableau</h3>
-    <p>Les trois meilleurs traders (par total de payouts, puis taux de réussite) sont mis en avant sous forme de podium. Les suivants apparaissent dans un tableau avec total des payouts, nombre de versements, taux de réussite et nombre de badges débloqués.</p>
-    <h3>Période</h3>
-    <p>Le classement peut être calculé sur un mois donné, ou en cumul « Tout temps ».</p>
-    <h3>Badges et succès</h3>
-    <p>Un système de succès valorise les étapes marquantes du parcours de chaque trader (premier Challenge, premier payout, paliers de payouts cumulés, régularité, absence d'échec « Sans faute »…), consultables depuis la section Traders.</p>` },
-  { n:'14', id:'m-fiscalite', title:"Fiscalité", html:`
+  { n:'13', id:'m-fiscalite', title:"Fiscalité", html:`
     <p>La section Fiscalité aide un trader en micro-entreprise (micro-BNC) à garder un œil sur ses seuils et ses échéances déclaratives, à partir des payouts déjà enregistrés dans l'application. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b> Elle ne couvre que le régime micro-BNC (franchise en base de TVA, abattement forfaitaire) : le régime réel et les structures en société (EURL, SASU…) ne sont pas couverts, et cet outil ne remplace en aucun cas l'avis d'un expert-comptable.</p>
     ${manualShot('14-fiscalite.jpg', "Page Fiscalité — seuils, réglages déclaratifs et alertes.")}
     <h3>Sélecteur d'année et seuils</h3>
@@ -5703,11 +5633,11 @@ const MANUAL_CHAPTERS = [
     <p>Un tableau regroupe les payouts par système de paiement utilisé pour les recevoir (Wise, virement, RiseWorks…) — c'est ce système, et non la PropFirm elle-même, qui détermine si un compte détenu à l'étranger doit être déclaré au titre du formulaire 3916-bis. Un repère indicatif (À déclarer / Selon les cas / Non requis) aide à s'orienter, et une case à cocher par système permet de suivre les déclarations déjà faites. Ce repère reste une aide générale, à vérifier avec un expert-comptable avant de cocher ou non une case.</p>
     <h3>Checklist déclarative et export</h3>
     <p>Une checklist récapitule, avec un compteur d'avancement, l'ensemble des démarches déclaratives de l'année (déclarations URSSAF, 2042-C-PRO, versement libératoire…). Le bouton « Export année (ZIP) », en haut de page, génère une archive contenant un PDF récapitulatif complet de l'année (seuils, déclarations, frais, systèmes de paiement) ainsi que les données associées, prête à transmettre à un expert-comptable ou à conserver pour ses archives.</p>` },
-  { n:'15', id:'m-nouveautes', title:"Nouveautés", html:`
+  { n:'14', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
-  { n:'16', id:'m-abonnement', title:"Abonnement et tarifs", html:`
+  { n:'15', id:'m-abonnement', title:"Abonnement et tarifs", html:`
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
@@ -5715,12 +5645,12 @@ const MANUAL_CHAPTERS = [
     <h3>Comparatif des formules</h3>
     <ul>
       <li><b>Free</b> — gratuite : jusqu'à 2 traders, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité et Dashboard toujours limités à tes propres traders et comptes, support communautaire.</li>
-      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : traders illimités, comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, Classement, support prioritaire.</li>
+      <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : traders illimités, comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel et statistiques avancées, support prioritaire.</li>
       <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
-  { n:'17', id:'m-admin', title:"Espace Admin", html:`
+  { n:'16', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
     ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
@@ -5738,7 +5668,7 @@ const MANUAL_CHAPTERS = [
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
     <p>Deux outils d'import sont disponibles : « Importer (PropDesk) », qui lit un export JSON de PropDesk et fait correspondre automatiquement traders et PropFirms avant un aperçu détaillé et sélectif ; et « Importer migration (ancien site) », pour une sauvegarde JSON issue d'une ancienne version. Le bouton « Sauvegarde JSON » exporte l'intégralité des données du site pour archivage ou migration.</p>` },
-  { n:'18', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
+  { n:'17', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
     <p>Contralytix distingue plusieurs niveaux de droits sur les données, applicables à tous les enregistrements (traders, PropFirms, comptes, sessions, prépas de séance).</p>
     <h3>Propriété des enregistrements</h3>
     <p>Chaque enregistrement appartient à l'utilisateur qui l'a créé. Seuls ce créateur et les administrateurs peuvent le modifier ou le supprimer ; les autres utilisateurs le voient en lecture seule, signalé par un badge « Lecture seule ».</p>
@@ -7178,7 +7108,7 @@ function pdfSafe(s){
     .replace(/\u2011/g, '-');
 }
 // --- Agrégation multi-devises : la bonne façon de sommer des lignes financières partout dans
-// l'app (Dashboard, Comptabilité, Bilan, Classement, Calendrier...) depuis que chaque compte/
+// l'app (Dashboard, Comptabilité, Bilan, Calendrier...) depuis que chaque compte/
 // payout porte sa propre devise (voir migration_fiscalite.sql). Principe :
 //  - Si toutes les lignes partagent la même devise (le cas normal, ex: un utilisateur 100% USD),
 //    le total est exact, dans cette devise, SANS AUCUNE conversion ni arrondi — comportement
@@ -7942,7 +7872,7 @@ let chatOpen = false;
 let chatMessages = []; // { role:'user'|'assistant', text }
 let chatLoading = false;
 
-const CHAT_SYSTEM_CONTEXT = `Tu es l'assistant intégré de l'application Contralytix, un outil de gestion de comptes prop firm (trading sur futures/forex) pour des traders : suivi des comptes Challenge / PA (compte financé) / Live, des dépenses (achats, mensualités, activations), des payouts, de la comptabilité, d'un calendrier d'échéances, d'un bilan visuel et d'un classement entre traders. L'app propose une formule Free et une formule Premium (mensuel, annuel ou lifetime).
+const CHAT_SYSTEM_CONTEXT = `Tu es l'assistant intégré de l'application Contralytix, un outil de gestion de comptes prop firm (trading sur futures/forex) pour des traders : suivi des comptes Challenge / PA (compte financé) / Live, des dépenses (achats, mensualités, activations), des payouts, de la comptabilité, d'un calendrier d'échéances et d'un bilan visuel. L'app propose une formule Free et une formule Premium (mensuel, annuel ou lifetime).
 Réponds toujours en français, de façon brève, concrète et directe (quelques phrases maximum, pas de blabla). Aide la personne à comprendre comment utiliser l'application. Si la question sort du cadre de l'application, nécessite une action que tu ne peux pas faire (modifier ses données, un remboursement, un problème de compte précis), ou si tu n'es pas sûr de la réponse, dis-le clairement et invite la personne à utiliser le formulaire de contact de l'application plutôt que d'inventer une réponse. Ne donne jamais de conseil de trading ou d'investissement financier.`;
 
 function renderChatWidget(){
@@ -8774,7 +8704,6 @@ function viewSubscription(){
     'Exports CSV, Excel & PDF',
     'Calendrier (payouts, breach, échéances…)',
     'Bilan visuel & statistiques avancées',
-    'Classement',
     'Support prioritaire',
   ];
 
@@ -9135,16 +9064,6 @@ function bindViewEvents(){
   };
   const calToday = document.getElementById('cal-today');
   if(calToday) calToday.onclick = ()=>{ state.filters.calendrier.month = ''; renderView(); };
-  // Classement
-  bindMonthFilter('lb-month', state.filters.classement, { allowAll:true, allTimeField:'allTime' });
-  document.querySelectorAll('[data-lb-make-public]').forEach(btn=>btn.onclick=async ()=>{
-    const t = state.traders.find(x=>x.id===btn.dataset.lbMakePublic);
-    if(!t) return;
-    await upsert('traders', { ...t, isPublic:true });
-    await logActivity('UPDATE', 'trader', t.id, `${t.pseudo} (rendu public depuis le Classement)`);
-    showToast(`${t.pseudo} est maintenant visible par tous.`);
-    render();
-  });
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
   const promoInput = document.getElementById('promo-code-input');
