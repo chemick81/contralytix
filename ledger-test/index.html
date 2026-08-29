@@ -1216,7 +1216,7 @@ const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL,
 // séance : elle est alors envoyée avec la requête (et uniquement stockée dans
 // son navigateur, via localStorage) pour servir de repli.
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
-const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts'];
+const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets'];
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
@@ -1265,6 +1265,11 @@ const state = {
   // différence de accounts.receiptPath/payouts.receiptPath (un seul fichier, conservés tels quels
   // pour compat, migrés vers cette table par migration_payout_receipts.sql).
   payout_receipts: [],
+  // Historique des resets de challenge (voir resetsModal()) : un compte Challenge peut être
+  // reseté plusieurs fois (table, pas un champ sur accounts) — chaque ligne porte la date, le
+  // frais payé (ajouté aux dépenses via computeAccountExpenses) et, si la PropFirm a changé le
+  // n° de compte à cette occasion, l'ancien numéro (previousAccountNumber). Décision du 29/08/2026.
+  account_resets: [],
   yt_sessions: [],
   market_prep: [],
   propfirm_ratings: [],
@@ -1400,7 +1405,7 @@ async function loadAll(){
   }
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets'];
 
 /* ============================================================
    RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
@@ -1541,7 +1546,7 @@ async function remove(collection, id){
 // account_status_history n'est pas dans TABLES (elle n'est pas chargée dans `state`,
 // voir purgeStatusHistory) mais doit quand même être purgée avant les comptes, sinon
 // la suppression des comptes échoue sur account_status_history_account_id_fkey.
-const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','propfirm_ratings','market_prep','yt_sessions','accounts','traders','propfirms'];
+const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','account_resets','propfirm_ratings','market_prep','yt_sessions','accounts','traders','propfirms'];
 async function resetAllData(){
   const { error: histError } = await supabaseClient.from('account_status_history').delete().not('id','is',null);
   if(histError) showToast('Erreur de réinitialisation (account_status_history) : ' + histError.message, 'danger');
@@ -2996,7 +3001,7 @@ function railColor(acc){
   return 'var(--slate)';
 }
 
-// Compute the "ledger lines" (expenses) for one account: ACHAT / MENSUALITE / ACTIVATION
+// Compute the "ledger lines" (expenses) for one account: ACHAT / MENSUALITE / ACTIVATION / RESET
 function computeAccountExpenses(acc){
   const lines = [];
   const today = todayISO();
@@ -3024,6 +3029,15 @@ function computeAccountExpenses(acc){
   if((acc.type === 'PA' || acc.type === 'LIVE') && acc.activationFee){
     lines.push({ id: acc.id+'-ACTIV', accountId: acc.id, type:'ACTIVATION', amount:Number(acc.activationFee), date: acc.activationDate || acc.purchaseDate, currency:cur, fxRateToEur:fx });
   }
+  // Frais de reset (voir resetsModal()) : chaque ligne de state.account_resets pour ce compte
+  // devient une dépense au même titre que les autres — une seule fonction alimente toutes les
+  // pages financières (Dashboard, Comptabilité, Bilan, Comparatif, Fiscalité), donc rien d'autre
+  // à modifier pour que les resets comptent partout où les dépenses sont déjà agrégées. Un reset
+  // garde sa propre devise/taux (peut différer de celle du compte si la PropFirm facture le reset
+  // dans une devise différente du prix d'achat initial).
+  state.account_resets.filter(r=>r.accountId===acc.id).forEach(r=>{
+    lines.push({ id: r.id, accountId: acc.id, type:'RESET', amount:Number(r.fee)||0, date:r.date, currency:r.currency||cur, fxRateToEur:r.fxRateToEur||fx });
+  });
   return lines;
 }
 function computeAllExpenses(){
@@ -5128,6 +5142,7 @@ const CAL_EVENT_META = {
   ACHAT:      { label:'Achat compte',      short:'Achat',    icon:'🛒', color:'slate'  },
   ACTIVATION: { label:'Frais d\u2019activation', short:'Activation', icon:'⚡', color:'slate' },
   MENSUALITE: { label:'Mensualité due',    short:'Mensu.',   icon:'💳', color:'gold'   },
+  RESET:      { label:'Reset payé',        short:'Reset',    icon:'🔄', color:'danger' },
   PAYOUT:     { label:'Payout reçu',       short:'Payout',   icon:'💵', color:'accent' },
   REUSSI:     { label:'Challenge réussi',  short:'Réussi',   icon:'🏆', color:'accent' },
   BREACHED:   { label:'Breach',            short:'Breach',   icon:'💥', color:'danger' },
@@ -5177,6 +5192,10 @@ function computeCalendarEvents(monthKeyStr){
   });
   computeMonthlyDueItems(monthKeyStr).forEach(it=>{
     pushEvt(it.date, 'MENSUALITE', getAccount(it.accountId), Number(it.amount));
+  });
+  state.account_resets.forEach(r=>{
+    const acc = getAccount(r.accountId);
+    if(acc) pushEvt(r.date, 'RESET', acc, Number(r.fee)||0, { currency:r.currency, fxRateToEur:r.fxRateToEur });
   });
   // Échéances fiscales déclaratives — pas liées à un compte/trader précis (account:null, voir les
   // gardes correspondantes dans dashboardCalendarWidgetHtml et calendarDayModal) mais à
@@ -6152,6 +6171,9 @@ function accountCard(a){
     } else if(a.status==='REUSSI' && !child && editable){
       actions += `<button class="btn btn-primary btn-sm" data-create-pa="${a.id}">${icon('bolt')}Créer le PA</button>`;
     }
+    // Reset : uniquement sur les Challenges (voir resetsModal()) — une propfirm ne propose jamais
+    // de reset sur un PA/Live dans ce modèle de données.
+    actions += `<button class="btn btn-ghost btn-sm" data-resets="${a.id}" title="Resets du challenge">${icon('reset')}Resets${accountResetCount(a.id) ? ` (${accountResetCount(a.id)})` : ''}</button>`;
   } else if(a.type==='PA' || a.type==='LIVE'){
     if(a.status==='ACTIF'){
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
@@ -6234,7 +6256,7 @@ function exportAccountingCSV(){
     const trader = acc ? getTrader(acc.traderId) : null;
     const firm = acc ? getFirm(acc.propFirmId) : null;
     const isPayout = x.kind==='payout';
-    const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
+    const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation',RESET:'Reset'})[x.type];
     const amount = isPayout ? Number(x.amount) : -Number(x.amount); // dépenses en négatif pour lecture comptable directe
     return [x.date, typeLabel, trader?trader.pseudo:'', firm?firm.name:'', acc?TYPE_LABELS[acc.type]:'', acc?acc.accountNumber:'', amount.toFixed(2).replace('.',',')];
   });
@@ -6260,7 +6282,7 @@ function buildAccountingRows(){
     const trader = acc ? getTrader(acc.traderId) : null;
     const firm = acc ? getFirm(acc.propFirmId) : null;
     const isPayout = x.kind==='payout';
-    const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
+    const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation',RESET:'Reset'})[x.type];
     const amount = isPayout ? Number(x.amount) : -Number(x.amount);
     const d = displayMoney(amount, x.currency||'USD', x.fxRateToEur);
     return { Date:x.date, Type:typeLabel, Trader: trader?trader.pseudo:'', PropFirm: firm?firm.name:'', 'Type de compte': acc?TYPE_LABELS[acc.type]:'', 'N° de compte': acc?acc.accountNumber:'', Devise: d.currency, Montant: d.amount };
@@ -6449,6 +6471,7 @@ function viewAccounting(){
         <option value="ACHAT" ${f.type==='ACHAT'?'selected':''}>Achat</option>
         <option value="MENSUALITE" ${f.type==='MENSUALITE'?'selected':''}>Mensualité</option>
         <option value="ACTIVATION" ${f.type==='ACTIVATION'?'selected':''}>Activation</option>
+        <option value="RESET" ${f.type==='RESET'?'selected':''}>Reset</option>
         <option value="PAYOUT" ${f.type==='PAYOUT'?'selected':''}>Payout</option>
       </select>
       ${renderMultiSelect('fa-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
@@ -6466,7 +6489,7 @@ function viewAccounting(){
       const trader = acc ? getTrader(acc.traderId) : null;
       const firm = acc ? getFirm(acc.propFirmId) : null;
       const isPayout = x.kind==='payout';
-      const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation'})[x.type];
+      const typeLabel = isPayout ? 'Payout' : ({ACHAT:'Achat',MENSUALITE:'Mensualité',ACTIVATION:'Activation',RESET:'Reset'})[x.type];
       return `<tr class="${freeBlurClass(xi,acctBlurred)}">
         <td class="mono text-dim">${fmtDate(x.date)}</td>
         <td><span class="badge ${isPayout?'badge-accent':'badge-slate'}">${typeLabel}</span></td>
@@ -9302,6 +9325,8 @@ function bindViewEvents(){
         const accDesc = accDel ? `${getTrader(accDel.traderId)?.pseudo||'—'} · ${getFirm(accDel.propFirmId)?.name||'—'}` : id;
         const paysToDelete = state.payouts.filter(p=>p.accountId===id);
         for(const p of paysToDelete){ await remove('payouts', p.id); }
+        const resetsToDelete = state.account_resets.filter(r=>r.accountId===id);
+        for(const r of resetsToDelete){ await remove('account_resets', r.id); }
         await detachChildAccounts(id);
         await purgeStatusHistory(id);
         const ok = await remove('accounts', id);
@@ -9317,6 +9342,7 @@ function bindViewEvents(){
   document.querySelectorAll('[data-create-pa]').forEach(b=>b.onclick=()=>accountFormModal({ type:'PA', parentChallenge: getAccount(b.dataset.createPa) }));
   document.querySelectorAll('[data-to-live]').forEach(b=>b.onclick=()=>convertPaToLive(getAccount(b.dataset.toLive)));
   document.querySelectorAll('[data-payouts]').forEach(b=>b.onclick=()=>payoutsModal(getAccount(b.dataset.payouts)));
+  document.querySelectorAll('[data-resets]').forEach(b=>b.onclick=()=>resetsModal(getAccount(b.dataset.resets)));
   document.querySelectorAll('[data-notes]').forEach(b=>b.onclick=()=>notesModal(getAccount(b.dataset.notes)));
   document.querySelectorAll('[data-history]').forEach(b=>b.onclick=()=>statusHistoryModal(getAccount(b.dataset.history)));
   // Admin
@@ -10884,6 +10910,164 @@ function payoutsModal(acc){
     renderView(); // garder les compteurs de la carte compte à jour même si la modale s'est fermée
   }
   openModal({ title:'Payouts', wide:true, bodyHtml: body(), onMount: mount });
+}
+
+/* ============================================================
+   RESETS DE CHALLENGE (voir claude/reset-challenge-module.md)
+   Un challenge peut être reseté plusieurs fois chez une même PropFirm — chaque reset est une
+   ligne dans account_resets (frais payé + date), pas un champ unique sur accounts, pour garder
+   l'historique complet. Si la PropFirm attribue un nouveau n° de compte au reset, l'ancien numéro
+   est conservé sur la ligne (previousAccountNumber) et acc.accountNumber devient le nouveau —
+   même mécanique de recherche/duplicat que le formulaire d'édition de compte (findDuplicateAccount).
+============================================================ */
+function accountResetCount(accountId){
+  return state.account_resets.filter(r=>r.accountId===accountId).length;
+}
+function resetsModal(acc){
+  const trader = getTrader(acc.traderId);
+  let editingId = null;
+  function body(){
+    const list = state.account_resets.filter(r=>r.accountId===acc.id).sort((a,b)=>b.date.localeCompare(a.date));
+    const totalMoney = sumMoneyLines(list.map(r=>({ amount:r.fee, currency:r.currency, fxRateToEur:r.fxRateToEur })));
+    const editing = editingId ? list.find(r=>r.id===editingId) : null;
+    return `
+      <div class="field-hint" style="margin-bottom:12px;">Challenge de <strong>${trader?trader.pseudo:'—'}</strong> — N° actuel : <span class="mono">${maskAccountNumber(acc.accountNumber)}</span> — Total payé en resets : <span class="mono" style="color:var(--danger)">${fmtMoneyCur(totalMoney.amount, totalMoney.currency)}</span>${totalMoney.converted?` <span class="text-faint">${convertedLabel(totalMoney.converted, totalMoney.mixed)}</span>`:''}</div>
+      ${canEdit(acc) ? `
+      ${editing ? `<div class="field-hint" style="margin-bottom:8px;color:var(--gold);">Modification du reset du ${fmtDate(editing.date)}</div>` : ''}
+      <div class="field-row">
+        <div class="field"><label>Frais payé</label><input id="rm-fee" type="number" value="${editing?editing.fee:''}"/></div>
+        <div class="field"><label>Devise</label>
+          <select id="rm-currency">
+            ${['USD','EUR'].map(c=>`<option value="${c}" ${(editing?editing.currency:'USD')===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Date du reset</label><input id="rm-date" type="date" value="${editing?editing.date:todayISO()}"/></div>
+      </div>
+      <div class="field" id="rm-fxrate-wrap" style="display:${(editing?editing.currency:'USD')==='EUR'?'none':'block'};">
+        <label>Taux EUR/devise à la date du reset</label>
+        <input id="rm-fxrate" type="number" step="0.0001" value="${editing?(editing.fxRateToEur||''):''}" placeholder="ex: 1.0821"/>
+        <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
+      </div>
+      <div class="field">
+        <label>Nouveau n° de compte (optionnel)</label>
+        <input id="rm-newnumber" placeholder="laisser vide si la PropFirm garde le même numéro" value="${editing?(editing.previousAccountNumber?acc.accountNumber:''):''}"/>
+        <div class="field-hint">À remplir seulement si la PropFirm t'a attribué un nouveau numéro de compte pour ce reset — l'ancien numéro reste visible dans l'historique ci-dessous.</div>
+      </div>
+      <div class="field"><label>Note (optionnel)</label><input id="rm-note" placeholder="ex: reset -5% avant breach" value="${editing?(editing.note||''):''}"/></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-primary btn-sm" id="rm-add">${editing?icon('check'):icon('plus')}${editing?'Enregistrer la modification':'Ajouter le reset'}</button>
+        ${editing ? `<button class="btn btn-outline btn-sm" id="rm-cancel-edit">Annuler</button>` : ''}
+      </div>` : ''}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Frais</th><th>N° de compte</th><th>Note</th><th></th></tr></thead>
+          <tbody>
+            ${list.length===0 ? `<tr><td colspan="5"><div class="empty-sub" style="padding:16px 0;">Aucun reset enregistré pour ce compte.</div></td></tr>` :
+              list.map(r=>`<tr>
+                <td class="mono text-dim">${fmtDate(r.date)}</td>
+                <td class="num" style="color:var(--danger)">${fmtMoneyDisp(r.fee, r.currency, r.fxRateToEur)}</td>
+                <td class="text-dim">${r.previousAccountNumber ? `<span class="mono">${escapeHtml(r.previousAccountNumber)}</span> → <span class="mono">${escapeHtml(acc.accountNumber)}</span>` : '<span class="text-faint">inchangé</span>'}</td>
+                <td class="text-dim">${r.note||'—'}</td>
+                <td>${canEdit(r) ? `<div style="display:flex;gap:6px;justify-content:flex-end;">
+                    <button class="btn btn-ghost btn-sm" data-edit-reset="${r.id}">${icon('edit')}</button>
+                    <button class="btn btn-ghost btn-sm" data-del-reset="${r.id}" style="color:var(--danger)">${icon('trash')}</button>
+                  </div>` : `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+  function mount(){
+    const rmCurrencySelect = document.getElementById('rm-currency');
+    let rmFxFetchPromise = null;
+    async function autofillRmFxRate(force){
+      const currency = rmCurrencySelect.value;
+      const rateInput = document.getElementById('rm-fxrate');
+      document.getElementById('rm-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
+      if(currency==='EUR') return;
+      if(!force && rateInput.value) return;
+      if(force) rateInput.value = '';
+      const date = document.getElementById('rm-date').value || todayISO();
+      rateInput.placeholder = 'Récupération du taux BCE...';
+      rateInput.disabled = true;
+      try{
+        const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date}&currency=${currency}`);
+        const data = await res.json();
+        if(res.ok && data.rateToEur){
+          rateInput.value = data.rateToEur;
+        } else {
+          showToast(`Taux BCE ${currency} introuvable pour cette date : merci de le saisir toi-meme (sinon le reset serait enregistré avec un taux incorrect).`, 'danger');
+        }
+      }catch(e){
+        showToast(`Impossible de récupérer le taux BCE pour ${currency} : merci de le saisir toi-même (sinon le reset serait enregistré avec un taux incorrect).`, 'danger');
+      } finally {
+        rateInput.disabled = false;
+        rateInput.placeholder = 'ex: 1.0821';
+      }
+    }
+    if(rmCurrencySelect){
+      rmCurrencySelect.addEventListener('change', ()=>{ rmFxFetchPromise = autofillRmFxRate(); });
+      document.getElementById('rm-date').addEventListener('change', ()=>{ rmFxFetchPromise = autofillRmFxRate(true); });
+      rmFxFetchPromise = autofillRmFxRate();
+    }
+    const addBtn = document.getElementById('rm-add');
+    if(addBtn) addBtn.onclick = async ()=>{
+      if(rmFxFetchPromise) await rmFxFetchPromise;
+      const fee = Number(document.getElementById('rm-fee').value);
+      const date = document.getElementById('rm-date').value || todayISO();
+      const note = document.getElementById('rm-note').value.trim();
+      const currency = document.getElementById('rm-currency').value;
+      const fxRateInputVal = document.getElementById('rm-fxrate').value;
+      const newNumberRaw = document.getElementById('rm-newnumber').value.trim();
+      if(!fee || fee<=0){ showToast('Frais invalide.', 'danger'); return; }
+      if(currency!=='EUR' && !fxRateInputVal){ showToast('Taux de change introuvable automatiquement : merci de le saisir toi-même avant d\'enregistrer.', 'danger'); return; }
+      const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal);
+      // Nouveau numéro de compte : seulement si renseigné ET différent de l'actuel — sinon on
+      // considère que la PropFirm a gardé le même numéro pour ce reset.
+      const changesNumber = newNumberRaw && newNumberRaw !== acc.accountNumber;
+      if(changesNumber){
+        const dup = findDuplicateAccount(acc.propFirmId, newNumberRaw, acc.id);
+        if(dup){ showToast('Ce numéro de compte est déjà utilisé par un autre compte de cette PropFirm.', 'danger'); return; }
+      }
+      const previousAccountNumber = changesNumber ? acc.accountNumber : (editingId ? (state.account_resets.find(r=>r.id===editingId)||{}).previousAccountNumber : null);
+      if(editingId){
+        const existing = state.account_resets.find(r=>r.id===editingId);
+        await upsert('account_resets', { ...existing, fee, date, note, currency, fxRateToEur, previousAccountNumber });
+        await logActivity('UPDATE', 'account_reset', existing.id, `Reset modifié — ${trader?trader.pseudo:'—'} · ${fmtMoneyDisp(fee, currency, fxRateToEur)}`);
+        showToast('Reset mis à jour.');
+        editingId = null;
+      } else {
+        const newId = uid('rst');
+        await upsert('account_resets', { id: newId, accountId: acc.id, fee, date, note, currency, fxRateToEur, previousAccountNumber: changesNumber ? previousAccountNumber : null, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+        await logActivity('CREATE', 'account_reset', newId, `Reset ajouté — ${trader?trader.pseudo:'—'} · ${fmtMoneyDisp(fee, currency, fxRateToEur)}${changesNumber?` · n° ${previousAccountNumber} → ${newNumberRaw}`:''}`);
+        showToast(changesNumber ? 'Reset ajouté, numéro de compte mis à jour.' : 'Reset ajouté.');
+      }
+      if(changesNumber){
+        await upsert('accounts', { ...acc, accountNumber: newNumberRaw });
+        acc.accountNumber = newNumberRaw; // reflète immédiatement dans cette modale (acc est une référence partagée avec state.accounts)
+      }
+      refresh();
+    };
+    const cancelEditBtn = document.getElementById('rm-cancel-edit');
+    if(cancelEditBtn) cancelEditBtn.onclick = ()=>{ editingId = null; refresh(); };
+    document.querySelectorAll('[data-edit-reset]').forEach(b=>b.onclick=()=>{ editingId = b.dataset.editReset; refresh(); });
+    document.querySelectorAll('[data-del-reset]').forEach(b=>b.onclick=()=>{
+      confirmModal('Supprimer ce reset ? Le frais associé disparaîtra des dépenses (le numéro de compte actuel du compte n\'est pas modifié).', async ()=>{
+        const r = state.account_resets.find(x=>x.id===b.dataset.delReset);
+        if(editingId===b.dataset.delReset) editingId=null;
+        await remove('account_resets', b.dataset.delReset);
+        if(r) await logActivity('DELETE', 'account_reset', r.id, `Reset supprimé — ${trader?trader.pseudo:'—'} · ${fmtMoneyDisp(r.fee, r.currency, r.fxRateToEur)}`);
+        refresh();
+      });
+    });
+  }
+  function refresh(){
+    const body_el = document.querySelector('.modal-body');
+    if(body_el){ body_el.innerHTML = body(); mount(); }
+    renderView();
+  }
+  openModal({ title:'Resets du challenge', wide:true, bodyHtml: body(), onMount: mount });
 }
 
 /* ============================================================
