@@ -1240,6 +1240,11 @@ const state = {
   // ligne, comportement historique) ou 'eur' (tout converti en EUR pour l'affichage, via le taux
   // BCE stocké sur chaque compte/payout — voir resolveDisplayCurrency()). Persistée comme le thème.
   currencyDisplayMode: loadCurrencyDisplayMode(), // 'original' | 'eur'
+  // Vue debug admin (voir canSeeAllData()) : réservée aux admins, décision du 29/08/2026.
+  // Volontairement NON persistée (retombe à false à chaque chargement) — un admin voit ses
+  // propres données par défaut comme n'importe quel utilisateur, et n'active la vue "toute la
+  // plateforme" qu'au moment où il en a besoin pour investiguer un souci.
+  adminDebugView: false,
   session: null,
   profile: null,
   subscription: null,
@@ -1354,6 +1359,13 @@ function setTraderFilterEverywhere(traderIds){
   state.filters.calendrier.trader = ids;
 }
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
+// Vue debug admin : true seulement si la personne est admin ET a explicitement activé le
+// toggle "Vue debug (admin)" de la barre latérale (state.adminDebugView, off par défaut, non
+// persisté). Centralise la condition utilisée par toutes les pages/KPI financiers concernés
+// (Dashboard, Comptabilité, Bilan Visuel, Comparatif) — un seul endroit à changer si la règle
+// évolue. Ne PAS confondre avec isAdmin() seul, qui ne doit plus jamais suffire à élargir
+// l'accès aux données d'un autre utilisateur (décision du 29/08/2026).
+function canSeeAllData(){ return isAdmin() && !!state.adminDebugView; }
 function isMine(item){ return item.createdBy === currentUserId(); }
 function canEdit(item){ return isAdmin() || isMine(item); }
 // Vérif des droits d'écriture par collection : les PropFirms (fiche + logo) sont désormais
@@ -2111,6 +2123,10 @@ function isMineAccount(a){
   if(a.createdBy===currentUserId()) return true;
   return isMineTrader(getTrader(a.traderId));
 }
+// Comptes à prendre en compte pour les KPI financiers personnels (Dashboard, Comptabilité,
+// Bilan Visuel, Comparatif...) : les miens uniquement, sauf si le toggle "Vue debug (admin)"
+// est actif (canSeeAllData()) — un seul endroit à changer si la règle évolue.
+function accountsInScope(){ return canSeeAllData() ? state.accounts : state.accounts.filter(isMineAccount); }
 const FREE_VISIBLE_RATIO = 0.3;
 function freeVisibleCount(total){
   if(perms().isPremium) return total;
@@ -3021,10 +3037,15 @@ function totalExpensesFor(accountId){
 }
 
 // Base de données comptables restreinte aux comptes "à moi" (isMineAccount) — la Comptabilité
-// n'affiche et n'exporte jamais les lignes financières d'un autre utilisateur, admin inclus
-// (décision du 29/08/2026 : les KPI/pages financières restent strictement personnels, quel que
-// soit le rôle — un admin consulte les données des autres via la page Admin dédiée).
+// n'affiche et n'exporte jamais les lignes financières d'un autre utilisateur en usage normal
+// (décision du 29/08/2026). Exception : toggle "Vue debug (admin)" (canSeeAllData()), off par
+// défaut — voir le commentaire de dashRestricted dans viewDashboard().
 function myAccountingSource(){
+  if(canSeeAllData()){
+    const lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
+    const pays = state.payouts.map(p=>({...p, kind:'payout'}));
+    return { lines, pays };
+  }
   const mineFilter = x=>isMineAccount(getAccount(x.accountId));
   const lines = computeAllExpenses().map(e=>({...e, kind:'expense'})).filter(mineFilter);
   const pays = state.payouts.map(p=>({...p, kind:'payout'})).filter(mineFilter);
@@ -3761,6 +3782,7 @@ function render(){
         <button class="icon-btn" id="currency-display-toggle" title="Basculer l'affichage des montants entre devise d'origine et équivalent EUR">${icon('exchange')}<span class="nav-label">${state.currencyDisplayMode==='eur' ? 'Tout afficher en €' : 'Devise d’origine ($/€)'}</span></button>
         <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
         <button class="icon-btn" id="theme-toggle" title="Changer de thème (Sombre → Clair → Premium doré)">${icon(themeToggleTarget().icon)}<span class="nav-label">${themeToggleTarget().label}</span></button>
+        ${isAdmin() ? `<button class="icon-btn" id="admin-debug-toggle" style="${state.adminDebugView?'color:var(--gold);':''}" title="Voir les données de tous les utilisateurs (Dashboard, Comptabilité, Bilan, Comparatif) pour investiguer un souci — désactive-la une fois terminé.">${icon('shield')}<span class="nav-label">${state.adminDebugView ? 'Vue debug (admin) : ON' : 'Vue debug (admin) : OFF'}</span></button>` : ''}
         ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
         <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
         <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
@@ -3772,6 +3794,10 @@ function render(){
       ${(ann && ann.enabled && ann.message) ? `
         <div class="announce-banner announce-${ann.type}">
           ${icon('megaphone')}<span>${escapeHtml(ann.message)}</span>
+        </div>` : ''}
+      ${canSeeAllData() ? `
+        <div class="announce-banner announce-warning">
+          ${icon('shield')}<span>Vue debug (admin) active — Dashboard, Comptabilité, Bilan Visuel et Comparatif affichent les données de <strong>tous les utilisateurs</strong>, pas seulement les tiennes. Désactive-la depuis le menu une fois l'investigation terminée.</span>
         </div>` : ''}
       <div class="topbar">
         <div>
@@ -3820,6 +3846,11 @@ function render(){
     render();
   };
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
+  if(document.getElementById('admin-debug-toggle')) document.getElementById('admin-debug-toggle').onclick = ()=>{
+    state.adminDebugView = !state.adminDebugView;
+    showToast(state.adminDebugView ? "Vue debug activée : tu vois les données de tous les utilisateurs." : "Vue debug désactivée : tu vois de nouveau uniquement tes données.");
+    render();
+  };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
   document.getElementById('contact-btn').onclick = openContactModal;
   const resetBtn = document.getElementById('reset-data');
@@ -4196,14 +4227,13 @@ function lockedWidgetInline(label){
 function viewDashboard(){
   const f = state.filters.dashboard;
   // Le Dashboard est toujours strictement personnel, sur toutes les formules (Free/Premium/
-  // Lifetime) ET quel que soit le rôle (admin inclus) : uniquement le compte courant et ses
-  // propres traders (voir isMineTrader/isMineAccount). Décision du 29/08/2026 — un admin
-  // consulte les données des autres via la page Admin dédiée, pas via son propre Dashboard, qui
-  // doit rester le reflet de son activité personnelle et non un agrégat de toute la plateforme.
-  // Contrairement aux pages Traders/Comptes (où les données des autres restent visibles en
-  // Premium, floutées en Free), ici on exclut carrément les autres traders, comme pour la
-  // Comptabilité.
-  const dashRestricted = true;
+  // Lifetime) : uniquement le compte courant et ses propres traders (voir isMineTrader/
+  // isMineAccount). Décision du 29/08/2026. Exception : un admin qui active le toggle "Vue
+  // debug (admin)" de la barre latérale (canSeeAllData()) voit toute la plateforme, pour
+  // investiguer un souci signalé par un utilisateur — désactivé par défaut. Contrairement aux
+  // pages Traders/Comptes (où les données des autres restent visibles en Premium, floutées en
+  // Free), ici on exclut carrément les autres traders en usage normal, comme pour la Comptabilité.
+  const dashRestricted = !canSeeAllData();
   const myTraders = dashRestricted ? state.traders.filter(isMineTrader) : state.traders;
   const baseAccounts = dashRestricted ? state.accounts.filter(isMineAccount) : state.accounts;
   const accountsF = baseAccounts.filter(a=>
@@ -4989,14 +5019,18 @@ function viewPropfirmDetail(f){
 // Colonnes triables du tableau Comparatif : clé -> comment extraire la valeur d'une ligne.
 // 'name' est traité à part (comparaison alphabétique) ; le reste est numérique, avec les
 // valeurs null (taux de réussite non calculable) systématiquement repoussées en fin de liste.
+// Les comptes sont éclatés par type (Challenges / PA / Live) plutôt qu'un total "Comptes" unique
+// — sans ça, le taux de réussite (calculé uniquement sur les Challenges) était difficile à
+// rattacher visuellement au bon nombre de comptes (29/08/2026).
 const COMPARATIF_COLUMNS = [
   { key:'name',         label:'PropFirm',         numeric:false },
-  { key:'nbComptes',    label:'Comptes',          numeric:true },
-  { key:'nbChallenges', label:'Challenges',       numeric:true },
-  { key:'tauxReussite', label:'Taux de réussite', numeric:true },
-  { key:'totalExp',     label:'Dépenses',         numeric:true },
-  { key:'totalPay',     label:'Payouts',          numeric:true },
-  { key:'net',          label:'Net',              numeric:true },
+  { key:'nbChallenges', label:'Challenges',       numeric:true, info:"Nombre de comptes de type Challenge ouverts avec cette PropFirm, tous statuts confondus (en cours, réussis, breachés)." },
+  { key:'nbPA',         label:'PA',               numeric:true, info:"Nombre de comptes de type « Prop Account » (compte financé après réussite d'un challenge) ouverts avec cette PropFirm, tous statuts confondus." },
+  { key:'nbLive',       label:'Live',             numeric:true, info:"Nombre de comptes de type « Live » (capital réel après validation d'un PA) ouverts avec cette PropFirm, tous statuts confondus." },
+  { key:'tauxReussite', label:'Taux de réussite', numeric:true, info:"Calculé uniquement sur la colonne Challenges : réussis ÷ (réussis + breachés) × 100. Les challenges encore en cours ne comptent pas — « — » s'affiche tant qu'aucun n'est encore tranché." },
+  { key:'totalExp',     label:'Dépenses',         numeric:true, info:"Somme de tous les frais (challenges + activations + mensualités) payés à cette PropFirm, tout type de compte confondu." },
+  { key:'totalPay',     label:'Payouts',          numeric:true, info:"Somme de tous les versements reçus sur des comptes de cette PropFirm, tout type de compte confondu." },
+  { key:'net',          label:'Net',              numeric:true, info:"Payouts moins Dépenses pour cette PropFirm. Un chiffre négatif veut dire qu'elle t'a coûté plus qu'elle ne t'a rapporté jusqu'ici." },
 ];
 function sortComparatifRows(rows, sortKey, sortDir){
   const mul = sortDir==='asc' ? 1 : -1;
@@ -5016,17 +5050,19 @@ function viewComparatif(){
     return emptyState('barChart','Aucune donnée','Ajoute des PropFirms et des comptes pour voir le comparatif.');
   }
   let rows = sortedFirms().map(f=>{
-    // Restreint aux comptes "à moi" (isMineAccount) — ce comparatif porte sur MES dépenses/
-    // payouts par PropFirm, jamais ceux d'un autre utilisateur (admin inclus).
-    const accs = state.accounts.filter(a=>a.propFirmId===f.id && isMineAccount(a));
+    // Restreint aux comptes "à moi" (accountsInScope) — ce comparatif porte sur MES dépenses/
+    // payouts par PropFirm, sauf toggle "Vue debug (admin)" actif (voir canSeeAllData()).
+    const accs = accountsInScope().filter(a=>a.propFirmId===f.id);
     const challenges = accs.filter(a=>a.type==='CHALLENGE');
+    const pas = accs.filter(a=>a.type==='PA');
+    const lives = accs.filter(a=>a.type==='LIVE');
     const reussis = challenges.filter(a=>a.status==='REUSSI').length;
     const breached = challenges.filter(a=>a.status==='BREACHED').length;
     const tauxReussite = (reussis+breached)>0 ? Math.round(reussis/(reussis+breached)*100) : null;
     const accIds = new Set(accs.map(a=>a.id));
     const cfMoney = sumMoneyNet(computeAllExpenses().filter(e=>accIds.has(e.accountId)), state.payouts.filter(p=>accIds.has(p.accountId)));
     const totalExp = cfMoney.totalExp, totalPay = cfMoney.totalPay, net = cfMoney.net;
-    return { firm:f, nbComptes: accs.length, nbChallenges: challenges.length, tauxReussite, totalExp, totalPay, net, currency:cfMoney.currency, converted:cfMoney.converted, mixed:cfMoney.mixed };
+    return { firm:f, nbChallenges: challenges.length, nbPA: pas.length, nbLive: lives.length, tauxReussite, totalExp, totalPay, net, currency:cfMoney.currency, converted:cfMoney.converted, mixed:cfMoney.mixed };
   });
 
   const { sortKey, sortDir } = state.filters.comparatif;
@@ -5035,7 +5071,7 @@ function viewComparatif(){
   const thSort = (col)=>{
     const active = sortKey===col.key;
     const arrow = active ? icon(sortDir==='asc' ? 'arrowUp' : 'arrowDown') : icon('arrowUpDown');
-    return `<th class="th-sortable ${col.numeric?'num':''} ${active?'th-sort-active':''}" data-sort-comparatif="${col.key}"><span class="th-sort-inner">${col.label}${arrow}</span></th>`;
+    return `<th class="th-sortable ${col.numeric?'num':''} ${active?'th-sort-active':''}" data-sort-comparatif="${col.key}"><span class="th-sort-inner">${col.label}${col.info?infoTip(col.info):''}${arrow}</span></th>`;
   };
 
   return `
@@ -5048,8 +5084,9 @@ function viewComparatif(){
           <tbody>
             ${rows.map(r=>`<tr>
               <td style="font-weight:600;"><span class="firm-name-inline">${firmLogoHtml(r.firm,18)}${r.firm.name}</span></td>
-              <td class="num">${r.nbComptes}</td>
               <td class="num">${r.nbChallenges}</td>
+              <td class="num">${r.nbPA}</td>
+              <td class="num">${r.nbLive}</td>
               <td class="num">${r.tauxReussite===null ? '<span class="text-faint">—</span>' : r.tauxReussite+'%'}</td>
               <td class="num" style="color:var(--danger)">${fmtMoneyCur(r.totalExp, r.currency)}</td>
               <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}</td>
@@ -5059,7 +5096,7 @@ function viewComparatif(){
         </table>
       </div>
     </div>
-    <div class="field-hint" style="margin-top:12px;">Le taux de réussite ne compte que les challenges déjà tranchés (réussis ou breached). Clique sur une colonne pour trier.</div>
+    <div class="field-hint" style="margin-top:12px;">Le taux de réussite ne compte que les challenges déjà tranchés (réussis ou breached). Clique sur une colonne pour trier, ou sur ⓘ pour l'explication d'un indicateur.</div>
   `;
 }
 
@@ -6490,9 +6527,9 @@ function viewAccounting(){
   return `
     ${filterBar}
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
-      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
-      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)${infoTip("Somme des dépenses correspondant aux filtres actifs (trader, type, PropFirm, mois...). Change avec les filtres, contrairement au total du compte.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)${infoTip("Somme des payouts correspondant aux filtres actifs.")}</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net${infoTip("Payouts filtrés moins dépenses filtrées.")}</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
     </div>
     ${recapTable}
     <div class="panel">
@@ -6512,10 +6549,10 @@ function viewAccounting(){
    pensées pour être exportées en PNG pour les vidéos YouTube)
 ============================================================ */
 function computeBilanData(month, traderIds){
-  // Restreint aux comptes "à moi" (isMineAccount) — voir myAccountingSource() : les KPI
+  // Restreint aux comptes "à moi" (accountsInScope) — voir myAccountingSource() : les KPI
   // financiers du Bilan ne doivent porter que sur le compte courant et ses propres traders,
-  // jamais sur ceux d'un autre utilisateur (admin inclus).
-  const mineAccountIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  // sauf toggle "Vue debug (admin)" actif.
+  const mineAccountIds = new Set(accountsInScope().map(a=>a.id));
   const lines = computeAllExpenses().filter(e=>mineAccountIds.has(e.accountId) && monthKey(e.date)===month);
   const pays = state.payouts.filter(p=>mineAccountIds.has(p.accountId) && monthKey(p.date)===month);
   const map = new Map();
@@ -6565,11 +6602,10 @@ function currentPeriodKey(granularity){
 }
 // Agrège dépenses/payouts par PropFirm (tous MES traders confondus, ou filtrés via traderIds) pour
 // une période donnée — utilisé par la vue globale (PNG unique) du Bilan Visuel. Restreint aux
-// comptes "à moi" (isMineAccount, voir myAccountingSource()) : jamais les données d'un autre
-// utilisateur, admin inclus.
+// comptes "à moi" (accountsInScope, voir myAccountingSource()) sauf toggle "Vue debug (admin)".
 function computeBilanFirmData(periodKey, granularity, traderIds){
   const keyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
-  const mineAccountIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  const mineAccountIds = new Set(accountsInScope().map(a=>a.id));
   let lines = computeAllExpenses().filter(e=>mineAccountIds.has(e.accountId) && keyFn(e.date)===periodKey);
   let pays = state.payouts.filter(p=>mineAccountIds.has(p.accountId) && keyFn(p.date)===periodKey);
   if(traderIds && traderIds.length){
@@ -6710,7 +6746,7 @@ function viewBilanVisuel(){
   if(f.viewMode==='cards'){
     const month = f.month || monthKey(todayISO());
     const entries = computeBilanData(month, f.trader);
-    const mineAccountIdsBilan = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+    const mineAccountIdsBilan = new Set(accountsInScope().map(a=>a.id));
     let bilanLines = computeAllExpenses().filter(e=>mineAccountIdsBilan.has(e.accountId) && monthKey(e.date)===month);
     let bilanPays = state.payouts.filter(p=>mineAccountIdsBilan.has(p.accountId) && monthKey(p.date)===month);
     if(f.trader && f.trader.length){
@@ -6741,9 +6777,9 @@ function viewBilanVisuel(){
     return `
       ${modeToggle}
       <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
-        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)</div><div class="stat-value">${fmtMoneyCur(totalPay, bilanMoney.currency)}</div></div>
-        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)${infoTip("Somme des dépenses du mois sélectionné (et du filtre trader s'il est actif), tous traders/comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)${infoTip("Somme des payouts reçus le mois sélectionné (et du filtre trader s'il est actif).")}</div><div class="stat-value">${fmtMoneyCur(totalPay, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)${infoTip("Payouts du mois moins dépenses du mois.")}</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
       </div>
       ${filterBar}
       ${grid}
