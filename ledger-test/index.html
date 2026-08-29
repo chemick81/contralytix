@@ -129,6 +129,26 @@
   --slate:#8C7D62; --slate-dim:rgba(140,125,98,0.14);
   --shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
+/* ============================================================
+   ÉCHELLE DE DESIGN (tokens neutres, communs aux 3 thèmes)
+   Ajoutée le 29/08/2026 (audit design) pour remplacer les valeurs d'espacement/arrondi/texte
+   bricolées au cas par cas depuis le début du projet. Appliquée pour l'instant aux composants
+   structurants (boutons, panneaux, cartes, modales, badges/pills, inputs) où l'incohérence était
+   la plus visible — PAS un remplacement systématique de chaque style en ligne du fichier (des
+   centaines d'occurrences ponctuelles existent encore un peu partout et seront alignées au fil
+   des prochaines retouches, pas en un seul passage risqué).
+   Rayons : sm = boutons/inputs/petits contrôles, md = panneaux/cartes, lg = modales/popovers,
+   pill = badges/pastilles totalement arrondis.
+   Texte : échelle resserrée autour de ce qui existait déjà (11/12/13/14px de base) plutôt qu'une
+   nouvelle échelle arbitraire, pour ne rien casser visuellement à ce stade. */
+:root{
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --fs-xs: 11px; --fs-sm: 12px; --fs-base: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 19px; --fs-2xl: 24px;
+}
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.brand,.nav-label,.stat-label,.section-title{font-family:'Space Grotesk',sans-serif;}
@@ -185,7 +205,7 @@ a{color:var(--accent);text-decoration:none;}
 @media (max-width:640px){ .back-to-top{right:78px;bottom:14px;width:38px;height:38px;} }
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;border:1px solid transparent;transition:filter .12s,background .12s;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;font-weight:600;border:1px solid transparent;transition:filter .12s,background .12s;white-space:nowrap;}
 .btn svg{width:14px;height:14px;}
 .btn-primary{background:var(--accent);color:var(--accent-text);}
 .btn-primary:hover{filter:brightness(1.08);}
@@ -216,7 +236,7 @@ a{color:var(--accent);text-decoration:none;}
 @keyframes infoTipIn{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:translateY(0);}}
 
 /* CARDS / PANELS */
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);}
 .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-soft);}
 .section-title{font-size:14px;font-weight:600;}
 .section-title svg{width:16px;height:16px;flex-shrink:0;}
@@ -311,7 +331,7 @@ th.th-sort-active svg{opacity:1;}
 .page-visibility-left{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;}
 .page-visibility-left svg{width:16px;height:16px;color:var(--text-dim);flex-shrink:0;}
 /* BADGES */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap;}
 .badge svg{width:11px;height:11px;flex-shrink:0;}
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
 .badge-accent{background:var(--accent-dim);color:var(--accent);}
@@ -419,7 +439,7 @@ th.th-sort-active svg{opacity:1;}
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:fadeIn .12s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:pop .14s ease;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:pop .14s ease;}
 @keyframes pop{from{transform:translateY(6px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 .modal.wide{max-width:640px;}
 .modal.xwide{max-width:960px;}
@@ -627,7 +647,7 @@ th.th-sort-active svg{opacity:1;}
 /* FORM */
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:6px;}
-.field input,.field select,.field textarea{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:7px;font-size:13px;font-family:inherit;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;}
 .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .field-hint{font-size:11px;color:var(--text-faint);margin-top:4px;}
@@ -637,7 +657,7 @@ th.th-sort-active svg{opacity:1;}
 .error-text{color:var(--danger);font-size:11.5px;margin-top:5px;}
 
 /* ACCOUNT ROW CARD */
-.acc-card{border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:9px;padding:14px 16px;margin-bottom:10px;background:var(--surface);}
+.acc-card{border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:var(--radius-md);padding:14px 16px;margin-bottom:10px;background:var(--surface);}
 .acc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
 .acc-title{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;}
 .acc-meta{font-size:11.5px;color:var(--text-faint);margin-top:3px;}
@@ -2991,13 +3011,13 @@ function statusLabel(acc){
 function statusBadgeClass(acc){
   if(acc.status==='BREACHED') return 'badge-danger';
   if(acc.status==='REUSSI' || acc.status==='ACTIF') return 'badge-accent';
-  if(acc.status==='FERME') return 'badge-gold';
+  if(acc.status==='FERME') return 'badge-slate';
   return 'badge-slate';
 }
 function railColor(acc){
   if(acc.status==='BREACHED') return 'var(--danger)';
   if(acc.status==='REUSSI' || acc.status==='ACTIF') return 'var(--accent)';
-  if(acc.status==='FERME') return 'var(--gold)';
+  if(acc.status==='FERME') return 'var(--slate)';
   return 'var(--slate)';
 }
 
