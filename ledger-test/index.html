@@ -3021,14 +3021,11 @@ function totalExpensesFor(accountId){
 }
 
 // Base de données comptables restreinte aux comptes "à moi" (isMineAccount) — la Comptabilité
-// n'affiche et n'exporte jamais les lignes financières d'un autre utilisateur, admin excepté.
+// n'affiche et n'exporte jamais les lignes financières d'un autre utilisateur, admin inclus
+// (décision du 29/08/2026 : les KPI/pages financières restent strictement personnels, quel que
+// soit le rôle — un admin consulte les données des autres via la page Admin dédiée).
 function myAccountingSource(){
   const mineFilter = x=>isMineAccount(getAccount(x.accountId));
-  if(isAdmin()){
-    const lines = computeAllExpenses().map(e=>({...e, kind:'expense'}));
-    const pays = state.payouts.map(p=>({...p, kind:'payout'}));
-    return { lines, pays };
-  }
   const lines = computeAllExpenses().map(e=>({...e, kind:'expense'})).filter(mineFilter);
   const pays = state.payouts.map(p=>({...p, kind:'payout'})).filter(mineFilter);
   return { lines, pays };
@@ -4198,11 +4195,15 @@ function lockedWidgetInline(label){
 }
 function viewDashboard(){
   const f = state.filters.dashboard;
-  // Le Dashboard est toujours personnel, sur toutes les formules (Free/Premium/Lifetime) — seul
-  // un admin voit les données de l'ensemble de la plateforme. Contrairement aux pages Traders/
-  // Comptes (où les données des autres restent visibles en Premium, floutées en Free), ici on
-  // exclut carrément les autres traders, comme pour la Comptabilité.
-  const dashRestricted = !isAdmin();
+  // Le Dashboard est toujours strictement personnel, sur toutes les formules (Free/Premium/
+  // Lifetime) ET quel que soit le rôle (admin inclus) : uniquement le compte courant et ses
+  // propres traders (voir isMineTrader/isMineAccount). Décision du 29/08/2026 — un admin
+  // consulte les données des autres via la page Admin dédiée, pas via son propre Dashboard, qui
+  // doit rester le reflet de son activité personnelle et non un agrégat de toute la plateforme.
+  // Contrairement aux pages Traders/Comptes (où les données des autres restent visibles en
+  // Premium, floutées en Free), ici on exclut carrément les autres traders, comme pour la
+  // Comptabilité.
+  const dashRestricted = true;
   const myTraders = dashRestricted ? state.traders.filter(isMineTrader) : state.traders;
   const baseAccounts = dashRestricted ? state.accounts.filter(isMineAccount) : state.accounts;
   const accountsF = baseAccounts.filter(a=>
@@ -5015,7 +5016,9 @@ function viewComparatif(){
     return emptyState('barChart','Aucune donnée','Ajoute des PropFirms et des comptes pour voir le comparatif.');
   }
   let rows = sortedFirms().map(f=>{
-    const accs = state.accounts.filter(a=>a.propFirmId===f.id);
+    // Restreint aux comptes "à moi" (isMineAccount) — ce comparatif porte sur MES dépenses/
+    // payouts par PropFirm, jamais ceux d'un autre utilisateur (admin inclus).
+    const accs = state.accounts.filter(a=>a.propFirmId===f.id && isMineAccount(a));
     const challenges = accs.filter(a=>a.type==='CHALLENGE');
     const reussis = challenges.filter(a=>a.status==='REUSSI').length;
     const breached = challenges.filter(a=>a.status==='BREACHED').length;
@@ -6509,8 +6512,12 @@ function viewAccounting(){
    pensées pour être exportées en PNG pour les vidéos YouTube)
 ============================================================ */
 function computeBilanData(month, traderIds){
-  const lines = computeAllExpenses().filter(e=>monthKey(e.date)===month);
-  const pays = state.payouts.filter(p=>monthKey(p.date)===month);
+  // Restreint aux comptes "à moi" (isMineAccount) — voir myAccountingSource() : les KPI
+  // financiers du Bilan ne doivent porter que sur le compte courant et ses propres traders,
+  // jamais sur ceux d'un autre utilisateur (admin inclus).
+  const mineAccountIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  const lines = computeAllExpenses().filter(e=>mineAccountIds.has(e.accountId) && monthKey(e.date)===month);
+  const pays = state.payouts.filter(p=>mineAccountIds.has(p.accountId) && monthKey(p.date)===month);
   const map = new Map();
   function entryFor(tId, fId){
     const key = tId+'|'+fId;
@@ -6556,12 +6563,15 @@ function currentPeriodKey(granularity){
   if(granularity==='quarter') return quarterKey(today);
   return monthKey(today);
 }
-// Agrège dépenses/payouts par PropFirm (tous traders confondus, ou filtrés via traderIds) pour une
-// période donnée — utilisé par la vue globale (PNG unique) du Bilan Visuel.
+// Agrège dépenses/payouts par PropFirm (tous MES traders confondus, ou filtrés via traderIds) pour
+// une période donnée — utilisé par la vue globale (PNG unique) du Bilan Visuel. Restreint aux
+// comptes "à moi" (isMineAccount, voir myAccountingSource()) : jamais les données d'un autre
+// utilisateur, admin inclus.
 function computeBilanFirmData(periodKey, granularity, traderIds){
   const keyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
-  let lines = computeAllExpenses().filter(e=>keyFn(e.date)===periodKey);
-  let pays = state.payouts.filter(p=>keyFn(p.date)===periodKey);
+  const mineAccountIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  let lines = computeAllExpenses().filter(e=>mineAccountIds.has(e.accountId) && keyFn(e.date)===periodKey);
+  let pays = state.payouts.filter(p=>mineAccountIds.has(p.accountId) && keyFn(p.date)===periodKey);
   if(traderIds && traderIds.length){
     lines = lines.filter(e=>{ const acc=getAccount(e.accountId); return acc && traderIds.includes(acc.traderId); });
     pays = pays.filter(p=>{ const acc=getAccount(p.accountId); return acc && traderIds.includes(acc.traderId); });
@@ -6700,8 +6710,9 @@ function viewBilanVisuel(){
   if(f.viewMode==='cards'){
     const month = f.month || monthKey(todayISO());
     const entries = computeBilanData(month, f.trader);
-    let bilanLines = computeAllExpenses().filter(e=>monthKey(e.date)===month);
-    let bilanPays = state.payouts.filter(p=>monthKey(p.date)===month);
+    const mineAccountIdsBilan = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+    let bilanLines = computeAllExpenses().filter(e=>mineAccountIdsBilan.has(e.accountId) && monthKey(e.date)===month);
+    let bilanPays = state.payouts.filter(p=>mineAccountIdsBilan.has(p.accountId) && monthKey(p.date)===month);
     if(f.trader && f.trader.length){
       bilanLines = bilanLines.filter(e=>{ const acc=getAccount(e.accountId); return acc && f.trader.includes(acc.traderId); });
       bilanPays = bilanPays.filter(p=>{ const acc=getAccount(p.accountId); return acc && f.trader.includes(acc.traderId); });
