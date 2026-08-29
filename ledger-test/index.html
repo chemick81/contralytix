@@ -47,7 +47,9 @@
   "inLanguage": "fr-FR",
   "offers": [
     { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "EUR" },
-    { "@type": "Offer", "name": "Premium", "priceCurrency": "EUR" }
+    { "@type": "Offer", "name": "Premium (mensuel)", "price": "9.90", "priceCurrency": "EUR" },
+    { "@type": "Offer", "name": "Premium (annuel)", "price": "90", "priceCurrency": "EUR" },
+    { "@type": "Offer", "name": "Lifetime", "price": "199", "priceCurrency": "EUR" }
   ],
   "publisher": {
     "@type": "Organization",
@@ -80,6 +82,16 @@
       "@type": "Question",
       "name": "Contralytix est-il gratuit ?",
       "acceptedAnswer": { "@type": "Answer", "text": "Oui, une formule Free permet de démarrer sans engagement avec jusqu'à 2 traders et un suivi de base des payouts. Des formules Premium (mensuelle/annuelle) et Lifetime débloquent les comptes illimités, les exports et le bilan visuel." }
+    },
+    {
+      "@type": "Question",
+      "name": "Les données sont-elles en sécurité sur Contralytix ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui : connexion sans mot de passe (code à usage unique par e-mail, ou Google), règles d'accès appliquées à chaque enregistrement, et paiement géré par Stripe sans stockage des coordonnées bancaires par Contralytix." }
+    },
+    {
+      "@type": "Question",
+      "name": "Peut-on annuler son abonnement Contralytix à tout moment ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, sans engagement : les formules mensuelle et annuelle se résilient à tout moment avant la prochaine échéance, depuis l'espace d'abonnement." }
     }
   ]
 }
@@ -965,6 +977,23 @@ th.th-sort-active svg{opacity:1;}
       </div>
     </section>
 
+    <section class="ml-features" style="padding:0 0 40px;border-top:none;">
+      <div class="ml-feature-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+        <article class="ml-feature-card">
+          <h3>Pensé pour le multi-comptes prop firm</h3>
+          <p>Pas un journal de trading généraliste : chaque écran est construit autour de la réalité d'un trader funded — Challenge, PA, Live, plusieurs PropFirms, plusieurs traders.</p>
+        </article>
+        <article class="ml-feature-card" id="ml-why-fiscalite">
+          <h3>Un module Fiscalité micro-BNC dédié</h3>
+          <p>Seuils, franchise de TVA et échéances URSSAF suivis automatiquement à partir de tes payouts réels — une fonctionnalité que nous n'avons trouvée chez aucun concurrent équivalent.</p>
+        </article>
+        <article class="ml-feature-card">
+          <h3>Tes données ne sont jamais revendues</h3>
+          <p>Hébergement et paiement confiés à des prestataires reconnus (Supabase, Stripe), jamais à des courtiers de données. Détail complet dans notre politique de confidentialité.</p>
+        </article>
+      </div>
+    </section>
+
     <section class="ml-tour">
       <div class="ml-tour-row">
         <div class="ml-tour-text">
@@ -1058,7 +1087,7 @@ th.th-sort-active svg{opacity:1;}
         </div>
         <div class="ml-pricing-card ml-pricing-highlight">
           <h3>Premium</h3>
-          <p class="ml-pricing-tagline">Mensuel ou annuel</p>
+          <p class="ml-pricing-tagline" id="ml-price-premium">Mensuel ou annuel</p>
           <ul>
             <li>✓ Traders illimités</li>
             <li>✓ Comptes illimités par trader</li>
@@ -1070,14 +1099,14 @@ th.th-sort-active svg{opacity:1;}
         </div>
         <div class="ml-pricing-card">
           <h3>Lifetime</h3>
-          <p class="ml-pricing-tagline">Paiement unique</p>
+          <p class="ml-pricing-tagline" id="ml-price-lifetime">Paiement unique</p>
           <ul>
             <li>✓ Accès à vie à toutes les fonctionnalités Premium</li>
             <li>✓ Aucun renouvellement</li>
           </ul>
         </div>
       </div>
-      <p class="ml-pricing-note">Tarifs détaillés et code promo disponibles une fois connecté.</p>
+      <p class="ml-pricing-note">Code promo disponible une fois connecté. Sans engagement, résiliable à tout moment depuis ton espace.</p>
     </section>
 
     <section class="ml-faq">
@@ -1099,6 +1128,14 @@ th.th-sort-active svg{opacity:1;}
           <summary>Contralytix est-il gratuit ?</summary>
           <p>Oui, une formule Free permet de démarrer sans engagement avec jusqu'à 2 traders et un suivi de base des payouts. Des formules Premium (mensuelle/annuelle) et Lifetime débloquent les comptes illimités, les exports et le bilan visuel.</p>
         </details>
+        <details class="ml-faq-item">
+          <summary>Mes données sont-elles en sécurité ?</summary>
+          <p>Oui : la connexion se fait sans mot de passe (code à usage unique par e-mail, ou Google), chaque donnée est protégée par des règles d'accès appliquées enregistrement par enregistrement, et le paiement est géré par Stripe — Contralytix ne stocke jamais tes coordonnées bancaires. Le détail complet (sous-traitants, durées de conservation, tes droits RGPD) est dans notre <a href="#" id="ml-faq-confidentialite-link">politique de confidentialité</a>.</p>
+        </details>
+        <details class="ml-faq-item">
+          <summary>Puis-je annuler mon abonnement à tout moment ?</summary>
+          <p>Oui, sans engagement : les formules mensuelle et annuelle se résilient à tout moment depuis ton espace d'abonnement, avant la prochaine échéance. La résiliation prend effet à la fin de la période déjà payée.</p>
+        </details>
       </div>
     </section>
 
@@ -1108,7 +1145,12 @@ th.th-sort-active svg{opacity:1;}
   </main>
 
   <footer class="ml-footer">
-    © <span id="ml-year"></span> Contralytix — Gestion financière propfirm pour traders. Suivi Challenge, PA, Live, comptabilité et payouts.
+    <div>© <span id="ml-year"></span> Contralytix — Gestion financière propfirm pour traders. Suivi Challenge, PA, Live, comptabilité et payouts.</div>
+    <div class="legal-foot-links" style="justify-content:center;margin-top:8px;">
+      <a href="#" id="ml-legal-confidentialite">Confidentialité &amp; RGPD</a><span class="legal-foot-sep">·</span>
+      <a href="#" id="ml-legal-cgv">CGV / CGU</a><span class="legal-foot-sep">·</span>
+      <a href="#" id="ml-legal-mentions">Mentions légales</a>
+    </div>
   </footer>
 </div>
 
@@ -1147,6 +1189,29 @@ th.th-sort-active svg{opacity:1;}
       if(loadingEl) loadingEl.scrollIntoView({ behavior:'smooth', block:'start' });
     });
   });
+  // Liens légaux du pied de page de la landing publique (visiteur pas encore connecté) : mêmes
+  // vues que dans l'app (voir openModal + viewConfidentialite/viewCGV/viewMentionsLegales,
+  // routes 'confidentialite'/'cgv'/'mentions-legales') mais ouvertes en modale directement depuis
+  // la page d'accueil, sans passer par la connexion. Ajout du 29/08/2026 (audit design,
+  // argumentaire commercial) : ces pages existaient déjà mais n'étaient accessibles qu'une fois
+  // connecté, ce qui n'est pas correct pour des mentions légalement requises sur un site commercial.
+  const legalLink = (id, title, renderFn) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      // Référencées par closure, pas encore définies à CE stade du parsing du script — sans
+      // incidence : cette fonction ne s'exécute qu'au clic, bien après le chargement complet du
+      // script (mêmes déclarations `function` hoistées que viewConfidentialite() plus bas).
+      if(typeof openModal === 'function' && typeof renderFn === 'function'){
+        openModal({ title, bodyHtml: renderFn(), wide:true });
+      }
+    });
+  };
+  legalLink('ml-legal-confidentialite', 'Confidentialité & RGPD', ()=>viewConfidentialite());
+  legalLink('ml-legal-cgv', 'CGV / CGU', ()=>viewCGV());
+  legalLink('ml-legal-mentions', 'Mentions légales', ()=>viewMentionsLegales());
+  legalLink('ml-faq-confidentialite-link', 'Confidentialité & RGPD', ()=>viewConfidentialite());
 })();
 
 /* ============================================================
@@ -2278,6 +2343,9 @@ function openWelcomeModal(){
 // ⚠️ Ceci ne contrôle que le TEXTE affiché dans l'app — le montant réellement facturé
 // dépend uniquement de la configuration Stripe (STRIPE_PRICE_MONTHLY / YEARLY / LIFETIME,
 // voir create-checkout-session.js). Les deux doivent être tenus manuellement synchronisés.
+// ⚠️ Le JSON-LD "offers" tout en haut du <head> (données structurées SEO) duplique aussi ces
+// montants en dur (Google ne peut pas exécuter loadPricingSettings()) — à mettre à jour à la
+// main si les tarifs changent durablement (pas nécessaire pour un simple code promo ponctuel).
 const DEFAULT_PRICING = {
   MONTHLY:  { amount: '9,90', period: '/mois' },
   YEARLY:   { amount: '90',  period: '/an', monthlyEquivalent: '7,50' },
@@ -11959,10 +12027,28 @@ function initInfoTips(){
 // 'authenticated' — à vérifier/ajouter côté Supabase si cette fonction reste sans effet ici).
 function applyFiscalLandingVisibility(){
   const hidden = !!(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('fiscalite'));
-  ['ml-feature-fiscalite','ml-pricing-fiscalite','ml-faq-fiscalite'].forEach(id=>{
+  ['ml-feature-fiscalite','ml-pricing-fiscalite','ml-faq-fiscalite','ml-why-fiscalite'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.style.display = hidden ? 'none' : '';
   });
+}
+// Affiche les vrais montants sur la page d'accueil publique (visiteur non connecté) au lieu de
+// les cacher derrière "disponibles une fois connecté" — un tarif masqué est un frein à la
+// conversion, pas une protection utile. Utilise state.pricingSettings (rempli par
+// loadPricingSettings(), appelé au boot juste avant, en dev comme pour un visiteur anonyme) donc
+// reste toujours synchronisé avec les tarifs réellement configurés en Admin > Tarifs affichés —
+// sans dupliquer les montants en dur dans le HTML de la landing. Audit design du 29/08/2026
+// (étape "argumentaire commercial").
+function applyLandingPricing(){
+  const P = state.pricingSettings;
+  const premiumEl = document.getElementById('ml-price-premium');
+  if(premiumEl){
+    premiumEl.innerHTML = `${P.MONTHLY.amount}€${P.MONTHLY.period} <span class="text-faint">ou</span> ${P.YEARLY.amount}€${P.YEARLY.period}${P.YEARLY.monthlyEquivalent ? ` <span class="text-faint">(soit ${P.YEARLY.monthlyEquivalent}€/mois)</span>` : ''}`;
+  }
+  const lifetimeEl = document.getElementById('ml-price-lifetime');
+  if(lifetimeEl){
+    lifetimeEl.innerHTML = `${P.LIFETIME.amount}€${P.LIFETIME.period}`;
+  }
 }
 (async function boot(){
   // Applique le thème choisi (localStorage, voir loadThemePrefs()) dès le boot, avant le premier
@@ -11980,6 +12066,11 @@ function applyFiscalLandingVisibility(){
   // valeurs par défaut, rien n'est masqué sur la landing tant que ce n'est pas corrigé côté DB).
   await loadAppSettings();
   applyFiscalLandingVisibility();
+  // Idem pour les tarifs affichés sur la landing publique (voir applyLandingPricing ci-dessus) :
+  // chargés avant même la vérification de session, avec repli silencieux sur les valeurs par
+  // défaut de state.pricingSettings si la lecture anonyme d'app_settings n'est pas autorisée.
+  await loadPricingSettings();
+  applyLandingPricing();
   // Retour d'une connexion Google (OAuth) : contrairement au flux email+code (100% côté
   // client, jamais de rechargement de page), signInWithOAuth() fait quitter puis revenir
   // le navigateur sur cette page — un vrai rechargement complet. #marketing-landing est
@@ -12051,6 +12142,8 @@ function applyFiscalLandingVisibility(){
       // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages.
       await loadAppSettings();
       applyFiscalLandingVisibility();
+      await loadPricingSettings();
+      applyLandingPricing();
     }
   });
 
