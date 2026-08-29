@@ -11709,6 +11709,15 @@ function applyFiscalLandingVisibility(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(session){ await enterApp(session); }
   else { renderAuthScreen(); }
+  // Nettoyage de l'URL : après un retour de connexion Google (OAuth) ou d'un lien magique,
+  // le SDK Supabase (detectSessionInUrl) lit le jeton dans le hash puis le vide lui-même via
+  // `location.hash = ''` en interne — or affecter une chaîne vide à location.hash laisse un
+  // "#" isolé dans la barre d'adresse au lieu de le supprimer complètement (comportement
+  // standard des navigateurs, pas un bug de l'app). On enlève ce "#" résiduel une bonne fois
+  // pour toutes ici, sans recharger la page.
+  if(location.hash === '' && location.href.endsWith('#')){
+    history.replaceState(null, '', location.pathname + location.search);
+  }
 })();
 </script>
 </body>
