@@ -5283,8 +5283,29 @@ function viewClassement(){
   const rest = rows.slice(3);
   const medal = ['🥇','🥈','🥉'];
   const noActivity = rows.every(r=>r.totalPay===0);
+  // Un trader privé n'apparaît dans le classement de PERSONNE d'autre que son propriétaire
+  // (filtré côté RLS avant même d'arriver dans state.traders) — seuls ses propres traders
+  // privés se retrouvent donc ici, mélangés aux traders publics des autres. On les repère pour
+  // afficher un badge "Privé" sur leur ligne, et pour proposer de les rendre publics : sans ça,
+  // avec le nouveau défaut privé, un trader n'a aucun moyen de savoir depuis cette page qu'il
+  // est invisible aux autres.
+  const myPrivateTraders = state.traders.filter(t=>t.createdBy===currentUserId() && t.isPublic===false);
+  const privacyBanner = myPrivateTraders.length ? `
+    <div class="panel" style="margin-bottom:14px;border-color:var(--accent);">
+      <div class="panel-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;font-size:13px;">
+          ${icon('lock')} ${myPrivateTraders.length===1
+            ? `Ton trader <b>${myPrivateTraders[0].pseudo}</b> est privé : il n'apparaît que dans ton classement, pas dans celui des autres.`
+            : `${myPrivateTraders.length} de tes traders sont privés : ils n'apparaissent que dans ton classement, pas dans celui des autres.`}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${myPrivateTraders.map(t=>`<button class="btn btn-outline btn-sm" data-lb-make-public="${t.id}">Rendre ${myPrivateTraders.length===1?'public':`« ${t.pseudo} » public`}</button>`).join('')}
+        </div>
+      </div>
+    </div>` : '';
 
   return `
+    ${privacyBanner}
     <div class="panel">
       <div class="panel-head">
         <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('trophy')}Classement des traders</div>
@@ -5299,7 +5320,7 @@ function viewClassement(){
           ${top3.map((r,i)=>`
             <div class="lb-podium-card lb-rank-${i+1}">
               <div class="lb-medal">${medal[i]}</div>
-              <div class="lb-pseudo">${r.trader.pseudo}</div>
+              <div class="lb-pseudo">${r.trader.pseudo}${r.trader.isPublic===false?` <span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div>
               <div class="lb-amount">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</div>
               <div class="lb-sub">${r.tauxReussite===null?'—':r.tauxReussite+'% réussite'} · ${r.badges} badge(s)</div>
             </div>`).join('')}
@@ -5311,7 +5332,7 @@ function viewClassement(){
             <tbody>
               ${rest.map((r,i)=>`<tr>
                 <td class="text-faint">${i+4}</td>
-                <td style="font-weight:600;">${r.trader.pseudo}</td>
+                <td style="font-weight:600;">${r.trader.pseudo}${r.trader.isPublic===false?` <span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</td>
                 <td class="num" style="color:var(--accent)">${fmtMoneyCur(r.totalPay, r.currency)}${r.converted?` <span class="text-faint" style="font-size:10px;">${convertedLabel(r.converted, r.mixed)}</span>`:''}</td>
                 <td class="num">${r.nbPayouts}</td>
                 <td class="num">${r.tauxReussite===null?'—':r.tauxReussite+'%'}</td>
@@ -5421,7 +5442,7 @@ const HELP_CATEGORIES = [
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
-    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est visible par tous les autres comptes de la plateforme (ainsi que ses comptes, payouts et notes) — c'est ce qui permet le Classement et le Comparatif entre traders. Tu peux le passer en « Privé » (visible uniquement par toi et les admins) depuis sa fiche, à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. Le Dashboard et la page Comptabilité font exception : ils n'affichent jamais que les données de tes propres traders et comptes, quelle que soit ta formule." },
+    { q:"Mes données sont-elles privées ?", a:"Par défaut, un trader que tu crées est privé : lui, ses comptes, payouts et notes ne sont visibles que par toi et les admins. Tu peux le passer en « Visible par tous » depuis sa fiche (ou directement depuis le Classement) si tu veux apparaître dans le Classement et le Comparatif entre traders — c'est réversible à tout moment. Seul le créateur d'une donnée (ou un admin) peut la modifier ou la supprimer, quelle que soit sa visibilité. Le Dashboard et la page Comptabilité font exception : ils n'affichent jamais que les données de tes propres traders et comptes, quelle que soit ta formule." },
     { q:"Puis-je exporter une sauvegarde complète de mes données ?", a:"L'export JSON complet (« Sauvegarde JSON ») est un outil réservé aux administrateurs, disponible dans l'espace Admin. Pour tes propres données, la page Comptabilité propose des exports CSV, Excel et PDF, réservés aux comptes Premium/Lifetime ; un export individuel complet peut aussi être demandé au support." },
   ]},
 ];
@@ -9116,6 +9137,14 @@ function bindViewEvents(){
   if(calToday) calToday.onclick = ()=>{ state.filters.calendrier.month = ''; renderView(); };
   // Classement
   bindMonthFilter('lb-month', state.filters.classement, { allowAll:true, allTimeField:'allTime' });
+  document.querySelectorAll('[data-lb-make-public]').forEach(btn=>btn.onclick=async ()=>{
+    const t = state.traders.find(x=>x.id===btn.dataset.lbMakePublic);
+    if(!t) return;
+    await upsert('traders', { ...t, isPublic:true });
+    await logActivity('UPDATE', 'trader', t.id, `${t.pseudo} (rendu public depuis le Classement)`);
+    showToast(`${t.pseudo} est maintenant visible par tous.`);
+    render();
+  });
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
   const promoInput = document.getElementById('promo-code-input');
