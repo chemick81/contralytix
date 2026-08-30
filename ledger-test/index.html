@@ -12249,6 +12249,14 @@ function applyLandingPricing(){
   }
   let appStarted = false;
   async function enterApp(session){
+    // Verrouillé dès l'entrée (pas seulement à la fin) : getSession() ci-dessous et
+    // onAuthStateChange peuvent se déclencher quasi simultanément au chargement de la page,
+    // et sans ce verrou précoce un second enterApp() pouvait démarrer en parallèle pendant
+    // que le premier était encore en train de charger (tous les `await` ci-dessous) — chaque
+    // chargement se faisait alors deux fois en silence, invisible jusqu'ici. Rendu visible par
+    // maybeShowNewMessagesToast() (30/08/2026) : le toast apparaissait deux fois.
+    if(appStarted) return;
+    appStarted = true;
     state.session = session;
     await loadProfile();
     await syncDashboardLayoutFromProfile();
@@ -12270,7 +12278,6 @@ function applyLandingPricing(){
     // tout de suite les messages de contact en attente.
     if(isAdmin()) await loadSupportMessagesAdmin();
     applyMyTraderDefaultFilters();
-    appStarted = true;
     const ml = document.getElementById('marketing-landing');
     if(ml) ml.style.display = 'none';
     document.getElementById('loading').style.display = 'none';
