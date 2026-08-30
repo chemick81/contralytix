@@ -1790,7 +1790,40 @@ async function setUserPlan(userId, plan, billingCycle){
     p.subscription = { ...(p.subscription||{}), plan, status:'ACTIVE', billingCycle: subPayload.billing_cycle };
   }
   await logActivity('ROLE_CHANGE', 'profile', userId, `Plan changé en ${plan}${subPayload.billing_cycle ? ' ('+subPayload.billing_cycle+')' : ''}`);
+  // Tient la liste de contacts Brevo à jour immédiatement (pas seulement à la prochaine
+  // connexion de l'utilisateur) — voir syncBrevoContact() et claude/module-mailing-admin-messages.md.
+  if(p && p.email) syncBrevoContact(p.email, plan);
   showToast('Plan mis à jour.');
+}
+
+/* ============================================================
+   SYNCHRONISATION BREVO (mailing) : le contenu des campagnes reste géré
+   directement dans Brevo (templates, envoi) — Contralytix se contente de tenir
+   à jour la liste de contacts Brevo (email + attribut ROLE) pour permettre le
+   ciblage Free/Premium/Admin depuis l'interface Brevo, sans jamais stocker de
+   contenu d'email côté Contralytix. Voir netlify/functions/sync-brevo-contact.js
+   et claude/module-mailing-admin-messages.md.
+============================================================ */
+// Fire-and-forget : ne doit jamais bloquer ni faire échouer le flux appelant
+// (connexion, changement de plan) si Brevo est indisponible ou mal configuré.
+function syncBrevoContact(email, role){
+  if(!email) return;
+  fetch('/.netlify/functions/sync-brevo-contact', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, role }),
+  }).catch(()=>{});
+}
+// Admin > Utilisateurs > "Resynchroniser avec Brevo" : renvoie tous les profils d'un coup
+// (import en masse Brevo), pour les comptes créés avant la mise en place de la synchro
+// automatique, ou en cas de doute sur l'état de la liste Brevo.
+async function bulkSyncBrevoContacts(){
+  const contacts = state.profiles.filter(p=>p.email).map(p=>({ email:p.email, role:p.role }));
+  if(contacts.length===0) return { sent:false, error:'Aucun utilisateur avec email à synchroniser.' };
+  const res = await fetch('/.netlify/functions/bulk-sync-brevo-contacts', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ contacts }),
+  });
+  return res.json().catch(()=>({ sent:false, error:'Réponse invalide du serveur.' }));
 }
 async function deleteUserProfile(userId, email){
   if(!isAdmin()) return;
@@ -8723,7 +8756,10 @@ function viewAdmin(){
 
   const usersTable = `
     <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="section-title">Utilisateurs (${state.profiles.length})</div></div>
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="section-title">Utilisateurs (${state.profiles.length})</div>
+        <button class="btn btn-outline btn-sm" id="mk-sync-brevo" title="Chaque inscription/changement de plan synchronise déjà automatiquement Brevo — ce bouton sert surtout pour les comptes existants avant la mise en place de la synchro, ou en cas de doute.">${icon('megaphone')}Resynchroniser avec Brevo</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Email</th><th>Plan</th><th>Formule</th><th>Trader(s) lié(s)</th><th>Inscrit le</th><th>Dernière connexion</th><th></th></tr></thead>
@@ -9571,6 +9607,17 @@ function bindViewEvents(){
     root.innerHTML = viewAdmin();
     bindViewEvents();
   });
+  const mkSyncBrevo = document.getElementById('mk-sync-brevo');
+  if(mkSyncBrevo) mkSyncBrevo.onclick = async ()=>{
+    mkSyncBrevo.disabled = true; mkSyncBrevo.textContent = 'Synchronisation…';
+    const out = await bulkSyncBrevoContacts();
+    if(out.sent){
+      showToast(`${state.profiles.filter(p=>p.email).length} utilisateur(s) synchronisé(s) avec Brevo.`);
+    }else{
+      showToast("Échec de la synchro Brevo : " + (out.error || 'vérifie BREVO_API_KEY / BREVO_LIST_ID.'), 'danger');
+    }
+    mkSyncBrevo.disabled = false; mkSyncBrevo.innerHTML = icon('megaphone') + 'Resynchroniser avec Brevo';
+  };
   document.querySelectorAll('[data-set-plan]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.setPlan, plan = b.dataset.plan, cycle = b.dataset.cycle;
     const label = plan==='PREMIUM' ? (cycle==='LIFETIME' ? 'offrir une licence Premium Lifetime' : 'passer cet utilisateur en Premium') : 'repasser cet utilisateur en Free';
@@ -12207,6 +12254,10 @@ function applyLandingPricing(){
     await syncDashboardLayoutFromProfile();
     await loadSubscription();
     computePermissions();
+    // Synchro Brevo à chaque connexion (fire-and-forget, voir syncBrevoContact()) : couvre
+    // aussi bien une première inscription qu'un compte existant, sans dépendre d'un point
+    // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
+    syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE');
     await loadAll();
     await loadAppSettings();
     await loadPricingSettings();
