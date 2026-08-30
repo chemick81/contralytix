@@ -2312,6 +2312,17 @@ function maybeShowWelcomeModal(){
   if(myLinkedTrader()) return;
   openWelcomeModal();
 }
+// Accueil admin : signale les messages de contact en attente dès la connexion (en plus du
+// badge sur l'item de nav "Admin" et du badge sur l'onglet Admin > Support), sans bloquer
+// avec une modale — un simple toast cliquable qui amène directement sur les messages.
+function maybeShowNewMessagesToast(){
+  if(!isAdmin()) return;
+  const n = state.support_messages.filter(m=>m.status==='nouveau').length;
+  if(!n) return;
+  showToast(`${n} nouveau${n>1?'x':''} message${n>1?'s':''} de contact — clique pour les voir`, '', ()=>{
+    state.route = 'admin'; state.adminTab = 'support'; render();
+  });
+}
 const WELCOME_PREMIUM_HIGHLIGHTS = [
   { icon:'card',     label:'Comptes illimités', desc:'Suis autant de Challenges et de comptes financés que tu veux, sans plafond.' },
   { icon:'calendar', label:'Calendrier', desc:'Visualise tes échéances, mensualités et payouts sur un vrai calendrier.' },
@@ -3201,13 +3212,20 @@ function myAccountingSource(){
 /* ============================================================
    TOASTS
 ============================================================ */
-function showToast(msg, type=''){
+// `onClick` (optionnel) rend le toast cliquable (curseur pointeur, reste affiché un peu plus
+// longtemps) — utilisé par ex. par maybeShowNewMessagesToast() pour amener directement sur
+// Admin > Support.
+function showToast(msg, type='', onClick){
   const root = document.getElementById('toast-root');
   const el = document.createElement('div');
   el.className = 'toast' + (type==='danger' ? ' danger' : '');
   el.textContent = msg;
+  if(onClick){
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', onClick, { once:true });
+  }
   root.appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .2s'; setTimeout(()=>el.remove(),200); }, 2600);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .2s'; setTimeout(()=>el.remove(),200); }, onClick ? 5000 : 2600);
 }
 
 /* ============================================================
@@ -3566,6 +3584,59 @@ function openContactModal(prefill){
   });
 }
 
+// Admin > Support : répondre à un message de contact par email (aller simple, pas de fil de
+// discussion in-app — voir claude/support-mailing-admin.md pour la décision). La réponse part
+// via Brevo (netlify/functions/reply-support-message.js) à l'adresse de l'utilisateur, et le
+// message est marqué "traité" + horodaté (colonnes admin_reply/admin_reply_at, voir
+// migration_support_messages_reply.sql).
+function openReplyMsgModal(m){
+  openModal({
+    title: 'Répondre au message',
+    bodyHtml: `
+      <div class="field-hint" style="margin:0 0 12px;">Réponse envoyée par email à <b>${escapeHtml(m.userEmail||'')}</b>.</div>
+      <div class="field"><label>Message original</label>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;max-height:140px;overflow:auto;">${escapeHtml(m.message||'')}</div>
+      </div>
+      ${m.adminReply ? `<div class="field"><label>Réponse précédente (${new Date(m.adminReplyAt).toLocaleString('fr-FR')})</label>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;max-height:100px;overflow:auto;">${escapeHtml(m.adminReply)}</div>
+      </div>` : ''}
+      <div class="field"><label>Ta réponse</label><textarea id="rm-reply" rows="6" style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;" placeholder="Écris ta réponse…"></textarea></div>
+      <div id="rm-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="rm-cancel">Annuler</button><button class="btn btn-primary" id="rm-send">Envoyer la réponse</button>`,
+    onMount(){
+      document.getElementById('rm-cancel').onclick = closeModal;
+      document.getElementById('rm-send').onclick = async ()=>{
+        const reply = document.getElementById('rm-reply').value.trim();
+        const errEl = document.getElementById('rm-error');
+        if(!reply){ errEl.textContent = 'La réponse ne peut pas être vide.'; return; }
+        const btn = document.getElementById('rm-send');
+        btn.disabled = true; btn.textContent = 'Envoi…';
+        try{
+          const res = await fetch('/.netlify/functions/reply-support-message', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ toEmail: m.userEmail, subject: CONTACT_SUBJECTS[m.subject] || m.subject, originalMessage: m.message, reply }),
+          });
+          const out = await res.json().catch(()=>({}));
+          if(!res.ok || out.sent === false){
+            errEl.textContent = "Échec de l'envoi : " + (out.error || 'vérifie la configuration Brevo (BREVO_API_KEY / NOTIFY_SENDER_EMAIL).');
+            btn.disabled = false; btn.textContent = 'Envoyer la réponse';
+            return;
+          }
+          await upsert('support_messages', { ...m, status:'traite', adminReply: reply, adminReplyAt: new Date().toISOString() });
+          await logActivity('SUPPORT_REPLY', 'support_message', m.id, `Réponse envoyée à ${m.userEmail}`);
+          showToast('Réponse envoyée.');
+          closeModal();
+          renderView();
+        }catch(e){
+          errEl.textContent = 'Erreur : ' + e.message;
+          btn.disabled = false; btn.textContent = 'Envoyer la réponse';
+        }
+      };
+    }
+  });
+}
+
 // Depuis la page PropFirms, réservée aux admins pour la création/modif : les autres
 // utilisateurs passent par ici pour demander l'ajout d'une PropFirm, via le formulaire
 // de contact habituel (préfilli avec un gabarit à compléter).
@@ -3862,8 +3933,12 @@ function navItemHtml(n){
   // sidebar repasse en icônes seules (voir @media max-width:880px) et sans ce title natif, un
   // item n'était identifiable qu'en cliquant dessus.
   const title = n.hiddenForOthers ? `${n.label} — Masquée pour les autres utilisateurs` : n.label;
+  // Badge "nouveaux messages de contact" sur l'item de nav Admin lui-même, pour que ce soit
+  // visible sans avoir à ouvrir Admin > Support (voir aussi maybeShowNewMessagesToast()).
+  const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
+    ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
   return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
-    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}
+    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}
   </div>`;
 }
 function renderNavGroups(){
@@ -8807,7 +8882,7 @@ function viewAdmin(){
       ${state.support_messages.length===0 ? `<div class="empty-sub" style="padding:16px 18px;">Aucun message reçu pour l\u2019instant.</div>` : `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>De</th><th>Sujet</th><th>Message</th><th>Statut</th><th></th></tr></thead>
+          <thead><tr><th>Date</th><th>De</th><th>Sujet</th><th>Message</th><th>Statut</th><th>Réponse</th><th></th></tr></thead>
           <tbody>
             ${state.support_messages.map(m=>`<tr>
               <td class="mono text-dim" style="white-space:nowrap;">${new Date(m.createdAt).toLocaleString('fr-FR')}</td>
@@ -8815,8 +8890,10 @@ function viewAdmin(){
               <td><span class="badge badge-slate">${escapeHtml(CONTACT_SUBJECTS[m.subject]||m.subject||'—')}</span></td>
               <td class="text-dim" style="max-width:340px;white-space:pre-wrap;">${escapeHtml(m.message||'')}</td>
               <td><span class="badge ${m.status==='traite'?'badge-accent':'badge-danger'}">${m.status==='traite'?'Traité':'Nouveau'}</span></td>
+              <td>${m.adminReply ? `<span class="badge badge-accent" title="${escapeHtml(m.adminReply)}">Envoyée le ${new Date(m.adminReplyAt).toLocaleDateString('fr-FR')}</span>` : `<span class="text-dim">—</span>`}</td>
               <td>
                 <div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;">
+                  <button class="btn btn-primary btn-sm" data-reply-msg="${m.id}">${icon('send')}${m.adminReply?'Répondre à nouveau':'Répondre'}</button>
                   <button class="btn btn-outline btn-sm" data-toggle-msg-status="${m.id}">${m.status==='traite'?'Marquer nouveau':'Marquer traité'}</button>
                   <button class="btn btn-ghost btn-sm" data-del-msg="${m.id}" style="color:var(--danger)" title="Supprimer">${icon('trash')}</button>
                 </div>
@@ -9514,6 +9591,10 @@ function bindViewEvents(){
     if(!m) return;
     await upsert('support_messages', { ...m, status: m.status==='traite' ? 'nouveau' : 'traite' });
     renderView();
+  });
+  document.querySelectorAll('[data-reply-msg]').forEach(b=>b.onclick=()=>{
+    const m = state.support_messages.find(x=>x.id===b.dataset.replyMsg);
+    if(m) openReplyMsgModal(m);
   });
   document.querySelectorAll('[data-del-msg]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.delMsg;
@@ -12133,6 +12214,10 @@ function applyLandingPricing(){
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
     await loadChangelog();
     if(isAdmin()) await loadPromoCodesAdmin();
+    // Chargé dès la connexion (pas seulement en ouvrant Admin > Support) pour que le badge
+    // de la navigation et le toast d'accueil admin (voir maybeShowNewMessagesToast) reflètent
+    // tout de suite les messages de contact en attente.
+    if(isAdmin()) await loadSupportMessagesAdmin();
     applyMyTraderDefaultFilters();
     appStarted = true;
     const ml = document.getElementById('marketing-landing');
@@ -12142,6 +12227,7 @@ function applyLandingPricing(){
     render();
     renderChatWidget();
     maybeShowWelcomeModal();
+    maybeShowNewMessagesToast();
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
