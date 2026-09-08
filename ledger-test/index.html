@@ -1408,6 +1408,7 @@ const state = {
   propfirmDetailId: null,
   profiles: [],
   activityLog: [],
+  blockedDomains: [],
   promo_codes: [],
   changelog_entries: [],
   support_messages: [],
@@ -1742,6 +1743,40 @@ async function loadActivityLog(){
   if(error){ showToast('Erreur de chargement du journal : ' + error.message, 'danger'); return; }
   state.activityLog = data.map(fromRow);
 }
+// Domaines e-mail bloqués à l'inscription (Admin > Domaines bloqués) — voir
+// claude/anti-spam-inscriptions.md. La table est lue/écrite directement depuis le front (RLS
+// admin-only, cf. migration_anti_spam_signup.sql), le hook Auth "Before User Created" la relit
+// côté serveur à chaque tentative de création de compte pour rejeter les domaines listés ici.
+async function loadBlockedDomainsAdmin(){
+  if(!SUPABASE_CONFIGURED || !isAdmin()) return;
+  const { data, error } = await supabaseClient.from('blocked_email_domains').select('*').order('created_at', { ascending:false });
+  if(error){ console.warn('blocked_email_domains introuvable ou inaccessible :', error.message); return; }
+  state.blockedDomains = data.map(fromRow);
+}
+async function addBlockedDomain(domain, reason){
+  if(!isAdmin()) return;
+  domain = (domain||'').trim().toLowerCase().replace(/^@/, '');
+  if(!domain || !domain.includes('.') || domain.includes('@')){
+    showToast('Domaine invalide (ex: vigilantkeep.net, sans "@").', 'danger');
+    return;
+  }
+  const { error } = await supabaseClient.from('blocked_email_domains').upsert(toRow({ domain, reason: reason||null, bannedBy: currentUserId() }), { onConflict:'domain' });
+  if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+  await logActivity('CREATE', 'blocked_email_domain', domain, `Domaine bloqué manuellement : ${domain}`);
+  await loadBlockedDomainsAdmin();
+  showToast(`Domaine "${domain}" bloqué.`);
+  if(state.route==='admin'){ document.getElementById('view-root').innerHTML = viewAdmin(); bindViewEvents(); }
+}
+async function deleteBlockedDomain(domain){
+  if(!isAdmin()) return;
+  if(!confirm(`Débloquer "${domain}" ?\n\nLes inscriptions avec ce domaine redeviendront possibles.`)) return;
+  const { error } = await supabaseClient.from('blocked_email_domains').delete().eq('domain', domain);
+  if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+  state.blockedDomains = state.blockedDomains.filter(d=>d.domain!==domain);
+  await logActivity('DELETE', 'blocked_email_domain', domain, `Domaine débloqué : ${domain}`);
+  showToast(`Domaine "${domain}" débloqué.`);
+  if(state.route==='admin'){ document.getElementById('view-root').innerHTML = viewAdmin(); bindViewEvents(); }
+}
 function getPromo(id){ return state.promo_codes.find(x=>x.id===id); }
 // Admin uniquement : liste complète des codes promo (RLS ne l'autorise qu'aux admins,
 // voir promo_codes_admin_all dans promo_codes.sql). Les utilisateurs normaux valident
@@ -1869,6 +1904,7 @@ async function banSpamSignup(userId, email){
     if(!res.ok){ showToast('Erreur : ' + (result.error||`HTTP ${res.status}`), 'danger'); return; }
     state.profiles = state.profiles.filter(x=>x.id!==userId);
     await logActivity('DELETE', 'profile', userId, `Compte banni (spam) : ${email||userId}${result.domain?` — domaine ${result.domain} bloqué`:''}`);
+    if(result.domain) await loadBlockedDomainsAdmin(); // garde l'onglet "Domaines bloqués" à jour sans recharger toute la page
     showToast(result.domain ? `Compte supprimé, domaine "${result.domain}" bloqué.` : 'Compte supprimé.');
     render();
   }catch(err){
@@ -4314,7 +4350,7 @@ function renderView(){
   bindViewEvents();
 }
 async function loadAdminView(){
-  await Promise.all([loadProfilesAdmin(), loadActivityLog(), loadSupportMessagesAdmin()]);
+  await Promise.all([loadProfilesAdmin(), loadActivityLog(), loadSupportMessagesAdmin(), loadBlockedDomainsAdmin()]);
   if(state.route==='admin'){
     document.getElementById('view-root').innerHTML = viewAdmin();
     bindViewEvents();
@@ -8756,6 +8792,7 @@ const ADMIN_TABS = [
   { id:'overview',    label:'Vue d’ensemble', icon:'grid' },
   { id:'users',       label:'Utilisateurs',    icon:'users' },
   { id:'duplicates',  label:'Doublons',        icon:'lock' },
+  { id:'blocklist',   label:'Domaines bloqués', icon:'shield' },
   { id:'support',     label:'Support',         icon:'mail' },
   { id:'settings',    label:'Paramètres',      icon:'layout' },
   { id:'log',         label:'Journal',         icon:'clock' },
@@ -9025,11 +9062,45 @@ function viewAdmin(){
       </div>
     </div>`;
 
+  // Panneau "Domaines bloqués" : liste + ajout/retrait manuel de domaines e-mail refusés à
+  // l'inscription. La table est relue par le hook Auth "Before User Created" côté serveur
+  // (voir claude/anti-spam-inscriptions.md) — ce panneau évite d'avoir à passer par le SQL
+  // Editor / Table Editor de Supabase pour gérer la liste au quotidien.
+  const blocklistPanel = `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('shield')}Ajouter un domaine bloqué</div></div>
+      <div class="panel-body">
+        <div class="field-hint" style="margin:0 0 10px;">Toute nouvelle tentative d'inscription avec ce domaine e-mail sera rejetée immédiatement, avant même la création du compte.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="field" style="flex:1;min-width:180px;"><label>Domaine</label><input id="bd-domain" placeholder="ex: vigilantkeep.net"/></div>
+          <div class="field" style="flex:2;min-width:220px;"><label>Raison (optionnel)</label><input id="bd-reason" placeholder="ex: spam d'inscriptions"/></div>
+          <button class="btn btn-primary" id="bd-add" style="height:37px;">${icon('plus')}Bloquer</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('shield')}Domaines bloqués (${state.blockedDomains.length})</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Domaine</th><th>Raison</th><th>Bloqué le</th><th></th></tr></thead>
+          <tbody>
+            ${state.blockedDomains.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:16px 0;">Aucun domaine bloqué pour l'instant.</div></td></tr>` :
+              state.blockedDomains.map(d=>`<tr>
+                <td class="mono">${escapeHtml(d.domain)}</td>
+                <td class="text-dim">${escapeHtml(d.reason||'—')}</td>
+                <td class="text-dim mono">${d.createdAt?fmtDate(d.createdAt.slice(0,10)):'—'}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="deleteBlockedDomain('${escapeHtml(d.domain).replace(/'/g,"\\'")}')" title="Débloquer ce domaine">${icon('trash')}</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
   const tabBar = `
     <div class="admin-tabs">
       ${ADMIN_TABS.map(t=>`
         <button class="admin-tab-btn ${state.adminTab===t.id?'active':''}" data-admin-tab="${t.id}">
-          ${icon(t.icon)}${t.label}${t.id==='support' && newMsgCount ? ` <span class="badge badge-danger">${newMsgCount}</span>` : ''}${t.id==='duplicates' && dupGroups.length ? ` <span class="badge badge-danger">${dupGroups.length}</span>` : ''}
+          ${icon(t.icon)}${t.label}${t.id==='support' && newMsgCount ? ` <span class="badge badge-danger">${newMsgCount}</span>` : ''}${t.id==='duplicates' && dupGroups.length ? ` <span class="badge badge-danger">${dupGroups.length}</span>` : ''}${t.id==='blocklist' && state.blockedDomains.length ? ` <span class="badge badge-slate">${state.blockedDomains.length}</span>` : ''}
         </button>`).join('')}
     </div>`;
 
@@ -9037,6 +9108,7 @@ function viewAdmin(){
     overview: dashboard,
     users: usersTable,
     duplicates: duplicatesPanel,
+    blocklist: blocklistPanel,
     support: messagesPanel,
     settings: settingsPanel,
     log: logPanel,
@@ -9673,6 +9745,12 @@ function bindViewEvents(){
     root.innerHTML = viewAdmin();
     bindViewEvents();
   });
+  const bdAdd = document.getElementById('bd-add');
+  if(bdAdd) bdAdd.onclick = ()=>{
+    const domainInput = document.getElementById('bd-domain');
+    const reasonInput = document.getElementById('bd-reason');
+    addBlockedDomain(domainInput.value, reasonInput.value);
+  };
   const mkSyncBrevo = document.getElementById('mk-sync-brevo');
   if(mkSyncBrevo) mkSyncBrevo.onclick = async ()=>{
     mkSyncBrevo.disabled = true; mkSyncBrevo.textContent = 'Synchronisation…';
