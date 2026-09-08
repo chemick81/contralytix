@@ -103,7 +103,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
@@ -1327,10 +1327,10 @@ const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_AN
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // ⚠️ CONFIGURATION OBLIGATOIRE ⚠️ — anti-spam inscriptions (voir claude/anti-spam-inscriptions.md)
-// Clé PUBLIQUE (sitekey) Cloudflare Turnstile — dashboard.cloudflare.com > Turnstile > ton widget.
+// Clé PUBLIQUE (sitekey) hCaptcha — dashboard.hcaptcha.com > Sites > ton site.
 // La clé SECRÈTE correspondante se colle côté Supabase (Auth > Bot and Abuse Protection), jamais ici.
-const TURNSTILE_SITE_KEY = 'TON-SITE-KEY-TURNSTILE';
-const TURNSTILE_CONFIGURED = !TURNSTILE_SITE_KEY.includes('TON-SITE-KEY');
+const HCAPTCHA_SITE_KEY = 'df4a27b8-8fc4-48ea-83ce-bac038e4302a';
+const HCAPTCHA_CONFIGURED = !HCAPTCHA_SITE_KEY.includes('TON-SITE-KEY');
 
 // La clé API Groq n'est pas stockée en dur côté client : l'appel passe par la
 // fonction serverless Netlify /.netlify/functions/ai-synthesis, qui lit la
@@ -2608,7 +2608,7 @@ function openUpgradeModal(featureLabel){
 async function sendAuthCode(email){
   state.authError = '';
   if(!email){ state.authError = 'Adresse e-mail requise.'; renderAuthScreen(); return; }
-  if(TURNSTILE_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de valider la vérification de sécurité ci-dessus.'; renderAuthScreen(); return; }
+  if(HCAPTCHA_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de valider la vérification de sécurité ci-dessus.'; renderAuthScreen(); return; }
   const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true, captchaToken: state.authCaptchaToken || undefined } });
   resetAuthCaptcha();
   if(error){ state.authError = error.message; renderAuthScreen(); return; }
@@ -2627,22 +2627,22 @@ async function verifyAuthCode(email, token){
 }
 async function resendAuthCode(){
   if(!state.authEmail) return;
-  if(TURNSTILE_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de revalider la vérification de sécurité ci-dessous.'; renderAuthScreen(); return; }
+  if(HCAPTCHA_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de revalider la vérification de sécurité ci-dessous.'; renderAuthScreen(); return; }
   const { error } = await supabaseClient.auth.signInWithOtp({ email: state.authEmail, options: { shouldCreateUser: true, captchaToken: state.authCaptchaToken || undefined } });
   resetAuthCaptcha();
   state.authError = error ? error.message : 'Nouveau code envoyé.';
   renderAuthScreen();
 }
-// Widget Turnstile : un seul conteneur partagé entre l'étape "email" et l'étape "code" (le
+// Widget hCaptcha : un seul conteneur partagé entre l'étape "email" et l'étape "code" (le
 // renvoi de code déclenche lui aussi un signInWithOtp, donc a lui aussi besoin d'un token frais).
 // state.authCaptchaWidgetId mémorise l'ID du widget pour pouvoir le reset (jeton à usage unique)
 // sans le redétruire/recréer à chaque renderAuthScreen().
-function renderTurnstileWidget(){
-  if(!TURNSTILE_CONFIGURED) return;
-  const container = document.getElementById('auth-turnstile');
-  if(!container || typeof turnstile === 'undefined') return;
-  state.authCaptchaWidgetId = turnstile.render(container, {
-    sitekey: TURNSTILE_SITE_KEY,
+function renderCaptchaWidget(){
+  if(!HCAPTCHA_CONFIGURED) return;
+  const container = document.getElementById('auth-captcha');
+  if(!container || typeof hcaptcha === 'undefined') return;
+  state.authCaptchaWidgetId = hcaptcha.render(container, {
+    sitekey: HCAPTCHA_SITE_KEY,
     callback: (token)=>{ state.authCaptchaToken = token; },
     'error-callback': ()=>{ state.authCaptchaToken = ''; },
     'expired-callback': ()=>{ state.authCaptchaToken = ''; },
@@ -2650,8 +2650,8 @@ function renderTurnstileWidget(){
 }
 function resetAuthCaptcha(){
   state.authCaptchaToken = '';
-  if(TURNSTILE_CONFIGURED && typeof turnstile !== 'undefined' && state.authCaptchaWidgetId!=null){
-    try{ turnstile.reset(state.authCaptchaWidgetId); }catch(e){}
+  if(HCAPTCHA_CONFIGURED && typeof hcaptcha !== 'undefined' && state.authCaptchaWidgetId!=null){
+    try{ hcaptcha.reset(state.authCaptchaWidgetId); }catch(e){}
   }
 }
 async function signInWithGoogle(){
@@ -2707,7 +2707,7 @@ function renderAuthScreen(){
       <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.4;">Le bouton s’active dès que les 6 chiffres sont renseignés. <a id="auth-resend-code" href="#" style="color:var(--text-dim);text-decoration:underline;">Renvoyer un code</a></div>
       ` : ''}
 
-      ${TURNSTILE_CONFIGURED ? `<div id="auth-turnstile" style="margin-top:12px;display:flex;justify-content:center;"></div>` : ''}
+      ${HCAPTCHA_CONFIGURED ? `<div id="auth-captcha" style="margin-top:12px;display:flex;justify-content:center;"></div>` : ''}
 
       ${state.authError ? `<div style="color:var(--danger);font-size:12px;margin-top:12px;line-height:1.4;">${escapeHtml(state.authError)}</div>` : ''}
 
@@ -2748,7 +2748,7 @@ function renderAuthScreen(){
     verifyBtn.onclick = ()=> verifyAuthCode(state.authEmail, codeInput.value.trim());
     codeInput.focus();
   }
-  renderTurnstileWidget();
+  renderCaptchaWidget();
 }
 
 /* ============================================================
