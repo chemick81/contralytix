@@ -103,6 +103,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
@@ -1325,6 +1326,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+// ⚠️ CONFIGURATION OBLIGATOIRE ⚠️ — anti-spam inscriptions (voir claude/anti-spam-inscriptions.md)
+// Clé PUBLIQUE (sitekey) Cloudflare Turnstile — dashboard.cloudflare.com > Turnstile > ton widget.
+// La clé SECRÈTE correspondante se colle côté Supabase (Auth > Bot and Abuse Protection), jamais ici.
+const TURNSTILE_SITE_KEY = 'TON-SITE-KEY-TURNSTILE';
+const TURNSTILE_CONFIGURED = !TURNSTILE_SITE_KEY.includes('TON-SITE-KEY');
+
 // La clé API Groq n'est pas stockée en dur côté client : l'appel passe par la
 // fonction serverless Netlify /.netlify/functions/ai-synthesis, qui lit la
 // clé depuis la variable d'environnement Netlify GROQ_API_KEY. Groq tourne sur
@@ -1374,6 +1381,8 @@ const state = {
   authStep: 'email',
   authEmail: '',
   authError: '',
+  authCaptchaToken: '',
+  authCaptchaWidgetId: null,
   traders: [],
   propfirms: [],
   accounts: [],
@@ -1837,6 +1846,34 @@ async function deleteUserProfile(userId, email){
   state.profiles = state.profiles.filter(x=>x.id!==userId);
   await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}`);
   showToast('Utilisateur supprimé de la liste.');
+}
+// Admin > Dernières inscriptions > "Bannir" : contrairement à deleteUserProfile() (qui ne
+// supprime que la ligne 'profiles', limitée par l'anon key), ceci appelle une Netlify function
+// avec la service_role key pour (1) supprimer réellement le compte dans Supabase Auth
+// (auth.users, plus possible de se reconnecter avec ce mail) et (2) ajouter le domaine e-mail
+// à la table blocked_email_domains, lue par le hook "Before User Created" (voir
+// claude/anti-spam-inscriptions.md) : les prochaines inscriptions sur ce domaine sont donc
+// rejetées avant même la création du compte.
+async function banSpamSignup(userId, email){
+  if(!isAdmin()) return;
+  if(userId===currentUserId()){ showToast('Impossible de te bannir toi-même.', 'danger'); return; }
+  if(!confirm(`Bannir ${email||userId} ?\n\nLe compte sera supprimé et le domaine e-mail sera bloqué pour toute future inscription.`)) return;
+  try{
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/.netlify/functions/admin-ban-signup', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token||''}` },
+      body: JSON.stringify({ userId, email }),
+    });
+    const result = await res.json().catch(()=>({}));
+    if(!res.ok){ showToast('Erreur : ' + (result.error||`HTTP ${res.status}`), 'danger'); return; }
+    state.profiles = state.profiles.filter(x=>x.id!==userId);
+    await logActivity('DELETE', 'profile', userId, `Compte banni (spam) : ${email||userId}${result.domain?` — domaine ${result.domain} bloqué`:''}`);
+    showToast(result.domain ? `Compte supprimé, domaine "${result.domain}" bloqué.` : 'Compte supprimé.');
+    render();
+  }catch(err){
+    showToast('Erreur réseau lors du bannissement : ' + err.message, 'danger');
+  }
 }
 // Réattribue les comptes/payouts/notes d'un trader (ex: créés par un admin lors d'un import)
 // au propriétaire réel du trader, pour que ce dernier puisse les modifier.
@@ -2571,7 +2608,9 @@ function openUpgradeModal(featureLabel){
 async function sendAuthCode(email){
   state.authError = '';
   if(!email){ state.authError = 'Adresse e-mail requise.'; renderAuthScreen(); return; }
-  const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if(TURNSTILE_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de valider la vérification de sécurité ci-dessus.'; renderAuthScreen(); return; }
+  const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true, captchaToken: state.authCaptchaToken || undefined } });
+  resetAuthCaptcha();
   if(error){ state.authError = error.message; renderAuthScreen(); return; }
   state.authEmail = email;
   state.authStep = 'code';
@@ -2588,9 +2627,32 @@ async function verifyAuthCode(email, token){
 }
 async function resendAuthCode(){
   if(!state.authEmail) return;
-  const { error } = await supabaseClient.auth.signInWithOtp({ email: state.authEmail, options: { shouldCreateUser: true } });
+  if(TURNSTILE_CONFIGURED && !state.authCaptchaToken){ state.authError = 'Merci de revalider la vérification de sécurité ci-dessous.'; renderAuthScreen(); return; }
+  const { error } = await supabaseClient.auth.signInWithOtp({ email: state.authEmail, options: { shouldCreateUser: true, captchaToken: state.authCaptchaToken || undefined } });
+  resetAuthCaptcha();
   state.authError = error ? error.message : 'Nouveau code envoyé.';
   renderAuthScreen();
+}
+// Widget Turnstile : un seul conteneur partagé entre l'étape "email" et l'étape "code" (le
+// renvoi de code déclenche lui aussi un signInWithOtp, donc a lui aussi besoin d'un token frais).
+// state.authCaptchaWidgetId mémorise l'ID du widget pour pouvoir le reset (jeton à usage unique)
+// sans le redétruire/recréer à chaque renderAuthScreen().
+function renderTurnstileWidget(){
+  if(!TURNSTILE_CONFIGURED) return;
+  const container = document.getElementById('auth-turnstile');
+  if(!container || typeof turnstile === 'undefined') return;
+  state.authCaptchaWidgetId = turnstile.render(container, {
+    sitekey: TURNSTILE_SITE_KEY,
+    callback: (token)=>{ state.authCaptchaToken = token; },
+    'error-callback': ()=>{ state.authCaptchaToken = ''; },
+    'expired-callback': ()=>{ state.authCaptchaToken = ''; },
+  });
+}
+function resetAuthCaptcha(){
+  state.authCaptchaToken = '';
+  if(TURNSTILE_CONFIGURED && typeof turnstile !== 'undefined' && state.authCaptchaWidgetId!=null){
+    try{ turnstile.reset(state.authCaptchaWidgetId); }catch(e){}
+  }
 }
 async function signInWithGoogle(){
   // IMPORTANT : sans "redirectTo" explicite, Supabase retombe sur la "Site URL" configurée
@@ -2645,6 +2707,8 @@ function renderAuthScreen(){
       <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.4;">Le bouton s’active dès que les 6 chiffres sont renseignés. <a id="auth-resend-code" href="#" style="color:var(--text-dim);text-decoration:underline;">Renvoyer un code</a></div>
       ` : ''}
 
+      ${TURNSTILE_CONFIGURED ? `<div id="auth-turnstile" style="margin-top:12px;display:flex;justify-content:center;"></div>` : ''}
+
       ${state.authError ? `<div style="color:var(--danger);font-size:12px;margin-top:12px;line-height:1.4;">${escapeHtml(state.authError)}</div>` : ''}
 
       <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:var(--text-faint);font-size:11px;">
@@ -2684,6 +2748,7 @@ function renderAuthScreen(){
     verifyBtn.onclick = ()=> verifyAuthCode(state.authEmail, codeInput.value.trim());
     codeInput.focus();
   }
+  renderTurnstileWidget();
 }
 
 /* ============================================================
@@ -8741,13 +8806,14 @@ function viewAdmin(){
       <div class="panel-head"><div class="section-title">Dernières inscriptions</div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Email</th><th>Plan</th><th>Inscrit le</th></tr></thead>
+          <thead><tr><th>Email</th><th>Plan</th><th>Inscrit le</th><th></th></tr></thead>
           <tbody>
-            ${lastSignups.length===0 ? `<tr><td colspan="3"><div class="empty-sub" style="padding:12px 0;">Aucune inscription.</div></td></tr>` :
+            ${lastSignups.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:12px 0;">Aucune inscription.</div></td></tr>` :
               lastSignups.map(p=>`<tr>
                 <td>${p.email||'—'}</td>
                 <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':'badge-slate'}">${p.role}</span></td>
                 <td class="text-dim mono">${p.createdAt?fmtDate(p.createdAt.slice(0,10)):'—'}</td>
+                <td>${p.role==='ADMIN'?'':`<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="banSpamSignup('${p.id}', '${escapeHtml(p.email||'').replace(/'/g,"\\'")}')" title="Supprimer ce compte et bloquer son domaine e-mail pour les futures inscriptions">Bannir</button>`}</td>
               </tr>`).join('')}
           </tbody>
         </table>
