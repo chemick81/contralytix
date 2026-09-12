@@ -2920,7 +2920,11 @@ function renderAuthScreen(){
     const submit = ()=> sendAuthCode(emailInput.value.trim());
     document.getElementById('auth-send-code').onclick = submit;
     emailInput.onkeydown = (e)=>{ if(e.key==='Enter') submit(); };
-    emailInput.focus();
+    // preventScroll : un focus() classique fait défiler la page jusqu'à l'élément ciblé, or
+    // #loading (ce bloc connexion) est placé après tout le contenu de la landing dans le DOM —
+    // sans ça, chaque renderAuthScreen() (y compris à la déconnexion) fait redescendre la page
+    // jusqu'au bloc connexion et écrase le scroll en haut de page voulu à ce moment-là (12/09/2026).
+    emailInput.focus({ preventScroll: true });
   } else {
     document.getElementById('auth-change-email').onclick = ()=>{ state.authStep='email'; state.authError=''; renderAuthScreen(); };
     document.getElementById('auth-resend-code').onclick = (e)=>{ e.preventDefault(); resendAuthCode(); };
@@ -2936,7 +2940,7 @@ function renderAuthScreen(){
     codeInput.oninput = ()=>{ codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6); refreshBtnState(); };
     codeInput.onkeydown = (e)=>{ if(e.key==='Enter' && codeInput.value.replace(/\D/g,'').length===6) verifyAuthCode(state.authEmail, codeInput.value.trim()); };
     verifyBtn.onclick = ()=> verifyAuthCode(state.authEmail, codeInput.value.trim());
-    codeInput.focus();
+    codeInput.focus({ preventScroll: true }); // voir le commentaire sur emailInput.focus() ci-dessus
   }
   renderCaptchaWidget();
 }
@@ -12906,6 +12910,13 @@ function applyLandingPricing(){
   }
 }
 (async function boot(){
+  // Sans ça, Chrome/Firefox restaurent automatiquement la position de scroll précédente à un
+  // simple F5 (comportement natif du navigateur, pas de l'app) — si on avait quitté la page
+  // scrollée sur le bloc connexion (#loading, placé après tout le contenu de la landing dans le
+  // DOM) ou en plein milieu de l'app, un rechargement y ramenait directement au lieu de repartir
+  // du haut de la page (signalé le 12/09/2026). On reprend nous-mêmes la main sur le scroll au
+  // chargement, juste en dessous.
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // Applique le thème choisi (localStorage, voir loadThemePrefs()) dès le boot, avant le premier
   // rendu. Avant ce correctif, l'attribut data-theme n'était posé que dans render() (l'app une
   // fois connecté) — l'écran de connexion et la landing marketing restaient donc toujours sur le
@@ -13025,7 +13036,15 @@ function applyLandingPricing(){
 
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(session){ await enterApp(session); }
-  else { renderAuthScreen(); }
+  else {
+    renderAuthScreen();
+    // Repart du haut de la landing à un chargement/F5 sans session — sauf en plein retour
+    // OAuth/lien magique (jeton dans le hash ou ?code=), où l'écran de connexion n'est de toute
+    // façon pas ce qui s'affiche (voir plus haut : #marketing-landing est masqué dans ce cas).
+    if(!(/access_token=|refresh_token=/.test(location.hash) || /[?&]code=/.test(location.search))){
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }
   // Nettoyage de l'URL : après un retour de connexion Google (OAuth) ou d'un lien magique,
   // le SDK Supabase (detectSessionInUrl) lit le jeton dans le hash puis le vide lui-même via
   // `location.hash = ''` en interne — or affecter une chaîne vide à location.hash laisse un
