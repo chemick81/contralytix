@@ -3240,15 +3240,23 @@ function normAccNum(s){ return (s||'').toString().trim().toLowerCase().replace(/
 // Verrou anti-doublons : un même numéro de compte pour une même PropFirm ne doit exister
 // qu'une seule fois en base, tous traders confondus (un numéro de compte réel chez un broker/PropFirm
 // est unique). Retourne le compte existant en conflit, ou null. `excludeId` sert à exclure le compte
-// lui-même lors d'une modification.
+// lui-même lors d'une modification — on accepte aussi un tableau d'ids à exclure (ex: le compte
+// lui-même ET son challenge d'origine, cf. accountFormModal) pour couvrir le cas des PropFirms qui
+// ne réattribuent pas de nouveau numéro au financement (ex: TradeDay) : le PA hérite alors
+// légitimement du numéro de son Challenge d'origine, ce n'est jamais un doublon.
 function findDuplicateAccount(propFirmId, accountNumber, excludeId){
   const key = normAccNum(accountNumber);
   if(!key || !propFirmId) return null;
-  return state.accounts.find(a => a.id!==excludeId && a.propFirmId===propFirmId && normAccNum(a.accountNumber)===key) || null;
+  const excludeIds = Array.isArray(excludeId) ? excludeId : [excludeId];
+  return state.accounts.find(a => !excludeIds.includes(a.id) && a.propFirmId===propFirmId && normAccNum(a.accountNumber)===key) || null;
 }
 // Regroupe tous les comptes de la base par (PropFirm, numéro de compte normalisé) et ne garde
 // que les groupes contenant plus d'un compte — utilisé par le panneau Admin > Doublons pour
 // donner une vue d'ensemble des doublons potentiels, tous traders confondus.
+// Un Challenge et le PA créé à partir de lui (parentChallengeId) partagent légitimement le même
+// numéro chez les PropFirms qui ne réattribuent pas de nouveau numéro au financement (ex:
+// TradeDay) — cf. findDuplicateAccount/accountFormModal — donc une paire {challenge, son PA} n'est
+// pas comptée comme un doublon ici.
 function computeDuplicateAccountGroups(){
   const map = new Map();
   state.accounts.forEach(a=>{
@@ -3258,7 +3266,11 @@ function computeDuplicateAccountGroups(){
     if(!map.has(groupKey)) map.set(groupKey, []);
     map.get(groupKey).push(a);
   });
-  return [...map.values()].filter(g=>g.length>1).sort((x,y)=>y.length-x.length);
+  const isLinkedPair = (x,y) => x.parentChallengeId===y.id || y.parentChallengeId===x.id;
+  return [...map.values()]
+    .filter(g=>!(g.length===2 && isLinkedPair(g[0],g[1])))
+    .filter(g=>g.length>1)
+    .sort((x,y)=>y.length-x.length);
 }
 
 function statusLabel(acc){
@@ -10638,7 +10650,14 @@ function accountFormModal({ existing, type, parentChallenge }){
         const accountNumber = document.getElementById('af-number').value.trim();
         const errorEl = document.getElementById('af-error');
         if(!traderId || !propFirmId || !accountNumber){ errorEl.textContent = 'Trader, PropFirm et numéro de compte sont obligatoires.'; return; }
-        const dupAccount = findDuplicateAccount(propFirmId, accountNumber, isEdit ? a.id : null);
+        // Exclut le compte lui-même (édition) ET son Challenge d'origine (création d'un PA depuis un
+        // challenge réussi, ou édition d'un PA déjà lié) — certaines PropFirms (ex: TradeDay) ne
+        // délivrent pas de nouveau numéro au financement, le PA reprend donc le numéro du challenge.
+        const dupAccount = findDuplicateAccount(propFirmId, accountNumber, [
+          isEdit ? a.id : null,
+          parentChallenge ? parentChallenge.id : null,
+          (isEdit && a.parentChallengeId) ? a.parentChallengeId : null,
+        ]);
         if(dupAccount){
           const dupTrader = getTrader(dupAccount.traderId);
           errorEl.textContent = `Doublon détecté : ce numéro de compte existe déjà chez ${getFirm(propFirmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}). Vérifie le numéro ou modifie le compte existant plutôt que d’en créer un nouveau.`;
