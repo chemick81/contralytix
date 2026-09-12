@@ -196,6 +196,12 @@ a{color:var(--accent);text-decoration:none;}
    style inline display:inline-flex existait, sans largeur/hauteur). Signalé le 29/08/2026, corrigé
    avec les autres icônes trouvées dans le même balayage ("corrige partout"). */
 .dash-alerts-chev svg{width:11px;height:11px;flex-shrink:0;}
+/* Pastille de sélection des vignettes de thème (Paramètres > Apparence) : même bug
+   d'icône sans taille intrinsèque que ci-dessus (icon('check') brut, non contraint) —
+   corrigé en même temps que le reste du balayage icônes. */
+.theme-swatch svg{width:12px;height:12px;flex-shrink:0;}
+.theme-swatch{transition:border-color .15s,transform .1s;}
+.theme-swatch:hover{border-color:var(--text-faint);}
 .nav-group-items{display:flex;flex-direction:column;gap:3px;margin-top:2px;margin-bottom:2px;}
 .nav-foot{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border-soft);}
 .legal-foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;padding:4px 4px 0;font-size:10px;}
@@ -2641,10 +2647,33 @@ function accountDisplayLabel(){
   if(dn && dn.trim()) return dn.trim();
   return maskedEmail(state.session ? state.session.user.email : (state.profile ? state.profile.email : null));
 }
-// 'google' | 'email' — détecté depuis les métadonnées de session Supabase Auth.
+// 'google' | 'email' — détecté depuis la session Supabase Auth EN COURS.
+//
+// Piège : `user.app_metadata.provider` ne reflète PAS la méthode de connexion
+// utilisée pour la session actuelle — c'est le tout premier provider utilisé à
+// la création du compte, figé pour toujours. Un utilisateur inscrit par code
+// e-mail puis qui se connecte ensuite avec Google (même adresse, comptes liés
+// automatiquement par Supabase) reste marqué "email" indéfiniment, même en
+// pleine session Google — d'où l'affichage incorrect "Code par email" sur la
+// page Profil malgré une connexion Google.
+//
+// La vraie méthode de LA session en cours est portée par la revendication
+// "amr" (Authentication Methods Reference) du JWT d'accès, décodée ici.
 function authProviderId(){
   const s = state.session;
   if(!s || !s.user) return 'email';
+  try{
+    if(s.access_token){
+      const b64 = s.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const payload = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      const amr = Array.isArray(payload.amr) ? payload.amr : [];
+      const last = amr[amr.length - 1];
+      if(last){
+        if(last.provider === 'google' || last.method === 'oauth') return 'google';
+        if(last.method === 'otp' || last.method === 'password' || last.method === 'magiclink') return 'email';
+      }
+    }
+  }catch(e){ /* JWT illisible : repli ci-dessous */ }
   const p = s.user.app_metadata && s.user.app_metadata.provider;
   return p === 'google' ? 'google' : 'email';
 }
@@ -9554,12 +9583,25 @@ function viewProfil(){
 ============================================================ */
 function themeSwatchHtml(id, label, bg, panelBg){
   const active = state.theme === id;
-  return `<div class="theme-swatch ${active?'selected':''}" data-theme-pick="${id}" style="cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid ${active?'var(--accent)':'var(--border)'};">
-    <div style="height:56px;display:flex;background:${bg};">
-      <div style="width:32%;height:100%;background:${panelBg};border-right:1px solid rgba(255,255,255,.08);"></div>
+  const isLight = id === 'light';
+  const textColor = isLight ? '#1a1a1a' : '#E8EDF2';
+  const lineColor = isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.16)';
+  const lineColorSoft = isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.08)';
+  return `<div class="theme-swatch ${active?'selected':''}" data-theme-pick="${id}" style="cursor:pointer;border-radius:12px;overflow:hidden;border:2px solid ${active?'var(--accent)':'var(--border)'};position:relative;background:${panelBg};">
+    ${active?`<div style="position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);">${icon('check')}</div>`:''}
+    <div style="height:64px;display:flex;gap:6px;padding:8px;background:${bg};">
+      <div style="width:26%;border-radius:5px;background:${panelBg};padding:6px 5px;display:flex;flex-direction:column;gap:5px;">
+        <div style="height:4px;border-radius:2px;background:${lineColor};width:75%;"></div>
+        <div style="height:4px;border-radius:2px;background:${lineColorSoft};width:55%;"></div>
+        <div style="height:4px;border-radius:2px;background:${lineColorSoft};width:60%;"></div>
+      </div>
+      <div style="flex:1;border-radius:5px;background:${panelBg};padding:7px;display:flex;flex-direction:column;gap:6px;">
+        <div style="height:5px;border-radius:2px;background:${lineColor};width:40%;"></div>
+        <div style="flex:1;border-radius:4px;background:${lineColorSoft};"></div>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:${panelBg};font-size:12.5px;font-weight:600;color:${id==='light'?'#1a1a1a':'#E8EDF2'};">
-      <span>${label}</span>${active?icon('check'):''}
+    <div style="display:flex;align-items:center;padding:9px 10px;font-size:12.5px;font-weight:600;color:${textColor};">
+      <span>${label}</span>
     </div>
   </div>`;
 }
