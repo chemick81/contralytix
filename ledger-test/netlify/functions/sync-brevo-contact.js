@@ -1,10 +1,20 @@
 // netlify/functions/sync-brevo-contact.js
 //
-// Crée ou met à jour UN contact dans Brevo (email + attribut ROLE), pour tenir
-// la liste de contacts Brevo à jour sans jamais stocker de contenu d'email côté
-// Contralytix. Le contenu et l'envoi des campagnes restent gérés directement
-// dans l'interface Brevo (Contacts > Listes > "Contralytix" — filtrable par
-// l'attribut ROLE pour cibler Free/Premium/Admin).
+// Crée ou met à jour UN contact dans Brevo (email + attributs ROLE et
+// MARKETING_OPTIN), pour tenir la liste de contacts Brevo à jour sans jamais
+// stocker de contenu d'email côté Contralytix. Le contenu et l'envoi des
+// campagnes restent gérés directement dans l'interface Brevo (Contacts > Listes
+// > "Contralytix" — filtrable par ROLE pour cibler Free/Premium/Admin, et par
+// MARKETING_OPTIN pour respecter le consentement "Annonces produit" de
+// Paramètres > Notifications avant tout envoi marketing — voir
+// claude/module-mailing-admin-messages.md).
+//
+// Le contact reste synchronisé (ROLE) même si MARKETING_OPTIN=false : ce n'est
+// PAS un consentement à être contacté du tout (le compte a besoin d'emails
+// transactionnels — confirmation, factures...), seulement à recevoir des
+// annonces produit. C'est donc à Brevo, au moment d'envoyer UNE campagne
+// marketing, de filtrer sur MARKETING_OPTIN=true — jamais à cette fonction de
+// retirer le contact de la liste.
 //
 // Appelée en fire-and-forget par index.html (syncBrevoContact()) :
 //   - à chaque connexion (nouvelle inscription incluse),
@@ -23,11 +33,12 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Méthode non autorisée' }) };
   }
 
-  let email, role;
+  let email, role, marketingOptin;
   try {
     const body = JSON.parse(event.body || '{}');
     email = typeof body.email === 'string' ? body.email : '';
     role = typeof body.role === 'string' ? body.role : 'FREE';
+    marketingOptin = body.marketingOptin === true;
   } catch (err) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Corps de requête JSON invalide' }) };
   }
@@ -54,7 +65,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         email,
-        attributes: { ROLE: role },
+        attributes: { ROLE: role, MARKETING_OPTIN: marketingOptin },
         listIds: [Number(listId)],
         updateEnabled: true, // crée le contact s'il n'existe pas, le met à jour sinon
       }),
