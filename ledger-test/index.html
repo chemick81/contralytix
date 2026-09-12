@@ -967,6 +967,20 @@ th.th-sort-active svg{opacity:1;}
 .ml-pricing-card li svg{flex-shrink:0;margin-top:2px;color:var(--text-faint);}
 .ml-pricing-card.ml-pricing-highlight li svg{color:var(--accent);}
 .ml-pricing-note{position:relative;z-index:1;text-align:center;font-size:11.5px;color:var(--text-faint);margin:24px 0 0;}
+
+/* Page Abonnement (utilisateur connecté, viewSubscription()) — même traitement visuel que la
+   page tarifs publique ci-dessus (halos de couleur, carte mise en avant, léger 3D au survol),
+   sous des noms de classes distincts car générée par du JS avec des styles inline plutôt que du
+   HTML statique. */
+.sub-plans-wrap{position:relative;}
+.sub-plans-glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.22;}
+.sub-plans-glow-1{width:340px;height:340px;background:var(--accent);top:-50px;left:6%;}
+.sub-plans-glow-2{width:300px;height:300px;background:#5B8CFF;opacity:.15;bottom:-70px;right:8%;}
+.sub-plan-grid{position:relative;z-index:1;perspective:1400px;}
+.sub-plan-card{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;transform-style:preserve-3d;will-change:transform;}
+.sub-plan-card:hover{box-shadow:0 22px 42px -20px rgba(0,0,0,.55);}
+.sub-plan-ribbon{background:linear-gradient(135deg,var(--accent),#1FA98A)!important;color:var(--accent-text)!important;box-shadow:0 6px 16px -4px rgba(62,214,181,.55);}
+.sub-plan-ribbon.gold{background:linear-gradient(135deg,var(--gold),#B4842F)!important;box-shadow:0 6px 16px -4px var(--gold-dim);}
 .ml-faq{padding:44px 0 50px;border-top:1px solid var(--border-soft);max-width:760px;margin:0 auto;}
 .ml-faq h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 22px;}
 .ml-faq-list{display:flex;flex-direction:column;gap:10px;}
@@ -9361,8 +9375,8 @@ function viewSubscription(){
   ];
 
   const planCard = ({ name, badge, price, priceNote, features, ctaLabel, ctaAction, highlight, gold, isCurrent }) => `
-    <div class="panel" style="padding:20px;position:relative;display:flex;flex-direction:column;height:100%;${highlight?`border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);`:''}${gold?`border-color:var(--gold);`:''}">
-      ${badge ? `<div style="position:absolute;top:-11px;left:20px;background:${gold?'var(--gold)':'var(--accent)'};color:${gold?'#1A130A':'var(--accent-text)'};font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;letter-spacing:.3px;">${badge}</div>` : ''}
+    <div class="panel sub-plan-card" style="padding:20px;position:relative;display:flex;flex-direction:column;height:100%;${highlight?`border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);`:''}${gold?`border-color:var(--gold);`:''}">
+      ${badge ? `<div class="sub-plan-ribbon${gold?' gold':''}" style="position:absolute;top:-11px;left:20px;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;letter-spacing:.3px;">${badge}</div>` : ''}
       <div style="font-weight:700;font-size:15px;margin-bottom:4px;${gold?'color:var(--gold);':''}">${name}</div>
       <div style="display:flex;align-items:baseline;gap:4px;margin:10px 0 2px;">
         <span style="font-size:26px;font-weight:800;font-family:'Space Grotesk',sans-serif;">${price}</span>
@@ -9378,14 +9392,17 @@ function viewSubscription(){
     </div>`;
 
   const plansPanel = role==='ADMIN' ? '' : `
-    <div style="text-align:center;margin-bottom:20px;">
+    <div class="sub-plans-wrap">
+    <div class="sub-plans-glow sub-plans-glow-1" aria-hidden="true"></div>
+    <div class="sub-plans-glow sub-plans-glow-2" aria-hidden="true"></div>
+    <div style="position:relative;z-index:1;text-align:center;margin-bottom:20px;">
       <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
       <div class="radio-group" style="display:inline-flex;">
         <div class="radio-chip ${cycle==='MONTHLY'?'selected':''}" data-tarifs-cycle="MONTHLY">Mensuel</div>
         <div class="radio-chip ${cycle==='YEARLY'?'selected':''}" data-tarifs-cycle="YEARLY">Annuel <span class="badge badge-accent" style="margin-left:4px;">-17%</span></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:stretch;">
+    <div class="sub-plan-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:stretch;">
       ${planCard({
         name:'Free', price:'0€', priceNote:'/mois',
         features: freeFeatures,
@@ -9408,6 +9425,7 @@ function viewSubscription(){
         ctaAction:"startCheckout('LIFETIME')",
         isCurrent: currentCycle==='LIFETIME',
       })}
+    </div>
     </div>`;
 
   const promoResult = state.filters.tarifs.promoResult;
@@ -10018,6 +10036,7 @@ function bindViewEvents(){
   if(calToday) calToday.onclick = ()=>{ state.filters.calendrier.month = ''; renderView(); };
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
+  initSubscriptionTilt();
   const promoInput = document.getElementById('promo-code-input');
   if(promoInput){
     promoInput.addEventListener('input', ()=>{ state.filters.tarifs.promoInput = promoInput.value; });
@@ -12782,6 +12801,23 @@ function initPricingTilt(){
       const x = (e.clientX - r.left) / r.width - 0.5;
       const y = (e.clientY - r.top) / r.height - 0.5;
       card.style.transform = `${base}rotateX(${(-y*7).toFixed(2)}deg) rotateY(${(x*9).toFixed(2)}deg)`;
+    });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+  });
+}
+// Même effet que initPricingTilt(), pour la page Abonnement (utilisateur connecté). Contrairement
+// à la landing (HTML statique, initialisée une fois au boot), cette vue est régénérée à chaque
+// renderView() — appelée depuis bindViewEvents(), donc réinitialisée à chaque re-rendu sans
+// accumuler d'anciens écouteurs (les éléments précédents sont remplacés par innerHTML).
+function initSubscriptionTilt(){
+  const cards = document.querySelectorAll('.sub-plan-grid .sub-plan-card');
+  if(!cards.length || window.matchMedia('(hover: none)').matches) return;
+  cards.forEach(card=>{
+    card.addEventListener('mousemove', (e)=>{
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `rotateX(${(-y*6).toFixed(2)}deg) rotateY(${(x*8).toFixed(2)}deg)`;
     });
     card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
   });
