@@ -897,7 +897,7 @@ th.th-sort-active svg{opacity:1;}
 .ml-hero-glow{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.22;}
 .ml-hero-glow-1{width:420px;height:420px;background:var(--accent);top:-140px;left:5%;}
 .ml-hero-glow-2{width:360px;height:360px;background:#5B8CFF;top:-60px;right:8%;opacity:.16;}
-.ml-hero > *{position:relative;z-index:1;}
+.ml-hero > *:not(.ml-hero-glow){position:relative;z-index:1;}
 .ml-hero h1{
   font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;
   background:linear-gradient(135deg,var(--text) 35%,var(--accent) 120%);
