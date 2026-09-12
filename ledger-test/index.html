@@ -891,13 +891,19 @@ th.th-sort-active svg{opacity:1;}
 .marketing-landing{max-width:1080px;margin:0 auto;padding:0 24px;}
 .ml-topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0;}
 .ml-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
-.ml-hero{position:relative;padding:56px 0 46px;text-align:center;overflow:hidden;}
-/* Nappes de couleur floues derrière le Hero uniquement — même traitement décoratif que la
-   section tarifs (voir .ml-pricing-glow), pour donner de la profondeur dès l'arrivée sur la page. */
-.ml-hero-glow{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.22;}
-.ml-hero-glow-1{width:420px;height:420px;background:var(--accent);top:-140px;left:5%;}
-.ml-hero-glow-2{width:360px;height:360px;background:#5B8CFF;top:-60px;right:8%;opacity:.16;}
-.ml-hero > *:not(.ml-hero-glow){position:relative;z-index:1;}
+/* Dégradés radiaux en fond (plutôt que des div floutées + overflow:hidden, qui créaient un bord
+   net/carré visible là où la section se termine — signalé le 12/09/2026) : un radial-gradient
+   s'estompe de lui-même vers "transparent" bien avant le bord, jamais de coupure brutale, et pas
+   besoin de gérer un z-index séparé pour repasser le contenu au-dessus. */
+.ml-hero{
+  padding:56px 0 46px;text-align:center;border-radius:28px;
+  /* Pas de overflow:hidden ici : le visuel de la section (.ml-hero-visual) porte une box-shadow
+     qui doit rester visible au-delà du padding-bottom. border-radius suffit à arrondir le fond
+     (les navigateurs arrondissent le rendu du background au border-box même sans overflow:hidden —
+     seul le contenu enfant qui déborderait aurait besoin d'être masqué, ce qui n'est pas le cas ici). */
+  background:radial-gradient(560px 380px at 18% -8%, rgba(62,214,181,.16), transparent 70%),
+             radial-gradient(480px 340px at 88% -4%, rgba(91,140,255,.12), transparent 70%);
+}
 .ml-hero h1{
   font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;
   background:linear-gradient(135deg,var(--text) 35%,var(--accent) 120%);
@@ -933,14 +939,15 @@ th.th-sort-active svg{opacity:1;}
 .ml-feature-card:nth-child(3n) .ml-feature-icon{background:linear-gradient(135deg,#E3B564,#B4842F);color:#1A1206;}
 .ml-feature-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 8px;}
 .ml-feature-card p{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0;}
-.ml-pricing{position:relative;padding:56px 0 54px;border-top:1px solid var(--border-soft);overflow:hidden;}
-.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 34px;position:relative;z-index:1;}
-/* Nappes de couleur floues derrière les cartes (uniquement dans cette section, pas toute la page) —
-   purement décoratif : aria-hidden + pointer-events:none, ne gêne jamais la lecture/le clic. */
-.ml-pricing-glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.28;}
-.ml-pricing-glow-1{width:360px;height:360px;background:var(--accent);top:-80px;left:8%;}
-.ml-pricing-glow-2{width:320px;height:320px;background:#5B8CFF;bottom:-100px;right:10%;opacity:.18;}
-.ml-pricing-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;max-width:820px;margin:0 auto;perspective:1400px;}
+/* Dégradés radiaux en fond, pas des div floutées + overflow:hidden — voir le commentaire équivalent
+   sur .ml-hero (même correctif du bord net, 12/09/2026). */
+.ml-pricing{
+  padding:56px 0 54px;border-top:1px solid var(--border-soft);border-radius:28px;
+  background:radial-gradient(460px 320px at 12% 0%, rgba(62,214,181,.16), transparent 70%),
+             radial-gradient(400px 300px at 90% 100%, rgba(91,140,255,.1), transparent 70%);
+}
+.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 34px;}
+.ml-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;max-width:820px;margin:0 auto;perspective:1400px;}
 .ml-pricing-card{
   position:relative;border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:center;
   background:linear-gradient(165deg,var(--surface-2),var(--surface));
@@ -972,11 +979,14 @@ th.th-sort-active svg{opacity:1;}
    page tarifs publique ci-dessus (halos de couleur, carte mise en avant, léger 3D au survol),
    sous des noms de classes distincts car générée par du JS avec des styles inline plutôt que du
    HTML statique. */
-.sub-plans-wrap{position:relative;}
-.sub-plans-glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.22;}
-.sub-plans-glow-1{width:340px;height:340px;background:var(--accent);top:-50px;left:6%;}
-.sub-plans-glow-2{width:300px;height:300px;background:#5B8CFF;opacity:.15;bottom:-70px;right:8%;}
-.sub-plan-grid{position:relative;z-index:1;perspective:1400px;}
+/* Dégradé radial en fond, pas des div floutées + overflow:hidden — voir le commentaire équivalent
+   sur .ml-hero (même correctif du bord net, 12/09/2026). */
+.sub-plans-wrap{
+  position:relative;padding-top:8px;border-radius:28px;
+  background:radial-gradient(420px 300px at 15% 0%, rgba(62,214,181,.14), transparent 70%),
+             radial-gradient(360px 280px at 85% 100%, rgba(91,140,255,.09), transparent 70%);
+}
+.sub-plan-grid{perspective:1400px;}
 .sub-plan-card{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;transform-style:preserve-3d;will-change:transform;}
 .sub-plan-card:hover{box-shadow:0 22px 42px -20px rgba(0,0,0,.55);}
 .sub-plan-ribbon{background:linear-gradient(135deg,var(--accent),#1FA98A)!important;color:var(--accent-text)!important;box-shadow:0 6px 16px -4px rgba(62,214,181,.55);}
@@ -1053,8 +1063,6 @@ th.th-sort-active svg{opacity:1;}
 
   <main>
     <section class="ml-hero">
-      <div class="ml-hero-glow ml-hero-glow-1" aria-hidden="true"></div>
-      <div class="ml-hero-glow ml-hero-glow-2" aria-hidden="true"></div>
       <h1>Contralytix — la gestion financière de tes comptes Prop Firm, enfin centralisée</h1>
       <p class="ml-sub">
         Contralytix est l'outil de gestion financière propfirm pensé pour les traders financés (funded traders) :
@@ -1180,8 +1188,6 @@ th.th-sort-active svg{opacity:1;}
     </section>
 
     <section class="ml-pricing">
-      <div class="ml-pricing-glow ml-pricing-glow-1" aria-hidden="true"></div>
-      <div class="ml-pricing-glow ml-pricing-glow-2" aria-hidden="true"></div>
       <h2>Des formules simples, à commencer gratuitement</h2>
       <div class="ml-pricing-grid" id="ml-pricing-grid">
         <div class="ml-pricing-card">
@@ -9393,8 +9399,6 @@ function viewSubscription(){
 
   const plansPanel = role==='ADMIN' ? '' : `
     <div class="sub-plans-wrap">
-    <div class="sub-plans-glow sub-plans-glow-1" aria-hidden="true"></div>
-    <div class="sub-plans-glow sub-plans-glow-2" aria-hidden="true"></div>
     <div style="position:relative;z-index:1;text-align:center;margin-bottom:20px;">
       <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
       <div class="radio-group" style="display:inline-flex;">
@@ -13003,6 +13007,10 @@ function applyLandingPricing(){
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
       if(ml) ml.style.display = '';
+      // Remonte en haut de page : sans ça, si la déconnexion a lieu depuis un écran de l'app
+      // scrollé (le body a défilé pour afficher app-root plus bas), la page marketing réapparaît
+      // à l'endroit où le scroll s'était arrêté au lieu de repartir du Hero tout en haut.
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
       renderAuthScreen();
