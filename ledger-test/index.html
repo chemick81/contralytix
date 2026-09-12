@@ -891,27 +891,82 @@ th.th-sort-active svg{opacity:1;}
 .marketing-landing{max-width:1080px;margin:0 auto;padding:0 24px;}
 .ml-topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0;}
 .ml-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
-.ml-hero{padding:56px 0 46px;text-align:center;}
-.ml-hero h1{font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;}
+.ml-hero{position:relative;padding:56px 0 46px;text-align:center;overflow:hidden;}
+/* Nappes de couleur floues derrière le Hero uniquement — même traitement décoratif que la
+   section tarifs (voir .ml-pricing-glow), pour donner de la profondeur dès l'arrivée sur la page. */
+.ml-hero-glow{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.22;}
+.ml-hero-glow-1{width:420px;height:420px;background:var(--accent);top:-140px;left:5%;}
+.ml-hero-glow-2{width:360px;height:360px;background:#5B8CFF;top:-60px;right:8%;opacity:.16;}
+.ml-hero > *{position:relative;z-index:1;}
+.ml-hero h1{
+  font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;
+  background:linear-gradient(135deg,var(--text) 35%,var(--accent) 120%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
 .ml-hero .ml-sub{font-size:16px;color:var(--text-dim);max-width:660px;margin:0 auto 30px;line-height:1.65;}
 .ml-hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ml-hero-ctas .btn-primary{box-shadow:0 12px 28px -10px var(--accent-dim),0 12px 28px -12px rgba(62,214,181,.45);transition:filter .15s,transform .15s;}
+.ml-hero-ctas .btn-primary:hover{transform:translateY(-1px);}
 .ml-features{padding:36px 0 56px;border-top:1px solid var(--border-soft);}
 .ml-features h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:25px;margin:0 0 8px;}
 .ml-features-sub{text-align:center;color:var(--text-faint);font-size:13.5px;margin:0 0 34px;}
 .ml-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
-.ml-feature-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.ml-feature-card{
+  background:linear-gradient(160deg,var(--surface-2),var(--surface));
+  border:1px solid var(--border);border-radius:12px;padding:20px;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s,border-color .25s;
+}
+.ml-feature-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--border-soft);
+  box-shadow:0 20px 36px -20px rgba(0,0,0,.5);
+}
+.ml-feature-icon{
+  display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;
+  margin-bottom:14px;box-shadow:0 6px 14px -6px rgba(0,0,0,.5);
+}
+.ml-feature-icon svg{width:17px;height:17px;}
+/* Rotation de couleur sur 3 teintes (teal/bleu/or) pour donner un peu de variété visuelle sans
+   surcharger — même logique que les badges de tier de la page tarifs. */
+.ml-feature-card:nth-child(3n+1) .ml-feature-icon{background:linear-gradient(135deg,var(--accent),#1FA98A);color:var(--accent-text);}
+.ml-feature-card:nth-child(3n+2) .ml-feature-icon{background:linear-gradient(135deg,#5B8CFF,#3A63D9);color:#fff;}
+.ml-feature-card:nth-child(3n) .ml-feature-icon{background:linear-gradient(135deg,#E3B564,#B4842F);color:#1A1206;}
 .ml-feature-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 8px;}
 .ml-feature-card p{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0;}
-.ml-pricing{padding:48px 0 54px;border-top:1px solid var(--border-soft);}
-.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 28px;}
-.ml-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:780px;margin:0 auto;}
-.ml-pricing-card{border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface);}
-.ml-pricing-card.ml-pricing-highlight{border-color:var(--accent);}
-.ml-pricing-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 4px;}
+.ml-pricing{position:relative;padding:56px 0 54px;border-top:1px solid var(--border-soft);overflow:hidden;}
+.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 34px;position:relative;z-index:1;}
+/* Nappes de couleur floues derrière les cartes (uniquement dans cette section, pas toute la page) —
+   purement décoratif : aria-hidden + pointer-events:none, ne gêne jamais la lecture/le clic. */
+.ml-pricing-glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.28;}
+.ml-pricing-glow-1{width:360px;height:360px;background:var(--accent);top:-80px;left:8%;}
+.ml-pricing-glow-2{width:320px;height:320px;background:#5B8CFF;bottom:-100px;right:10%;opacity:.18;}
+.ml-pricing-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;max-width:820px;margin:0 auto;perspective:1400px;}
+.ml-pricing-card{
+  position:relative;border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:center;
+  background:linear-gradient(165deg,var(--surface-2),var(--surface));
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 18px 36px -22px rgba(0,0,0,.5);
+  transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+  transform-style:preserve-3d;will-change:transform;
+}
+.ml-pricing-card:hover{box-shadow:0 26px 50px -20px rgba(0,0,0,.6),0 0 0 1px var(--border);}
+.ml-pricing-card.ml-pricing-highlight{
+  border-color:rgba(62,214,181,.5);
+  transform:translateY(-8px) scale(1.03);
+  box-shadow:0 0 0 1px rgba(62,214,181,.22),0 22px 46px -16px rgba(62,214,181,.26),0 18px 36px -22px rgba(0,0,0,.5);
+}
+.ml-pricing-ribbon{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  background:linear-gradient(135deg,var(--accent),#1FA98A);color:var(--accent-text);font-size:10px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:5px 13px;border-radius:999px;
+  box-shadow:0 6px 16px -4px rgba(62,214,181,.55);
+}
+.ml-pricing-card h3{font-family:'Space Grotesk',sans-serif;font-size:15px;margin:0 0 4px;}
 .ml-pricing-tagline{font-size:11.5px;color:var(--text-faint);margin:0;}
-.ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:14px 0 0;font-size:12px;color:var(--text-dim);}
-.ml-pricing-card li{padding:4px 0;}
-.ml-pricing-note{text-align:center;font-size:11.5px;color:var(--text-faint);margin:20px 0 0;}
+.ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:16px 0 0;font-size:12.5px;color:var(--text-dim);display:flex;flex-direction:column;gap:8px;}
+.ml-pricing-card li{display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.ml-pricing-card li svg{flex-shrink:0;margin-top:2px;color:var(--text-faint);}
+.ml-pricing-card.ml-pricing-highlight li svg{color:var(--accent);}
+.ml-pricing-note{position:relative;z-index:1;text-align:center;font-size:11.5px;color:var(--text-faint);margin:24px 0 0;}
 .ml-faq{padding:44px 0 50px;border-top:1px solid var(--border-soft);max-width:760px;margin:0 auto;}
 .ml-faq h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 22px;}
 .ml-faq-list{display:flex;flex-direction:column;gap:10px;}
@@ -984,6 +1039,8 @@ th.th-sort-active svg{opacity:1;}
 
   <main>
     <section class="ml-hero">
+      <div class="ml-hero-glow ml-hero-glow-1" aria-hidden="true"></div>
+      <div class="ml-hero-glow ml-hero-glow-2" aria-hidden="true"></div>
       <h1>Contralytix — la gestion financière de tes comptes Prop Firm, enfin centralisée</h1>
       <p class="ml-sub">
         Contralytix est l'outil de gestion financière propfirm pensé pour les traders financés (funded traders) :
@@ -1005,14 +1062,17 @@ th.th-sort-active svg{opacity:1;}
     <section class="ml-features" style="padding:0 0 40px;border-top:none;">
       <div class="ml-feature-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5Z"/><path d="M3 13l9 5 9-5"/></svg></div>
           <h3>Pensé pour le multi-comptes prop firm</h3>
           <p>Pas un journal de trading généraliste : chaque écran est construit autour de la réalité d'un trader funded — Challenge, PA, Live, plusieurs PropFirms, plusieurs traders.</p>
         </article>
         <article class="ml-feature-card" id="ml-why-fiscalite">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4.5c0-.8.7-1.5 2-1.5h6.5v17H6c-1.3 0-2 .5-2 1.5V4.5Z"/><path d="M20 4.5c0-.8-.7-1.5-2-1.5h-6.5v17H18c1.3 0 2 .5 2 1.5V4.5Z"/></svg></div>
           <h3>Un module Fiscalité micro-BNC dédié</h3>
           <p>Seuils, franchise de TVA et échéances URSSAF suivis automatiquement à partir de tes payouts réels — une fonctionnalité que nous n'avons trouvée chez aucun concurrent équivalent.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
           <h3>Tes données ne sont jamais revendues</h3>
           <p>Hébergement et paiement confiés à des prestataires reconnus (Supabase, Stripe), jamais à des courtiers de données. Détail complet dans notre politique de confidentialité.</p>
         </article>
@@ -1063,34 +1123,42 @@ th.th-sort-active svg{opacity:1;}
       <p class="ml-features-sub">Une seule application pour remplacer le tableur Excel, le carnet de notes et les captures d'écran éparpillées.</p>
       <div class="ml-feature-grid">
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
           <h3>Suivi multi-comptes Challenge, PA, Live</h3>
           <p>Centralisez tous vos comptes prop firm, toutes tailles et toutes PropFirms confondues, avec statut, historique et liens entre un Challenge réussi et son compte financé.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7.5c0-1.1.9-2 2-2h13a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z"/><path d="M16 12.5h3M3 9.5h18"/></svg></div>
           <h3>Comptabilité automatique</h3>
           <p>Achats, mensualités, frais d'activation et payouts sont calculés et classés automatiquement, exportables en CSV, Excel ou PDF pour votre suivi comptable.</p>
         </article>
         <article class="ml-feature-card" id="ml-feature-fiscalite">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4.5c0-.8.7-1.5 2-1.5h6.5v17H6c-1.3 0-2 .5-2 1.5V4.5Z"/><path d="M20 4.5c0-.8-.7-1.5-2-1.5h-6.5v17H18c1.3 0 2 .5 2 1.5V4.5Z"/></svg></div>
           <h3>Module Fiscalité (micro-BNC)</h3>
           <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></div>
           <h3>Calendrier des échéances</h3>
           <p>Visualisez en un coup d'œil vos prochaines mensualités et vos payouts reçus, mois par mois, pour ne plus jamais rater une échéance.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8.5c0-1.1.9-2 2-2h1.2l1-1.7c.3-.5.9-.8 1.5-.8h4.6c.6 0 1.2.3 1.5.8l1 1.7H18a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.5Z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
           <h3>Bilan visuel partageable</h3>
           <p>Générez des cartes de résultats mensuelles, par trader et par PropFirm, prêtes à exporter en image pour vos vidéos ou vos réseaux sociaux.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg></div>
           <h3>Comparatif entre PropFirms</h3>
           <p>Comparez vos performances — taux de réussite, dépenses, payouts, résultat net — selon chaque PropFirm que vous utilisez.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c2.8.3 4.9 2.5 4.9 5.8"/></svg></div>
           <h3>Suivi multi-traders</h3>
           <p>Gérez plusieurs traders sous un même compte : idéal pour les équipes, les formateurs ou les clubs de trading qui suivent plusieurs comptes à la fois.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10l4.3-2.8a.8.8 0 0 1 1.2.7v8.2a.8.8 0 0 1-1.2.7L16.5 14"/></svg></div>
           <h3>Sessions live &amp; prépa de séance</h3>
           <p>Archivez vos sessions de trading YouTube avec vos notes, et générez une prépa de séance quotidienne assistée par IA avant l'ouverture.</p>
         </article>
@@ -1098,36 +1166,39 @@ th.th-sort-active svg{opacity:1;}
     </section>
 
     <section class="ml-pricing">
+      <div class="ml-pricing-glow ml-pricing-glow-1" aria-hidden="true"></div>
+      <div class="ml-pricing-glow ml-pricing-glow-2" aria-hidden="true"></div>
       <h2>Des formules simples, à commencer gratuitement</h2>
-      <div class="ml-pricing-grid">
+      <div class="ml-pricing-grid" id="ml-pricing-grid">
         <div class="ml-pricing-card">
           <h3>Free</h3>
           <p class="ml-pricing-tagline">Pour démarrer sans engagement</p>
           <ul>
-            <li>✓ Jusqu'à 2 traders</li>
-            <li>✓ Comptes gratuits par trader</li>
-            <li>✓ Suivi des payouts</li>
-            <li>✓ 5 dernières sessions live</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 2 traders</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 3 comptes par trader</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des payouts</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> 5 dernières sessions live</li>
           </ul>
         </div>
         <div class="ml-pricing-card ml-pricing-highlight">
+          <span class="ml-pricing-ribbon">Le plus populaire</span>
           <h3>Premium</h3>
           <p class="ml-pricing-tagline" id="ml-price-premium">Mensuel ou annuel</p>
           <ul>
-            <li>✓ Traders illimités</li>
-            <li>✓ Comptes illimités par trader</li>
-            <li>✓ Exports CSV, Excel &amp; PDF</li>
-            <li>✓ Calendrier des échéances</li>
-            <li>✓ Bilan visuel</li>
-            <li id="ml-pricing-fiscalite">✓ Module Fiscalité (micro-BNC)</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Traders illimités</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Comptes illimités par trader</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Exports CSV, Excel &amp; PDF</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Calendrier des échéances</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Bilan visuel</li>
+            <li id="ml-pricing-fiscalite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Module Fiscalité (micro-BNC)</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
           <h3>Lifetime</h3>
           <p class="ml-pricing-tagline" id="ml-price-lifetime">Paiement unique</p>
           <ul>
-            <li>✓ Accès à vie à toutes les fonctionnalités Premium</li>
-            <li>✓ Aucun renouvellement</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Accès à vie à toutes les fonctionnalités Premium</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Aucun renouvellement</li>
           </ul>
         </div>
       </div>
@@ -1847,7 +1918,7 @@ async function setUserPlan(userId, plan, billingCycle){
   await logActivity('ROLE_CHANGE', 'profile', userId, `Plan changé en ${plan}${subPayload.billing_cycle ? ' ('+subPayload.billing_cycle+')' : ''}`);
   // Tient la liste de contacts Brevo à jour immédiatement (pas seulement à la prochaine
   // connexion de l'utilisateur) — voir syncBrevoContact() et claude/module-mailing-admin-messages.md.
-  if(p && p.email) syncBrevoContact(p.email, plan);
+  if(p && p.email) syncBrevoContact(p.email, plan, p.notifProductAnnouncements);
   showToast('Plan mis à jour.');
 }
 
@@ -1860,19 +1931,22 @@ async function setUserPlan(userId, plan, billingCycle){
    et claude/module-mailing-admin-messages.md.
 ============================================================ */
 // Fire-and-forget : ne doit jamais bloquer ni faire échouer le flux appelant
-// (connexion, changement de plan) si Brevo est indisponible ou mal configuré.
-function syncBrevoContact(email, role){
+// (connexion, changement de plan, changement du toggle "Annonces produit") si Brevo est
+// indisponible ou mal configuré.
+// marketingOptin : reflète notifProductAnnouncements (Paramètres > Notifications) — Brevo doit
+// filtrer sur cet attribut avant tout envoi marketing, voir sync-brevo-contact.js.
+function syncBrevoContact(email, role, marketingOptin){
   if(!email) return;
   fetch('/.netlify/functions/sync-brevo-contact', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role, marketingOptin: !!marketingOptin }),
   }).catch(()=>{});
 }
 // Admin > Utilisateurs > "Resynchroniser avec Brevo" : renvoie tous les profils d'un coup
 // (import en masse Brevo), pour les comptes créés avant la mise en place de la synchro
 // automatique, ou en cas de doute sur l'état de la liste Brevo.
 async function bulkSyncBrevoContacts(){
-  const contacts = state.profiles.filter(p=>p.email).map(p=>({ email:p.email, role:p.role }));
+  const contacts = state.profiles.filter(p=>p.email).map(p=>({ email:p.email, role:p.role, marketingOptin: !!p.notifProductAnnouncements }));
   if(contacts.length===0) return { sent:false, error:'Aucun utilisateur avec email à synchroniser.' };
   const res = await fetch('/.netlify/functions/bulk-sync-brevo-contacts', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -7499,7 +7573,12 @@ async function saveNotifPreference(key, value){
   if(error){
     state.profile[field] = prev; renderView();
     showToast("Impossible d'enregistrer ce réglage : " + error.message, 'danger');
+    return;
   }
+  // "Annonces produit" pilote directement le consentement marketing envoyé à Brevo (voir
+  // syncBrevoContact()) — sans attendre la prochaine connexion, sinon un utilisateur qui vient de
+  // se désinscrire pourrait recevoir une campagne envoyée entre-temps.
+  if(key === 'announce') syncBrevoContact(state.session.user.email, state.profile.role, value);
 }
 async function saveFiscalUserSettings(periodicity, vfl){
   const uid = currentUserId();
@@ -12689,6 +12768,25 @@ function initBackToTop(){
   btn.onclick = ()=> window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Léger effet 3D (tilt) au survol des cartes de la page tarifs (landing publique) : la carte
+// s'incline selon la position du curseur. Purement décoratif, ignoré sur tactile
+// (matchMedia hover:none) et retiré au mouseleave pour ne jamais laisser une carte inclinée.
+function initPricingTilt(){
+  const cards = document.querySelectorAll('#ml-pricing-grid .ml-pricing-card');
+  if(!cards.length || window.matchMedia('(hover: none)').matches) return;
+  cards.forEach(card=>{
+    const isHighlight = card.classList.contains('ml-pricing-highlight');
+    const base = isHighlight ? 'translateY(-8px) scale(1.03) ' : '';
+    card.addEventListener('mousemove', (e)=>{
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `${base}rotateX(${(-y*7).toFixed(2)}deg) rotateY(${(x*9).toFixed(2)}deg)`;
+    });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+  });
+}
+
 // Bulles d'info (ⓘ) : état + fonctions au niveau module (pas de logique par bouton à
 // recréer) — les boutons .info-tip sont réinjectés à chaque render() de n'importe quelle
 // page, donc tout ce qui doit survivre au rendu suivant est branché une seule fois ici,
@@ -12776,6 +12874,7 @@ function applyLandingPricing(){
   document.documentElement.setAttribute('data-theme', state.theme);
   initBackToTop();
   initInfoTips();
+  initPricingTilt();
   // Chargé avant même la vérification de session : pilote aussi la visibilité du module
   // Fiscalité sur la landing publique pour un visiteur pas encore connecté (voir
   // applyFiscalLandingVisibility ci-dessus). Sans effet silencieux si la policy RLS
@@ -12830,7 +12929,7 @@ function applyLandingPricing(){
     // Synchro Brevo à chaque connexion (fire-and-forget, voir syncBrevoContact()) : couvre
     // aussi bien une première inscription qu'un compte existant, sans dépendre d'un point
     // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
-    syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE');
+    syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
     await loadAppSettings();
     await loadPricingSettings();
