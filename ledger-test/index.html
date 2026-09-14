@@ -196,6 +196,12 @@ a{color:var(--accent);text-decoration:none;}
    style inline display:inline-flex existait, sans largeur/hauteur). Signalé le 29/08/2026, corrigé
    avec les autres icônes trouvées dans le même balayage ("corrige partout"). */
 .dash-alerts-chev svg{width:11px;height:11px;flex-shrink:0;}
+/* Pastille de sélection des vignettes de thème (Paramètres > Apparence) : même bug
+   d'icône sans taille intrinsèque que ci-dessus (icon('check') brut, non contraint) —
+   corrigé en même temps que le reste du balayage icônes. */
+.theme-swatch svg{width:12px;height:12px;flex-shrink:0;}
+.theme-swatch{transition:border-color .15s,transform .1s;}
+.theme-swatch:hover{border-color:var(--text-faint);}
 .nav-group-items{display:flex;flex-direction:column;gap:3px;margin-top:2px;margin-bottom:2px;}
 .nav-foot{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border-soft);}
 .legal-foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;padding:4px 4px 0;font-size:10px;}
@@ -885,27 +891,106 @@ th.th-sort-active svg{opacity:1;}
 .marketing-landing{max-width:1080px;margin:0 auto;padding:0 24px;}
 .ml-topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0;}
 .ml-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;}
-.ml-hero{padding:56px 0 46px;text-align:center;}
-.ml-hero h1{font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;}
+/* Dégradés radiaux en fond (plutôt que des div floutées + overflow:hidden, qui créaient un bord
+   net/carré visible là où la section se termine — signalé le 12/09/2026) : un radial-gradient
+   s'estompe de lui-même vers "transparent" bien avant le bord, jamais de coupure brutale, et pas
+   besoin de gérer un z-index séparé pour repasser le contenu au-dessus. */
+.ml-hero{
+  padding:56px 0 46px;text-align:center;border-radius:28px;
+  /* Pas de overflow:hidden ici : le visuel de la section (.ml-hero-visual) porte une box-shadow
+     qui doit rester visible au-delà du padding-bottom. border-radius suffit à arrondir le fond
+     (les navigateurs arrondissent le rendu du background au border-box même sans overflow:hidden —
+     seul le contenu enfant qui déborderait aurait besoin d'être masqué, ce qui n'est pas le cas ici). */
+  background:radial-gradient(560px 380px at 18% -8%, rgba(62,214,181,.16), transparent 70%),
+             radial-gradient(480px 340px at 88% -4%, rgba(91,140,255,.12), transparent 70%);
+}
+.ml-hero h1{
+  font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.18;margin:0 0 18px;font-weight:700;
+  background:linear-gradient(135deg,var(--text) 35%,var(--accent) 120%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
 .ml-hero .ml-sub{font-size:16px;color:var(--text-dim);max-width:660px;margin:0 auto 30px;line-height:1.65;}
 .ml-hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ml-hero-ctas .btn-primary{box-shadow:0 12px 28px -10px var(--accent-dim),0 12px 28px -12px rgba(62,214,181,.45);transition:filter .15s,transform .15s;}
+.ml-hero-ctas .btn-primary:hover{transform:translateY(-1px);}
 .ml-features{padding:36px 0 56px;border-top:1px solid var(--border-soft);}
 .ml-features h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:25px;margin:0 0 8px;}
 .ml-features-sub{text-align:center;color:var(--text-faint);font-size:13.5px;margin:0 0 34px;}
 .ml-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
-.ml-feature-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.ml-feature-card{
+  background:linear-gradient(160deg,var(--surface-2),var(--surface));
+  border:1px solid var(--border);border-radius:12px;padding:20px;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s,border-color .25s;
+}
+.ml-feature-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--border-soft);
+  box-shadow:0 20px 36px -20px rgba(0,0,0,.5);
+}
+.ml-feature-icon{
+  display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;
+  margin-bottom:14px;box-shadow:0 6px 14px -6px rgba(0,0,0,.5);
+}
+.ml-feature-icon svg{width:17px;height:17px;}
+/* Rotation de couleur sur 3 teintes (teal/bleu/or) pour donner un peu de variété visuelle sans
+   surcharger — même logique que les badges de tier de la page tarifs. */
+.ml-feature-card:nth-child(3n+1) .ml-feature-icon{background:linear-gradient(135deg,var(--accent),#1FA98A);color:var(--accent-text);}
+.ml-feature-card:nth-child(3n+2) .ml-feature-icon{background:linear-gradient(135deg,#5B8CFF,#3A63D9);color:#fff;}
+.ml-feature-card:nth-child(3n) .ml-feature-icon{background:linear-gradient(135deg,#E3B564,#B4842F);color:#1A1206;}
 .ml-feature-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 8px;}
 .ml-feature-card p{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0;}
-.ml-pricing{padding:48px 0 54px;border-top:1px solid var(--border-soft);}
-.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 28px;}
-.ml-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:780px;margin:0 auto;}
-.ml-pricing-card{border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface);}
-.ml-pricing-card.ml-pricing-highlight{border-color:var(--accent);}
-.ml-pricing-card h3{font-family:'Space Grotesk',sans-serif;font-size:14.5px;margin:0 0 4px;}
+/* Dégradés radiaux en fond, pas des div floutées + overflow:hidden — voir le commentaire équivalent
+   sur .ml-hero (même correctif du bord net, 12/09/2026). */
+.ml-pricing{
+  padding:56px 0 54px;border-top:1px solid var(--border-soft);border-radius:28px;
+  background:radial-gradient(460px 320px at 12% 0%, rgba(62,214,181,.16), transparent 70%),
+             radial-gradient(400px 300px at 90% 100%, rgba(91,140,255,.1), transparent 70%);
+}
+.ml-pricing h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 34px;}
+.ml-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;max-width:820px;margin:0 auto;perspective:1400px;}
+.ml-pricing-card{
+  position:relative;border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:center;
+  background:linear-gradient(165deg,var(--surface-2),var(--surface));
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 18px 36px -22px rgba(0,0,0,.5);
+  transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+  transform-style:preserve-3d;will-change:transform;
+}
+.ml-pricing-card:hover{box-shadow:0 26px 50px -20px rgba(0,0,0,.6),0 0 0 1px var(--border);}
+.ml-pricing-card.ml-pricing-highlight{
+  border-color:rgba(62,214,181,.5);
+  transform:translateY(-8px) scale(1.03);
+  box-shadow:0 0 0 1px rgba(62,214,181,.22),0 22px 46px -16px rgba(62,214,181,.26),0 18px 36px -22px rgba(0,0,0,.5);
+}
+.ml-pricing-ribbon{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  background:linear-gradient(135deg,var(--accent),#1FA98A);color:var(--accent-text);font-size:10px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:5px 13px;border-radius:999px;
+  box-shadow:0 6px 16px -4px rgba(62,214,181,.55);
+}
+.ml-pricing-card h3{font-family:'Space Grotesk',sans-serif;font-size:15px;margin:0 0 4px;}
 .ml-pricing-tagline{font-size:11.5px;color:var(--text-faint);margin:0;}
-.ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:14px 0 0;font-size:12px;color:var(--text-dim);}
-.ml-pricing-card li{padding:4px 0;}
-.ml-pricing-note{text-align:center;font-size:11.5px;color:var(--text-faint);margin:20px 0 0;}
+.ml-pricing-card ul{text-align:left;list-style:none;padding:0;margin:16px 0 0;font-size:12.5px;color:var(--text-dim);display:flex;flex-direction:column;gap:8px;}
+.ml-pricing-card li{display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.ml-pricing-card li svg{flex-shrink:0;margin-top:2px;color:var(--text-faint);}
+.ml-pricing-card.ml-pricing-highlight li svg{color:var(--accent);}
+.ml-pricing-note{position:relative;z-index:1;text-align:center;font-size:11.5px;color:var(--text-faint);margin:24px 0 0;}
+
+/* Page Abonnement (utilisateur connecté, viewSubscription()) — même traitement visuel que la
+   page tarifs publique ci-dessus (halos de couleur, carte mise en avant, léger 3D au survol),
+   sous des noms de classes distincts car générée par du JS avec des styles inline plutôt que du
+   HTML statique. */
+/* Dégradé radial en fond, pas des div floutées + overflow:hidden — voir le commentaire équivalent
+   sur .ml-hero (même correctif du bord net, 12/09/2026). */
+.sub-plans-wrap{
+  position:relative;padding-top:8px;border-radius:28px;
+  background:radial-gradient(420px 300px at 15% 0%, rgba(62,214,181,.14), transparent 70%),
+             radial-gradient(360px 280px at 85% 100%, rgba(91,140,255,.09), transparent 70%);
+}
+.sub-plan-grid{perspective:1400px;}
+.sub-plan-card{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;transform-style:preserve-3d;will-change:transform;}
+.sub-plan-card:hover{box-shadow:0 22px 42px -20px rgba(0,0,0,.55);}
+.sub-plan-ribbon{background:linear-gradient(135deg,var(--accent),#1FA98A)!important;color:var(--accent-text)!important;box-shadow:0 6px 16px -4px rgba(62,214,181,.55);}
+.sub-plan-ribbon.gold{background:linear-gradient(135deg,var(--gold),#B4842F)!important;box-shadow:0 6px 16px -4px var(--gold-dim);}
 .ml-faq{padding:44px 0 50px;border-top:1px solid var(--border-soft);max-width:760px;margin:0 auto;}
 .ml-faq h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 22px;}
 .ml-faq-list{display:flex;flex-direction:column;gap:10px;}
@@ -999,14 +1084,17 @@ th.th-sort-active svg{opacity:1;}
     <section class="ml-features" style="padding:0 0 40px;border-top:none;">
       <div class="ml-feature-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5Z"/><path d="M3 13l9 5 9-5"/></svg></div>
           <h3>Pensé pour le multi-comptes prop firm</h3>
           <p>Pas un journal de trading généraliste : chaque écran est construit autour de la réalité d'un trader funded — Challenge, PA, Live, plusieurs PropFirms, plusieurs traders.</p>
         </article>
         <article class="ml-feature-card" id="ml-why-fiscalite">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4.5c0-.8.7-1.5 2-1.5h6.5v17H6c-1.3 0-2 .5-2 1.5V4.5Z"/><path d="M20 4.5c0-.8-.7-1.5-2-1.5h-6.5v17H18c1.3 0 2 .5 2 1.5V4.5Z"/></svg></div>
           <h3>Un module Fiscalité micro-BNC dédié</h3>
           <p>Seuils, franchise de TVA et échéances URSSAF suivis automatiquement à partir de tes payouts réels — une fonctionnalité que nous n'avons trouvée chez aucun concurrent équivalent.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
           <h3>Tes données ne sont jamais revendues</h3>
           <p>Hébergement et paiement confiés à des prestataires reconnus (Supabase, Stripe), jamais à des courtiers de données. Détail complet dans notre politique de confidentialité.</p>
         </article>
@@ -1057,34 +1145,42 @@ th.th-sort-active svg{opacity:1;}
       <p class="ml-features-sub">Une seule application pour remplacer le tableur Excel, le carnet de notes et les captures d'écran éparpillées.</p>
       <div class="ml-feature-grid">
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
           <h3>Suivi multi-comptes Challenge, PA, Live</h3>
           <p>Centralisez tous vos comptes prop firm, toutes tailles et toutes PropFirms confondues, avec statut, historique et liens entre un Challenge réussi et son compte financé.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7.5c0-1.1.9-2 2-2h13a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z"/><path d="M16 12.5h3M3 9.5h18"/></svg></div>
           <h3>Comptabilité automatique</h3>
           <p>Achats, mensualités, frais d'activation et payouts sont calculés et classés automatiquement, exportables en CSV, Excel ou PDF pour votre suivi comptable.</p>
         </article>
         <article class="ml-feature-card" id="ml-feature-fiscalite">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4.5c0-.8.7-1.5 2-1.5h6.5v17H6c-1.3 0-2 .5-2 1.5V4.5Z"/><path d="M20 4.5c0-.8-.7-1.5-2-1.5h-6.5v17H18c1.3 0 2 .5 2 1.5V4.5Z"/></svg></div>
           <h3>Module Fiscalité (micro-BNC)</h3>
           <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></div>
           <h3>Calendrier des échéances</h3>
           <p>Visualisez en un coup d'œil vos prochaines mensualités et vos payouts reçus, mois par mois, pour ne plus jamais rater une échéance.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8.5c0-1.1.9-2 2-2h1.2l1-1.7c.3-.5.9-.8 1.5-.8h4.6c.6 0 1.2.3 1.5.8l1 1.7H18a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.5Z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
           <h3>Bilan visuel partageable</h3>
           <p>Générez des cartes de résultats mensuelles, par trader et par PropFirm, prêtes à exporter en image pour vos vidéos ou vos réseaux sociaux.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg></div>
           <h3>Comparatif entre PropFirms</h3>
           <p>Comparez vos performances — taux de réussite, dépenses, payouts, résultat net — selon chaque PropFirm que vous utilisez.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c2.8.3 4.9 2.5 4.9 5.8"/></svg></div>
           <h3>Suivi multi-traders</h3>
           <p>Gérez plusieurs traders sous un même compte : idéal pour les équipes, les formateurs ou les clubs de trading qui suivent plusieurs comptes à la fois.</p>
         </article>
         <article class="ml-feature-card">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5.5" width="14" height="13" rx="2"/><path d="M16.5 10l4.3-2.8a.8.8 0 0 1 1.2.7v8.2a.8.8 0 0 1-1.2.7L16.5 14"/></svg></div>
           <h3>Sessions live &amp; prépa de séance</h3>
           <p>Archivez vos sessions de trading YouTube avec vos notes, et générez une prépa de séance quotidienne assistée par IA avant l'ouverture.</p>
         </article>
@@ -1093,35 +1189,36 @@ th.th-sort-active svg{opacity:1;}
 
     <section class="ml-pricing">
       <h2>Des formules simples, à commencer gratuitement</h2>
-      <div class="ml-pricing-grid">
+      <div class="ml-pricing-grid" id="ml-pricing-grid">
         <div class="ml-pricing-card">
           <h3>Free</h3>
           <p class="ml-pricing-tagline">Pour démarrer sans engagement</p>
           <ul>
-            <li>✓ Jusqu'à 2 traders</li>
-            <li>✓ Comptes gratuits par trader</li>
-            <li>✓ Suivi des payouts</li>
-            <li>✓ 5 dernières sessions live</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 2 traders</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 3 comptes par trader</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des payouts</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> 5 dernières sessions live</li>
           </ul>
         </div>
         <div class="ml-pricing-card ml-pricing-highlight">
+          <span class="ml-pricing-ribbon">Le plus populaire</span>
           <h3>Premium</h3>
           <p class="ml-pricing-tagline" id="ml-price-premium">Mensuel ou annuel</p>
           <ul>
-            <li>✓ Traders illimités</li>
-            <li>✓ Comptes illimités par trader</li>
-            <li>✓ Exports CSV, Excel &amp; PDF</li>
-            <li>✓ Calendrier des échéances</li>
-            <li>✓ Bilan visuel</li>
-            <li id="ml-pricing-fiscalite">✓ Module Fiscalité (micro-BNC)</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Traders illimités</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Comptes illimités par trader</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Exports CSV, Excel &amp; PDF</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Calendrier des échéances</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Bilan visuel</li>
+            <li id="ml-pricing-fiscalite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Module Fiscalité (micro-BNC)</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
           <h3>Lifetime</h3>
           <p class="ml-pricing-tagline" id="ml-price-lifetime">Paiement unique</p>
           <ul>
-            <li>✓ Accès à vie à toutes les fonctionnalités Premium</li>
-            <li>✓ Aucun renouvellement</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Accès à vie à toutes les fonctionnalités Premium</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Aucun renouvellement</li>
           </ul>
         </div>
       </div>
@@ -1287,6 +1384,8 @@ const ICONS = {
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
   exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>',
+  userCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M5.5 19c1-3 3.5-4.5 6.5-4.5s5.5 1.5 6.5 4.5"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.8a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V2.8a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.05" fill="currentColor" stroke="none"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
@@ -1430,6 +1529,9 @@ const state = {
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
   numbersVisible: false,
+  // Page Profil : l'email n'est jamais affiché par défaut (voir maskedEmail()) ; ce flag,
+  // volontairement non persisté (reset à chaque rechargement), autorise un affichage ponctuel.
+  profileEmailRevealed: false,
   navOpenGroups: loadNavOpenGroups(),
   adminTab: 'overview',
   adminToolsMenuOpen: false,
@@ -1836,7 +1938,7 @@ async function setUserPlan(userId, plan, billingCycle){
   await logActivity('ROLE_CHANGE', 'profile', userId, `Plan changé en ${plan}${subPayload.billing_cycle ? ' ('+subPayload.billing_cycle+')' : ''}`);
   // Tient la liste de contacts Brevo à jour immédiatement (pas seulement à la prochaine
   // connexion de l'utilisateur) — voir syncBrevoContact() et claude/module-mailing-admin-messages.md.
-  if(p && p.email) syncBrevoContact(p.email, plan);
+  if(p && p.email) syncBrevoContact(p.email, plan, p.notifProductAnnouncements);
   showToast('Plan mis à jour.');
 }
 
@@ -1849,19 +1951,22 @@ async function setUserPlan(userId, plan, billingCycle){
    et claude/module-mailing-admin-messages.md.
 ============================================================ */
 // Fire-and-forget : ne doit jamais bloquer ni faire échouer le flux appelant
-// (connexion, changement de plan) si Brevo est indisponible ou mal configuré.
-function syncBrevoContact(email, role){
+// (connexion, changement de plan, changement du toggle "Annonces produit") si Brevo est
+// indisponible ou mal configuré.
+// marketingOptin : reflète notifProductAnnouncements (Paramètres > Notifications) — Brevo doit
+// filtrer sur cet attribut avant tout envoi marketing, voir sync-brevo-contact.js.
+function syncBrevoContact(email, role, marketingOptin){
   if(!email) return;
   fetch('/.netlify/functions/sync-brevo-contact', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role, marketingOptin: !!marketingOptin }),
   }).catch(()=>{});
 }
 // Admin > Utilisateurs > "Resynchroniser avec Brevo" : renvoie tous les profils d'un coup
 // (import en masse Brevo), pour les comptes créés avant la mise en place de la synchro
 // automatique, ou en cas de doute sur l'état de la liste Brevo.
 async function bulkSyncBrevoContacts(){
-  const contacts = state.profiles.filter(p=>p.email).map(p=>({ email:p.email, role:p.role }));
+  const contacts = state.profiles.filter(p=>p.email).map(p=>({ email:p.email, role:p.role, marketingOptin: !!p.notifProductAnnouncements }));
   if(contacts.length===0) return { sent:false, error:'Aucun utilisateur avec email à synchroniser.' };
   const res = await fetch('/.netlify/functions/bulk-sync-brevo-contacts', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -2618,6 +2723,55 @@ function planBadgeHtml(){
   return `<span class="plan-badge ${b.cls}">${b.label}</span>`;
 }
 
+/* ============================================================
+   IDENTITÉ AFFICHÉE — nom / email
+   Par défaut, l'email n'est jamais affiché en clair dans l'interface (sidebar, page Profil) :
+   seul un nom affiché (si renseigné) ou une version masquée de l'email est montré. L'email en
+   clair reste consultable ponctuellement depuis la page Profil (bouton "Afficher"), en mémoire
+   seulement, jamais stocké ni loggé côté UI.
+============================================================ */
+function maskedEmail(email){
+  if(!email || typeof email!=='string' || !email.includes('@')) return '—';
+  const [local, domain] = email.split('@');
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}${'•'.repeat(Math.max(3, local.length - visible.length))}@${domain}`;
+}
+function accountDisplayLabel(){
+  const dn = state.profile && state.profile.displayName;
+  if(dn && dn.trim()) return dn.trim();
+  return maskedEmail(state.session ? state.session.user.email : (state.profile ? state.profile.email : null));
+}
+// 'google' | 'email' — détecté depuis la session Supabase Auth EN COURS.
+//
+// Piège : `user.app_metadata.provider` ne reflète PAS la méthode de connexion
+// utilisée pour la session actuelle — c'est le tout premier provider utilisé à
+// la création du compte, figé pour toujours. Un utilisateur inscrit par code
+// e-mail puis qui se connecte ensuite avec Google (même adresse, comptes liés
+// automatiquement par Supabase) reste marqué "email" indéfiniment, même en
+// pleine session Google — d'où l'affichage incorrect "Code par email" sur la
+// page Profil malgré une connexion Google.
+//
+// La vraie méthode de LA session en cours est portée par la revendication
+// "amr" (Authentication Methods Reference) du JWT d'accès, décodée ici.
+function authProviderId(){
+  const s = state.session;
+  if(!s || !s.user) return 'email';
+  try{
+    if(s.access_token){
+      const b64 = s.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const payload = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      const amr = Array.isArray(payload.amr) ? payload.amr : [];
+      const last = amr[amr.length - 1];
+      if(last){
+        if(last.provider === 'google' || last.method === 'oauth') return 'google';
+        if(last.method === 'otp' || last.method === 'password' || last.method === 'magiclink') return 'email';
+      }
+    }
+  }catch(e){ /* JWT illisible : repli ci-dessous */ }
+  const p = s.user.app_metadata && s.user.app_metadata.provider;
+  return p === 'google' ? 'google' : 'email';
+}
+
 // Modale d'upsell affichée partout où une fonctionnalité Premium est verrouillée.
 // Renvoie vers l'onglet Tarifs plutôt que de dupliquer les choix de formule ici.
 function openUpgradeModal(featureLabel){
@@ -2766,7 +2920,11 @@ function renderAuthScreen(){
     const submit = ()=> sendAuthCode(emailInput.value.trim());
     document.getElementById('auth-send-code').onclick = submit;
     emailInput.onkeydown = (e)=>{ if(e.key==='Enter') submit(); };
-    emailInput.focus();
+    // preventScroll : un focus() classique fait défiler la page jusqu'à l'élément ciblé, or
+    // #loading (ce bloc connexion) est placé après tout le contenu de la landing dans le DOM —
+    // sans ça, chaque renderAuthScreen() (y compris à la déconnexion) fait redescendre la page
+    // jusqu'au bloc connexion et écrase le scroll en haut de page voulu à ce moment-là (12/09/2026).
+    emailInput.focus({ preventScroll: true });
   } else {
     document.getElementById('auth-change-email').onclick = ()=>{ state.authStep='email'; state.authError=''; renderAuthScreen(); };
     document.getElementById('auth-resend-code').onclick = (e)=>{ e.preventDefault(); resendAuthCode(); };
@@ -2782,7 +2940,7 @@ function renderAuthScreen(){
     codeInput.oninput = ()=>{ codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6); refreshBtnState(); };
     codeInput.onkeydown = (e)=>{ if(e.key==='Enter' && codeInput.value.replace(/\D/g,'').length===6) verifyAuthCode(state.authEmail, codeInput.value.trim()); };
     verifyBtn.onclick = ()=> verifyAuthCode(state.authEmail, codeInput.value.trim());
-    codeInput.focus();
+    codeInput.focus({ preventScroll: true }); // voir le commentaire sur emailInput.focus() ci-dessus
   }
   renderCaptchaWidget();
 }
@@ -3812,6 +3970,8 @@ const BASE_NAV = [
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
   { id:'subscription', label:'Tarifs', icon:'wallet' },
+  { id:'profil', label:'Profil', icon:'userCircle' },
+  { id:'parametres', label:'Paramètres', icon:'gear' },
   { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
   { id:'manuel', label:'Manuel', icon:'help' },
   { id:'confidentialite', label:'Confidentialité', icon:'lock' },
@@ -3842,7 +4002,8 @@ const NAV_GROUPS = [
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
   { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite'] },
   { id:'perf',     label:'Performance',         items:['comparatif'] },
-  { id:'aide',     label:'Aide & Abonnement',   items:['aide-centre','manuel','changelog','subscription'] },
+  { id:'compte',   label:'Mon compte',          items:['profil','parametres','subscription'] },
+  { id:'aide',     label:'Aide',                items:['aide-centre','manuel','changelog'] },
 ];
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
@@ -4145,8 +4306,8 @@ function render(){
       </div>
       <nav class="nav">${renderNavGroups()}</nav>
       <div class="nav-foot">
-        <div style="padding:8px 10px;border-radius:8px;background:var(--surface-2);margin-bottom:2px;">
-          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="nav-label">${state.session.user.email}</div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--surface-2);margin-bottom:2px;cursor:pointer;" data-nav="profil" title="Voir mon profil">
+          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="nav-label">${escapeHtml(accountDisplayLabel())}</div>
           <div class="nav-label">${planBadgeHtml()}</div>
         </div>
         <button class="icon-btn" id="currency-display-toggle" title="Basculer l'affichage des montants entre devise d'origine et équivalent EUR">${icon('exchange')}<span class="nav-label">${state.currencyDisplayMode==='eur' ? 'Tout afficher en €' : 'Devise d’origine ($/€)'}</span></button>
@@ -4353,6 +4514,8 @@ function renderView(){
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
+  else if(state.route==='profil') el.innerHTML = viewProfil();
+  else if(state.route==='parametres') el.innerHTML = viewParametres();
   else if(state.route==='aide-centre') el.innerHTML = viewCentreAide();
   else if(state.route==='manuel') el.innerHTML = viewManuel();
   else if(state.route==='confidentialite') el.innerHTML = viewConfidentialite();
@@ -7419,6 +7582,28 @@ function fiscalUrssafPeriodicity(){
 function fiscalVersementLiberatoire(){
   return !!(state.profile && state.profile.versementLiberatoire);
 }
+// Préférences de notification email (profiles.notif_*, migration_profil_parametres.sql) — même
+// pattern optimiste que saveFiscalUserSettings ci-dessous. NB : ceci ne fait que stocker la
+// préférence ; l'envoi programmé des emails (Brevo) est un chantier séparé, non couvert ici.
+const NOTIF_PREF_COLUMNS = { urssaf:'notif_urssaf', perf:'notif_perf_summary', announce:'notif_product_announcements' };
+const NOTIF_PREF_FIELDS = { urssaf:'notifUrssaf', perf:'notifPerfSummary', announce:'notifProductAnnouncements' };
+async function saveNotifPreference(key, value){
+  const col = NOTIF_PREF_COLUMNS[key], field = NOTIF_PREF_FIELDS[key];
+  const uidVal = currentUserId();
+  if(!col || !uidVal || !state.profile) return;
+  const prev = state.profile[field];
+  state.profile[field] = value; // optimiste
+  const { error } = await supabaseClient.from('profiles').update({ [col]: value }).eq('id', uidVal);
+  if(error){
+    state.profile[field] = prev; renderView();
+    showToast("Impossible d'enregistrer ce réglage : " + error.message, 'danger');
+    return;
+  }
+  // "Annonces produit" pilote directement le consentement marketing envoyé à Brevo (voir
+  // syncBrevoContact()) — sans attendre la prochaine connexion, sinon un utilisateur qui vient de
+  // se désinscrire pourrait recevoir une campagne envoyée entre-temps.
+  if(key === 'announce') syncBrevoContact(state.session.user.email, state.profile.role, value);
+}
 async function saveFiscalUserSettings(periodicity, vfl){
   const uid = currentUserId();
   if(!uid || !state.profile) return;
@@ -9200,8 +9385,8 @@ function viewSubscription(){
   ];
 
   const planCard = ({ name, badge, price, priceNote, features, ctaLabel, ctaAction, highlight, gold, isCurrent }) => `
-    <div class="panel" style="padding:20px;position:relative;display:flex;flex-direction:column;height:100%;${highlight?`border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);`:''}${gold?`border-color:var(--gold);`:''}">
-      ${badge ? `<div style="position:absolute;top:-11px;left:20px;background:${gold?'var(--gold)':'var(--accent)'};color:${gold?'#1A130A':'var(--accent-text)'};font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;letter-spacing:.3px;">${badge}</div>` : ''}
+    <div class="panel sub-plan-card" style="padding:20px;position:relative;display:flex;flex-direction:column;height:100%;${highlight?`border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);`:''}${gold?`border-color:var(--gold);`:''}">
+      ${badge ? `<div class="sub-plan-ribbon${gold?' gold':''}" style="position:absolute;top:-11px;left:20px;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;letter-spacing:.3px;">${badge}</div>` : ''}
       <div style="font-weight:700;font-size:15px;margin-bottom:4px;${gold?'color:var(--gold);':''}">${name}</div>
       <div style="display:flex;align-items:baseline;gap:4px;margin:10px 0 2px;">
         <span style="font-size:26px;font-weight:800;font-family:'Space Grotesk',sans-serif;">${price}</span>
@@ -9217,14 +9402,15 @@ function viewSubscription(){
     </div>`;
 
   const plansPanel = role==='ADMIN' ? '' : `
-    <div style="text-align:center;margin-bottom:20px;">
+    <div class="sub-plans-wrap">
+    <div style="position:relative;z-index:1;text-align:center;margin-bottom:20px;">
       <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
       <div class="radio-group" style="display:inline-flex;">
         <div class="radio-chip ${cycle==='MONTHLY'?'selected':''}" data-tarifs-cycle="MONTHLY">Mensuel</div>
         <div class="radio-chip ${cycle==='YEARLY'?'selected':''}" data-tarifs-cycle="YEARLY">Annuel <span class="badge badge-accent" style="margin-left:4px;">-17%</span></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:stretch;">
+    <div class="sub-plan-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:stretch;">
       ${planCard({
         name:'Free', price:'0€', priceNote:'/mois',
         features: freeFeatures,
@@ -9247,6 +9433,7 @@ function viewSubscription(){
         ctaAction:"startCheckout('LIFETIME')",
         isCurrent: currentCycle==='LIFETIME',
       })}
+    </div>
     </div>`;
 
   const promoResult = state.filters.tarifs.promoResult;
@@ -9294,6 +9481,305 @@ function viewSubscription(){
 
   return currentPlanPanel + promoAdminPanel + promoPanel + plansPanel;
 }
+
+function accountTabsHtml(active){
+  const tabs = [
+    { id:'profil', label:'Profil', icon:'userCircle' },
+    { id:'parametres', label:'Paramètres', icon:'gear' },
+    { id:'subscription', label:'Abonnement', icon:'wallet' },
+  ];
+  return `<div class="account-tabs" style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;">
+    ${tabs.map(t=>`<div class="account-tab ${t.id===active?'active':''}" data-nav="${t.id}" style="display:flex;align-items:center;gap:7px;padding:9px 4px;margin-right:22px;font-size:13.5px;font-weight:600;cursor:pointer;color:${t.id===active?'var(--text)':'var(--text-dim)'};border-bottom:2px solid ${t.id===active?'var(--accent)':'transparent'};">${icon(t.icon)}<span>${t.label==='Abonnement'?'Abonnement':t.label}</span></div>`).join('')}
+  </div>`;
+}
+function editDisplayNameModal(){
+  openModal({
+    title: 'Nom affiché',
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:10px;">Ce nom remplace ton email dans l'application (sidebar, page Profil). Laisse vide pour revenir à l'affichage par défaut.</div>
+      <input id="display-name-input" placeholder="Ex : Mickael" value="${escapeHtml((state.profile && state.profile.displayName) || '')}" maxlength="60"/>`,
+    footHtml: `<button class="btn btn-outline" id="dn-cancel">Annuler</button><button class="btn btn-primary" id="dn-save">Enregistrer</button>`,
+    onMount(){
+      document.getElementById('dn-cancel').onclick = closeModal;
+      document.getElementById('dn-save').onclick = async ()=>{
+        const val = document.getElementById('display-name-input').value.trim().slice(0,60);
+        const prev = state.profile.displayName;
+        state.profile.displayName = val || null;
+        closeModal(); render();
+        const { error } = await supabaseClient.from('profiles').update({ display_name: val || null }).eq('id', currentUserId());
+        if(error){
+          state.profile.displayName = prev; render();
+          showToast("Impossible d'enregistrer le nom affiché : " + error.message, 'danger');
+        } else {
+          showToast('Nom affiché mis à jour.');
+        }
+      };
+    }
+  });
+}
+// Suppression de compte en 2 étapes : (1) demande → un code à 6 chiffres est envoyé par email
+// (netlify/functions/request-account-deletion.js), (2) saisie du code → suppression réelle
+// (netlify/functions/delete-account.js, qui vérifie le code côté serveur avant d'agir). Le code
+// expire après 10 min (voir la table account_deletion_requests, migration_profil_parametres.sql).
+function requestAccountDeletionModal(){
+  openModal({
+    title: 'Supprimer mon compte',
+    wide: true,
+    bodyHtml: `
+      <div style="font-size:13.5px;line-height:1.6;color:var(--text-dim);">
+        <p>Cette action est <b style="color:var(--text);">définitive et irréversible</b>. Seront supprimés :</p>
+        <ul style="margin:8px 0 14px 18px;padding:0;">
+          <li>ton compte de connexion (email / Google)</li>
+          <li>tes traders, PropFirms liées, comptes et payouts</li>
+          <li>tes justificatifs de payout et pièces jointes</li>
+          <li>tes notes, préparations de séance et sessions de trading</li>
+          <li>tes réglages fiscaux et checklist déclarative</li>
+        </ul>
+        <p>Si tu as un abonnement Premium en cours, pense à l'annuler depuis le <a href="#" id="racc-portal-link">portail Stripe</a> avant de continuer : la suppression du compte n'annule pas automatiquement la facturation en cours.</p>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="racc-cancel">Annuler</button><button class="btn btn-danger" id="racc-send-code">Envoyer le code de confirmation</button>`,
+    onMount(){
+      document.getElementById('racc-cancel').onclick = closeModal;
+      const portalLink = document.getElementById('racc-portal-link');
+      if(portalLink) portalLink.onclick = (e)=>{ e.preventDefault(); closeModal(); openBillingPortal(); };
+      document.getElementById('racc-send-code').onclick = async (e)=>{
+        e.target.disabled = true;
+        e.target.textContent = 'Envoi du code…';
+        await requestAccountDeletionCode();
+      };
+    }
+  });
+}
+async function requestAccountDeletionCode(){
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/request-account-deletion', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+    });
+    const json = await res.json().catch(()=>({}));
+    if(!res.ok || json.error){
+      showToast(json.error || "Impossible d'envoyer le code de confirmation.", 'danger');
+      closeModal();
+      return;
+    }
+    confirmAccountDeletionModal();
+  }catch(e){
+    showToast("Impossible de contacter le service de suppression de compte.", 'danger');
+    closeModal();
+  }
+}
+function confirmAccountDeletionModal(){
+  openModal({
+    title: 'Confirmer la suppression',
+    bodyHtml: `
+      <div style="font-size:13.5px;line-height:1.6;color:var(--text-dim);">
+        <p>Un code à 6 chiffres vient d'être envoyé à ton adresse email. Il est valable 10 minutes.</p>
+        <input id="racc-code-input" placeholder="123456" inputmode="numeric" maxlength="6" style="margin-top:10px;font-size:18px;letter-spacing:4px;text-align:center;font-family:monospace;"/>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="racc-code-cancel">Annuler</button><button class="btn btn-danger" id="racc-code-confirm" disabled>Supprimer définitivement</button>`,
+    onMount(){
+      document.getElementById('racc-code-cancel').onclick = closeModal;
+      const input = document.getElementById('racc-code-input');
+      const confirmBtn = document.getElementById('racc-code-confirm');
+      input.focus();
+      input.oninput = ()=>{
+        input.value = input.value.replace(/\D/g,'').slice(0,6);
+        confirmBtn.disabled = input.value.length !== 6;
+      };
+      confirmBtn.onclick = async ()=>{
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Suppression en cours…';
+        await deleteMyAccount(input.value);
+      };
+    }
+  });
+}
+// Appelle la fonction serveur delete-account (clé service Supabase requise côté Netlify — voir
+// netlify/functions/delete-account.js) : la suppression réelle d'un utilisateur Supabase Auth
+// n'est possible que côté serveur, jamais depuis le client. Le serveur revérifie le code avant
+// de supprimer quoi que ce soit — la vérification ci-dessus (6 chiffres) est juste un confort UI.
+async function deleteMyAccount(code){
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/delete-account', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+      body: JSON.stringify({ code }),
+    });
+    const json = await res.json().catch(()=>({}));
+    if(!res.ok || json.error){
+      showToast(json.error || 'Erreur lors de la suppression du compte.', 'danger');
+      const btn = document.getElementById('racc-code-confirm');
+      if(btn){ btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+      return;
+    }
+    closeModal();
+    await signOut();
+    showToast('Ton compte a été supprimé.');
+  }catch(e){
+    showToast("Impossible de contacter le service de suppression de compte.", 'danger');
+    const btn = document.getElementById('racc-code-confirm');
+    if(btn){ btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+  }
+}
+function viewProfil(){
+  const emailReal = state.session ? state.session.user.email : (state.profile ? state.profile.email : null);
+  const emailShown = state.profileEmailRevealed ? (emailReal || '—') : maskedEmail(emailReal);
+  const createdAt = state.profile && state.profile.createdAt;
+  const myTradersCount = state.traders.filter(isMine).length;
+  const provider = authProviderId();
+
+  return `
+    ${accountTabsHtml('profil')}
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="flex:1;min-width:320px;display:flex;flex-direction:column;gap:20px;">
+        <div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:4px;">Identité</div>
+          <div class="text-faint" style="font-size:12.5px;margin-bottom:16px;">Visibles uniquement par toi.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);gap:12px;">
+            <div style="font-size:12.5px;color:var(--text-dim);width:150px;flex-shrink:0;">Nom affiché</div>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">${escapeHtml((state.profile && state.profile.displayName) || 'Non défini')}</div>
+            <button class="btn btn-ghost btn-sm" id="edit-display-name">${icon('edit')}Modifier</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);gap:12px;">
+            <div style="font-size:12.5px;color:var(--text-dim);width:150px;flex-shrink:0;">Email</div>
+            <div style="flex:1;font-size:13.5px;font-weight:600;font-family:monospace;">${escapeHtml(emailShown)}</div>
+            <button class="btn btn-ghost btn-sm" id="toggle-email-reveal">${icon(state.profileEmailRevealed?'eyeOff':'eye')}${state.profileEmailRevealed?'Masquer':'Afficher'}</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;gap:12px;">
+            <div style="font-size:12.5px;color:var(--text-dim);width:150px;flex-shrink:0;">Connexion</div>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">${provider==='google' ? 'Google' : 'Code par email'}</div>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:14px;color:var(--danger,#e5484d);">Zone de danger</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);border-radius:10px;padding:14px 16px;">
+            <div>
+              <div style="font-size:13.5px;font-weight:700;margin-bottom:2px;">Supprimer mon compte</div>
+              <div style="font-size:12.5px;color:var(--text-dim);">Action définitive — voir la page <a href="#" data-nav="confidentialite">Confidentialité</a> pour le détail des données traitées.</div>
+            </div>
+            <button class="btn btn-danger" id="delete-account-btn" style="white-space:nowrap;">${icon('trash')}Supprimer</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:20px;">
+        <div class="panel" style="padding:18px 20px;">
+          <div class="section-title" style="font-size:13px;margin-bottom:10px;">Aperçu du compte</div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span class="text-dim">Membre depuis</span><b>${createdAt ? fmtDate(createdAt.slice(0,10)) : '—'}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span class="text-dim">Plan actuel</span>${planBadgeHtml()}</div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;"><span class="text-dim">Traders liés</span><b>${myTradersCount}</b></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   PARAMÈTRES — apparence, affichage, confidentialité, notifications
+   Thème / devise / n° de compte masqués existaient déjà comme boutons de la sidebar (voir
+   theme-toggle / currency-display-toggle / numbers-toggle dans render()) : cette page les
+   regroupe pour plus de découvrabilité, sans dupliquer d'état — elle pilote les mêmes
+   state.theme / state.currencyDisplayMode / state.numbersVisible.
+   Les notifications (profiles.notif_*, migration_profil_parametres.sql) sont de nouveaux réglages
+   d'opt-in/opt-out : cette livraison couvre le stockage de la préférence, PAS l'envoi programmé
+   des emails eux-mêmes (rappels URSSAF, résumé hebdo) — ça reste un chantier séparé côté Brevo.
+============================================================ */
+function themeSwatchHtml(id, label, bg, panelBg){
+  const active = state.theme === id;
+  const isLight = id === 'light';
+  const textColor = isLight ? '#1a1a1a' : '#E8EDF2';
+  const lineColor = isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.16)';
+  const lineColorSoft = isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.08)';
+  return `<div class="theme-swatch ${active?'selected':''}" data-theme-pick="${id}" style="cursor:pointer;border-radius:12px;overflow:hidden;border:2px solid ${active?'var(--accent)':'var(--border)'};position:relative;background:${panelBg};">
+    ${active?`<div style="position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);">${icon('check')}</div>`:''}
+    <div style="height:64px;display:flex;gap:6px;padding:8px;background:${bg};">
+      <div style="width:26%;border-radius:5px;background:${panelBg};padding:6px 5px;display:flex;flex-direction:column;gap:5px;">
+        <div style="height:4px;border-radius:2px;background:${lineColor};width:75%;"></div>
+        <div style="height:4px;border-radius:2px;background:${lineColorSoft};width:55%;"></div>
+        <div style="height:4px;border-radius:2px;background:${lineColorSoft};width:60%;"></div>
+      </div>
+      <div style="flex:1;border-radius:5px;background:${panelBg};padding:7px;display:flex;flex-direction:column;gap:6px;">
+        <div style="height:5px;border-radius:2px;background:${lineColor};width:40%;"></div>
+        <div style="flex:1;border-radius:4px;background:${lineColorSoft};"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;padding:9px 10px;font-size:12.5px;font-weight:600;color:${textColor};">
+      <span>${label}</span>
+    </div>
+  </div>`;
+}
+function notifToggleRow(key, label, sub, checked){
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);gap:16px;">
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:2px;">${label}</div><div style="font-size:12px;color:var(--text-dim);">${sub}</div></div>
+    <label class="switch"><input type="checkbox" data-notif-toggle="${key}" ${checked?'checked':''}/><span class="switch-track"></span></label>
+  </div>`;
+}
+function viewParametres(){
+  const myTraders = state.traders.filter(isMine);
+  const p = state.profile || {};
+  const notifUrssaf = p.notifUrssaf !== false; // défaut true
+  const notifPerf = p.notifPerfSummary !== false; // défaut true
+  const notifAnnounce = !!p.notifProductAnnouncements; // défaut false
+
+  return `
+    ${accountTabsHtml('parametres')}
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="flex:1;min-width:340px;display:flex;flex-direction:column;gap:20px;">
+        <div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:4px;">Apparence</div>
+          <div class="text-faint" style="font-size:12.5px;margin-bottom:16px;">Thème de l'interface, sur cet appareil.</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+            ${themeSwatchHtml('dark','Sombre','#0B0F14','#1A222C')}
+            ${themeSwatchHtml('light','Clair','#F1F3F5','#FFFFFF')}
+            ${themeSwatchHtml('premium','Premium','#0D0B08','#1F1A14')}
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:4px;">Affichage</div>
+          <div class="text-faint" style="font-size:12.5px;margin-bottom:16px;">Montants et numéros de compte.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);gap:16px;">
+            <div><div style="font-size:13px;font-weight:600;">Devise d'affichage</div><div style="font-size:12px;color:var(--text-dim);">Montants dans leur devise d'origine, ou tout convertis en €.</div></div>
+            <div class="radio-group" style="display:inline-flex;flex-shrink:0;">
+              <div class="radio-chip ${state.currencyDisplayMode==='original'?'selected':''}" data-currency-pick="original">$/€ d'origine</div>
+              <div class="radio-chip ${state.currencyDisplayMode==='eur'?'selected':''}" data-currency-pick="eur">Tout en €</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;gap:16px;">
+            <div><div style="font-size:13px;font-weight:600;">Numéros de compte</div><div style="font-size:12px;color:var(--text-dim);">Masquer les numéros de compte à l'écran (capture d'écran, partage...).</div></div>
+            <label class="switch"><input type="checkbox" id="params-numbers-toggle" ${state.numbersVisible?'checked':''}/><span class="switch-track"></span></label>
+          </div>
+        </div>
+
+        <div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:4px;">Confidentialité de mes traders</div>
+          <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;">Privé par défaut. La visibilité se règle trader par trader depuis sa fiche.</div>
+          ${myTraders.length===0 ? `<div class="text-faint" style="font-size:13px;">Aucun trader pour l'instant.</div>` : myTraders.map(t=>`
+            <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.firstName)} ${escapeHtml(t.lastName)}</div>
+                <div style="font-size:11px;color:var(--text-faint);">${escapeHtml(t.pseudo||'')}</div>
+              </div>
+              <span class="badge ${t.isPublic===false?'badge-slate':'badge-accent'}">${icon(t.isPublic===false?'eyeOff':'eye')}${t.isPublic===false?'Privé':'Public'}</span>
+              <button class="btn btn-ghost btn-sm" data-edit-trader-privacy="${t.id}">${icon('edit')}</button>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div style="width:300px;flex-shrink:0;">
+        <div class="panel" style="padding:18px 20px;">
+          <div class="section-title" style="font-size:13px;margin-bottom:4px;">Notifications</div>
+          <div class="text-faint" style="font-size:11.5px;margin-bottom:10px;">Par email, à l'adresse liée à ton compte.</div>
+          ${notifToggleRow('urssaf', 'Échéances URSSAF', 'Rappels avant chaque échéance', notifUrssaf)}
+          ${notifToggleRow('perf', 'Résumé de performance', 'Un email chaque semaine', notifPerf)}
+          ${notifToggleRow('announce', 'Annonces produit', 'Nouveautés Contralytix', notifAnnounce)}
+        </div>
+      </div>
+    </div>`;
+}
+
 
 function lockedFeatureView(label){
   return `<div class="empty">
@@ -9558,6 +10044,7 @@ function bindViewEvents(){
   if(calToday) calToday.onclick = ()=>{ state.filters.calendrier.month = ''; renderView(); };
   // Tarifs
   document.querySelectorAll('[data-tarifs-cycle]').forEach(c=>c.onclick=()=>{ state.filters.tarifs.cycle = c.dataset.tarifsCycle; renderView(); });
+  initSubscriptionTilt();
   const promoInput = document.getElementById('promo-code-input');
   if(promoInput){
     promoInput.addEventListener('input', ()=>{ state.filters.tarifs.promoInput = promoInput.value; });
@@ -9580,6 +10067,27 @@ function bindViewEvents(){
       await loadPromoCodesAdmin();
       showToast('Code promo supprimé.'); renderView();
     });
+  });
+  // Traders
+  // Profil
+  const editDnBtn = document.getElementById('edit-display-name');
+  if(editDnBtn) editDnBtn.onclick = editDisplayNameModal;
+  const toggleEmailBtn = document.getElementById('toggle-email-reveal');
+  if(toggleEmailBtn) toggleEmailBtn.onclick = ()=>{ state.profileEmailRevealed = !state.profileEmailRevealed; renderView(); };
+  const deleteAccBtn = document.getElementById('delete-account-btn');
+  if(deleteAccBtn) deleteAccBtn.onclick = requestAccountDeletionModal;
+  // Paramètres
+  document.querySelectorAll('[data-theme-pick]').forEach(el=>el.onclick=()=>{
+    state.theme = el.dataset.themePick; saveThemePrefs(); render();
+  });
+  document.querySelectorAll('[data-currency-pick]').forEach(el=>el.onclick=()=>{
+    state.currencyDisplayMode = el.dataset.currencyPick; saveCurrencyDisplayMode(); render();
+  });
+  const paramsNumbersToggle = document.getElementById('params-numbers-toggle');
+  if(paramsNumbersToggle) paramsNumbersToggle.onchange = ()=>{ state.numbersVisible = paramsNumbersToggle.checked; render(); };
+  document.querySelectorAll('[data-edit-trader-privacy]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTraderPrivacy)));
+  document.querySelectorAll('[data-notif-toggle]').forEach(cb=>{
+    cb.onchange = ()=>saveNotifPreference(cb.dataset.notifToggle, cb.checked);
   });
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
@@ -12287,6 +12795,42 @@ function initBackToTop(){
   btn.onclick = ()=> window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Léger effet 3D (tilt) au survol des cartes de la page tarifs (landing publique) : la carte
+// s'incline selon la position du curseur. Purement décoratif, ignoré sur tactile
+// (matchMedia hover:none) et retiré au mouseleave pour ne jamais laisser une carte inclinée.
+function initPricingTilt(){
+  const cards = document.querySelectorAll('#ml-pricing-grid .ml-pricing-card');
+  if(!cards.length || window.matchMedia('(hover: none)').matches) return;
+  cards.forEach(card=>{
+    const isHighlight = card.classList.contains('ml-pricing-highlight');
+    const base = isHighlight ? 'translateY(-8px) scale(1.03) ' : '';
+    card.addEventListener('mousemove', (e)=>{
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `${base}rotateX(${(-y*7).toFixed(2)}deg) rotateY(${(x*9).toFixed(2)}deg)`;
+    });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+  });
+}
+// Même effet que initPricingTilt(), pour la page Abonnement (utilisateur connecté). Contrairement
+// à la landing (HTML statique, initialisée une fois au boot), cette vue est régénérée à chaque
+// renderView() — appelée depuis bindViewEvents(), donc réinitialisée à chaque re-rendu sans
+// accumuler d'anciens écouteurs (les éléments précédents sont remplacés par innerHTML).
+function initSubscriptionTilt(){
+  const cards = document.querySelectorAll('.sub-plan-grid .sub-plan-card');
+  if(!cards.length || window.matchMedia('(hover: none)').matches) return;
+  cards.forEach(card=>{
+    card.addEventListener('mousemove', (e)=>{
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `rotateX(${(-y*6).toFixed(2)}deg) rotateY(${(x*8).toFixed(2)}deg)`;
+    });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+  });
+}
+
 // Bulles d'info (ⓘ) : état + fonctions au niveau module (pas de logique par bouton à
 // recréer) — les boutons .info-tip sont réinjectés à chaque render() de n'importe quelle
 // page, donc tout ce qui doit survivre au rendu suivant est branché une seule fois ici,
@@ -12366,6 +12910,13 @@ function applyLandingPricing(){
   }
 }
 (async function boot(){
+  // Sans ça, Chrome/Firefox restaurent automatiquement la position de scroll précédente à un
+  // simple F5 (comportement natif du navigateur, pas de l'app) — si on avait quitté la page
+  // scrollée sur le bloc connexion (#loading, placé après tout le contenu de la landing dans le
+  // DOM) ou en plein milieu de l'app, un rechargement y ramenait directement au lieu de repartir
+  // du haut de la page (signalé le 12/09/2026). On reprend nous-mêmes la main sur le scroll au
+  // chargement, juste en dessous.
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // Applique le thème choisi (localStorage, voir loadThemePrefs()) dès le boot, avant le premier
   // rendu. Avant ce correctif, l'attribut data-theme n'était posé que dans render() (l'app une
   // fois connecté) — l'écran de connexion et la landing marketing restaient donc toujours sur le
@@ -12374,6 +12925,7 @@ function applyLandingPricing(){
   document.documentElement.setAttribute('data-theme', state.theme);
   initBackToTop();
   initInfoTips();
+  initPricingTilt();
   // Chargé avant même la vérification de session : pilote aussi la visibilité du module
   // Fiscalité sur la landing publique pour un visiteur pas encore connecté (voir
   // applyFiscalLandingVisibility ci-dessus). Sans effet silencieux si la policy RLS
@@ -12428,7 +12980,7 @@ function applyLandingPricing(){
     // Synchro Brevo à chaque connexion (fire-and-forget, voir syncBrevoContact()) : couvre
     // aussi bien une première inscription qu'un compte existant, sans dépendre d'un point
     // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
-    syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE');
+    syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
     await loadAppSettings();
     await loadPricingSettings();
@@ -12466,6 +13018,10 @@ function applyLandingPricing(){
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
       if(ml) ml.style.display = '';
+      // Remonte en haut de page : sans ça, si la déconnexion a lieu depuis un écran de l'app
+      // scrollé (le body a défilé pour afficher app-root plus bas), la page marketing réapparaît
+      // à l'endroit où le scroll s'était arrêté au lieu de repartir du Hero tout en haut.
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
       renderAuthScreen();
@@ -12480,7 +13036,15 @@ function applyLandingPricing(){
 
   const { data: { session } } = await supabaseClient.auth.getSession();
   if(session){ await enterApp(session); }
-  else { renderAuthScreen(); }
+  else {
+    renderAuthScreen();
+    // Repart du haut de la landing à un chargement/F5 sans session — sauf en plein retour
+    // OAuth/lien magique (jeton dans le hash ou ?code=), où l'écran de connexion n'est de toute
+    // façon pas ce qui s'affiche (voir plus haut : #marketing-landing est masqué dans ce cas).
+    if(!(/access_token=|refresh_token=/.test(location.hash) || /[?&]code=/.test(location.search))){
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }
   // Nettoyage de l'URL : après un retour de connexion Google (OAuth) ou d'un lien magique,
   // le SDK Supabase (detectSessionInUrl) lit le jeton dans le hash puis le vide lui-même via
   // `location.hash = ''` en interne — or affecter une chaîne vide à location.hash laisse un

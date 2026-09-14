@@ -8,6 +8,11 @@
 # Le webhook Stripe doit recevoir le body brut : Netlify le fait par défaut
 # pour les Functions classiques (pas besoin de config particulière ici).
 
+# Fonction planifiée : envoie l'email "Résumé de performance" (Paramètres > Notifications)
+# une fois par semaine, le lundi à 8h UTC. Voir netlify/functions/weekly-perf-summary.js.
+[functions."weekly-perf-summary"]
+  schedule = "0 8 * * 1"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
