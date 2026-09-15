@@ -180,6 +180,10 @@ a{color:var(--accent);text-decoration:none;}
 .brand-mark::before{content:'';position:absolute;left:6px;top:13px;width:10px;height:2px;background:var(--bg);opacity:.55;}
 .brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;}
 .brand-sub{font-size:10px;color:var(--text-faint);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px;}
+/* Le "x" du nom Contralytix repris en doré avec un léger relief (extrusion via text-shadow en
+   paliers), en écho au chevron doré du logo — couleurs fixes plutôt que var(--gold), pour rester
+   identique quel que soit le thème actif, comme le logo lui-même. */
+.brand-x{color:#E3B564;text-shadow:1px 1px 0 #C99A4A,2px 2px 0 #B4842F,3px 3px 4px rgba(0,0,0,.35);}
 
 .nav{display:flex;flex-direction:column;gap:3px;flex:1;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);color:var(--text-dim);font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:background .12s,color .12s;}
@@ -1060,7 +1064,7 @@ th.th-sort-active svg{opacity:1;}
   <header class="ml-topbar">
     <div class="ml-brand">
       <img src="/favicon.png" alt="Contralytix" width="28" height="28" style="border-radius:6px;" onerror="this.style.display='none'"/>
-      <span>Contralytix</span>
+      <span>Contralyti<span class="brand-x">x</span></span>
     </div>
     <a href="#loading" data-ml-auth="login" class="btn btn-outline btn-sm">Se connecter</a>
   </header>
@@ -2884,7 +2888,7 @@ function renderAuthScreen(){
     <div style="width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:var(--radius-sm);object-fit:cover;"/>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text);">Contralytix</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text);">Contralyti<span class="brand-x">x</span></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.4;">Reçois un code temporaire par e-mail pour accéder à ton espace. Pas de mot de passe à retenir.</div>
 
@@ -4309,7 +4313,7 @@ function render(){
       <div class="brand">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:34px;height:34px;border-radius:8px;flex-shrink:0;object-fit:cover;"/>
         <div>
-          <div class="brand-name">Contralytix</div>
+          <div class="brand-name">Contralyti<span class="brand-x">x</span></div>
           <div class="brand-sub">Gestion Propfirm</div>
         </div>
       </div>
