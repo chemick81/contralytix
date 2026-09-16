@@ -5069,8 +5069,8 @@ function viewDashboard(){
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs${infoTip("Comptes de type « Live » (capital réel après validation d'un PA) actuellement au statut Actif.")}</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des achats de challenges, des mensualités et des frais d'activation, sur la période filtrée. Convertie dans une seule devise si tes comptes utilisent des devises différentes.")}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
             <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des versements (payouts) reçus sur la période filtrée, tous comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net${infoTip("Payouts reçus moins dépenses engagées sur la période filtrée. Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
-            <div class="stat-tile" style="--rail:${netGlobal>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net global${infoTip("Comme le Résultat net, mais inclut aussi tes frais généraux (abonnement plateforme, données de marché, hébergement...) — non rattachés à un compte, donc jamais filtrés par trader/propfirm. Vue la plus réaliste de ta rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobal>=0?'var(--accent)':'var(--danger)'}">${netGlobal>=0?'+':''}${fmtMoneyCur(netGlobal, dashMoneyGlobal.currency)}</div><div class="stat-sub">payouts − dépenses − frais généraux${dashMoneyGlobal.converted?` · ${convertedLabel(dashMoneyGlobal.converted, dashMoneyGlobal.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (comptes propfirm)${infoTip("Payouts reçus moins dépenses de comptes propfirm (achats, mensualités, activations, resets), sur la période filtrée — scopé trader/propfirm, pour comparer une propfirm à une autre. N'inclut PAS tes frais généraux (voir la tuile « Net global » ci-contre). Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses comptes${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
+            <div class="stat-tile" style="--rail:${netGlobal>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais inclut aussi tes frais généraux (abonnement plateforme, données de marché, hébergement...) — non rattachés à un compte, donc jamais filtrés par trader/propfirm. C'est ta vue la plus réaliste de rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobal>=0?'var(--accent)':'var(--danger)'}">${netGlobal>=0?'+':''}${fmtMoneyCur(netGlobal, dashMoneyGlobal.currency)}</div><div class="stat-sub">payouts − dépenses comptes − frais généraux${dashMoneyGlobal.converted?` · ${convertedLabel(dashMoneyGlobal.converted, dashMoneyGlobal.mixed)}`:''}</div></div>
           </div>
         </div>
       </div>`,
@@ -5079,7 +5079,7 @@ function viewDashboard(){
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; rendement</div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Résultat net divisé par les dépenses engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
+            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Net (comptes propfirm) divisé par les dépenses de comptes engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé${infoTip("Total de toutes tes dépenses (tout l'historique, pas seulement la période filtrée) divisé par le nombre de challenges réussis. Donne une idée du prix moyen réel d'un compte financé.")}</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
             <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion${infoTip("Somme des tailles de compte (25K, 50K, 100K...) de tous les PA et Live actuellement au statut Actif — le capital que les propfirms te laissent gérer aujourd'hui.")}</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir${infoTip("Somme des montants mensuels des comptes actifs facturés à l'abonnement (paiement « Mensuel »). C'est une charge récurrente, pas un montant déjà payé.")}</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
@@ -5927,11 +5927,17 @@ function viewCalendrier(){
   const [y,m] = mk.split('-').map(Number);
 
   const payoutsMonth = items.filter(it=>it.type==='PAYOUT');
-  const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION'||it.type==='FRAIS_GENERAL');
+  // Séparé en deux pour le sous-libellé de la tuile "Dépenses du mois" — un frais général n'est pas
+  // rattaché à un compte propfirm, il faut pouvoir distinguer les deux d'un coup d'œil (cf. demande
+  // utilisateur du 16/09/2026 : bien identifier frais généraux vs dépenses compte propfirm).
+  const depensesCompteMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
+  const depensesGeneralMonth = items.filter(it=>it.type==='FRAIS_GENERAL');
+  const depensesMonth = [...depensesCompteMonth, ...depensesGeneralMonth];
   const reussisMonth = items.filter(it=>it.type==='REUSSI');
   const breachesMonth = items.filter(it=>it.type==='BREACHED');
   const payoutsMonthSum = sumMoneyLines(payoutsMonth);
   const depensesMonthSum = sumMoneyLines(depensesMonth);
+  const depensesGeneralMonthSum = sumMoneyLines(depensesGeneralMonth);
   const totalPayouts = payoutsMonthSum.amount;
   const totalDepenses = depensesMonthSum.amount;
 
@@ -5992,7 +5998,7 @@ function viewCalendrier(){
     </div>
     <div class="stats-grid">
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts reçus</div><div class="stat-value">${fmtSumMoney(payoutsMonthSum)}</div><div class="stat-sub">${payoutsMonth.length} payout(s) ce mois</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois</div><div class="stat-value">${fmtSumMoney(depensesMonthSum)}</div><div class="stat-sub">achats, mensualités, activations</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois${infoTip("Achats, mensualités et activations de comptes propfirm, PLUS tes frais généraux du mois (abonnement plateforme, données de marché...) — voir le détail ci-dessous.")}</div><div class="stat-value">${fmtSumMoney(depensesMonthSum)}</div><div class="stat-sub">comptes propfirm${depensesGeneralMonth.length>0?` + ${fmtSumMoney(depensesGeneralMonthSum)} frais généraux`:' · achats, mensualités, activations'}</div></div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Challenges réussis</div><div class="stat-value">${reussisMonth.length}</div><div class="stat-sub">passages en PA ce mois</div></div>
       <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Breaches</div><div class="stat-value">${breachesMonth.length}</div><div class="stat-sub">comptes breached ce mois</div></div>
     </div>
@@ -6069,7 +6075,7 @@ const HELP_CATEGORIES = [
     { q:"C'est quoi le Bilan Visuel ?", a:"Une page qui génère une image (PNG) prête à partager : soit une vue globale de ton bilan regroupé par PropFirm sur la période choisie, soit une carte par trader et par PropFirm." },
     { q:"Puis-je enregistrer des payouts et des dépenses dans plusieurs devises ?", a:"Oui. Chaque payout peut être saisi en dollar ($) ou en euro (€), avec un taux de change (rempli automatiquement depuis la Banque Centrale Européenne à la date du payout, modifiable si besoin). Tant que les montants d'une même vue (compte, mois, bilan…) sont dans une seule devise, le total reste exact et affiché dans cette devise, sans conversion. Ce n'est que si des montants dans des devises différentes se retrouvent mélangés dans un même total que Contralytix les convertit en euro pour pouvoir les additionner, et l'ajoute alors une mention « converti » pour que ce soit toujours visible." },
     { q:"Comment suivre des frais qui ne sont pas liés à un compte propfirm (abonnement, données de marché...) ?", a:"La page « Frais généraux » (Premium/Lifetime) est faite pour ça : abonnement à la plateforme Contralytix elle-même, flux de données de marché (CME, CBOT...), hébergement VPS, logiciels, formation ou autre. Un frais peut être ponctuel ou récurrent (mensuel/annuel) — pour un abonnement récurrent, une seule date de première échéance suffit, les échéances suivantes sont générées automatiquement jusqu'à aujourd'hui (ou jusqu'à sa date de résiliation si tu l'indiques)." },
-    { q:"Quelle est la différence entre « Résultat net » et « Résultat net global » sur le Dashboard ?", a:"Le « Résultat net » reste limité aux comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre. Le « Résultat net global » y ajoute en plus tes frais généraux (abonnement plateforme, données de marché...), qui ne sont rattachés à aucun compte et donc jamais filtrés par trader ou propfirm — c'est la vue la plus réaliste de ta rentabilité globale." },
+    { q:"Quelle est la différence entre « Net (comptes propfirm) » et « Net global (+ frais généraux) » ?", a:"Le « Net (comptes propfirm) » reste limité aux comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre. Le « Net global (+ frais généraux) » y ajoute en plus tes frais généraux (abonnement plateforme, données de marché...), qui ne sont rattachés à aucun compte et donc jamais filtrés par trader ou propfirm — c'est la vue la plus réaliste de ta rentabilité globale. Les deux indicateurs apparaissent côte à côte sur le Dashboard et sur la page Comptabilité." },
   ]},
   { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
     { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
@@ -6233,7 +6239,8 @@ const MANUAL_CHAPTERS = [
       <li><b>Comptes Live actifs</b> — nombre de comptes Live actuellement actifs.</li>
       <li><b>Dépenses</b> — somme des achats, mensualités et frais d'activation, sur la période filtrée.</li>
       <li><b>Payouts</b> — somme des versements reçus, sur la période filtrée.</li>
-      <li><b>Résultat net</b> — payouts moins dépenses, sur la période filtrée.</li>
+      <li><b>Net (comptes propfirm)</b> — payouts moins dépenses de comptes propfirm, sur la période filtrée.</li>
+      <li><b>Net global (+ frais généraux)</b> — comme ci-dessus, mais en ajoutant tes frais généraux (voir chapitre 15) — la vue la plus réaliste de ta rentabilité globale.</li>
     </ul>
     <h3>Délais moyens</h3>
     <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
@@ -6372,8 +6379,14 @@ const MANUAL_CHAPTERS = [
     <h3>Ajouter un frais</h3>
     <p>Le bouton « Nouveau frais », en haut de page, ouvre un formulaire : catégorie (Abonnement plateforme, Données de marché, Hébergement / VPS, Logiciel / Outils, Formation, Autre), libellé libre, montant et devise (avec taux de change BCE rempli automatiquement, comme pour les payouts), et récurrence.</p>
     <p>Pour un frais <b>ponctuel</b>, seule la date du frais est demandée. Pour un abonnement <b>mensuel</b> ou <b>annuel</b>, une seule date de première échéance suffit : l'application génère ensuite automatiquement une ligne de dépense à chaque échéance, jusqu'à aujourd'hui. Si l'abonnement est résilié, renseigner sa date de résiliation arrête la génération de nouvelles échéances à cette date, sans effacer l'historique déjà généré.</p>
-    <h3>Impact sur le Dashboard</h3>
-    <p>Ces frais alimentent un indicateur dédié sur le Dashboard, « Résultat net global » (widget Vue d'ensemble), distinct du « Résultat net » habituel : ce dernier reste scopé aux comptes/traders/propfirms filtrés (pour comparer une propfirm à une autre), tandis que le Résultat net global y ajoute les frais généraux — non rattachés à un compte, donc non filtrables par trader ou propfirm — pour une vue de rentabilité globale réaliste.</p>` },
+    <h3>Où retrouver ces frais ailleurs dans l'application</h3>
+    <p>Les frais généraux ne sont jamais mélangés aux dépenses de comptes propfirm sans distinction — chaque page les identifie séparément :</p>
+    <ul>
+      <li><b>Dashboard</b> (widget Vue d'ensemble) : deux indicateurs côte à côte, « Net (comptes propfirm) » (scopé comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre) et « Net global (+ frais généraux) » qui y ajoute tes frais généraux — non rattachés à un compte, donc non filtrables par trader ou propfirm — pour une vue de rentabilité globale réaliste.</li>
+      <li><b>Calendrier</b> : chaque échéance de frais général apparaît à sa date, comme les échéances fiscales ; la tuile « Dépenses du mois » détaille la part « comptes propfirm » et la part « frais généraux ».</li>
+      <li><b>Comptabilité</b> : un bloc « Frais généraux » distinct, avec ses propres filtres (mois, catégorie), en plus du tableau habituel des dépenses de comptes.</li>
+      <li><b>Bilan visuel</b> : une carte « Frais généraux » exportable en PNG, à côté des cartes par trader/PropFirm.</li>
+    </ul>` },
   { n:'16', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
     <h3>Gestion depuis l'espace Admin</h3>
@@ -7221,6 +7234,11 @@ function viewAccounting(){
   // Plutôt que d'insérer des tirets dans les colonnes Trader/PropFirm/Compte du tableau existant,
   // ce bloc a ses propres filtres (mois, catégorie) et son propre sous-total.
   const showGeneralExpenses = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+  // Tuile "Net global" du haut de page : même logique que le Dashboard (voir dashMoneyGlobal) —
+  // dépenses/payouts de comptes déjà filtrés (trader/propfirm/type/mois) + frais généraux filtrés
+  // uniquement par mois (ils n'ont ni trader, ni propfirm, ni "type" comparable).
+  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines().filter(l=> !f.month || monthKey(l.date)===f.month) : [];
+  const netGlobalMoney = showGeneralExpenses ? sumMoneyNet([...all.filter(x=>x.kind==='expense'), ...geLinesForNet], all.filter(x=>x.kind==='payout')) : null;
   let generalExpensesBlock = '';
   if(showGeneralExpenses){
     const fg = state.filters.accountingGeneral;
@@ -7265,13 +7283,15 @@ function viewAccounting(){
 
   return `
     ${filterBar}
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)${infoTip("Somme des dépenses correspondant aux filtres actifs (trader, type, PropFirm, mois...). Change avec les filtres, contrairement au total du compte.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+    <div class="stats-grid" style="grid-template-columns:repeat(${showGeneralExpenses?4:3},1fr);">
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (comptes propfirm)${infoTip("Somme des dépenses de comptes propfirm correspondant aux filtres actifs (trader, type, PropFirm, mois...). N'inclut pas tes frais généraux (voir le bloc dédié plus bas).")}</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)${infoTip("Somme des payouts correspondant aux filtres actifs.")}</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
-      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net${infoTip("Payouts filtrés moins dépenses filtrées.")}</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (comptes propfirm)${infoTip("Payouts filtrés moins dépenses de comptes propfirm filtrées. N'inclut pas tes frais généraux — voir « Net global » ci-contre.")}</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      ${showGeneralExpenses ? `<div class="stat-tile" style="--rail:${netGlobalMoney.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais en ajoutant tes frais généraux du mois filtré (abonnement plateforme, données de marché...) — non rattachés à un compte, donc non filtrables par trader/propfirm. Vue la plus réaliste de ta rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobalMoney.net>=0?'var(--accent)':'var(--danger)'}">${netGlobalMoney.net>=0?'+':''}${fmtMoneyCur(netGlobalMoney.net, netGlobalMoney.currency)}</div>${netGlobalMoney.converted?`<div class="stat-sub">${convertedLabel(netGlobalMoney.converted, netGlobalMoney.mixed)}</div>`:''}</div>` : ''}
     </div>
     ${recapTable}
     <div class="panel">
+      <div class="panel-head"><div class="section-title">${showGeneralExpenses?'Historique (comptes propfirm)':'Historique'}</div></div>
       <div class="table-wrap free-blur-wrap">
         <table>
           <thead><tr><th>Date</th><th>Type</th><th>Trader</th><th>PropFirm</th><th>Compte</th><th class="num">Montant</th></tr></thead>
@@ -7569,9 +7589,9 @@ function viewBilanVisuel(){
     return `
       ${modeToggle}
       <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)${infoTip("Somme des dépenses du mois sélectionné (et du filtre trader s'il est actif), tous traders/comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois, comptes propfirm)${infoTip("Somme des dépenses de comptes propfirm du mois sélectionné (et du filtre trader s'il est actif), tous traders/comptes confondus. N'inclut pas tes frais généraux — voir la carte dédiée ci-dessous.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
         <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)${infoTip("Somme des payouts reçus le mois sélectionné (et du filtre trader s'il est actif).")}</div><div class="stat-value">${fmtMoneyCur(totalPay, bilanMoney.currency)}</div></div>
-        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)${infoTip("Payouts du mois moins dépenses du mois.")}</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois, comptes propfirm)${infoTip("Payouts du mois moins dépenses de comptes propfirm du mois. N'inclut pas tes frais généraux (voir la carte « Frais généraux » ci-dessous pour leur total séparé).")}</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
       </div>
       ${filterBar}
       ${grid}
