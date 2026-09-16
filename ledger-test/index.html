@@ -1553,6 +1553,7 @@ const state = {
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
+    accountingGeneral: { month:'', category:'', monthMenuOpen:false },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
@@ -5769,6 +5770,7 @@ const CAL_EVENT_META = {
   FERME:      { label:'Compte fermé',      short:'Fermé',    icon:'⏹️', color:'slate'  },
   URSSAF:     { label:'Échéance URSSAF',   short:'URSSAF',   icon:'🧾', color:'gold'   },
   FISCAL_2042:{ label:'Échéance 2042-C-PRO', short:'2042-C', icon:'📋', color:'danger' },
+  FRAIS_GENERAL: { label:'Frais général',  short:'Frais gén.', icon:'🧰', color:'slate' },
 };
 // Toutes les échéances URSSAF réelles d'une année de période donnée (mêmes règles que
 // nextUrssafDeadline) : mensuelle = une échéance/mois (dernier jour du mois M+1, donc la 12e
@@ -5841,6 +5843,18 @@ function computeCalendarEvents(monthKeyStr){
     if(!acc) return;
     pushEvt(p.date, 'PAYOUT', acc, Number(p.amount), { currency:p.currency||'USD', fxRateToEur:p.fxRateToEur||1 });
   });
+  // Frais généraux — comme les échéances fiscales, pas liés à un compte/trader précis
+  // (account:null) : abonnement plateforme, données de marché, hébergement... Chaque échéance
+  // générée par computeGeneralExpenseLines() (une ligne par mois/année écoulé) tombe dans le
+  // calendrier à sa date réelle. Visible dès que le module n'est pas masqué par un admin — même
+  // logique "teaser" que les échéances URSSAF/2042-C-PRO, indépendante du plan Premium.
+  if(state.profile && fraisGenerauxModuleEnabled()){
+    computeGeneralExpenseLines().forEach(l=>{
+      if(monthKey(l.date)===monthKeyStr){
+        events.push({ date:l.date, type:'FRAIS_GENERAL', amount:Number(l.amount)||0, currency:l.currency||'EUR', fxRateToEur:l.fxRateToEur||1, account:null, trader:null, firm:null, generalExpenseLabel:l.label });
+      }
+    });
+  }
   events.sort((a,b)=> a.date.localeCompare(b.date) || (a.type||'').localeCompare(b.type||''));
   return events;
 }
@@ -5876,7 +5890,7 @@ function calendarDayModal(dateStr){
               <span style="font-size:15px;">${meta.icon}</span>
               <div>
                 <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : ''} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc?'4px':'0'};">${meta.label}</span></div>
-                <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
+                <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : it.type==='FRAIS_GENERAL' ? `${it.generalExpenseLabel||'Frais général'} — voir la page Frais généraux.` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
               </div>
             </div>
             <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyDisp(it.amount, it.currency, it.fxRateToEur):''}</div>
@@ -5913,7 +5927,7 @@ function viewCalendrier(){
   const [y,m] = mk.split('-').map(Number);
 
   const payoutsMonth = items.filter(it=>it.type==='PAYOUT');
-  const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
+  const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION'||it.type==='FRAIS_GENERAL');
   const reussisMonth = items.filter(it=>it.type==='REUSSI');
   const breachesMonth = items.filter(it=>it.type==='BREACHED');
   const payoutsMonthSum = sumMoneyLines(payoutsMonth);
@@ -7202,6 +7216,53 @@ function viewAccounting(){
       </div>
     </div>`;
 
+  // Frais généraux — bloc séparé du tableau ci-dessus : contrairement aux dépenses de compte, un
+  // frais général n'a ni trader, ni propfirm, ni compte (voir claude/frais-generaux-module.md).
+  // Plutôt que d'insérer des tirets dans les colonnes Trader/PropFirm/Compte du tableau existant,
+  // ce bloc a ses propres filtres (mois, catégorie) et son propre sous-total.
+  const showGeneralExpenses = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+  let generalExpensesBlock = '';
+  if(showGeneralExpenses){
+    const fg = state.filters.accountingGeneral;
+    let geLines = computeGeneralExpenseLines();
+    if(fg.month) geLines = geLines.filter(l=>monthKey(l.date)===fg.month);
+    if(fg.category) geLines = geLines.filter(l=>l.category===fg.category);
+    geLines.sort((a,b)=>b.date.localeCompare(a.date));
+    const geMoney = sumMoneyLines(geLines);
+    const geRows = geLines.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun frais général pour ces filtres.</div></td></tr>` :
+      geLines.map(l=>{
+        const cat = GENERAL_EXPENSE_CATEGORIES[l.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
+        return `<tr>
+          <td class="mono text-dim">${fmtDate(l.date)}</td>
+          <td><span class="badge badge-slate">${cat.icon} ${cat.short}</span></td>
+          <td class="text-dim">${escapeHtml(l.label)}</td>
+          <td class="num" style="color:var(--danger)">−${fmtMoneyDisp(l.amount, l.currency, l.fxRateToEur)}</td>
+        </tr>`;
+      }).join('');
+    generalExpensesBlock = `
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-head">
+        <div class="section-title">Frais généraux${infoTip("Frais liés à votre activité de trading mais non rattachés à un compte propfirm précis : abonnement plateforme, données de marché, hébergement, logiciels, formation... Voir la page Frais généraux.")}</div>
+        <div style="font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger)">${geLines.length>0?'−':''}${fmtSumMoney(geMoney)}</div>
+      </div>
+      <div class="filter-bar">
+        ${monthFilterHtml('ag-month', fg, { allowAll:true })}
+        <select id="ag-category">
+          <option value="">Toutes catégories</option>
+          ${Object.entries(GENERAL_EXPENSE_CATEGORIES).map(([k,c])=>`<option value="${k}" ${fg.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
+        </select>
+        <div class="filter-bar-spacer"></div>
+        ${(fg.month||fg.category) ? `<button class="pill-reset" id="ag-clear">Réinitialiser</button>` : ''}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th class="num">Montant</th></tr></thead>
+          <tbody>${geRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   return `
     ${filterBar}
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
@@ -7219,6 +7280,7 @@ function viewAccounting(){
         ${freeBlurOverlayHtml(all.length, acctBlurred.size, 'lignes')}
       </div>
     </div>
+    ${generalExpensesBlock}
   `;
 }
 
@@ -7413,6 +7475,53 @@ function bilanCardHtml(entry, month){
     </div>`;
 }
 
+// Carte "Frais généraux" — pendant des cartes trader/propfirm ci-dessus, mais pour les frais qui
+// n'appartiennent à aucun des deux (abonnement plateforme, données de marché...). Répartition par
+// catégorie plutôt que dépenses/payouts (un frais général n'a pas de recette en face) — voir
+// claude/frais-generaux-module.md.
+function generalExpenseBilanCardHtml(lines, periodLabelStr, cardId, fileName){
+  const { useEur: converted, mixed, currency } = resolveDisplayCurrency(lines);
+  const val = (x)=> converted ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
+  const total = lines.reduce((s,l)=>s+val(l),0);
+  const byCat = new Map();
+  lines.forEach(l=>{
+    const k = l.category || 'AUTRE';
+    byCat.set(k, (byCat.get(k)||0) + val(l));
+  });
+  const catRows = Array.from(byCat.entries())
+    .map(([k,v])=>({ v, meta: GENERAL_EXPENSE_CATEGORIES[k]||GENERAL_EXPENSE_CATEGORIES.AUTRE }))
+    .sort((a,b)=>b.v-a.v);
+  return `
+    <div style="display:flex;flex-direction:column;align-items:stretch;">
+      <div class="bilan-card" id="${cardId}" style="width:360px;border-radius:20px;padding:26px;background:linear-gradient(155deg,#151C25 0%,#0B0F14 70%);border:1px solid rgba(255,255,255,0.07);box-shadow:0 18px 38px rgba(0,0,0,0.38);position:relative;overflow:hidden;font-family:'Inter',sans-serif;color:#E8EDF2;">
+        <div style="position:absolute;top:-46px;right:-46px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(217,166,90,0.16),transparent 70%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-60px;left:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(232,92,74,0.10),transparent 70%);pointer-events:none;"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;position:relative;">
+          <div style="width:42px;height:42px;border-radius:12px;background:rgba(217,166,90,0.14);display:flex;align-items:center;justify-content:center;font-size:20px;">🧰</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Frais généraux</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${periodLabelStr}${converted?` · ${convertedLabel(converted, mixed)}`:''}</div>
+          </div>
+        </div>
+        ${catRows.length===0 ? `<div style="font-size:12.5px;color:#8B98A5;padding:14px 0;position:relative;">Aucun frais général pour cette période.</div>` : `
+        <div style="display:flex;flex-direction:column;gap:8px;position:relative;margin-bottom:16px;">
+          ${catRows.map(c=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+              <span style="font-size:14px;">${c.meta.icon}</span>
+              <div style="flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.meta.short}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E85C4A;">−${fmtMoneyCur(c.v, currency)}</div>
+            </div>`).join('')}
+        </div>`}
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(232,92,74,0.12);border-radius:12px;padding:13px 16px;position:relative;">
+          <span style="font-size:11.5px;color:#8B98A5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:#E85C4A;">${total>0?'−':''}${fmtMoneyCur(total, currency)}</span>
+        </div>
+        <div style="margin-top:16px;text-align:center;font-size:9.5px;color:#4B5560;letter-spacing:.1em;text-transform:uppercase;position:relative;">Contralytix · Gestion Propfirm</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px;align-self:flex-start;" data-export-card="${cardId}" data-export-name="${fileName}">${icon('download')}Télécharger PNG</button>
+    </div>`;
+}
+
 function viewBilanVisuel(){
   const f = state.filters.bilan;
   const modeToggle = `
@@ -7448,9 +7557,14 @@ function viewBilanVisuel(){
         ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
       </div>`;
 
-    const grid = entries.length===0
+    const showGeneralExpensesBilan = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+    const geCardMonthLines = showGeneralExpensesBilan ? computeGeneralExpenseLines().filter(l=>monthKey(l.date)===month) : [];
+    const geCardHtml = showGeneralExpensesBilan
+      ? generalExpenseBilanCardHtml(geCardMonthLines, monthLabel(month), `bilan-card-frais-generaux-${month}`, `Bilan_FraisGeneraux_${month}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
+      : '';
+    const grid = (entries.length===0 && !geCardHtml)
       ? emptyState('camera','Aucune donnée pour ce mois','Choisis un autre mois, ou vérifie que des dépenses / payouts sont enregistrés pour la période.')
-      : `<div style="display:flex;flex-wrap:wrap;gap:26px;">${entries.map(e=>bilanCardHtml(e, month)).join('')}</div>`;
+      : `<div style="display:flex;flex-wrap:wrap;gap:26px;">${entries.map(e=>bilanCardHtml(e, month)).join('')}${geCardHtml}</div>`;
 
     return `
       ${modeToggle}
@@ -7487,10 +7601,20 @@ function viewBilanVisuel(){
       ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
     </div>`;
 
+  const showGeneralExpensesBilanGlobal = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+  const geKeyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
+  const geGlobalLines = showGeneralExpensesBilanGlobal ? computeGeneralExpenseLines().filter(l=>geKeyFn(l.date)===periodKey) : [];
+  const geGlobalCardHtml = showGeneralExpensesBilanGlobal
+    ? generalExpenseBilanCardHtml(geGlobalLines, periodLabel(periodKey, granularity), `bilan-global-card-frais-generaux-${periodKey}`, `Bilan_Global_FraisGeneraux_${periodKey}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
+    : '';
+
   return `
     ${modeToggle}
     ${periodBar}
-    ${bilanGlobalCardHtml(rows, periodKey, granularity)}
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;">
+      ${bilanGlobalCardHtml(rows, periodKey, granularity)}
+      ${geGlobalCardHtml}
+    </div>
   `;
 }
 
@@ -10549,6 +10673,13 @@ function bindViewEvents(){
     state.filters.accounting.recapGranularity = b.dataset.recapGran;
     renderView();
   });
+  // Filtres du bloc "Frais généraux" (page Comptabilité) — indépendants des filtres du tableau
+  // principal ci-dessus (pas de compte/trader/propfirm à filtrer, voir viewAccounting()).
+  const agCategoryEl = document.getElementById('ag-category');
+  if(agCategoryEl) agCategoryEl.addEventListener('change', ()=>{ state.filters.accountingGeneral.category = agCategoryEl.value; renderView(); });
+  bindMonthFilter('ag-month', state.filters.accountingGeneral, { allowAll:true });
+  const agClearBtn = document.getElementById('ag-clear');
+  if(agClearBtn) agClearBtn.onclick = ()=>{ state.filters.accountingGeneral = { month:'', category:'', monthMenuOpen:false }; renderView(); };
 
   // Accounts actions
   document.querySelectorAll('[data-edit-account]').forEach(b=>b.onclick=()=>accountFormModal({ existing: getAccount(b.dataset.editAccount) }));
