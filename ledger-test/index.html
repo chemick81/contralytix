@@ -3557,13 +3557,13 @@ function computeGeneralExpenseLines(){
         for(let i=0;i<=n;i++){
           const d = addMonths(r.startDate, i*step);
           if(d <= stopDate){
-            lines.push({ id: r.id+'-'+i, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount), date:d, currency:cur, fxRateToEur:fx });
+            lines.push({ id: r.id+'-'+i, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount), date:d, currency:cur, fxRateToEur:fx, traderId:r.traderId||null });
           }
         }
       }
     } else {
       // UNIQUE : une seule ligne, à startDate.
-      lines.push({ id: r.id, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount)||0, date:r.startDate, currency:cur, fxRateToEur:fx });
+      lines.push({ id: r.id, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount)||0, date:r.startDate, currency:cur, fxRateToEur:fx, traderId:r.traderId||null });
     }
   });
   return lines;
@@ -4896,6 +4896,10 @@ function viewDashboard(){
   if(f.dateFrom || f.dateTo){
     generalExpensesF = generalExpensesF.filter(e=>e.date && (!f.dateFrom || e.date>=f.dateFrom) && (!f.dateTo || e.date<=f.dateTo));
   }
+  // Un frais général peut désormais être rattaché à un trader précis (optionnel, voir
+  // claude/frais-generaux-module.md) : un frais "partagé" (sans trader) reste toujours visible
+  // quel que soit le filtre trader actif, un frais rattaché suit le filtre normalement.
+  if(f.trader.length) generalExpensesF = generalExpensesF.filter(e=>!e.traderId || f.trader.includes(e.traderId));
   const dashMoneyGlobal = sumMoneyNet([...allExpenses, ...generalExpensesF], payoutsF);
   const netGlobal = dashMoneyGlobal.net;
 
@@ -5851,7 +5855,7 @@ function computeCalendarEvents(monthKeyStr){
   if(state.profile && fraisGenerauxModuleEnabled()){
     computeGeneralExpenseLines().forEach(l=>{
       if(monthKey(l.date)===monthKeyStr){
-        events.push({ date:l.date, type:'FRAIS_GENERAL', amount:Number(l.amount)||0, currency:l.currency||'EUR', fxRateToEur:l.fxRateToEur||1, account:null, trader:null, firm:null, generalExpenseLabel:l.label });
+        events.push({ date:l.date, type:'FRAIS_GENERAL', amount:Number(l.amount)||0, currency:l.currency||'EUR', fxRateToEur:l.fxRateToEur||1, account:null, trader: l.traderId ? getTrader(l.traderId) : null, firm:null, generalExpenseLabel:l.label });
       }
     });
   }
@@ -5889,7 +5893,7 @@ function calendarDayModal(dateStr){
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:15px;">${meta.icon}</span>
               <div>
-                <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : ''} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc?'4px':'0'};">${meta.label}</span></div>
+                <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : (it.type==='FRAIS_GENERAL' && it.trader ? it.trader.pseudo : '')} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc||(it.type==='FRAIS_GENERAL'&&it.trader)?'4px':'0'};">${meta.label}</span></div>
                 <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : it.type==='FRAIS_GENERAL' ? `${it.generalExpenseLabel||'Frais général'} — voir la page Frais généraux.` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
               </div>
             </div>
@@ -6380,8 +6384,9 @@ const MANUAL_CHAPTERS = [
     <h3>Vue d'ensemble</h3>
     <p>Trois indicateurs résument la situation : le frais mensuel récurrent estimé (abonnements actifs uniquement — un frais annuel est ramené à un équivalent mensuel en le divisant par 12, pour rester comparable à un abonnement mensuel classique), le total de l'année en cours, et le nombre de frais enregistrés.</p>
     <h3>Ajouter un frais</h3>
-    <p>Le bouton « Nouveau frais », en haut de page, ouvre un formulaire : catégorie (Abonnement plateforme, Données de marché, Hébergement / VPS, Logiciel / Outils, Formation, Autre), libellé libre, montant et devise (avec taux de change BCE rempli automatiquement, comme pour les payouts), et récurrence.</p>
+    <p>Le bouton « Nouveau frais », en haut de page, ouvre un formulaire : catégorie (Abonnement plateforme, Données de marché, Hébergement / VPS, Logiciel / Outils, Formation, Autre), libellé libre, un <b>trader (optionnel)</b>, montant et devise (avec taux de change BCE rempli automatiquement, comme pour les payouts), et récurrence.</p>
     <p>Pour un frais <b>ponctuel</b>, seule la date du frais est demandée. Pour un abonnement <b>mensuel</b> ou <b>annuel</b>, une seule date de première échéance suffit : l'application génère ensuite automatiquement une ligne de dépense à chaque échéance, jusqu'à aujourd'hui. Si l'abonnement est résilié, renseigner sa date de résiliation arrête la génération de nouvelles échéances à cette date, sans effacer l'historique déjà généré.</p>
+    <p>Le champ <b>Trader</b> reste vide par défaut (« Partagé ») : c'est le cas normal pour une dépense qui concerne ton activité globale plutôt qu'une stratégie précise (l'abonnement Contralytix lui-même, par exemple). Tu peux le renseigner si un frais est spécifique à un trader (un flux de données dédié à sa stratégie) — dans ce cas, ce frais suit les filtres par trader partout dans l'application (Calendrier, Comptabilité, Bilan visuel, Dashboard), tandis qu'un frais « Partagé » reste toujours visible quel que soit le trader filtré.</p>
     <h3>Où retrouver ces frais ailleurs dans l'application</h3>
     <p>Les frais généraux ne sont jamais mélangés aux dépenses de comptes propfirm sans distinction — chaque page les identifie séparément :</p>
     <ul>
@@ -7234,13 +7239,17 @@ function viewAccounting(){
     </div>`;
 
   // Frais généraux — bloc séparé du tableau ci-dessus : contrairement aux dépenses de compte, un
-  // frais général n'a ni trader, ni propfirm, ni compte (voir claude/frais-generaux-module.md).
-  // Il n'a PAS ses propres filtres de période : il s'aligne sur la période active de la page
-  // (filtre "fa-month" ou ligne cliquée dans "Performance financière", via accountingPeriodFilter,
-  // qui gère aussi bien mois/trimestre/année) — seule la catégorie reste un filtre indépendant,
-  // puisqu'elle n'existe pas dans la barre de filtres principale.
+  // frais général n'a ni propfirm ni compte, et un trader seulement de façon optionnelle (voir
+  // claude/frais-generaux-module.md). Il n'a PAS ses propres filtres de période : il s'aligne sur
+  // la période active de la page (filtre "fa-month" ou ligne cliquée dans "Performance
+  // financière", via accountingPeriodFilter, qui gère aussi bien mois/trimestre/année). Le filtre
+  // trader principal s'applique aussi : un frais "partagé" (sans trader) reste toujours visible,
+  // un frais rattaché à un trader suit le filtre normalement. Seule la catégorie reste un filtre
+  // indépendant, puisqu'elle n'existe pas dans la barre de filtres principale.
   const showGeneralExpenses = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
-  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines().filter(l=>accountingPeriodFilter(l, f)) : [];
+  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines()
+    .filter(l=>accountingPeriodFilter(l, f))
+    .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
   const netGlobalMoney = showGeneralExpenses ? sumMoneyNet([...all.filter(x=>x.kind==='expense'), ...geLinesForNet], all.filter(x=>x.kind==='payout')) : null;
   let generalExpensesBlock = '';
   if(showGeneralExpenses){
@@ -7250,13 +7259,15 @@ function viewAccounting(){
     geLines.sort((a,b)=>b.date.localeCompare(a.date));
     const geMoney = sumMoneyLines(geLines);
     const periodBadge = f.month ? periodLabel(f.month, f.periodGranularity||'month') : 'Toutes les périodes';
-    const geRows = geLines.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun frais général pour ces filtres.</div></td></tr>` :
+    const geRows = geLines.length===0 ? `<tr><td colspan="5"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun frais général pour ces filtres.</div></td></tr>` :
       geLines.map(l=>{
         const cat = GENERAL_EXPENSE_CATEGORIES[l.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
+        const trader = l.traderId ? getTrader(l.traderId) : null;
         return `<tr>
           <td class="mono text-dim">${fmtDate(l.date)}</td>
           <td><span class="badge badge-slate">${cat.icon} ${cat.short}</span></td>
           <td class="text-dim">${escapeHtml(l.label)}</td>
+          <td>${trader ? `<span class="badge badge-accent">${escapeHtml(trader.pseudo)}</span>` : `<span class="text-faint">Partagé</span>`}</td>
           <td class="num" style="color:var(--danger)">−${fmtMoneyDisp(l.amount, l.currency, l.fxRateToEur)}</td>
         </tr>`;
       }).join('');
@@ -7277,7 +7288,7 @@ function viewAccounting(){
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th class="num">Montant</th></tr></thead>
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th>Trader</th><th class="num">Montant</th></tr></thead>
           <tbody>${geRows}</tbody>
         </table>
       </div>
@@ -7581,7 +7592,11 @@ function viewBilanVisuel(){
       </div>`;
 
     const showGeneralExpensesBilan = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
-    const geCardMonthLines = showGeneralExpensesBilan ? computeGeneralExpenseLines().filter(l=>monthKey(l.date)===month) : [];
+    // Un frais "partagé" (sans trader) reste toujours visible ; un frais rattaché à un trader
+    // suit le filtre trader de la page, comme partout ailleurs (voir claude/frais-generaux-module.md).
+    const geCardMonthLines = showGeneralExpensesBilan ? computeGeneralExpenseLines()
+      .filter(l=>monthKey(l.date)===month)
+      .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
     const geCardHtml = showGeneralExpensesBilan
       ? generalExpenseBilanCardHtml(geCardMonthLines, monthLabel(month), `bilan-card-frais-generaux-${month}`, `Bilan_FraisGeneraux_${month}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
       : '';
@@ -7626,7 +7641,9 @@ function viewBilanVisuel(){
 
   const showGeneralExpensesBilanGlobal = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
   const geKeyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
-  const geGlobalLines = showGeneralExpensesBilanGlobal ? computeGeneralExpenseLines().filter(l=>geKeyFn(l.date)===periodKey) : [];
+  const geGlobalLines = showGeneralExpensesBilanGlobal ? computeGeneralExpenseLines()
+    .filter(l=>geKeyFn(l.date)===periodKey)
+    .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
   const geGlobalCardHtml = showGeneralExpensesBilanGlobal
     ? generalExpenseBilanCardHtml(geGlobalLines, periodLabel(periodKey, granularity), `bilan-global-card-frais-generaux-${periodKey}`, `Bilan_Global_FraisGeneraux_${periodKey}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
     : '';
@@ -8548,15 +8565,17 @@ function viewFraisGeneraux(){
         ${rows.length===0 ? emptyState('wallet','Aucun frais général enregistré', "Ajoute l'abonnement Contralytix, un flux de données de marché, un hébergement VPS... via « Nouveau frais » en haut de la page.") : `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Catégorie</th><th>Libellé</th><th>Montant</th><th>Récurrence</th><th>Période</th><th>Note</th><th></th></tr></thead>
+            <thead><tr><th>Catégorie</th><th>Libellé</th><th>Trader</th><th>Montant</th><th>Récurrence</th><th>Période</th><th>Note</th><th></th></tr></thead>
             <tbody>
               ${rows.map(r=>{
                 const cat = GENERAL_EXPENSE_CATEGORIES[r.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
                 const recLabel = r.recurrence==='MENSUEL' ? '/ mois' : r.recurrence==='ANNUEL' ? '/ an' : 'Ponctuel';
                 const period = r.recurrence==='UNIQUE' ? fmtDate(r.startDate) : `Depuis ${fmtDate(r.startDate)}${r.endDate ? ` → résilié le ${fmtDate(r.endDate)}` : ' · en cours'}`;
+                const trader = r.traderId ? getTrader(r.traderId) : null;
                 return `<tr>
                   <td><span class="badge badge-slate">${cat.icon} ${cat.short}</span></td>
                   <td>${escapeHtml(r.label)}</td>
+                  <td>${trader ? `<span class="badge badge-accent">${escapeHtml(trader.pseudo)}</span>` : `<span class="text-faint">Partagé</span>`}</td>
                   <td class="num" style="color:var(--danger)">${fmtMoneyDisp(r.amount, r.currency, r.fxRateToEur)}</td>
                   <td class="text-dim">${recLabel}</td>
                   <td class="text-dim">${period}</td>
@@ -8575,7 +8594,7 @@ function viewFraisGeneraux(){
   `;
 }
 function generalExpenseFormModal(existing){
-  const e = existing && existing.id ? existing : { id: uid('gex'), category:'PLATEFORME', label:'', recurrence:'MENSUEL', amount:'', currency:'EUR', fxRateToEur:1, startDate: todayISO(), endDate:'', note:'', createdBy: currentUserId() };
+  const e = existing && existing.id ? existing : { id: uid('gex'), category:'PLATEFORME', label:'', recurrence:'MENSUEL', amount:'', currency:'EUR', fxRateToEur:1, startDate: todayISO(), endDate:'', note:'', traderId:'', createdBy: currentUserId() };
   openModal({
     title: existing && existing.id ? 'Modifier le frais' : 'Nouveau frais général',
     bodyHtml: `
@@ -8594,6 +8613,13 @@ function generalExpenseFormModal(existing){
         </div>
       </div>
       <div class="field"><label>Libellé</label><input id="gef-label" placeholder="ex: Contralytix Premium annuel, Databento CME/CBOT..." value="${escapeHtml(e.label)}"/></div>
+      <div class="field"><label>Trader (optionnel)</label>
+        <select id="gef-trader">
+          <option value="" ${!e.traderId?'selected':''}>— Partagé (aucun trader) —</option>
+          ${state.traders.map(t=>`<option value="${t.id}" ${e.traderId===t.id?'selected':''}>${escapeHtml(t.pseudo)}</option>`).join('')}
+        </select>
+        <div class="field-hint">Laisse sur « Partagé » pour un frais qui concerne ton activité globale (ex: abonnement Contralytix). Rattache-le à un trader s'il est spécifique à sa stratégie (ex: un flux de données dédié).</div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Montant</label><input id="gef-amount" type="number" step="0.01" value="${e.amount}"/></div>
         <div class="field"><label>Devise</label>
@@ -8664,13 +8690,14 @@ function generalExpenseFormModal(existing){
         const startDate = document.getElementById('gef-startdate').value;
         const endDate = recurrence==='UNIQUE' ? '' : (document.getElementById('gef-enddate').value || '');
         const note = document.getElementById('gef-note').value.trim();
+        const traderId = document.getElementById('gef-trader').value || null;
         if(!label){ document.getElementById('gef-error').textContent = 'Le libellé est obligatoire.'; return; }
         if(!amount || amount<=0){ document.getElementById('gef-error').textContent = 'Montant invalide.'; return; }
         if(!startDate){ document.getElementById('gef-error').textContent = 'Date obligatoire.'; return; }
         if(currency!=='EUR' && !fxRateInputVal){ document.getElementById('gef-error').textContent = "Taux de change introuvable automatiquement : merci de le saisir toi-même."; return; }
         if(fxFetchPromise) await fxFetchPromise;
         const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal||document.getElementById('gef-fxrate').value);
-        const payload = { ...e, category, recurrence, label, amount, currency, fxRateToEur, startDate, endDate: endDate||null, note, createdBy: e.createdBy || currentUserId() };
+        const payload = { ...e, category, recurrence, label, amount, currency, fxRateToEur, startDate, endDate: endDate||null, note, traderId, createdBy: e.createdBy || currentUserId() };
         if(!existing || !existing.id) payload.createdAt = new Date().toISOString();
         await upsert('general_expenses', payload);
         await logActivity(existing&&existing.id?'UPDATE':'CREATE', 'general_expense', e.id, `${label} · ${fmtMoneyDisp(amount, currency, fxRateToEur)}`);
