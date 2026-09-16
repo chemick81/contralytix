@@ -1553,7 +1553,7 @@ const state = {
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
-    accountingGeneral: { month:'', category:'', monthMenuOpen:false },
+    accountingGeneral: { category:'' },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
@@ -5920,7 +5920,10 @@ function viewCalendrier(){
   const today = todayISO();
   const mk = f.month || today.slice(0,7);
   let items = computeCalendarEvents(mk);
-  if(f.trader.length) items = items.filter(it=>it.trader && f.trader.includes(it.trader.id));
+  // Un filtre trader actif ne doit jamais masquer les événements qui ne sont rattachés à AUCUN
+  // trader (échéances fiscales URSSAF/2042-C-PRO, frais généraux) — sinon ils disparaissent dès
+  // qu'un trader précis est sélectionné, alors qu'ils concernent l'utilisateur, pas un trader.
+  if(f.trader.length) items = items.filter(it=>!it.trader || f.trader.includes(it.trader.id));
   const byDay = {};
   items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
   const cells = buildCalendarGrid(mk);
@@ -6087,7 +6090,7 @@ const HELP_CATEGORIES = [
     { q:"Le module Fiscalité est-il accessible en formule Free ?", a:"Non, comme le Calendrier et le Bilan Visuel, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
     { q:"Les seuils fiscaux (plafond micro-BNC, franchise TVA, abattement) sont-ils à jour et modifiables ?", a:"Oui. Un panneau « Seuils fiscaux » dans l'espace Admin permet à un administrateur de les revaloriser chaque année (barèmes URSSAF / service-public.fr) sans intervention technique — plus besoin de passer par une requête en base." },
     { q:"Comment sont calculées mes échéances de déclaration URSSAF ?", a:"À partir de deux réglages personnels dans la page Fiscalité : la périodicité (mensuelle ou trimestrielle) et l'option de versement libératoire de l'impôt sur le revenu. Le tableau « Déclarations URSSAF » affiche ensuite, période par période, le chiffre d'affaires encaissé (tes payouts convertis en euro) et l'échéance réelle, avec une case à cocher pour marquer chaque déclaration comme faite." },
-    { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation et mensualités. Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
+    { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation, mensualités et frais généraux (abonnement plateforme, données de marché... — eux aussi déductibles au régime réel bien que non rattachés à un compte propfirm). Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
     { q:"C'est quoi la déclaration 3916-bis et comment Contralytix m'aide à la suivre ?", a:"Le 3916-bis déclare les comptes détenus à l'étranger. C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la PropFirm elle-même, qui détermine si une déclaration est nécessaire. Le panneau « Systèmes de paiement » de la page Fiscalité regroupe tes payouts par système avec un repère indicatif, et une case à cocher par système pour suivre ce qui a déjà été déclaré — ce repère reste une aide générale, à vérifier avec un expert-comptable." },
     { q:"Puis-je exporter mes données fiscales pour mon expert-comptable ?", a:"Oui, le bouton « Export année (ZIP) » en haut de la page Fiscalité génère une archive avec un PDF récapitulatif complet de l'année (seuils, déclarations URSSAF, frais par mois, systèmes de paiement) et les données associées." },
   ]},
@@ -6367,7 +6370,7 @@ const MANUAL_CHAPTERS = [
     <p>Un tableau liste, période par période (selon la périodicité choisie), le chiffre d'affaires encaissé, l'échéance réelle et un statut (Déclarée / En retard / À venir). Une case à cocher par ligne permet de marquer une déclaration comme faite auprès de l'URSSAF ; l'information est conservée d'une visite à l'autre.</p>
     <h3>Frais par mois</h3>
     ${manualShot('14b-fiscalite-frais.jpg', "Tableau « Frais par mois » — historique des charges, mois par mois.")}
-    <p>Un tableau récapitule, mois par mois, les frais de challenge, les frais d'activation et les mensualités payées. Au régime micro-BNC ces frais ne changent rien au calcul (abattement forfaitaire), mais le tableau garde cet historique prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois.</p>
+    <p>Un tableau récapitule, mois par mois, les frais de challenge, les frais d'activation, les mensualités payées et les frais généraux (voir chapitre 15 — abonnement plateforme, données de marché..., eux aussi des charges professionnelles déductibles au réel bien que non rattachés à un compte propfirm). Au régime micro-BNC ces frais ne changent rien au calcul (abattement forfaitaire), mais le tableau garde cet historique prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois.</p>
     <h3>Systèmes de paiement et 3916-bis</h3>
     <p>Un tableau regroupe les payouts par système de paiement utilisé pour les recevoir (Wise, virement, RiseWorks…) — c'est ce système, et non la PropFirm elle-même, qui détermine si un compte détenu à l'étranger doit être déclaré au titre du formulaire 3916-bis. Un repère indicatif (À déclarer / Selon les cas / Non requis) aide à s'orienter, et une case à cocher par système permet de suivre les déclarations déjà faites. Ce repère reste une aide générale, à vérifier avec un expert-comptable avant de cocher ou non une case.</p>
     <h3>Checklist déclarative et export</h3>
@@ -6384,8 +6387,9 @@ const MANUAL_CHAPTERS = [
     <ul>
       <li><b>Dashboard</b> (widget Vue d'ensemble) : deux indicateurs côte à côte, « Net (comptes propfirm) » (scopé comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre) et « Net global (+ frais généraux) » qui y ajoute tes frais généraux — non rattachés à un compte, donc non filtrables par trader ou propfirm — pour une vue de rentabilité globale réaliste.</li>
       <li><b>Calendrier</b> : chaque échéance de frais général apparaît à sa date, comme les échéances fiscales ; la tuile « Dépenses du mois » détaille la part « comptes propfirm » et la part « frais généraux ».</li>
-      <li><b>Comptabilité</b> : un bloc « Frais généraux » distinct, avec ses propres filtres (mois, catégorie), en plus du tableau habituel des dépenses de comptes.</li>
+      <li><b>Comptabilité</b> : un bloc « Frais généraux » distinct (période synchronisée avec le filtre actif de la page, catégorie filtrable indépendamment), en plus du tableau habituel des dépenses de comptes.</li>
       <li><b>Bilan visuel</b> : une carte « Frais généraux » exportable en PNG, à côté des cartes par trader/PropFirm.</li>
+      <li><b>Fiscalité</b> : le tableau « Frais par mois » (voir chapitre 14) comporte une colonne « Frais généraux » dédiée, car ce sont eux aussi des charges professionnelles déductibles au régime réel.</li>
     </ul>` },
   { n:'16', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
@@ -7231,22 +7235,21 @@ function viewAccounting(){
 
   // Frais généraux — bloc séparé du tableau ci-dessus : contrairement aux dépenses de compte, un
   // frais général n'a ni trader, ni propfirm, ni compte (voir claude/frais-generaux-module.md).
-  // Plutôt que d'insérer des tirets dans les colonnes Trader/PropFirm/Compte du tableau existant,
-  // ce bloc a ses propres filtres (mois, catégorie) et son propre sous-total.
+  // Il n'a PAS ses propres filtres de période : il s'aligne sur la période active de la page
+  // (filtre "fa-month" ou ligne cliquée dans "Performance financière", via accountingPeriodFilter,
+  // qui gère aussi bien mois/trimestre/année) — seule la catégorie reste un filtre indépendant,
+  // puisqu'elle n'existe pas dans la barre de filtres principale.
   const showGeneralExpenses = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
-  // Tuile "Net global" du haut de page : même logique que le Dashboard (voir dashMoneyGlobal) —
-  // dépenses/payouts de comptes déjà filtrés (trader/propfirm/type/mois) + frais généraux filtrés
-  // uniquement par mois (ils n'ont ni trader, ni propfirm, ni "type" comparable).
-  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines().filter(l=> !f.month || monthKey(l.date)===f.month) : [];
+  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines().filter(l=>accountingPeriodFilter(l, f)) : [];
   const netGlobalMoney = showGeneralExpenses ? sumMoneyNet([...all.filter(x=>x.kind==='expense'), ...geLinesForNet], all.filter(x=>x.kind==='payout')) : null;
   let generalExpensesBlock = '';
   if(showGeneralExpenses){
     const fg = state.filters.accountingGeneral;
-    let geLines = computeGeneralExpenseLines();
-    if(fg.month) geLines = geLines.filter(l=>monthKey(l.date)===fg.month);
+    let geLines = geLinesForNet.slice();
     if(fg.category) geLines = geLines.filter(l=>l.category===fg.category);
     geLines.sort((a,b)=>b.date.localeCompare(a.date));
     const geMoney = sumMoneyLines(geLines);
+    const periodBadge = f.month ? periodLabel(f.month, f.periodGranularity||'month') : 'Toutes les périodes';
     const geRows = geLines.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun frais général pour ces filtres.</div></td></tr>` :
       geLines.map(l=>{
         const cat = GENERAL_EXPENSE_CATEGORIES[l.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
@@ -7260,17 +7263,17 @@ function viewAccounting(){
     generalExpensesBlock = `
     <div class="panel" style="margin-top:16px;">
       <div class="panel-head">
-        <div class="section-title">Frais généraux${infoTip("Frais liés à votre activité de trading mais non rattachés à un compte propfirm précis : abonnement plateforme, données de marché, hébergement, logiciels, formation... Voir la page Frais généraux.")}</div>
+        <div class="section-title">Frais généraux${infoTip("Frais liés à votre activité de trading mais non rattachés à un compte propfirm précis : abonnement plateforme, données de marché, hébergement, logiciels, formation... Voir la page Frais généraux. La période suit automatiquement le filtre mois/trimestre/année actif ci-dessus (barre de filtres ou ligne sélectionnée dans Performance financière).")}</div>
         <div style="font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger)">${geLines.length>0?'−':''}${fmtSumMoney(geMoney)}</div>
       </div>
       <div class="filter-bar">
-        ${monthFilterHtml('ag-month', fg, { allowAll:true })}
+        <div class="drf-btn" style="cursor:default;">${icon('calendar')}<span>${periodBadge}</span></div>
         <select id="ag-category">
           <option value="">Toutes catégories</option>
           ${Object.entries(GENERAL_EXPENSE_CATEGORIES).map(([k,c])=>`<option value="${k}" ${fg.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
         </select>
         <div class="filter-bar-spacer"></div>
-        ${(fg.month||fg.category) ? `<button class="pill-reset" id="ag-clear">Réinitialiser</button>` : ''}
+        ${fg.category ? `<button class="pill-reset" id="ag-clear">Réinitialiser</button>` : ''}
       </div>
       <div class="table-wrap">
         <table>
@@ -8106,13 +8109,17 @@ function computeFiscalYearData(year){
     yearPayouts, yearExpenses,
   };
 }
-// Frais (challenge + activation + mensualités) déductibles au régime réel, mois par mois — au
-// contraire du micro-BNC (abattement forfaitaire, frais réels non pris en compte individuellement),
-// le régime réel demande le détail des charges réellement engagées période par période. Toujours
-// mensuel (indépendant de la périodicité URSSAF, qui ne concerne que le CA à déclarer) : demande du
-// 22/08/2026, "au cas où le passage au régime réel doit se faire" — pour ne pas avoir à reconstituer
-// cet historique après coup si le besoin se présente.
+// Frais (challenge + activation + mensualités + frais généraux) déductibles au régime réel, mois
+// par mois — au contraire du micro-BNC (abattement forfaitaire, frais réels non pris en compte
+// individuellement), le régime réel demande le détail des charges réellement engagées période par
+// période. Toujours mensuel (indépendant de la périodicité URSSAF, qui ne concerne que le CA à
+// déclarer) : demande du 22/08/2026, "au cas où le passage au régime réel doit se faire" — pour ne
+// pas avoir à reconstituer cet historique après coup si le besoin se présente. Les frais généraux
+// (abonnement plateforme, données de marché...) sont eux aussi des charges professionnelles
+// déductibles au réel bien que non rattachées à un compte propfirm — ajoutés le 16/09/2026 dans
+// leur propre colonne, à la demande de l'utilisateur (voir claude/frais-generaux-module.md).
 function computeMonthlyFraisData(year, yearExpenses){
+  const generalLines = fraisGenerauxModuleEnabled() ? computeGeneralExpenseLines() : [];
   return Array.from({length:12}, (_,i)=>{
     const m = i+1;
     const mk = `${year}-${pad2(m)}`;
@@ -8124,7 +8131,9 @@ function computeMonthlyFraisData(year, yearExpenses){
       else if(e.type==='MENSUALITE') monthly += v;
       else challenge += v; // ACHAT
     });
-    return { mk, label:`${MONTH_NAMES_LONG[m-1]} ${year}`, challenge, activation, monthly, total: challenge+activation+monthly, count: lines.length };
+    const generalMonthLines = generalLines.filter(l=>monthKey(l.date)===mk);
+    const general = generalMonthLines.reduce((s,l)=>s+toEur(l.amount, l.fxRateToEur), 0);
+    return { mk, label:`${MONTH_NAMES_LONG[m-1]} ${year}`, challenge, activation, monthly, general, total: challenge+activation+monthly+general, count: lines.length+generalMonthLines.length };
   });
 }
 // Identifiant stable de checklist pour la case "3916-bis déclaré" d'un système de paiement donné
@@ -8304,7 +8313,7 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
     doc.text(pdfSafe(`Frais par mois — ${year}`), 48, y);
     y += 18;
-    const fraisCols = [{ label:'Mois', x:56 }, { label:'Challenge', x:200 }, { label:'Activation', x:300 }, { label:'Mensualités', x:400 }, { label:'Total', x:490 }];
+    const fraisCols = [{ label:'Mois', x:56 }, { label:'Challenge', x:165 }, { label:'Activation', x:235 }, { label:'Mensualités', x:315 }, { label:'Frais généraux', x:400 }, { label:'Total', x:495 }];
     function fraisTableHeader(){
       doc.setFillColor(30,34,40);
       doc.rect(48, y-12, 499, 20, 'F');
@@ -8312,7 +8321,7 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
       fraisCols.forEach(c=>doc.text(c.label, c.x, y+1));
       y += 20;
     }
-    const fraisRows = monthlyFrais.filter(m=>m.count>0);
+    const fraisRows = monthlyFrais.filter(m=>m.count>0 || m.general>0);
     if(!fraisRows.length){
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(140);
       doc.text(pdfSafe(`Aucun frais pour ${year}.`), 56, y); y += 18;
@@ -8322,11 +8331,12 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
       fraisRows.forEach((m,i)=>{
         if(y > pageBottom){ doc.addPage(); y = 60; fraisTableHeader(); }
         if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
-        doc.setTextColor(40,40,40); doc.text(pdfSafe(m.label), 56, y+1, { maxWidth:135 });
-        doc.setTextColor(90,90,90); doc.text(pdfSafe(m.challenge>0?fmtEur(m.challenge):'—'), 200, y+1);
-        doc.text(pdfSafe(m.activation>0?fmtEur(m.activation):'—'), 300, y+1);
-        doc.text(pdfSafe(m.monthly>0?fmtEur(m.monthly):'—'), 400, y+1);
-        doc.setTextColor(200,60,50); doc.text(pdfSafe(m.total>0?fmtEur(m.total):'—'), 490, y+1);
+        doc.setTextColor(40,40,40); doc.text(pdfSafe(m.label), 56, y+1, { maxWidth:105 });
+        doc.setTextColor(90,90,90); doc.text(pdfSafe(m.challenge>0?fmtEur(m.challenge):'—'), 165, y+1);
+        doc.text(pdfSafe(m.activation>0?fmtEur(m.activation):'—'), 235, y+1);
+        doc.text(pdfSafe(m.monthly>0?fmtEur(m.monthly):'—'), 315, y+1);
+        doc.text(pdfSafe(m.general>0?fmtEur(m.general):'—'), 400, y+1);
+        doc.setTextColor(200,60,50); doc.text(pdfSafe(m.total>0?fmtEur(m.total):'—'), 495, y+1);
         y += 16;
       });
     }
@@ -8824,17 +8834,18 @@ function viewFiscalite(){
 
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title">Frais par mois — ${year}</div></div>
-      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">Au régime micro-BNC, ces frais ne changent rien (abattement forfaitaire) — ce tableau sert surtout à garder l'historique prêt au cas où un passage au régime réel deviendrait pertinent, puisque ce régime demande le détail des charges réellement engagées, mois par mois.</div>
+      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">Au régime micro-BNC, ces frais ne changent rien (abattement forfaitaire) — ce tableau sert surtout à garder l'historique prêt au cas où un passage au régime réel deviendrait pertinent, puisque ce régime demande le détail des charges réellement engagées, mois par mois (y compris les frais généraux — abonnement plateforme, données de marché... — qui sont eux aussi des charges professionnelles déductibles au réel bien que non rattachés à un compte propfirm).</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Mois</th><th class="num">Frais Challenge</th><th class="num">Frais Activation</th><th class="num">Mensualités</th><th class="num">Total</th></tr></thead>
+          <thead><tr><th>Mois</th><th class="num">Frais Challenge</th><th class="num">Frais Activation</th><th class="num">Mensualités</th><th class="num">Frais généraux${infoTip("Abonnement plateforme, données de marché, hébergement... déclarés dans la page Frais généraux — non rattachés à un compte propfirm mais tout aussi déductibles au régime réel.")}</th><th class="num">Total</th></tr></thead>
           <tbody>
-            ${monthlyFrais.every(m=>m.count===0) ? `<tr><td colspan="5"><div class="empty-sub" style="padding:16px 0;">Aucun frais pour ${year}.</div></td></tr>` :
+            ${monthlyFrais.every(m=>m.count===0) ? `<tr><td colspan="6"><div class="empty-sub" style="padding:16px 0;">Aucun frais pour ${year}.</div></td></tr>` :
               monthlyFrais.map(m=>`<tr>
                 <td>${escapeHtml(m.label)}</td>
                 <td class="num text-dim">${m.challenge>0?fmtEur(m.challenge):'—'}</td>
                 <td class="num text-dim">${m.activation>0?fmtEur(m.activation):'—'}</td>
                 <td class="num text-dim">${m.monthly>0?fmtEur(m.monthly):'—'}</td>
+                <td class="num text-dim">${m.general>0?fmtEur(m.general):'—'}</td>
                 <td class="num" style="font-weight:600;color:var(--danger)">${m.total>0?fmtEur(m.total):'—'}</td>
               </tr>`).join('')}
           </tbody>
@@ -10697,9 +10708,8 @@ function bindViewEvents(){
   // principal ci-dessus (pas de compte/trader/propfirm à filtrer, voir viewAccounting()).
   const agCategoryEl = document.getElementById('ag-category');
   if(agCategoryEl) agCategoryEl.addEventListener('change', ()=>{ state.filters.accountingGeneral.category = agCategoryEl.value; renderView(); });
-  bindMonthFilter('ag-month', state.filters.accountingGeneral, { allowAll:true });
   const agClearBtn = document.getElementById('ag-clear');
-  if(agClearBtn) agClearBtn.onclick = ()=>{ state.filters.accountingGeneral = { month:'', category:'', monthMenuOpen:false }; renderView(); };
+  if(agClearBtn) agClearBtn.onclick = ()=>{ state.filters.accountingGeneral.category = ''; renderView(); };
 
   // Accounts actions
   document.querySelectorAll('[data-edit-account]').forEach(b=>b.onclick=()=>accountFormModal({ existing: getAccount(b.dataset.editAccount) }));
