@@ -80,6 +80,11 @@
     },
     {
       "@type": "Question",
+      "name": "Contralytix suit-il aussi mes autres frais (abonnements, données de marché...) ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui : la page « Frais généraux » suit tout ce qui n'est pas rattaché à un compte prop firm précis — abonnement à Contralytix lui-même, flux de données de marché (CME, CBOT...), hébergement, logiciels, formation... Ponctuels ou récurrents (mensuel/annuel), avec génération automatique des échéances." }
+    },
+    {
+      "@type": "Question",
       "name": "Contralytix est-il gratuit ?",
       "acceptedAnswer": { "@type": "Answer", "text": "Oui, une formule Free permet de démarrer sans engagement avec jusqu'à 2 traders et un suivi de base des payouts. Des formules Premium (mensuelle/annuelle) et Lifetime débloquent les comptes illimités, les exports et le bilan visuel." }
     },
@@ -1069,6 +1074,8 @@ th.th-sort-active svg{opacity:1;}
     <a href="#loading" data-ml-auth="login" class="btn btn-outline btn-sm">Se connecter</a>
   </header>
 
+  <div id="ml-maintenance-banner" class="announce-banner announce-warning" style="display:none;justify-content:center;text-align:center;"></div>
+
   <main>
     <section class="ml-hero">
       <h1>Contralytix — la gestion financière de tes comptes Prop Firm, enfin centralisée</h1>
@@ -1167,6 +1174,11 @@ th.th-sort-active svg{opacity:1;}
           <h3>Module Fiscalité (micro-BNC)</h3>
           <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
         </article>
+        <article class="ml-feature-card" id="ml-feature-frais-generaux">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 13.5-5.8M20 6v4h-4"/><path d="M20 12a8 8 0 0 1-13.5 5.8M4 18v-4h4"/></svg></div>
+          <h3>Frais généraux</h3>
+          <p>Suivez aussi les frais qui ne sont liés à aucun compte propfirm : abonnement à la plateforme, données de marché (CME, CBOT...), hébergement, logiciels ou formation — ponctuels ou récurrents, générés automatiquement à chaque échéance.</p>
+        </article>
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></div>
           <h3>Calendrier des échéances</h3>
@@ -1224,6 +1236,7 @@ th.th-sort-active svg{opacity:1;}
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Calendrier des échéances</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Bilan visuel</li>
             <li id="ml-pricing-fiscalite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Module Fiscalité (micro-BNC)</li>
+            <li id="ml-pricing-frais-generaux"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des frais généraux</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
@@ -1252,6 +1265,10 @@ th.th-sort-active svg{opacity:1;}
         <details class="ml-faq-item" id="ml-faq-fiscalite">
           <summary>Contralytix remplace-t-il un expert-comptable ?</summary>
           <p>Non : Contralytix automatise le suivi financier de tes comptes prop firm (dépenses, payouts, exports CSV/Excel/PDF) et, pour le régime micro-BNC, suit tes seuils et tes échéances de déclaration (URSSAF, 3916-bis) via le module Fiscalité — mais il ne remplace pas l'avis d'un expert-comptable pour tes déclarations.</p>
+        </details>
+        <details class="ml-faq-item" id="ml-faq-frais-generaux">
+          <summary>Contralytix suit-il aussi mes autres frais (abonnements, données de marché...) ?</summary>
+          <p>Oui : la page « Frais généraux » suit tout ce qui n'est pas rattaché à un compte prop firm précis — abonnement à Contralytix lui-même, flux de données de marché (CME, CBOT...), hébergement, logiciels, formation... Ponctuels ou récurrents (mensuel/annuel), avec génération automatique des échéances.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix est-il gratuit ?</summary>
@@ -1453,7 +1470,7 @@ const HCAPTCHA_CONFIGURED = !HCAPTCHA_SITE_KEY.includes('TON-SITE-KEY');
 // séance : elle est alors envoyée avec la requête (et uniquement stockée dans
 // son navigateur, via localStorage) pour servir de repli.
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
-const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets'];
+const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 const DASHBOARD_WIDGETS = [
@@ -1482,6 +1499,10 @@ const state = {
   // propres données par défaut comme n'importe quel utilisateur, et n'active la vue "toute la
   // plateforme" qu'au moment où il en a besoin pour investiguer un souci.
   adminDebugView: false,
+  // true juste avant un signOut() déclenché par le mode maintenance (voir enterApp()/
+  // startMaintenanceWatch()) — lu une seule fois par onAuthStateChange (branche !session) pour
+  // afficher le bon message sur l'écran de connexion, puis remis à false.
+  maintenanceKickPending: false,
   session: null,
   profile: null,
   subscription: null,
@@ -1529,6 +1550,7 @@ const state = {
   appSettings: {
     hiddenPages: [],
     announcement: { enabled:false, message:'', type:'info' },
+    maintenance: { enabled:false, message:'' },
   },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
@@ -1538,6 +1560,7 @@ const state = {
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
+    accountingGeneral: { category:'' },
     tarifs: { cycle: 'MONTHLY', promoInput: '', promoResult: null },
     comparatif: { sortKey: 'net', sortDir: 'desc' },
   },
@@ -1648,7 +1671,7 @@ async function loadAll(){
   }
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
 
 /* ============================================================
    RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
@@ -1671,12 +1694,13 @@ async function loadAppSettings(){
     state.appSettings = {
       hiddenPages: Array.isArray(data.value.hiddenPages) ? data.value.hiddenPages : [],
       announcement: { enabled:false, message:'', type:'info', ...(data.value.announcement||{}) },
+      maintenance: { enabled:false, message:'', ...(data.value.maintenance||{}) },
     };
   }
 }
 async function saveAppSettings(successMessage){
   if(!isAdmin()) return false;
-  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement }, updated_at: new Date().toISOString() };
+  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement, maintenance: state.appSettings.maintenance }, updated_at: new Date().toISOString() };
   const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
   if(error){
     showToast("Impossible d'enregistrer les réglages : " + error.message + " — la table 'app_settings' existe-t-elle bien dans Supabase ? Voir app_settings.sql.", 'danger');
@@ -1687,7 +1711,7 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','sessions','meteo','comparatif','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','frais-generaux','sessions','meteo','comparatif','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
 // Coupe-circuit spécifique au module Fiscalité (ex: migration prod pas encore terminée/validée
 // sur la vraie base — voir claude/migration-prod.md et claude/module-fiscalite.md) : réutilise le
 // même mécanisme que "Gestion des pages" (Admin > Gestion des pages > Fiscalité), mais un admin
@@ -1695,6 +1719,10 @@ const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accoun
 // accessibles) pour pouvoir vérifier seuils/migrations avant de la rouvrir à tout le monde.
 function fiscalModuleEnabled(){
   return isAdmin() || !(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('fiscalite'));
+}
+// Même coupe-circuit pour le module Frais généraux (voir claude/frais-generaux-module.md).
+function fraisGenerauxModuleEnabled(){
+  return isAdmin() || !(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('frais-generaux'));
 }
 async function toggleHiddenPage(pageId){
   if(!isAdmin() || !HIDEABLE_PAGE_IDS.includes(pageId)) return;
@@ -1719,6 +1747,25 @@ async function saveAnnouncement(enabled, message, type){
   await logActivity('SETTINGS', 'app_settings', 'announcement', enabled ? `Bannière d\u2019annonce activée : "${state.appSettings.announcement.message}"` : 'Bannière d\u2019annonce désactivée');
   showToast('Message global mis à jour.');
   render(); // la bannière est rendue par render(), pas renderView()
+}
+// Mode maintenance : bloque l'accès à toute l'application aux utilisateurs non-admin (aucune
+// donnée chargée ni écrite pour eux — voir enterApp()/startMaintenanceWatch()), pendant qu'un
+// admin garde un accès complet pour finaliser une mise à jour ou une migration en cours. Décision
+// utilisateur du 16/09/2026 : "admins uniquement", toggle Admin stocké en base (même mécanisme que
+// l'annonce globale ci-dessus), déconnexion forcée des utilisateurs déjà connectés. Voir
+// claude/mode-maintenance.md.
+function maintenanceModeActive(){
+  return !!(state.appSettings && state.appSettings.maintenance && state.appSettings.maintenance.enabled);
+}
+async function saveMaintenanceMode(enabled, message){
+  if(!isAdmin()) return;
+  const prev = state.appSettings.maintenance;
+  state.appSettings.maintenance = { enabled, message: (message||'').trim() };
+  const ok = await saveAppSettings();
+  if(!ok){ state.appSettings.maintenance = prev; render(); return; }
+  await logActivity('SETTINGS', 'app_settings', 'maintenance', enabled ? `Mode maintenance activé : "${state.appSettings.maintenance.message}"` : 'Mode maintenance désactivé');
+  showToast(enabled ? 'Mode maintenance activé — seuls les admins peuvent utiliser l’application.' : 'Mode maintenance désactivé.');
+  render();
 }
 
 async function upsert(collection, item){
@@ -1789,7 +1836,7 @@ async function remove(collection, id){
 // account_status_history n'est pas dans TABLES (elle n'est pas chargée dans `state`,
 // voir purgeStatusHistory) mais doit quand même être purgée avant les comptes, sinon
 // la suppression des comptes échoue sur account_status_history_account_id_fkey.
-const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','account_resets','propfirm_ratings','market_prep','yt_sessions','accounts','traders','propfirms'];
+const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','account_resets','propfirm_ratings','market_prep','yt_sessions','general_expenses','accounts','traders','propfirms'];
 async function resetAllData(){
   const { error: histError } = await supabaseClient.from('account_status_history').delete().not('id','is',null);
   if(histError) showToast('Erreur de réinitialisation (account_status_history) : ' + histError.message, 'danger');
@@ -2422,6 +2469,7 @@ function computePermissions(){
     canCalendar: isPremiumRole,
     canBackup: isPremiumRole,
     canFiscalite: isPremiumRole,
+    canFraisGeneraux: isPremiumRole,
     canUnlimitedAccounts: isPremiumRole,
     maxFreeAccounts: 3,
     maxFreeSessions: 5,
@@ -2884,8 +2932,17 @@ function renderAuthScreen(){
   const stepNum = (n, active) => `<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${active?'var(--accent)':'var(--surface-2)'};color:${active?'var(--accent-text)':'var(--text-faint)'};">${n}</div>`;
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
+  const maint = state.appSettings && state.appSettings.maintenance;
   document.getElementById('loading').innerHTML = `
-    <div style="width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
+    <div style="width:100%;max-width:360px;">
+      ${(maint && maint.enabled) ? `
+      <div style="background:var(--surface);border:1px solid var(--warning,#b8860b);border-left:4px solid var(--warning,#b8860b);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;">
+        ${icon('shield')}
+        <div style="font-size:12.5px;color:var(--text);line-height:1.4;">
+          <strong>Maintenance en cours.</strong> L’application est temporairement réservée aux administrateurs${maint.message ? ` — ${escapeHtml(maint.message)}` : '.'}
+        </div>
+      </div>` : ''}
+    <div style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:var(--radius-sm);object-fit:cover;"/>
         <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text);">Contralyti<span class="brand-x">x</span></div>
@@ -2921,6 +2978,7 @@ function renderAuthScreen(){
       <div style="text-align:center;margin-top:16px;">
         <a id="auth-privacy-link" href="#" style="font-size:11.5px;color:var(--text-faint);text-decoration:underline;">Confidentialité &amp; RGPD</a>
       </div>
+    </div>
     </div>
   `;
   document.getElementById('auth-privacy-link').onclick = (e)=>{
@@ -3502,6 +3560,51 @@ function computeAccountExpenses(acc){
 function computeAllExpenses(){
   return state.accounts.flatMap(computeAccountExpenses);
 }
+
+/* ============================================================
+   FRAIS GÉNÉRAUX (voir claude/frais-generaux-module.md)
+   Frais liés à l'activité de trading mais non rattachés à un compte propfirm précis : abonnement
+   plateforme (Contralytix lui-même — mensuel/annuel/lifetime), flux de données de marché (CME,
+   CBOT...), hébergement VPS, logiciels, formation, autre. Une ligne de state.general_expenses peut
+   être ponctuelle (UNIQUE) ou récurrente (MENSUEL/ANNUEL) — dans ce cas elle est développée en
+   plusieurs lignes de dépense datées, exactement comme acc.monthlyAmount dans
+   computeAccountExpenses() ci-dessus (même logique addMonths/monthsBetweenCount, l'annuel n'étant
+   qu'un mensuel au pas de 12).
+============================================================ */
+const GENERAL_EXPENSE_CATEGORIES = {
+  PLATEFORME:  { label:'Abonnement plateforme',    short:'Plateforme',  icon:'💻' },
+  DATA_MARCHE: { label:'Données de marché',        short:'Data marché', icon:'📊' },
+  HEBERGEMENT: { label:'Hébergement / VPS',        short:'Hébergement', icon:'🖥️' },
+  LOGICIEL:    { label:'Logiciel / Outils',        short:'Logiciel',    icon:'🧰' },
+  FORMATION:   { label:'Formation',                short:'Formation',   icon:'🎓' },
+  AUTRE:       { label:'Autre',                    short:'Autre',       icon:'🗂️' },
+};
+// Développe chaque ligne de state.general_expenses en dépense(s) datée(s). Une dépense récurrente
+// résiliée (endDate renseignée) s'arrête à cette date plutôt qu'à aujourd'hui.
+function computeGeneralExpenseLines(){
+  const today = todayISO();
+  const lines = [];
+  (state.general_expenses||[]).forEach(r=>{
+    const cur = r.currency||'EUR', fx = r.fxRateToEur||1;
+    const stopDate = r.endDate && r.endDate < today ? r.endDate : today;
+    if(r.recurrence === 'MENSUEL' || r.recurrence === 'ANNUEL'){
+      if(r.amount){
+        const step = r.recurrence === 'ANNUEL' ? 12 : 1;
+        const n = Math.floor(monthsBetweenCount(r.startDate, stopDate) / step);
+        for(let i=0;i<=n;i++){
+          const d = addMonths(r.startDate, i*step);
+          if(d <= stopDate){
+            lines.push({ id: r.id+'-'+i, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount), date:d, currency:cur, fxRateToEur:fx, traderId:r.traderId||null });
+          }
+        }
+      }
+    } else {
+      // UNIQUE : une seule ligne, à startDate.
+      lines.push({ id: r.id, generalExpenseId: r.id, category:r.category, label:r.label, amount:Number(r.amount)||0, date:r.startDate, currency:cur, fxRateToEur:fx, traderId:r.traderId||null });
+    }
+  });
+  return lines;
+}
 function totalPayoutsFor(accountId){
   return state.payouts.filter(p=>p.accountId===accountId).reduce((s,p)=>s+Number(p.amount),0);
 }
@@ -3978,6 +4081,7 @@ const BASE_NAV = [
   { id:'accounting', label:'Comptabilité', icon:'book' },
   { id:'bilan', label:'Bilan Visuel', icon:'camera' },
   { id:'fiscalite', label:'Fiscalité', icon:'wallet' },
+  { id:'frais-generaux', label:'Frais généraux', icon:'card' },
   { id:'sessions', label:'Sessions de Trading', icon:'video' },
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
@@ -4013,7 +4117,7 @@ function getNav(){
 const NAV_GROUPS = [
   { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts'] },
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
-  { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite'] },
+  { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite','frais-generaux'] },
   { id:'perf',     label:'Performance',         items:['comparatif'] },
   { id:'compte',   label:'Mon compte',          items:['profil','parametres','subscription'] },
   { id:'aide',     label:'Aide',                items:['aide-centre','manuel','changelog'] },
@@ -4343,6 +4447,10 @@ function render(){
         <div class="announce-banner announce-warning">
           ${icon('shield')}<span>Vue debug (admin) active — Dashboard, Comptabilité, Bilan Visuel et Comparatif affichent les données de <strong>tous les utilisateurs</strong>, pas seulement les tiennes. Désactive-la depuis le menu une fois l'investigation terminée.</span>
         </div>` : ''}
+      ${maintenanceModeActive() ? `
+        <div class="announce-banner announce-danger">
+          ${icon('shield')}<span><strong>Mode maintenance actif</strong> — tous les utilisateurs non-admin sont bloqués et déconnectés${state.appSettings.maintenance.message ? ` (« ${escapeHtml(state.appSettings.maintenance.message)} »)` : ''}. Pense à le désactiver depuis Admin &gt; Réglages une fois la mise à jour terminée.</span>
+        </div>` : ''}
       <div class="topbar">
         <div>
           ${(state.route==='sessions' && state.sessionDetailId && state.yt_sessions.find(x=>x.id===state.sessionDetailId)) ? `
@@ -4459,6 +4567,7 @@ function renderTopbarActions(){
       </div>`;
   else if(state.route==='bilan') el.innerHTML = `<button class="btn btn-primary" id="export-bilan-all">${icon('image')}Tout exporter (PNG)</button>`;
   else if(state.route==='fiscalite') el.innerHTML = `<button class="btn btn-primary" id="export-fiscal-zip" title="PDF récapitulatif + tous les justificatifs de payout de l'année, dans un seul ZIP">${icon('download')}Export année (ZIP)</button>`;
+  else if(state.route==='frais-generaux') el.innerHTML = `<button class="btn btn-primary" id="add-general-expense">${icon('plus')}Nouveau frais</button>`;
   else if(state.route==='sessions'){
     const detail = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
     el.innerHTML = detail
@@ -4476,6 +4585,7 @@ function renderTopbarActions(){
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
   if(document.getElementById('export-bilan-all')) document.getElementById('export-bilan-all').onclick = exportAllBilanCards;
   if(document.getElementById('export-fiscal-zip')) document.getElementById('export-fiscal-zip').onclick = exportFiscalYearZip;
+  if(document.getElementById('add-general-expense')) document.getElementById('add-general-expense').onclick = ()=>generalExpenseFormModal({});
   const adminToolsBtn = document.getElementById('admin-tools-btn');
   if(adminToolsBtn) adminToolsBtn.onclick = (e)=>{ e.stopPropagation(); state.adminToolsMenuOpen = !state.adminToolsMenuOpen; renderTopbarActions(); };
   const adminToolsMenu = document.getElementById('admin-tools-menu');
@@ -4523,6 +4633,7 @@ function renderView(){
   else if(state.route==='accounting') el.innerHTML = viewAccounting();
   else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)');
   else if(state.route==='fiscalite') el.innerHTML = perms().canFiscalite ? viewFiscalite() : lockedFeatureView('Le module Fiscalité');
+  else if(state.route==='frais-generaux') el.innerHTML = perms().canFraisGeneraux ? viewFraisGeneraux() : lockedFeatureView('Les frais généraux');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
@@ -4817,6 +4928,22 @@ function viewDashboard(){
   const totalPayouts = dashMoney.totalPay;
   const net = dashMoney.net;
 
+  // Résultat net global : contrairement au Net ci-dessus (scopé aux comptes/filtres Trader/
+  // PropFirm, pertinent pour comparer une propfirm à une autre), celui-ci ajoute aussi les frais
+  // généraux (voir computeGeneralExpenseLines) — non rattachés à un compte, donc jamais filtrés
+  // par trader/propfirm — pour donner une vue de rentabilité globale réaliste. Respecte quand même
+  // le filtre de dates s'il est actif, comme les dépenses/payouts ci-dessus.
+  let generalExpensesF = computeGeneralExpenseLines();
+  if(f.dateFrom || f.dateTo){
+    generalExpensesF = generalExpensesF.filter(e=>e.date && (!f.dateFrom || e.date>=f.dateFrom) && (!f.dateTo || e.date<=f.dateTo));
+  }
+  // Un frais général peut désormais être rattaché à un trader précis (optionnel, voir
+  // claude/frais-generaux-module.md) : un frais "partagé" (sans trader) reste toujours visible
+  // quel que soit le filtre trader actif, un frais rattaché suit le filtre normalement.
+  if(f.trader.length) generalExpensesF = generalExpensesF.filter(e=>!e.traderId || f.trader.includes(e.traderId));
+  const dashMoneyGlobal = sumMoneyNet([...allExpenses, ...generalExpensesF], payoutsF);
+  const netGlobal = dashMoneyGlobal.net;
+
   // last 6 months chart data — construits par arithmétique calendaire locale, jamais via toISOString (UTC)
   const allExpensesUnfiltered = computeAllExpenses().filter(e=>accIds.has(e.accountId));
   const payoutsUnfiltered = state.payouts.filter(p=>accIds.has(p.accountId));
@@ -4987,7 +5114,8 @@ function viewDashboard(){
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs${infoTip("Comptes de type « Live » (capital réel après validation d'un PA) actuellement au statut Actif.")}</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des achats de challenges, des mensualités et des frais d'activation, sur la période filtrée. Convertie dans une seule devise si tes comptes utilisent des devises différentes.")}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
             <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des versements (payouts) reçus sur la période filtrée, tous comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
-            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Résultat net${infoTip("Payouts reçus moins dépenses engagées sur la période filtrée. Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
+            <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (comptes propfirm)${infoTip("Payouts reçus moins dépenses de comptes propfirm (achats, mensualités, activations, resets), sur la période filtrée — scopé trader/propfirm, pour comparer une propfirm à une autre. N'inclut PAS tes frais généraux (voir la tuile « Net global » ci-contre). Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses comptes${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
+            <div class="stat-tile" style="--rail:${netGlobal>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais inclut aussi tes frais généraux (abonnement plateforme, données de marché, hébergement...) — non rattachés à un compte, donc jamais filtrés par trader/propfirm. C'est ta vue la plus réaliste de rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobal>=0?'var(--accent)':'var(--danger)'}">${netGlobal>=0?'+':''}${fmtMoneyCur(netGlobal, dashMoneyGlobal.currency)}</div><div class="stat-sub">payouts − dépenses comptes − frais généraux${dashMoneyGlobal.converted?` · ${convertedLabel(dashMoneyGlobal.converted, dashMoneyGlobal.mixed)}`:''}</div></div>
           </div>
         </div>
       </div>`,
@@ -4996,7 +5124,7 @@ function viewDashboard(){
         <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; rendement</div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Résultat net divisé par les dépenses engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
+            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Net (comptes propfirm) divisé par les dépenses de comptes engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé${infoTip("Total de toutes tes dépenses (tout l'historique, pas seulement la période filtrée) divisé par le nombre de challenges réussis. Donne une idée du prix moyen réel d'un compte financé.")}</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
             <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion${infoTip("Somme des tailles de compte (25K, 50K, 100K...) de tous les PA et Live actuellement au statut Actif — le capital que les propfirms te laissent gérer aujourd'hui.")}</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir${infoTip("Somme des montants mensuels des comptes actifs facturés à l'abonnement (paiement « Mensuel »). C'est une charge récurrente, pas un montant déjà payé.")}</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
@@ -5687,6 +5815,7 @@ const CAL_EVENT_META = {
   FERME:      { label:'Compte fermé',      short:'Fermé',    icon:'⏹️', color:'slate'  },
   URSSAF:     { label:'Échéance URSSAF',   short:'URSSAF',   icon:'🧾', color:'gold'   },
   FISCAL_2042:{ label:'Échéance 2042-C-PRO', short:'2042-C', icon:'📋', color:'danger' },
+  FRAIS_GENERAL: { label:'Frais général',  short:'Frais gén.', icon:'🧰', color:'slate' },
 };
 // Toutes les échéances URSSAF réelles d'une année de période donnée (mêmes règles que
 // nextUrssafDeadline) : mensuelle = une échéance/mois (dernier jour du mois M+1, donc la 12e
@@ -5759,6 +5888,18 @@ function computeCalendarEvents(monthKeyStr){
     if(!acc) return;
     pushEvt(p.date, 'PAYOUT', acc, Number(p.amount), { currency:p.currency||'USD', fxRateToEur:p.fxRateToEur||1 });
   });
+  // Frais généraux — comme les échéances fiscales, pas liés à un compte/trader précis
+  // (account:null) : abonnement plateforme, données de marché, hébergement... Chaque échéance
+  // générée par computeGeneralExpenseLines() (une ligne par mois/année écoulé) tombe dans le
+  // calendrier à sa date réelle. Visible dès que le module n'est pas masqué par un admin — même
+  // logique "teaser" que les échéances URSSAF/2042-C-PRO, indépendante du plan Premium.
+  if(state.profile && fraisGenerauxModuleEnabled()){
+    computeGeneralExpenseLines().forEach(l=>{
+      if(monthKey(l.date)===monthKeyStr){
+        events.push({ date:l.date, type:'FRAIS_GENERAL', amount:Number(l.amount)||0, currency:l.currency||'EUR', fxRateToEur:l.fxRateToEur||1, account:null, trader: l.traderId ? getTrader(l.traderId) : null, firm:null, generalExpenseLabel:l.label });
+      }
+    });
+  }
   events.sort((a,b)=> a.date.localeCompare(b.date) || (a.type||'').localeCompare(b.type||''));
   return events;
 }
@@ -5793,8 +5934,8 @@ function calendarDayModal(dateStr){
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:15px;">${meta.icon}</span>
               <div>
-                <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : ''} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc?'4px':'0'};">${meta.label}</span></div>
-                <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
+                <div style="font-weight:600;font-size:13px;">${hasAcc ? (it.trader?it.trader.pseudo:'—') : (it.type==='FRAIS_GENERAL' && it.trader ? it.trader.pseudo : '')} <span class="badge badge-${meta.color}" style="margin-left:${hasAcc||(it.type==='FRAIS_GENERAL'&&it.trader)?'4px':'0'};">${meta.label}</span></div>
+                <div class="text-faint" style="font-size:11.5px;">${hasAcc ? `${it.firm?it.firm.name:'—'} · ${TYPE_LABELS[it.account.type]} · ${maskAccountNumber(it.account.accountNumber)}` : it.type==='FRAIS_GENERAL' ? `${it.generalExpenseLabel||'Frais général'} — voir la page Frais généraux.` : 'Rappel déclaratif — voir la page Fiscalité.'}</div>
               </div>
             </div>
             <div style="font-weight:700;font-family:'JetBrains Mono',monospace;">${it.amount!=null?fmtMoneyDisp(it.amount, it.currency, it.fxRateToEur):''}</div>
@@ -5824,18 +5965,27 @@ function viewCalendrier(){
   const today = todayISO();
   const mk = f.month || today.slice(0,7);
   let items = computeCalendarEvents(mk);
-  if(f.trader.length) items = items.filter(it=>it.trader && f.trader.includes(it.trader.id));
+  // Un filtre trader actif ne doit jamais masquer les événements qui ne sont rattachés à AUCUN
+  // trader (échéances fiscales URSSAF/2042-C-PRO, frais généraux) — sinon ils disparaissent dès
+  // qu'un trader précis est sélectionné, alors qu'ils concernent l'utilisateur, pas un trader.
+  if(f.trader.length) items = items.filter(it=>!it.trader || f.trader.includes(it.trader.id));
   const byDay = {};
   items.forEach(it=>{ (byDay[it.date] = byDay[it.date]||[]).push(it); });
   const cells = buildCalendarGrid(mk);
   const [y,m] = mk.split('-').map(Number);
 
   const payoutsMonth = items.filter(it=>it.type==='PAYOUT');
-  const depensesMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
+  // Séparé en deux pour le sous-libellé de la tuile "Dépenses du mois" — un frais général n'est pas
+  // rattaché à un compte propfirm, il faut pouvoir distinguer les deux d'un coup d'œil (cf. demande
+  // utilisateur du 16/09/2026 : bien identifier frais généraux vs dépenses compte propfirm).
+  const depensesCompteMonth = items.filter(it=>it.type==='ACHAT'||it.type==='MENSUALITE'||it.type==='ACTIVATION');
+  const depensesGeneralMonth = items.filter(it=>it.type==='FRAIS_GENERAL');
+  const depensesMonth = [...depensesCompteMonth, ...depensesGeneralMonth];
   const reussisMonth = items.filter(it=>it.type==='REUSSI');
   const breachesMonth = items.filter(it=>it.type==='BREACHED');
   const payoutsMonthSum = sumMoneyLines(payoutsMonth);
   const depensesMonthSum = sumMoneyLines(depensesMonth);
+  const depensesGeneralMonthSum = sumMoneyLines(depensesGeneralMonth);
   const totalPayouts = payoutsMonthSum.amount;
   const totalDepenses = depensesMonthSum.amount;
 
@@ -5896,7 +6046,7 @@ function viewCalendrier(){
     </div>
     <div class="stats-grid">
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts reçus</div><div class="stat-value">${fmtSumMoney(payoutsMonthSum)}</div><div class="stat-sub">${payoutsMonth.length} payout(s) ce mois</div></div>
-      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois</div><div class="stat-value">${fmtSumMoney(depensesMonthSum)}</div><div class="stat-sub">achats, mensualités, activations</div></div>
+      <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Dépenses du mois${infoTip("Achats, mensualités et activations de comptes propfirm, PLUS tes frais généraux du mois (abonnement plateforme, données de marché...) — voir le détail ci-dessous.")}</div><div class="stat-value">${fmtSumMoney(depensesMonthSum)}</div><div class="stat-sub">comptes propfirm${depensesGeneralMonth.length>0?` + ${fmtSumMoney(depensesGeneralMonthSum)} frais généraux`:' · achats, mensualités, activations'}</div></div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Challenges réussis</div><div class="stat-value">${reussisMonth.length}</div><div class="stat-sub">passages en PA ce mois</div></div>
       <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Breaches</div><div class="stat-value">${breachesMonth.length}</div><div class="stat-sub">comptes breached ce mois</div></div>
     </div>
@@ -5972,6 +6122,8 @@ const HELP_CATEGORIES = [
     { q:"Comment exporter mes données comptables ?", a:"Trois formats sont disponibles depuis la page Comptabilité : CSV, Excel et PDF récapitulatif. Les exports Excel et PDF nécessitent la formule Premium ou Lifetime." },
     { q:"C'est quoi le Bilan Visuel ?", a:"Une page qui génère une image (PNG) prête à partager : soit une vue globale de ton bilan regroupé par PropFirm sur la période choisie, soit une carte par trader et par PropFirm." },
     { q:"Puis-je enregistrer des payouts et des dépenses dans plusieurs devises ?", a:"Oui. Chaque payout peut être saisi en dollar ($) ou en euro (€), avec un taux de change (rempli automatiquement depuis la Banque Centrale Européenne à la date du payout, modifiable si besoin). Tant que les montants d'une même vue (compte, mois, bilan…) sont dans une seule devise, le total reste exact et affiché dans cette devise, sans conversion. Ce n'est que si des montants dans des devises différentes se retrouvent mélangés dans un même total que Contralytix les convertit en euro pour pouvoir les additionner, et l'ajoute alors une mention « converti » pour que ce soit toujours visible." },
+    { q:"Comment suivre des frais qui ne sont pas liés à un compte propfirm (abonnement, données de marché...) ?", a:"La page « Frais généraux » (Premium/Lifetime) est faite pour ça : abonnement à la plateforme Contralytix elle-même, flux de données de marché (CME, CBOT...), hébergement VPS, logiciels, formation ou autre. Un frais peut être ponctuel ou récurrent (mensuel/annuel) — pour un abonnement récurrent, une seule date de première échéance suffit, les échéances suivantes sont générées automatiquement jusqu'à aujourd'hui (ou jusqu'à sa date de résiliation si tu l'indiques)." },
+    { q:"Quelle est la différence entre « Net (comptes propfirm) » et « Net global (+ frais généraux) » ?", a:"Le « Net (comptes propfirm) » reste limité aux comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre. Le « Net global (+ frais généraux) » y ajoute en plus tes frais généraux (abonnement plateforme, données de marché...), qui ne sont rattachés à aucun compte et donc jamais filtrés par trader ou propfirm — c'est la vue la plus réaliste de ta rentabilité globale. Les deux indicateurs apparaissent côte à côte sur le Dashboard et sur la page Comptabilité." },
   ]},
   { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
     { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
@@ -5983,7 +6135,7 @@ const HELP_CATEGORIES = [
     { q:"Le module Fiscalité est-il accessible en formule Free ?", a:"Non, comme le Calendrier et le Bilan Visuel, c'est une fonctionnalité réservée aux formules Premium et Lifetime." },
     { q:"Les seuils fiscaux (plafond micro-BNC, franchise TVA, abattement) sont-ils à jour et modifiables ?", a:"Oui. Un panneau « Seuils fiscaux » dans l'espace Admin permet à un administrateur de les revaloriser chaque année (barèmes URSSAF / service-public.fr) sans intervention technique — plus besoin de passer par une requête en base." },
     { q:"Comment sont calculées mes échéances de déclaration URSSAF ?", a:"À partir de deux réglages personnels dans la page Fiscalité : la périodicité (mensuelle ou trimestrielle) et l'option de versement libératoire de l'impôt sur le revenu. Le tableau « Déclarations URSSAF » affiche ensuite, période par période, le chiffre d'affaires encaissé (tes payouts convertis en euro) et l'échéance réelle, avec une case à cocher pour marquer chaque déclaration comme faite." },
-    { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation et mensualités. Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
+    { q:"Qu'est-ce que le tableau « Frais par mois » de la page Fiscalité ?", a:"Un historique mensuel des frais de challenge, frais d'activation, mensualités et frais généraux (abonnement plateforme, données de marché... — eux aussi déductibles au régime réel bien que non rattachés à un compte propfirm). Au régime micro-BNC il n'a pas d'impact (l'abattement forfaitaire remplace la déduction des charges réelles), mais il garde ce détail prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois." },
     { q:"C'est quoi la déclaration 3916-bis et comment Contralytix m'aide à la suivre ?", a:"Le 3916-bis déclare les comptes détenus à l'étranger. C'est le système utilisé pour recevoir tes payouts (Wise, virement, RiseWorks…), pas la PropFirm elle-même, qui détermine si une déclaration est nécessaire. Le panneau « Systèmes de paiement » de la page Fiscalité regroupe tes payouts par système avec un repère indicatif, et une case à cocher par système pour suivre ce qui a déjà été déclaré — ce repère reste une aide générale, à vérifier avec un expert-comptable." },
     { q:"Puis-je exporter mes données fiscales pour mon expert-comptable ?", a:"Oui, le bouton « Export année (ZIP) » en haut de la page Fiscalité génère une archive avec un PDF récapitulatif complet de l'année (seuils, déclarations URSSAF, frais par mois, systèmes de paiement) et les données associées." },
   ]},
@@ -6097,7 +6249,7 @@ const MANUAL_CHAPTERS = [
     <h3>À qui s'adresse ce manuel</h3>
     <p>Ce manuel s'adresse à toute personne utilisant Contralytix au quotidien : trader indépendant suivant ses propres comptes, gestionnaire suivant une équipe de traders, ou administrateur du site.</p>
     <h3>Formules disponibles</h3>
-    <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 16 « Abonnement et tarifs »).</p>` },
+    <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 17 « Abonnement et tarifs »).</p>` },
   { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
     <h3>Connexion et inscription</h3>
     <p>La connexion se fait sans mot de passe : renseigne ton adresse e-mail, reçois un code à 6 chiffres, saisis-le pour accéder à ton espace. Le compte est créé automatiquement au premier code envoyé s'il n'existait pas encore — inutile de créer ou retenir un mot de passe. La connexion via Google reste disponible en alternative.</p>
@@ -6118,7 +6270,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -6135,7 +6287,8 @@ const MANUAL_CHAPTERS = [
       <li><b>Comptes Live actifs</b> — nombre de comptes Live actuellement actifs.</li>
       <li><b>Dépenses</b> — somme des achats, mensualités et frais d'activation, sur la période filtrée.</li>
       <li><b>Payouts</b> — somme des versements reçus, sur la période filtrée.</li>
-      <li><b>Résultat net</b> — payouts moins dépenses, sur la période filtrée.</li>
+      <li><b>Net (comptes propfirm)</b> — payouts moins dépenses de comptes propfirm, sur la période filtrée.</li>
+      <li><b>Net global (+ frais généraux)</b> — comme ci-dessus, mais en ajoutant tes frais généraux (voir chapitre 15) — la vue la plus réaliste de ta rentabilité globale.</li>
     </ul>
     <h3>Délais moyens</h3>
     <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
@@ -6253,7 +6406,7 @@ const MANUAL_CHAPTERS = [
     <p>La section Fiscalité aide un trader en micro-entreprise (micro-BNC) à garder un œil sur ses seuils et ses échéances déclaratives, à partir des payouts déjà enregistrés dans l'application. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b> Elle ne couvre que le régime micro-BNC (franchise en base de TVA, abattement forfaitaire) : le régime réel et les structures en société (EURL, SASU…) ne sont pas couverts, et cet outil ne remplace en aucun cas l'avis d'un expert-comptable.</p>
     ${manualShot('14-fiscalite.jpg', "Page Fiscalité — seuils, réglages déclaratifs et alertes.")}
     <h3>Sélecteur d'année et seuils</h3>
-    <p>Un sélecteur en haut de page permet de changer d'année fiscale. Les seuils affichés (plafond micro-BNC, franchise en base de TVA — base et majorée) sont ceux de l'année sélectionnée, avec leur source ; ils sont tenus à jour par un administrateur depuis l'espace Admin (voir chapitre 18) et partagés par tous les utilisateurs du site.</p>
+    <p>Un sélecteur en haut de page permet de changer d'année fiscale. Les seuils affichés (plafond micro-BNC, franchise en base de TVA — base et majorée) sont ceux de l'année sélectionnée, avec leur source ; ils sont tenus à jour par un administrateur depuis l'espace Admin (voir chapitre 19) et partagés par tous les utilisateurs du site.</p>
     <h3>Jauges et alertes</h3>
     <p>Deux jauges suivent en temps réel le chiffre d'affaires encaissé (tous les payouts de l'année, convertis en euro) face au plafond micro-BNC et à la franchise de TVA, avec un badge de couleur (OK, vigilance, dépassement). Un panneau « Alertes seuils » regroupe automatiquement les situations à surveiller : approche ou dépassement d'un seuil, déclarations URSSAF en retard, systèmes de paiement sans case 3916-bis renseignée. Un tableau « Flux par prop firm » détaille, pour l'année, les frais et les payouts de chaque PropFirm utilisée, avec leurs devises d'origine.</p>
     <h3>Mes réglages déclaratifs</h3>
@@ -6262,16 +6415,33 @@ const MANUAL_CHAPTERS = [
     <p>Un tableau liste, période par période (selon la périodicité choisie), le chiffre d'affaires encaissé, l'échéance réelle et un statut (Déclarée / En retard / À venir). Une case à cocher par ligne permet de marquer une déclaration comme faite auprès de l'URSSAF ; l'information est conservée d'une visite à l'autre.</p>
     <h3>Frais par mois</h3>
     ${manualShot('14b-fiscalite-frais.jpg', "Tableau « Frais par mois » — historique des charges, mois par mois.")}
-    <p>Un tableau récapitule, mois par mois, les frais de challenge, les frais d'activation et les mensualités payées. Au régime micro-BNC ces frais ne changent rien au calcul (abattement forfaitaire), mais le tableau garde cet historique prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois.</p>
+    <p>Un tableau récapitule, mois par mois, les frais de challenge, les frais d'activation, les mensualités payées et les frais généraux (voir chapitre 15 — abonnement plateforme, données de marché..., eux aussi des charges professionnelles déductibles au réel bien que non rattachés à un compte propfirm). Au régime micro-BNC ces frais ne changent rien au calcul (abattement forfaitaire), mais le tableau garde cet historique prêt à l'emploi au cas où un passage au régime réel deviendrait pertinent — ce régime demandant le détail des charges réellement engagées, mois par mois.</p>
     <h3>Systèmes de paiement et 3916-bis</h3>
     <p>Un tableau regroupe les payouts par système de paiement utilisé pour les recevoir (Wise, virement, RiseWorks…) — c'est ce système, et non la PropFirm elle-même, qui détermine si un compte détenu à l'étranger doit être déclaré au titre du formulaire 3916-bis. Un repère indicatif (À déclarer / Selon les cas / Non requis) aide à s'orienter, et une case à cocher par système permet de suivre les déclarations déjà faites. Ce repère reste une aide générale, à vérifier avec un expert-comptable avant de cocher ou non une case.</p>
     <h3>Checklist déclarative et export</h3>
     <p>Une checklist récapitule, avec un compteur d'avancement, l'ensemble des démarches déclaratives de l'année (déclarations URSSAF, 2042-C-PRO, versement libératoire…). Le bouton « Export année (ZIP) », en haut de page, génère une archive contenant un PDF récapitulatif complet de l'année (seuils, déclarations, frais, systèmes de paiement) ainsi que les données associées, prête à transmettre à un expert-comptable ou à conserver pour ses archives.</p>` },
-  { n:'15', id:'m-nouveautes', title:"Nouveautés", html:`
+  { n:'15', id:'m-frais-generaux', title:"Frais généraux", html:`
+    <p>La section Frais généraux suit les frais liés à ton activité de trading mais non rattachés à un compte propfirm précis : abonnement à la plateforme Contralytix elle-même (mensuel, annuel ou Lifetime), flux de données de marché (CME, CBOT…), hébergement VPS, logiciels, formation, ou tout autre frais. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    <h3>Vue d'ensemble</h3>
+    <p>Trois indicateurs résument la situation : le frais mensuel récurrent estimé (abonnements actifs uniquement — un frais annuel est ramené à un équivalent mensuel en le divisant par 12, pour rester comparable à un abonnement mensuel classique), le total de l'année en cours, et le nombre de frais enregistrés.</p>
+    <h3>Ajouter un frais</h3>
+    <p>Le bouton « Nouveau frais », en haut de page, ouvre un formulaire : catégorie (Abonnement plateforme, Données de marché, Hébergement / VPS, Logiciel / Outils, Formation, Autre), libellé libre, un <b>trader (optionnel)</b>, montant et devise (avec taux de change BCE rempli automatiquement, comme pour les payouts), et récurrence.</p>
+    <p>Pour un frais <b>ponctuel</b>, seule la date du frais est demandée. Pour un abonnement <b>mensuel</b> ou <b>annuel</b>, une seule date de première échéance suffit : l'application génère ensuite automatiquement une ligne de dépense à chaque échéance, jusqu'à aujourd'hui. Si l'abonnement est résilié, renseigner sa date de résiliation arrête la génération de nouvelles échéances à cette date, sans effacer l'historique déjà généré.</p>
+    <p>Le champ <b>Trader</b> reste vide par défaut (« Partagé ») : c'est le cas normal pour une dépense qui concerne ton activité globale plutôt qu'une stratégie précise (l'abonnement Contralytix lui-même, par exemple). Tu peux le renseigner si un frais est spécifique à un trader (un flux de données dédié à sa stratégie) — dans ce cas, ce frais suit les filtres par trader partout dans l'application (Calendrier, Comptabilité, Bilan visuel, Dashboard), tandis qu'un frais « Partagé » reste toujours visible quel que soit le trader filtré.</p>
+    <h3>Où retrouver ces frais ailleurs dans l'application</h3>
+    <p>Les frais généraux ne sont jamais mélangés aux dépenses de comptes propfirm sans distinction — chaque page les identifie séparément :</p>
+    <ul>
+      <li><b>Dashboard</b> (widget Vue d'ensemble) : deux indicateurs côte à côte, « Net (comptes propfirm) » (scopé comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre) et « Net global (+ frais généraux) » qui y ajoute tes frais généraux — non rattachés à un compte, donc non filtrables par trader ou propfirm — pour une vue de rentabilité globale réaliste.</li>
+      <li><b>Calendrier</b> : chaque échéance de frais général apparaît à sa date, comme les échéances fiscales ; la tuile « Dépenses du mois » détaille la part « comptes propfirm » et la part « frais généraux ».</li>
+      <li><b>Comptabilité</b> : un bloc « Frais généraux » distinct (période synchronisée avec le filtre actif de la page, catégorie filtrable indépendamment), en plus du tableau habituel des dépenses de comptes.</li>
+      <li><b>Bilan visuel</b> : une carte « Frais généraux » exportable en PNG, à côté des cartes par trader/PropFirm.</li>
+      <li><b>Fiscalité</b> : le tableau « Frais par mois » (voir chapitre 14) comporte une colonne « Frais généraux » dédiée, car ce sont eux aussi des charges professionnelles déductibles au régime réel.</li>
+    </ul>` },
+  { n:'16', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
-  { n:'16', id:'m-abonnement', title:"Abonnement et tarifs", html:`
+  { n:'17', id:'m-abonnement', title:"Abonnement et tarifs", html:`
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
@@ -6284,7 +6454,7 @@ const MANUAL_CHAPTERS = [
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
-  { n:'17', id:'m-admin', title:"Espace Admin", html:`
+  { n:'18', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
     ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
@@ -6294,6 +6464,8 @@ const MANUAL_CHAPTERS = [
     <p>Masquer « Fiscalité » a un effet plus large que les autres pages : les échéances URSSAF / 2042-C-PRO disparaissent aussi du Calendrier, et les mentions du module sur la page publique (carte fonctionnalité, ligne de l'offre Premium, FAQ) se masquent également — utile comme coupe-circuit rapide si une migration de base de données touchant ce module doit être vérifiée avant réouverture à tous les utilisateurs.</p>
     <h3>Message global</h3>
     <p>Un panneau « Message global » permet d'afficher une bannière en haut de l'application, visible par tous les utilisateurs tant qu'elle est activée (par exemple pour annoncer une maintenance ou une nouveauté). Le message et son style (information, avertissement, urgent) sont modifiables à tout moment ; désactiver l'interrupteur masque immédiatement la bannière pour tout le monde.</p>
+    <h3>Mode maintenance</h3>
+    <p>Un panneau « Mode maintenance » permet de bloquer l'accès à l'ensemble de l'application à tous les utilisateurs non-admin, le temps d'une mise à jour ou d'une migration de base de données — aucune donnée n'est alors chargée ni écrite pour eux, ce qui évite tout conflit d'écriture pendant l'intervention. Un utilisateur déjà connecté au moment de l'activation est automatiquement déconnecté avec un message explicite ; un visiteur qui tente de se connecter pendant que le mode est actif en est empêché de la même façon. Un administrateur garde toujours un accès complet, quel que soit l'état de ce réglage, et voit un bandeau d'avertissement lui rappelant que le mode est actif tant qu'il ne l'a pas désactivé. Un message optionnel peut être ajouté pour préciser la raison ou l'heure de retour prévue.</p>
     <h3>Seuils fiscaux</h3>
     <p>Un panneau « Seuils fiscaux » permet de tenir à jour, chaque année, les valeurs utilisées par le module Fiscalité (année de référence, plafond micro-BNC, franchise en base de TVA — base et majorée —, abattement forfaitaire et note de source) sans intervention technique. Ces seuils sont partagés par tous les utilisateurs du site.</p>
     <h3>Gestion des utilisateurs</h3>
@@ -6302,7 +6474,7 @@ const MANUAL_CHAPTERS = [
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
     <p>Deux outils d'import sont disponibles : « Importer (PropDesk) », qui lit un export JSON de PropDesk et fait correspondre automatiquement traders et PropFirms avant un aperçu détaillé et sélectif ; et « Importer migration (ancien site) », pour une sauvegarde JSON issue d'une ancienne version. Le bouton « Sauvegarde JSON » exporte l'intégralité des données du site pour archivage ou migration.</p>` },
-  { n:'18', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
+  { n:'19', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
     <p>Contralytix distingue plusieurs niveaux de droits sur les données, applicables à tous les enregistrements (traders, PropFirms, comptes, sessions, prépas de séance).</p>
     <h3>Propriété des enregistrements</h3>
     <p>Chaque enregistrement appartient à l'utilisateur qui l'a créé. Seuls ce créateur et les administrateurs peuvent le modifier ou le supprimer ; les autres utilisateurs le voient en lecture seule, signalé par un badge « Lecture seule ».</p>
@@ -6319,7 +6491,7 @@ function viewManuel(){
     <div class="panel" style="margin-bottom:20px;">
       <div class="panel-body">
         <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Manuel d'utilisation — Contralytix</div>
-        <div class="field-hint" style="margin:0 0 14px;">Version du document : septembre 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 15).</div>
+        <div class="field-hint" style="margin:0 0 14px;">Version du document : septembre 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 16).</div>
         <div class="manual-toc">
           ${MANUAL_CHAPTERS.map(c=>`<a href="#${c.id}" data-manual-anchor="${c.id}"><span class="mn">${c.n}</span>${c.title}</a>`).join('')}
         </div>
@@ -6359,6 +6531,7 @@ function viewConfidentialite(){
             <tr><td>Compte</td><td>Adresse e-mail, date d'inscription, dernière connexion (aucun mot de passe stocké — connexion par code à usage unique envoyé par e-mail, ou via Google)</td><td>Renseignées à l'inscription</td></tr>
             <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, justificatifs de payout (fichiers), notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
             <tr><td>Données déclaratives (Fiscalité)</td><td>Réglages déclaratifs (périodicité URSSAF, versement libératoire), déclarations et cases cochées de la checklist fiscale</td><td>Saisies par vous dans la page Fiscalité</td></tr>
+            <tr><td>Frais généraux</td><td>Frais liés à votre activité de trading mais non rattachés à un compte propfirm (abonnement, données de marché, hébergement, logiciels, formation...), montants, devises et dates</td><td>Saisis par vous dans la page Frais généraux</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
@@ -6411,7 +6584,7 @@ function viewConfidentialite(){
 
         <div class="rgpd-block">
           <h2>7. Sécurité</h2>
-          <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 18 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
+          <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 19 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
         </div>
 
         <div class="rgpd-block">
@@ -7108,15 +7281,74 @@ function viewAccounting(){
       </div>
     </div>`;
 
+  // Frais généraux — bloc séparé du tableau ci-dessus : contrairement aux dépenses de compte, un
+  // frais général n'a ni propfirm ni compte, et un trader seulement de façon optionnelle (voir
+  // claude/frais-generaux-module.md). Il n'a PAS ses propres filtres de période : il s'aligne sur
+  // la période active de la page (filtre "fa-month" ou ligne cliquée dans "Performance
+  // financière", via accountingPeriodFilter, qui gère aussi bien mois/trimestre/année). Le filtre
+  // trader principal s'applique aussi : un frais "partagé" (sans trader) reste toujours visible,
+  // un frais rattaché à un trader suit le filtre normalement. Seule la catégorie reste un filtre
+  // indépendant, puisqu'elle n'existe pas dans la barre de filtres principale.
+  const showGeneralExpenses = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+  const geLinesForNet = showGeneralExpenses ? computeGeneralExpenseLines()
+    .filter(l=>accountingPeriodFilter(l, f))
+    .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
+  const netGlobalMoney = showGeneralExpenses ? sumMoneyNet([...all.filter(x=>x.kind==='expense'), ...geLinesForNet], all.filter(x=>x.kind==='payout')) : null;
+  let generalExpensesBlock = '';
+  if(showGeneralExpenses){
+    const fg = state.filters.accountingGeneral;
+    let geLines = geLinesForNet.slice();
+    if(fg.category) geLines = geLines.filter(l=>l.category===fg.category);
+    geLines.sort((a,b)=>b.date.localeCompare(a.date));
+    const geMoney = sumMoneyLines(geLines);
+    const periodBadge = f.month ? periodLabel(f.month, f.periodGranularity||'month') : 'Toutes les périodes';
+    const geRows = geLines.length===0 ? `<tr><td colspan="5"><div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun frais général pour ces filtres.</div></td></tr>` :
+      geLines.map(l=>{
+        const cat = GENERAL_EXPENSE_CATEGORIES[l.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
+        const trader = l.traderId ? getTrader(l.traderId) : null;
+        return `<tr>
+          <td class="mono text-dim">${fmtDate(l.date)}</td>
+          <td><span class="badge badge-slate">${cat.icon} ${cat.short}</span></td>
+          <td class="text-dim">${escapeHtml(l.label)}</td>
+          <td>${trader ? `<span class="badge badge-accent">${escapeHtml(trader.pseudo)}</span>` : `<span class="text-faint">Partagé</span>`}</td>
+          <td class="num" style="color:var(--danger)">−${fmtMoneyDisp(l.amount, l.currency, l.fxRateToEur)}</td>
+        </tr>`;
+      }).join('');
+    generalExpensesBlock = `
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-head">
+        <div class="section-title">Frais généraux${infoTip("Frais liés à votre activité de trading mais non rattachés à un compte propfirm précis : abonnement plateforme, données de marché, hébergement, logiciels, formation... Voir la page Frais généraux. La période suit automatiquement le filtre mois/trimestre/année actif ci-dessus (barre de filtres ou ligne sélectionnée dans Performance financière).")}</div>
+        <div style="font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger)">${geLines.length>0?'−':''}${fmtSumMoney(geMoney)}</div>
+      </div>
+      <div class="filter-bar">
+        <div class="drf-btn" style="cursor:default;">${icon('calendar')}<span>${periodBadge}</span></div>
+        <select id="ag-category">
+          <option value="">Toutes catégories</option>
+          ${Object.entries(GENERAL_EXPENSE_CATEGORIES).map(([k,c])=>`<option value="${k}" ${fg.category===k?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
+        </select>
+        <div class="filter-bar-spacer"></div>
+        ${fg.category ? `<button class="pill-reset" id="ag-clear">Réinitialiser</button>` : ''}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th>Trader</th><th class="num">Montant</th></tr></thead>
+          <tbody>${geRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   return `
     ${filterBar}
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (filtrées)${infoTip("Somme des dépenses correspondant aux filtres actifs (trader, type, PropFirm, mois...). Change avec les filtres, contrairement au total du compte.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+    <div class="stats-grid" style="grid-template-columns:repeat(${showGeneralExpenses?4:3},1fr);">
+      <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (comptes propfirm)${infoTip("Somme des dépenses de comptes propfirm correspondant aux filtres actifs (trader, type, PropFirm, mois...). N'inclut pas tes frais généraux (voir le bloc dédié plus bas).")}</div><div class="stat-value">${fmtMoneyCur(totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
       <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (filtrés)${infoTip("Somme des payouts correspondant aux filtres actifs.")}</div><div class="stat-value">${fmtMoneyCur(totalPay, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
-      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net${infoTip("Payouts filtrés moins dépenses filtrées.")}</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      <div class="stat-tile" style="--rail:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (comptes propfirm)${infoTip("Payouts filtrés moins dépenses de comptes propfirm filtrées. N'inclut pas tes frais généraux — voir « Net global » ci-contre.")}</div><div class="stat-value" style="color:${(totalPay-totalExp)>=0?'var(--accent)':'var(--danger)'}">${(totalPay-totalExp)>=0?'+':''}${fmtMoneyCur(totalPay-totalExp, acctgMoney.currency)}</div>${acctgMoney.converted?`<div class="stat-sub">${convertedLabel(acctgMoney.converted, acctgMoney.mixed)}</div>`:''}</div>
+      ${showGeneralExpenses ? `<div class="stat-tile" style="--rail:${netGlobalMoney.net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais en ajoutant tes frais généraux du mois filtré (abonnement plateforme, données de marché...) — non rattachés à un compte, donc non filtrables par trader/propfirm. Vue la plus réaliste de ta rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobalMoney.net>=0?'var(--accent)':'var(--danger)'}">${netGlobalMoney.net>=0?'+':''}${fmtMoneyCur(netGlobalMoney.net, netGlobalMoney.currency)}</div>${netGlobalMoney.converted?`<div class="stat-sub">${convertedLabel(netGlobalMoney.converted, netGlobalMoney.mixed)}</div>`:''}</div>` : ''}
     </div>
     ${recapTable}
     <div class="panel">
+      <div class="panel-head"><div class="section-title">${showGeneralExpenses?'Historique (comptes propfirm)':'Historique'}</div></div>
       <div class="table-wrap free-blur-wrap">
         <table>
           <thead><tr><th>Date</th><th>Type</th><th>Trader</th><th>PropFirm</th><th>Compte</th><th class="num">Montant</th></tr></thead>
@@ -7125,6 +7357,7 @@ function viewAccounting(){
         ${freeBlurOverlayHtml(all.length, acctBlurred.size, 'lignes')}
       </div>
     </div>
+    ${generalExpensesBlock}
   `;
 }
 
@@ -7319,6 +7552,53 @@ function bilanCardHtml(entry, month){
     </div>`;
 }
 
+// Carte "Frais généraux" — pendant des cartes trader/propfirm ci-dessus, mais pour les frais qui
+// n'appartiennent à aucun des deux (abonnement plateforme, données de marché...). Répartition par
+// catégorie plutôt que dépenses/payouts (un frais général n'a pas de recette en face) — voir
+// claude/frais-generaux-module.md.
+function generalExpenseBilanCardHtml(lines, periodLabelStr, cardId, fileName){
+  const { useEur: converted, mixed, currency } = resolveDisplayCurrency(lines);
+  const val = (x)=> converted ? toEur(x.amount, x.fxRateToEur) : Number(x.amount||0);
+  const total = lines.reduce((s,l)=>s+val(l),0);
+  const byCat = new Map();
+  lines.forEach(l=>{
+    const k = l.category || 'AUTRE';
+    byCat.set(k, (byCat.get(k)||0) + val(l));
+  });
+  const catRows = Array.from(byCat.entries())
+    .map(([k,v])=>({ v, meta: GENERAL_EXPENSE_CATEGORIES[k]||GENERAL_EXPENSE_CATEGORIES.AUTRE }))
+    .sort((a,b)=>b.v-a.v);
+  return `
+    <div style="display:flex;flex-direction:column;align-items:stretch;">
+      <div class="bilan-card" id="${cardId}" style="width:360px;border-radius:20px;padding:26px;background:linear-gradient(155deg,#151C25 0%,#0B0F14 70%);border:1px solid rgba(255,255,255,0.07);box-shadow:0 18px 38px rgba(0,0,0,0.38);position:relative;overflow:hidden;font-family:'Inter',sans-serif;color:#E8EDF2;">
+        <div style="position:absolute;top:-46px;right:-46px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(217,166,90,0.16),transparent 70%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-60px;left:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(232,92,74,0.10),transparent 70%);pointer-events:none;"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;position:relative;">
+          <div style="width:42px;height:42px;border-radius:12px;background:rgba(217,166,90,0.14);display:flex;align-items:center;justify-content:center;font-size:20px;">🧰</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Frais généraux</div>
+            <div style="font-size:11px;color:#8B98A5;text-transform:uppercase;letter-spacing:.07em;margin-top:2px;">${periodLabelStr}${converted?` · ${convertedLabel(converted, mixed)}`:''}</div>
+          </div>
+        </div>
+        ${catRows.length===0 ? `<div style="font-size:12.5px;color:#8B98A5;padding:14px 0;position:relative;">Aucun frais général pour cette période.</div>` : `
+        <div style="display:flex;flex-direction:column;gap:8px;position:relative;margin-bottom:16px;">
+          ${catRows.map(c=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+              <span style="font-size:14px;">${c.meta.icon}</span>
+              <div style="flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.meta.short}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E85C4A;">−${fmtMoneyCur(c.v, currency)}</div>
+            </div>`).join('')}
+        </div>`}
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(232,92,74,0.12);border-radius:12px;padding:13px 16px;position:relative;">
+          <span style="font-size:11.5px;color:#8B98A5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:#E85C4A;">${total>0?'−':''}${fmtMoneyCur(total, currency)}</span>
+        </div>
+        <div style="margin-top:16px;text-align:center;font-size:9.5px;color:#4B5560;letter-spacing:.1em;text-transform:uppercase;position:relative;">Contralytix · Gestion Propfirm</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px;align-self:flex-start;" data-export-card="${cardId}" data-export-name="${fileName}">${icon('download')}Télécharger PNG</button>
+    </div>`;
+}
+
 function viewBilanVisuel(){
   const f = state.filters.bilan;
   const modeToggle = `
@@ -7354,16 +7634,25 @@ function viewBilanVisuel(){
         ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
       </div>`;
 
-    const grid = entries.length===0
+    const showGeneralExpensesBilan = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+    // Un frais "partagé" (sans trader) reste toujours visible ; un frais rattaché à un trader
+    // suit le filtre trader de la page, comme partout ailleurs (voir claude/frais-generaux-module.md).
+    const geCardMonthLines = showGeneralExpensesBilan ? computeGeneralExpenseLines()
+      .filter(l=>monthKey(l.date)===month)
+      .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
+    const geCardHtml = showGeneralExpensesBilan
+      ? generalExpenseBilanCardHtml(geCardMonthLines, monthLabel(month), `bilan-card-frais-generaux-${month}`, `Bilan_FraisGeneraux_${month}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
+      : '';
+    const grid = (entries.length===0 && !geCardHtml)
       ? emptyState('camera','Aucune donnée pour ce mois','Choisis un autre mois, ou vérifie que des dépenses / payouts sont enregistrés pour la période.')
-      : `<div style="display:flex;flex-wrap:wrap;gap:26px;">${entries.map(e=>bilanCardHtml(e, month)).join('')}</div>`;
+      : `<div style="display:flex;flex-wrap:wrap;gap:26px;">${entries.map(e=>bilanCardHtml(e, month)).join('')}${geCardHtml}</div>`;
 
     return `
       ${modeToggle}
       <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois)${infoTip("Somme des dépenses du mois sélectionné (et du filtre trader s'il est actif), tous traders/comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses (mois, comptes propfirm)${infoTip("Somme des dépenses de comptes propfirm du mois sélectionné (et du filtre trader s'il est actif), tous traders/comptes confondus. N'inclut pas tes frais généraux — voir la carte dédiée ci-dessous.")}</div><div class="stat-value">${fmtMoneyCur(totalExp, bilanMoney.currency)}</div></div>
         <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts (mois)${infoTip("Somme des payouts reçus le mois sélectionné (et du filtre trader s'il est actif).")}</div><div class="stat-value">${fmtMoneyCur(totalPay, bilanMoney.currency)}</div></div>
-        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois)${infoTip("Payouts du mois moins dépenses du mois.")}</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
+        <div class="stat-tile" style="--rail:${totalNet>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (mois, comptes propfirm)${infoTip("Payouts du mois moins dépenses de comptes propfirm du mois. N'inclut pas tes frais généraux (voir la carte « Frais généraux » ci-dessous pour leur total séparé).")}</div><div class="stat-value" style="color:${totalNet>=0?'var(--accent)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoneyCur(totalNet, bilanMoney.currency)}</div></div>
       </div>
       ${filterBar}
       ${grid}
@@ -7393,10 +7682,22 @@ function viewBilanVisuel(){
       ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
     </div>`;
 
+  const showGeneralExpensesBilanGlobal = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
+  const geKeyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
+  const geGlobalLines = showGeneralExpensesBilanGlobal ? computeGeneralExpenseLines()
+    .filter(l=>geKeyFn(l.date)===periodKey)
+    .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
+  const geGlobalCardHtml = showGeneralExpensesBilanGlobal
+    ? generalExpenseBilanCardHtml(geGlobalLines, periodLabel(periodKey, granularity), `bilan-global-card-frais-generaux-${periodKey}`, `Bilan_Global_FraisGeneraux_${periodKey}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
+    : '';
+
   return `
     ${modeToggle}
     ${periodBar}
-    ${bilanGlobalCardHtml(rows, periodKey, granularity)}
+    <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;">
+      ${bilanGlobalCardHtml(rows, periodKey, granularity)}
+      ${geGlobalCardHtml}
+    </div>
   `;
 }
 
@@ -7868,13 +8169,17 @@ function computeFiscalYearData(year){
     yearPayouts, yearExpenses,
   };
 }
-// Frais (challenge + activation + mensualités) déductibles au régime réel, mois par mois — au
-// contraire du micro-BNC (abattement forfaitaire, frais réels non pris en compte individuellement),
-// le régime réel demande le détail des charges réellement engagées période par période. Toujours
-// mensuel (indépendant de la périodicité URSSAF, qui ne concerne que le CA à déclarer) : demande du
-// 22/08/2026, "au cas où le passage au régime réel doit se faire" — pour ne pas avoir à reconstituer
-// cet historique après coup si le besoin se présente.
+// Frais (challenge + activation + mensualités + frais généraux) déductibles au régime réel, mois
+// par mois — au contraire du micro-BNC (abattement forfaitaire, frais réels non pris en compte
+// individuellement), le régime réel demande le détail des charges réellement engagées période par
+// période. Toujours mensuel (indépendant de la périodicité URSSAF, qui ne concerne que le CA à
+// déclarer) : demande du 22/08/2026, "au cas où le passage au régime réel doit se faire" — pour ne
+// pas avoir à reconstituer cet historique après coup si le besoin se présente. Les frais généraux
+// (abonnement plateforme, données de marché...) sont eux aussi des charges professionnelles
+// déductibles au réel bien que non rattachées à un compte propfirm — ajoutés le 16/09/2026 dans
+// leur propre colonne, à la demande de l'utilisateur (voir claude/frais-generaux-module.md).
 function computeMonthlyFraisData(year, yearExpenses){
+  const generalLines = fraisGenerauxModuleEnabled() ? computeGeneralExpenseLines() : [];
   return Array.from({length:12}, (_,i)=>{
     const m = i+1;
     const mk = `${year}-${pad2(m)}`;
@@ -7886,7 +8191,9 @@ function computeMonthlyFraisData(year, yearExpenses){
       else if(e.type==='MENSUALITE') monthly += v;
       else challenge += v; // ACHAT
     });
-    return { mk, label:`${MONTH_NAMES_LONG[m-1]} ${year}`, challenge, activation, monthly, total: challenge+activation+monthly, count: lines.length };
+    const generalMonthLines = generalLines.filter(l=>monthKey(l.date)===mk);
+    const general = generalMonthLines.reduce((s,l)=>s+toEur(l.amount, l.fxRateToEur), 0);
+    return { mk, label:`${MONTH_NAMES_LONG[m-1]} ${year}`, challenge, activation, monthly, general, total: challenge+activation+monthly+general, count: lines.length+generalMonthLines.length };
   });
 }
 // Identifiant stable de checklist pour la case "3916-bis déclaré" d'un système de paiement donné
@@ -8066,7 +8373,7 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
     doc.text(pdfSafe(`Frais par mois — ${year}`), 48, y);
     y += 18;
-    const fraisCols = [{ label:'Mois', x:56 }, { label:'Challenge', x:200 }, { label:'Activation', x:300 }, { label:'Mensualités', x:400 }, { label:'Total', x:490 }];
+    const fraisCols = [{ label:'Mois', x:56 }, { label:'Challenge', x:165 }, { label:'Activation', x:235 }, { label:'Mensualités', x:315 }, { label:'Frais généraux', x:400 }, { label:'Total', x:495 }];
     function fraisTableHeader(){
       doc.setFillColor(30,34,40);
       doc.rect(48, y-12, 499, 20, 'F');
@@ -8074,7 +8381,7 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
       fraisCols.forEach(c=>doc.text(c.label, c.x, y+1));
       y += 20;
     }
-    const fraisRows = monthlyFrais.filter(m=>m.count>0);
+    const fraisRows = monthlyFrais.filter(m=>m.count>0 || m.general>0);
     if(!fraisRows.length){
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(140);
       doc.text(pdfSafe(`Aucun frais pour ${year}.`), 56, y); y += 18;
@@ -8084,11 +8391,12 @@ function buildFiscalYearPdfBlob(year, th, data, alerts, doneCount, totalChecklis
       fraisRows.forEach((m,i)=>{
         if(y > pageBottom){ doc.addPage(); y = 60; fraisTableHeader(); }
         if(i%2===1){ doc.setFillColor(245,246,248); doc.rect(48, y-11, 499, 16, 'F'); }
-        doc.setTextColor(40,40,40); doc.text(pdfSafe(m.label), 56, y+1, { maxWidth:135 });
-        doc.setTextColor(90,90,90); doc.text(pdfSafe(m.challenge>0?fmtEur(m.challenge):'—'), 200, y+1);
-        doc.text(pdfSafe(m.activation>0?fmtEur(m.activation):'—'), 300, y+1);
-        doc.text(pdfSafe(m.monthly>0?fmtEur(m.monthly):'—'), 400, y+1);
-        doc.setTextColor(200,60,50); doc.text(pdfSafe(m.total>0?fmtEur(m.total):'—'), 490, y+1);
+        doc.setTextColor(40,40,40); doc.text(pdfSafe(m.label), 56, y+1, { maxWidth:105 });
+        doc.setTextColor(90,90,90); doc.text(pdfSafe(m.challenge>0?fmtEur(m.challenge):'—'), 165, y+1);
+        doc.text(pdfSafe(m.activation>0?fmtEur(m.activation):'—'), 235, y+1);
+        doc.text(pdfSafe(m.monthly>0?fmtEur(m.monthly):'—'), 315, y+1);
+        doc.text(pdfSafe(m.general>0?fmtEur(m.general):'—'), 400, y+1);
+        doc.setTextColor(200,60,50); doc.text(pdfSafe(m.total>0?fmtEur(m.total):'—'), 495, y+1);
         y += 16;
       });
     }
@@ -8259,6 +8567,189 @@ function computeFiscalAlerts(th, data, urssafPeriods){
   return alerts;
 }
 
+function viewFraisGeneraux(){
+  const today = todayISO();
+  const rows = [...(state.general_expenses||[])].sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  const isActive = r => r.recurrence!=='UNIQUE' && (!r.endDate || r.endDate>=today);
+
+  // "Frais mensuel récurrent (estimé)" : abonnements actifs uniquement, l'annuel ramené à un
+  // équivalent mensuel (÷12) pour être comparable à un abonnement mensuel classique.
+  const monthlyEquivItems = rows.filter(isActive).map(r=>({
+    amount: r.recurrence==='ANNUEL' ? Number(r.amount)/12 : Number(r.amount),
+    currency: r.currency, fxRateToEur: r.fxRateToEur,
+  }));
+  const monthlyEquivMoney = sumMoneyLines(monthlyEquivItems);
+
+  const yearLines = computeGeneralExpenseLines().filter(l=>l.date && l.date.slice(0,4)===String(Number(today.slice(0,4))));
+  const yearMoney = sumMoneyLines(yearLines);
+
+  const activeSubsCount = rows.filter(isActive).length;
+
+  const moduleHidden = !fraisGenerauxModuleEnabled();
+
+  return `
+    ${moduleHidden ? `<div class="field-hint" style="margin-bottom:14px;color:var(--gold);">${icon('lock')} Module masqué pour les autres utilisateurs (Admin &gt; Gestion des pages) — tu le vois car tu es administrateur.</div>` : ''}
+    <div class="field-hint" style="margin-bottom:16px;">Suivi des frais liés à ton activité de trading mais non rattachés à un compte propfirm précis : abonnement plateforme (Contralytix lui-même, en mensuel, annuel ou lifetime), flux de données de marché (CME, CBOT...), hébergement VPS, logiciels, formation, ou tout autre frais récurrent ou ponctuel.</div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Vue d'ensemble</div></div>
+      <div class="panel-body">
+        <div class="stats-grid" style="margin-bottom:0;">
+          <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Frais mensuel récurrent (estimé)${infoTip("Somme des abonnements actifs (mensuels + annuels ramenés à un équivalent mensuel, ÷12). Les frais ponctuels ne sont pas comptés ici.")}</div><div class="stat-value">${fmtMoneyCur(monthlyEquivMoney.amount, monthlyEquivMoney.currency)}</div><div class="stat-sub">${activeSubsCount} abonnement(s) actif(s)${monthlyEquivMoney.converted?` · ${convertedLabel(monthlyEquivMoney.converted, monthlyEquivMoney.mixed)}`:''}</div></div>
+          <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Total ${today.slice(0,4)}${infoTip("Somme de tous les frais généraux (ponctuels + échéances des abonnements récurrents) tombant sur l'année en cours.")}</div><div class="stat-value">${fmtMoneyCur(yearMoney.amount, yearMoney.currency)}</div><div class="stat-sub">${yearLines.length} ligne(s)${yearMoney.converted?` · ${convertedLabel(yearMoney.converted, yearMoney.mixed)}`:''}</div></div>
+          <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Frais enregistrés${infoTip("Nombre total de frais déclarés (abonnements + frais ponctuels), tous statuts confondus.")}</div><div class="stat-value">${rows.length}</div><div class="stat-sub">abonnements &amp; frais ponctuels</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="section-title">Détail des frais</div></div>
+      <div class="panel-body">
+        ${rows.length===0 ? emptyState('wallet','Aucun frais général enregistré', "Ajoute l'abonnement Contralytix, un flux de données de marché, un hébergement VPS... via « Nouveau frais » en haut de la page.") : `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Catégorie</th><th>Libellé</th><th>Trader</th><th>Montant</th><th>Récurrence</th><th>Période</th><th>Note</th><th></th></tr></thead>
+            <tbody>
+              ${rows.map(r=>{
+                const cat = GENERAL_EXPENSE_CATEGORIES[r.category] || GENERAL_EXPENSE_CATEGORIES.AUTRE;
+                const recLabel = r.recurrence==='MENSUEL' ? '/ mois' : r.recurrence==='ANNUEL' ? '/ an' : 'Ponctuel';
+                const period = r.recurrence==='UNIQUE' ? fmtDate(r.startDate) : `Depuis ${fmtDate(r.startDate)}${r.endDate ? ` → résilié le ${fmtDate(r.endDate)}` : ' · en cours'}`;
+                const trader = r.traderId ? getTrader(r.traderId) : null;
+                return `<tr>
+                  <td><span class="badge badge-slate">${cat.icon} ${cat.short}</span></td>
+                  <td>${escapeHtml(r.label)}</td>
+                  <td>${trader ? `<span class="badge badge-accent">${escapeHtml(trader.pseudo)}</span>` : `<span class="text-faint">Partagé</span>`}</td>
+                  <td class="num" style="color:var(--danger)">${fmtMoneyDisp(r.amount, r.currency, r.fxRateToEur)}</td>
+                  <td class="text-dim">${recLabel}</td>
+                  <td class="text-dim">${period}</td>
+                  <td class="text-dim">${r.note?escapeHtml(r.note):'—'}</td>
+                  <td>${canEdit(r) ? `<div style="display:flex;gap:6px;justify-content:flex-end;">
+                      <button class="btn btn-ghost btn-sm" data-edit-general-expense="${r.id}">${icon('edit')}</button>
+                      <button class="btn btn-ghost btn-sm" data-del-general-expense="${r.id}" style="color:var(--danger)">${icon('trash')}</button>
+                    </div>` : `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`}
+      </div>
+    </div>
+  `;
+}
+function generalExpenseFormModal(existing){
+  const e = existing && existing.id ? existing : { id: uid('gex'), category:'PLATEFORME', label:'', recurrence:'MENSUEL', amount:'', currency:'EUR', fxRateToEur:1, startDate: todayISO(), endDate:'', note:'', traderId:'', createdBy: currentUserId() };
+  openModal({
+    title: existing && existing.id ? 'Modifier le frais' : 'Nouveau frais général',
+    bodyHtml: `
+      <div class="field-row">
+        <div class="field"><label>Catégorie</label>
+          <select id="gef-category">
+            ${Object.entries(GENERAL_EXPENSE_CATEGORIES).map(([k,v])=>`<option value="${k}" ${e.category===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Récurrence</label>
+          <select id="gef-recurrence">
+            <option value="UNIQUE" ${e.recurrence==='UNIQUE'?'selected':''}>Ponctuel</option>
+            <option value="MENSUEL" ${e.recurrence==='MENSUEL'?'selected':''}>Mensuel</option>
+            <option value="ANNUEL" ${e.recurrence==='ANNUEL'?'selected':''}>Annuel</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Libellé</label><input id="gef-label" placeholder="ex: Contralytix Premium annuel, Databento CME/CBOT..." value="${escapeHtml(e.label)}"/></div>
+      <div class="field"><label>Trader (optionnel)</label>
+        <select id="gef-trader">
+          <option value="" ${!e.traderId?'selected':''}>— Partagé (aucun trader) —</option>
+          ${state.traders.map(t=>`<option value="${t.id}" ${e.traderId===t.id?'selected':''}>${escapeHtml(t.pseudo)}</option>`).join('')}
+        </select>
+        <div class="field-hint">Laisse sur « Partagé » pour un frais qui concerne ton activité globale (ex: abonnement Contralytix). Rattache-le à un trader s'il est spécifique à sa stratégie (ex: un flux de données dédié).</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Montant</label><input id="gef-amount" type="number" step="0.01" value="${e.amount}"/></div>
+        <div class="field"><label>Devise</label>
+          <select id="gef-currency">
+            ${['EUR','USD'].map(c=>`<option value="${c}" ${e.currency===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field" id="gef-fxrate-wrap" style="display:${e.currency==='EUR'?'none':'block'};">
+        <label>Taux EUR/devise à la date de début</label>
+        <input id="gef-fxrate" type="number" step="0.0001" value="${e.fxRateToEur&&e.currency!=='EUR'?e.fxRateToEur:''}" placeholder="ex: 1.0821"/>
+        <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label id="gef-startdate-label">${e.recurrence==='UNIQUE'?'Date':'Date de début (1ère échéance)'}</label><input id="gef-startdate" type="date" value="${e.startDate}"/></div>
+        <div class="field" id="gef-enddate-wrap" style="display:${e.recurrence==='UNIQUE'?'none':'block'};">
+          <label>Date de résiliation (optionnel)</label>
+          <input id="gef-enddate" type="date" value="${e.endDate||''}"/>
+          <div class="field-hint">À remplir seulement si l'abonnement est résilié.</div>
+        </div>
+      </div>
+      <div class="field"><label>Note (optionnel)</label><input id="gef-note" value="${escapeHtml(e.note||'')}"/></div>
+      <div id="gef-error" class="error-text"></div>
+    `,
+    footHtml: `<button class="btn btn-outline" id="gef-cancel">Annuler</button><button class="btn btn-primary" id="gef-save">Enregistrer</button>`,
+    onMount(){
+      const currencySelect = document.getElementById('gef-currency');
+      const recurrenceSelect = document.getElementById('gef-recurrence');
+      let fxFetchPromise = null;
+      async function autofillFxRate(force){
+        const currency = currencySelect.value;
+        const rateInput = document.getElementById('gef-fxrate');
+        document.getElementById('gef-fxrate-wrap').style.display = currency==='EUR' ? 'none' : 'block';
+        if(currency==='EUR') return;
+        if(!force && rateInput.value) return;
+        if(force) rateInput.value = '';
+        const date = document.getElementById('gef-startdate').value || todayISO();
+        rateInput.placeholder = 'Récupération du taux BCE...';
+        rateInput.disabled = true;
+        try{
+          const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date}&currency=${currency}`);
+          const data = await res.json();
+          if(res.ok && data.rateToEur){ rateInput.value = data.rateToEur; }
+          else { showToast(`Taux BCE ${currency} introuvable pour cette date : merci de le saisir toi-même.`, 'danger'); }
+        }catch(err){
+          showToast(`Impossible de récupérer le taux BCE pour ${currency} : merci de le saisir toi-même.`, 'danger');
+        } finally {
+          rateInput.disabled = false;
+          rateInput.placeholder = 'ex: 1.0821';
+        }
+      }
+      currencySelect.addEventListener('change', ()=>{ fxFetchPromise = autofillFxRate(); });
+      document.getElementById('gef-startdate').addEventListener('change', ()=>{ fxFetchPromise = autofillFxRate(true); });
+      if(currencySelect.value!=='EUR' && !document.getElementById('gef-fxrate').value){ fxFetchPromise = autofillFxRate(); }
+      recurrenceSelect.addEventListener('change', ()=>{
+        const isUnique = recurrenceSelect.value==='UNIQUE';
+        document.getElementById('gef-startdate-label').textContent = isUnique ? 'Date' : 'Date de début (1ère échéance)';
+        document.getElementById('gef-enddate-wrap').style.display = isUnique ? 'none' : 'block';
+      });
+      document.getElementById('gef-cancel').onclick = closeModal;
+      document.getElementById('gef-save').onclick = async ()=>{
+        const category = document.getElementById('gef-category').value;
+        const recurrence = document.getElementById('gef-recurrence').value;
+        const label = document.getElementById('gef-label').value.trim();
+        const amount = Number(document.getElementById('gef-amount').value);
+        const currency = document.getElementById('gef-currency').value;
+        const fxRateInputVal = document.getElementById('gef-fxrate').value;
+        const startDate = document.getElementById('gef-startdate').value;
+        const endDate = recurrence==='UNIQUE' ? '' : (document.getElementById('gef-enddate').value || '');
+        const note = document.getElementById('gef-note').value.trim();
+        const traderId = document.getElementById('gef-trader').value || null;
+        if(!label){ document.getElementById('gef-error').textContent = 'Le libellé est obligatoire.'; return; }
+        if(!amount || amount<=0){ document.getElementById('gef-error').textContent = 'Montant invalide.'; return; }
+        if(!startDate){ document.getElementById('gef-error').textContent = 'Date obligatoire.'; return; }
+        if(currency!=='EUR' && !fxRateInputVal){ document.getElementById('gef-error').textContent = "Taux de change introuvable automatiquement : merci de le saisir toi-même."; return; }
+        if(fxFetchPromise) await fxFetchPromise;
+        const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal||document.getElementById('gef-fxrate').value);
+        const payload = { ...e, category, recurrence, label, amount, currency, fxRateToEur, startDate, endDate: endDate||null, note, traderId, createdBy: e.createdBy || currentUserId() };
+        if(!existing || !existing.id) payload.createdAt = new Date().toISOString();
+        await upsert('general_expenses', payload);
+        await logActivity(existing&&existing.id?'UPDATE':'CREATE', 'general_expense', e.id, `${label} · ${fmtMoneyDisp(amount, currency, fxRateToEur)}`);
+        showToast(existing&&existing.id ? 'Frais mis à jour.' : 'Frais ajouté.');
+        closeModal(); render();
+      };
+    }
+  });
+}
 function viewFiscalite(){
   const th = state.fiscalThresholds || FISCAL_THRESHOLDS_FALLBACK;
   const year = state.fiscalYear || Number(todayISO().slice(0,4));
@@ -8413,17 +8904,18 @@ function viewFiscalite(){
 
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="section-title">Frais par mois — ${year}</div></div>
-      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">Au régime micro-BNC, ces frais ne changent rien (abattement forfaitaire) — ce tableau sert surtout à garder l'historique prêt au cas où un passage au régime réel deviendrait pertinent, puisque ce régime demande le détail des charges réellement engagées, mois par mois.</div>
+      <div class="field-hint" style="margin:0 0 10px;padding:14px 18px 0;">Au régime micro-BNC, ces frais ne changent rien (abattement forfaitaire) — ce tableau sert surtout à garder l'historique prêt au cas où un passage au régime réel deviendrait pertinent, puisque ce régime demande le détail des charges réellement engagées, mois par mois (y compris les frais généraux — abonnement plateforme, données de marché... — qui sont eux aussi des charges professionnelles déductibles au réel bien que non rattachés à un compte propfirm).</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Mois</th><th class="num">Frais Challenge</th><th class="num">Frais Activation</th><th class="num">Mensualités</th><th class="num">Total</th></tr></thead>
+          <thead><tr><th>Mois</th><th class="num">Frais Challenge</th><th class="num">Frais Activation</th><th class="num">Mensualités</th><th class="num">Frais généraux${infoTip("Abonnement plateforme, données de marché, hébergement... déclarés dans la page Frais généraux — non rattachés à un compte propfirm mais tout aussi déductibles au régime réel.")}</th><th class="num">Total</th></tr></thead>
           <tbody>
-            ${monthlyFrais.every(m=>m.count===0) ? `<tr><td colspan="5"><div class="empty-sub" style="padding:16px 0;">Aucun frais pour ${year}.</div></td></tr>` :
+            ${monthlyFrais.every(m=>m.count===0) ? `<tr><td colspan="6"><div class="empty-sub" style="padding:16px 0;">Aucun frais pour ${year}.</div></td></tr>` :
               monthlyFrais.map(m=>`<tr>
                 <td>${escapeHtml(m.label)}</td>
                 <td class="num text-dim">${m.challenge>0?fmtEur(m.challenge):'—'}</td>
                 <td class="num text-dim">${m.activation>0?fmtEur(m.activation):'—'}</td>
                 <td class="num text-dim">${m.monthly>0?fmtEur(m.monthly):'—'}</td>
+                <td class="num text-dim">${m.general>0?fmtEur(m.general):'—'}</td>
                 <td class="num" style="font-weight:600;color:var(--danger)">${m.total>0?fmtEur(m.total):'—'}</td>
               </tr>`).join('')}
           </tbody>
@@ -9125,6 +9617,7 @@ function viewAdmin(){
     </div>`;
 
   const ann = state.appSettings.announcement || { enabled:false, message:'', type:'info' };
+  const maint = state.appSettings.maintenance || { enabled:false, message:'' };
   const settingsPanel = `
     <div class="panel-grid" style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
       <div class="panel">
@@ -9169,6 +9662,23 @@ function viewAdmin(){
         </div>
         <button class="btn btn-primary btn-sm" id="ann-save">${icon('check')}Enregistrer</button>
         </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;${maint.enabled?'border-color:var(--danger);':''}">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('shield')}Mode maintenance${maint.enabled?`<span class="badge badge-danger">Actif</span>`:''}</div></div>
+      <div class="panel-body">
+      <div class="field-hint" style="margin:0 0 12px;">Bloque l’accès à toute l’application aux utilisateurs non-admin (aucune donnée n’est chargée ni écrite pour eux) — utile pendant une mise à jour ou une migration en base pour éviter tout conflit d’écriture. Les utilisateurs déjà connectés sont automatiquement déconnectés dès l’activation. Toi (admin) gardes un accès complet, quel que soit l’état de ce réglage.</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;">
+          <label class="switch"><input type="checkbox" id="maint-enabled" ${maint.enabled?'checked':''}/><span class="switch-track"></span></label>
+          Activer le mode maintenance
+        </label>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Message affiché aux utilisateurs (optionnel)</label>
+        <textarea id="maint-message" rows="2" placeholder="Ex : Mise à jour en cours, retour prévu vers 23h." style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;">${escapeHtml(maint.message||'')}</textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" id="maint-save">${icon('check')}Enregistrer</button>
       </div>
     </div>
     <div class="panel" style="margin-bottom:16px;">
@@ -9836,6 +10346,26 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
+  // Module Frais généraux : édition/suppression directement depuis la page (pas de modale de
+  // liste comme les resets — un frais général n'est pas rattaché à un compte, donc il n'y a pas
+  // de "fiche" naturelle depuis laquelle l'ouvrir, la page EST déjà la liste).
+  document.querySelectorAll('[data-edit-general-expense]').forEach(b=>{
+    b.onclick = ()=>{
+      const row = (state.general_expenses||[]).find(x=>x.id===b.dataset.editGeneralExpense);
+      if(row) generalExpenseFormModal(row);
+    };
+  });
+  document.querySelectorAll('[data-del-general-expense]').forEach(b=>{
+    b.onclick = ()=>{
+      const row = (state.general_expenses||[]).find(x=>x.id===b.dataset.delGeneralExpense);
+      confirmModal('Supprimer ce frais général ? Toutes ses échéances passées et futures disparaîtront des totaux.', async ()=>{
+        await remove('general_expenses', b.dataset.delGeneralExpense);
+        if(row) await logActivity('DELETE', 'general_expense', row.id, `${row.label} · ${fmtMoneyDisp(row.amount, row.currency, row.fxRateToEur)}`);
+        showToast('Frais supprimé.');
+        renderView();
+      });
+    };
+  });
   // Module Fiscalité : checklist déclarative (cases à cocher, persistées par utilisateur/année)
   document.querySelectorAll('[data-fiscal-check-box]').forEach(cb=>{
     cb.onclick = (e) => { e.stopPropagation(); toggleFiscalChecklistItem(cb.dataset.fiscalCheckBox, state.fiscalYear || Number(todayISO().slice(0,4))); };
@@ -10262,6 +10792,12 @@ function bindViewEvents(){
     state.filters.accounting.recapGranularity = b.dataset.recapGran;
     renderView();
   });
+  // Filtres du bloc "Frais généraux" (page Comptabilité) — indépendants des filtres du tableau
+  // principal ci-dessus (pas de compte/trader/propfirm à filtrer, voir viewAccounting()).
+  const agCategoryEl = document.getElementById('ag-category');
+  if(agCategoryEl) agCategoryEl.addEventListener('change', ()=>{ state.filters.accountingGeneral.category = agCategoryEl.value; renderView(); });
+  const agClearBtn = document.getElementById('ag-clear');
+  if(agClearBtn) agClearBtn.onclick = ()=>{ state.filters.accountingGeneral.category = ''; renderView(); };
 
   // Accounts actions
   document.querySelectorAll('[data-edit-account]').forEach(b=>b.onclick=()=>accountFormModal({ existing: getAccount(b.dataset.editAccount) }));
@@ -10389,6 +10925,18 @@ function bindViewEvents(){
     const type = document.getElementById('ann-type').value;
     if(enabled && !message.trim()){ showToast('Ajoute un message avant d\u2019activer la bannière.', 'danger'); return; }
     saveAnnouncement(enabled, message, type);
+  };
+  // Admin : mode maintenance
+  const maintSaveBtn = document.getElementById('maint-save');
+  if(maintSaveBtn) maintSaveBtn.onclick = ()=>{
+    const enabled = document.getElementById('maint-enabled').checked;
+    const message = document.getElementById('maint-message').value;
+    const wasEnabled = state.appSettings.maintenance && state.appSettings.maintenance.enabled;
+    if(enabled && !wasEnabled){
+      confirmModal('Tous les utilisateurs non-admin actuellement connect\u00e9s vont \u00eatre d\u00e9connect\u00e9s dans les secondes qui suivent, et ne pourront plus se reconnecter tant que le mode maintenance est actif. Toi seul (admin) garderas l\u2019acc\u00e8s. Confirmer l\u2019activation\u00a0?', ()=> saveMaintenanceMode(enabled, message));
+    } else {
+      saveMaintenanceMode(enabled, message);
+    }
   };
   const prSaveBtn = document.getElementById('pr-save');
   if(prSaveBtn) prSaveBtn.onclick = async ()=>{
@@ -12926,6 +13474,45 @@ function applyFiscalLandingVisibility(){
     if(el) el.style.display = hidden ? 'none' : '';
   });
 }
+// Même mécanisme que applyFiscalLandingVisibility ci-dessus, pour le module Frais généraux.
+function applyFraisGenerauxLandingVisibility(){
+  const hidden = !!(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('frais-generaux'));
+  ['ml-feature-frais-generaux','ml-pricing-frais-generaux','ml-faq-frais-generaux'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = hidden ? 'none' : '';
+  });
+}
+// Bannière de maintenance sur la landing publique (visiteur non connecté, avant même de tenter de
+// se connecter) — même source que la bannière affichée sur l'écran de connexion (renderAuthScreen)
+// et dans l'app pour les admins (voir maintenanceModeActive()/claude/mode-maintenance.md).
+function applyMaintenanceLandingVisibility(){
+  const banner = document.getElementById('ml-maintenance-banner');
+  if(!banner) return;
+  const maint = state.appSettings && state.appSettings.maintenance;
+  if(maint && maint.enabled){
+    banner.style.display = 'flex';
+    banner.innerHTML = `${icon('shield')}<span><strong>Maintenance en cours.</strong> L’application est temporairement réservée aux administrateurs${maint.message ? ` — ${escapeHtml(maint.message)}` : '.'}</span>`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+// Vérifie périodiquement (toutes les 30s) le drapeau global de maintenance : si un utilisateur
+// non-admin est en train d'utiliser l'app au moment où un admin active le mode maintenance, il est
+// automatiquement déconnecté (voir onAuthStateChange, branche !session, state.maintenanceKickPending)
+// plutôt que de rester sur une session ouverte pouvant continuer à écrire en base. Rafraîchit aussi
+// la bannière de la landing publique pour un visiteur pas encore connecté. Décision utilisateur du
+// 16/09/2026 : déconnexion forcée avec message, voir claude/mode-maintenance.md.
+function startMaintenanceWatch(){
+  setInterval(async ()=>{
+    await loadAppSettings();
+    if(appStarted && !isAdmin() && maintenanceModeActive()){
+      state.maintenanceKickPending = true;
+      await supabaseClient.auth.signOut();
+    } else if(!appStarted){
+      applyMaintenanceLandingVisibility();
+    }
+  }, 30000);
+}
 // Affiche les vrais montants sur la page d'accueil publique (visiteur non connecté) au lieu de
 // les cacher derrière "disponibles une fois connecté" — un tarif masqué est un frein à la
 // conversion, pas une protection utile. Utilise state.pricingSettings (rempli par
@@ -12968,6 +13555,9 @@ function applyLandingPricing(){
   // valeurs par défaut, rien n'est masqué sur la landing tant que ce n'est pas corrigé côté DB).
   await loadAppSettings();
   applyFiscalLandingVisibility();
+  applyFraisGenerauxLandingVisibility();
+  applyMaintenanceLandingVisibility();
+  startMaintenanceWatch();
   // Idem pour les tarifs affichés sur la landing publique (voir applyLandingPricing ci-dessus) :
   // chargés avant même la vérification de session, avec repli silencieux sur les valeurs par
   // défaut de state.pricingSettings si la lecture anonyme d'app_settings n'est pas autorisée.
@@ -13009,6 +13599,17 @@ function applyLandingPricing(){
     appStarted = true;
     state.session = session;
     await loadProfile();
+    // Chargé très tôt (avant tout autre chargement de données) pour pouvoir bloquer l'entrée
+    // dans l'app dès que possible si le mode maintenance est actif — voir maintenanceModeActive()/
+    // claude/mode-maintenance.md. Un utilisateur non-admin n'atteint alors jamais loadAll() : aucune
+    // donnée n'est chargée ni écrite pour lui pendant la maintenance.
+    await loadAppSettings();
+    if(maintenanceModeActive() && !isAdmin()){
+      appStarted = false;
+      state.maintenanceKickPending = true;
+      await supabaseClient.auth.signOut();
+      return;
+    }
     await syncDashboardLayoutFromProfile();
     await loadSubscription();
     computePermissions();
@@ -13017,7 +13618,6 @@ function applyLandingPricing(){
     // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
     syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
-    await loadAppSettings();
     await loadPricingSettings();
     await loadFiscalThresholds();
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
@@ -13042,6 +13642,8 @@ function applyLandingPricing(){
     if(session && !appStarted){ enterApp(session); }
     else if(session && appStarted){ state.session = session; }
     else if(!session){
+      const wasMaintenanceKick = !!state.maintenanceKickPending;
+      state.maintenanceKickPending = false;
       appStarted = false;
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
@@ -13049,7 +13651,7 @@ function applyLandingPricing(){
       state.support_messages = [];
       state.payout_receipts = [];
       state.fiscalChecklist = {};
-      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
+      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' } };
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
       if(ml) ml.style.display = '';
@@ -13059,11 +13661,18 @@ function applyLandingPricing(){
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
-      renderAuthScreen();
       // Recharge le drapeau global (retombé aux valeurs par défaut ci-dessus à la déconnexion)
-      // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages.
+      // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages, ET pour
+      // que la bannière de maintenance ci-dessous reflète l'état réel AVANT le rendu de l'écran de
+      // connexion (sinon renderAuthScreen() s'appuierait sur les valeurs par défaut ci-dessus).
       await loadAppSettings();
+      if(wasMaintenanceKick){
+        state.authError = 'Tu as été déconnecté : l’application est en maintenance. Merci de réessayer plus tard.';
+      }
+      renderAuthScreen();
+      applyMaintenanceLandingVisibility();
       applyFiscalLandingVisibility();
+      applyFraisGenerauxLandingVisibility();
       await loadPricingSettings();
       applyLandingPricing();
     }
