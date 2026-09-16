@@ -80,6 +80,11 @@
     },
     {
       "@type": "Question",
+      "name": "Contralytix suit-il aussi mes autres frais (abonnements, données de marché...) ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui : la page « Frais généraux » suit tout ce qui n'est pas rattaché à un compte prop firm précis — abonnement à Contralytix lui-même, flux de données de marché (CME, CBOT...), hébergement, logiciels, formation... Ponctuels ou récurrents (mensuel/annuel), avec génération automatique des échéances." }
+    },
+    {
+      "@type": "Question",
       "name": "Contralytix est-il gratuit ?",
       "acceptedAnswer": { "@type": "Answer", "text": "Oui, une formule Free permet de démarrer sans engagement avec jusqu'à 2 traders et un suivi de base des payouts. Des formules Premium (mensuelle/annuelle) et Lifetime débloquent les comptes illimités, les exports et le bilan visuel." }
     },
@@ -1167,6 +1172,11 @@ th.th-sort-active svg{opacity:1;}
           <h3>Module Fiscalité (micro-BNC)</h3>
           <p>Suivez en temps réel votre plafond micro-BNC et votre franchise de TVA, vos échéances de déclaration URSSAF et vos payouts à déclarer au 3916-bis, avec un export PDF/ZIP prêt pour votre expert-comptable.</p>
         </article>
+        <article class="ml-feature-card" id="ml-feature-frais-generaux">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 13.5-5.8M20 6v4h-4"/><path d="M20 12a8 8 0 0 1-13.5 5.8M4 18v-4h4"/></svg></div>
+          <h3>Frais généraux</h3>
+          <p>Suivez aussi les frais qui ne sont liés à aucun compte propfirm : abonnement à la plateforme, données de marché (CME, CBOT...), hébergement, logiciels ou formation — ponctuels ou récurrents, générés automatiquement à chaque échéance.</p>
+        </article>
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></div>
           <h3>Calendrier des échéances</h3>
@@ -1224,6 +1234,7 @@ th.th-sort-active svg{opacity:1;}
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Calendrier des échéances</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Bilan visuel</li>
             <li id="ml-pricing-fiscalite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Module Fiscalité (micro-BNC)</li>
+            <li id="ml-pricing-frais-generaux"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des frais généraux</li>
           </ul>
         </div>
         <div class="ml-pricing-card">
@@ -1252,6 +1263,10 @@ th.th-sort-active svg{opacity:1;}
         <details class="ml-faq-item" id="ml-faq-fiscalite">
           <summary>Contralytix remplace-t-il un expert-comptable ?</summary>
           <p>Non : Contralytix automatise le suivi financier de tes comptes prop firm (dépenses, payouts, exports CSV/Excel/PDF) et, pour le régime micro-BNC, suit tes seuils et tes échéances de déclaration (URSSAF, 3916-bis) via le module Fiscalité — mais il ne remplace pas l'avis d'un expert-comptable pour tes déclarations.</p>
+        </details>
+        <details class="ml-faq-item" id="ml-faq-frais-generaux">
+          <summary>Contralytix suit-il aussi mes autres frais (abonnements, données de marché...) ?</summary>
+          <p>Oui : la page « Frais généraux » suit tout ce qui n'est pas rattaché à un compte prop firm précis — abonnement à Contralytix lui-même, flux de données de marché (CME, CBOT...), hébergement, logiciels, formation... Ponctuels ou récurrents (mensuel/annuel), avec génération automatique des échéances.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix est-il gratuit ?</summary>
@@ -6039,6 +6054,8 @@ const HELP_CATEGORIES = [
     { q:"Comment exporter mes données comptables ?", a:"Trois formats sont disponibles depuis la page Comptabilité : CSV, Excel et PDF récapitulatif. Les exports Excel et PDF nécessitent la formule Premium ou Lifetime." },
     { q:"C'est quoi le Bilan Visuel ?", a:"Une page qui génère une image (PNG) prête à partager : soit une vue globale de ton bilan regroupé par PropFirm sur la période choisie, soit une carte par trader et par PropFirm." },
     { q:"Puis-je enregistrer des payouts et des dépenses dans plusieurs devises ?", a:"Oui. Chaque payout peut être saisi en dollar ($) ou en euro (€), avec un taux de change (rempli automatiquement depuis la Banque Centrale Européenne à la date du payout, modifiable si besoin). Tant que les montants d'une même vue (compte, mois, bilan…) sont dans une seule devise, le total reste exact et affiché dans cette devise, sans conversion. Ce n'est que si des montants dans des devises différentes se retrouvent mélangés dans un même total que Contralytix les convertit en euro pour pouvoir les additionner, et l'ajoute alors une mention « converti » pour que ce soit toujours visible." },
+    { q:"Comment suivre des frais qui ne sont pas liés à un compte propfirm (abonnement, données de marché...) ?", a:"La page « Frais généraux » (Premium/Lifetime) est faite pour ça : abonnement à la plateforme Contralytix elle-même, flux de données de marché (CME, CBOT...), hébergement VPS, logiciels, formation ou autre. Un frais peut être ponctuel ou récurrent (mensuel/annuel) — pour un abonnement récurrent, une seule date de première échéance suffit, les échéances suivantes sont générées automatiquement jusqu'à aujourd'hui (ou jusqu'à sa date de résiliation si tu l'indiques)." },
+    { q:"Quelle est la différence entre « Résultat net » et « Résultat net global » sur le Dashboard ?", a:"Le « Résultat net » reste limité aux comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre. Le « Résultat net global » y ajoute en plus tes frais généraux (abonnement plateforme, données de marché...), qui ne sont rattachés à aucun compte et donc jamais filtrés par trader ou propfirm — c'est la vue la plus réaliste de ta rentabilité globale." },
   ]},
   { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
     { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
@@ -6164,7 +6181,7 @@ const MANUAL_CHAPTERS = [
     <h3>À qui s'adresse ce manuel</h3>
     <p>Ce manuel s'adresse à toute personne utilisant Contralytix au quotidien : trader indépendant suivant ses propres comptes, gestionnaire suivant une équipe de traders, ou administrateur du site.</p>
     <h3>Formules disponibles</h3>
-    <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 16 « Abonnement et tarifs »).</p>` },
+    <p>Contralytix propose trois formules : <b>Free</b>, <b>Premium</b> et <b>Lifetime</b>. La formule détermine les fonctionnalités accessibles (voir chapitre 17 « Abonnement et tarifs »).</p>` },
   { n:'2', id:'m-prise-en-main', title:"Prise en main", html:`
     <h3>Connexion et inscription</h3>
     <p>La connexion se fait sans mot de passe : renseigne ton adresse e-mail, reçois un code à 6 chiffres, saisis-le pour accéder à ton espace. Le compte est créé automatiquement au premier code envoyé s'il n'existait pas encore — inutile de créer ou retenir un mot de passe. La connexion via Google reste disponible en alternative.</p>
@@ -6185,7 +6202,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -6320,7 +6337,7 @@ const MANUAL_CHAPTERS = [
     <p>La section Fiscalité aide un trader en micro-entreprise (micro-BNC) à garder un œil sur ses seuils et ses échéances déclaratives, à partir des payouts déjà enregistrés dans l'application. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b> Elle ne couvre que le régime micro-BNC (franchise en base de TVA, abattement forfaitaire) : le régime réel et les structures en société (EURL, SASU…) ne sont pas couverts, et cet outil ne remplace en aucun cas l'avis d'un expert-comptable.</p>
     ${manualShot('14-fiscalite.jpg', "Page Fiscalité — seuils, réglages déclaratifs et alertes.")}
     <h3>Sélecteur d'année et seuils</h3>
-    <p>Un sélecteur en haut de page permet de changer d'année fiscale. Les seuils affichés (plafond micro-BNC, franchise en base de TVA — base et majorée) sont ceux de l'année sélectionnée, avec leur source ; ils sont tenus à jour par un administrateur depuis l'espace Admin (voir chapitre 18) et partagés par tous les utilisateurs du site.</p>
+    <p>Un sélecteur en haut de page permet de changer d'année fiscale. Les seuils affichés (plafond micro-BNC, franchise en base de TVA — base et majorée) sont ceux de l'année sélectionnée, avec leur source ; ils sont tenus à jour par un administrateur depuis l'espace Admin (voir chapitre 19) et partagés par tous les utilisateurs du site.</p>
     <h3>Jauges et alertes</h3>
     <p>Deux jauges suivent en temps réel le chiffre d'affaires encaissé (tous les payouts de l'année, convertis en euro) face au plafond micro-BNC et à la franchise de TVA, avec un badge de couleur (OK, vigilance, dépassement). Un panneau « Alertes seuils » regroupe automatiquement les situations à surveiller : approche ou dépassement d'un seuil, déclarations URSSAF en retard, systèmes de paiement sans case 3916-bis renseignée. Un tableau « Flux par prop firm » détaille, pour l'année, les frais et les payouts de chaque PropFirm utilisée, avec leurs devises d'origine.</p>
     <h3>Mes réglages déclaratifs</h3>
@@ -6334,11 +6351,20 @@ const MANUAL_CHAPTERS = [
     <p>Un tableau regroupe les payouts par système de paiement utilisé pour les recevoir (Wise, virement, RiseWorks…) — c'est ce système, et non la PropFirm elle-même, qui détermine si un compte détenu à l'étranger doit être déclaré au titre du formulaire 3916-bis. Un repère indicatif (À déclarer / Selon les cas / Non requis) aide à s'orienter, et une case à cocher par système permet de suivre les déclarations déjà faites. Ce repère reste une aide générale, à vérifier avec un expert-comptable avant de cocher ou non une case.</p>
     <h3>Checklist déclarative et export</h3>
     <p>Une checklist récapitule, avec un compteur d'avancement, l'ensemble des démarches déclaratives de l'année (déclarations URSSAF, 2042-C-PRO, versement libératoire…). Le bouton « Export année (ZIP) », en haut de page, génère une archive contenant un PDF récapitulatif complet de l'année (seuils, déclarations, frais, systèmes de paiement) ainsi que les données associées, prête à transmettre à un expert-comptable ou à conserver pour ses archives.</p>` },
-  { n:'15', id:'m-nouveautes', title:"Nouveautés", html:`
+  { n:'15', id:'m-frais-generaux', title:"Frais généraux", html:`
+    <p>La section Frais généraux suit les frais liés à ton activité de trading mais non rattachés à un compte propfirm précis : abonnement à la plateforme Contralytix elle-même (mensuel, annuel ou Lifetime), flux de données de marché (CME, CBOT…), hébergement VPS, logiciels, formation, ou tout autre frais. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
+    <h3>Vue d'ensemble</h3>
+    <p>Trois indicateurs résument la situation : le frais mensuel récurrent estimé (abonnements actifs uniquement — un frais annuel est ramené à un équivalent mensuel en le divisant par 12, pour rester comparable à un abonnement mensuel classique), le total de l'année en cours, et le nombre de frais enregistrés.</p>
+    <h3>Ajouter un frais</h3>
+    <p>Le bouton « Nouveau frais », en haut de page, ouvre un formulaire : catégorie (Abonnement plateforme, Données de marché, Hébergement / VPS, Logiciel / Outils, Formation, Autre), libellé libre, montant et devise (avec taux de change BCE rempli automatiquement, comme pour les payouts), et récurrence.</p>
+    <p>Pour un frais <b>ponctuel</b>, seule la date du frais est demandée. Pour un abonnement <b>mensuel</b> ou <b>annuel</b>, une seule date de première échéance suffit : l'application génère ensuite automatiquement une ligne de dépense à chaque échéance, jusqu'à aujourd'hui. Si l'abonnement est résilié, renseigner sa date de résiliation arrête la génération de nouvelles échéances à cette date, sans effacer l'historique déjà généré.</p>
+    <h3>Impact sur le Dashboard</h3>
+    <p>Ces frais alimentent un indicateur dédié sur le Dashboard, « Résultat net global » (widget Vue d'ensemble), distinct du « Résultat net » habituel : ce dernier reste scopé aux comptes/traders/propfirms filtrés (pour comparer une propfirm à une autre), tandis que le Résultat net global y ajoute les frais généraux — non rattachés à un compte, donc non filtrables par trader ou propfirm — pour une vue de rentabilité globale réaliste.</p>` },
+  { n:'16', id:'m-nouveautes', title:"Nouveautés", html:`
     <p>La section Nouveautés (changelog) liste les évolutions et corrections apportées à l'application au fil du temps, du plus récent au plus ancien. Chaque entrée est étiquetée « Nouveau », « Amélioration » ou « Correction ». C'est le premier réflexe à avoir pour savoir si une fonctionnalité rencontrée dans ce manuel a évolué depuis sa rédaction.</p>
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
-  { n:'16', id:'m-abonnement', title:"Abonnement et tarifs", html:`
+  { n:'17', id:'m-abonnement', title:"Abonnement et tarifs", html:`
     <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
@@ -6351,7 +6377,7 @@ const MANUAL_CHAPTERS = [
     </ul>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
-  { n:'17', id:'m-admin', title:"Espace Admin", html:`
+  { n:'18', id:'m-admin', title:"Espace Admin", html:`
     <p>Réservé aux comptes administrateurs, l'espace Admin donne une vue d'ensemble de la base d'utilisateurs et des outils de gestion avancés.</p>
     ${manualShot('16-admin.jpg', "Tableau de bord Admin — indicateurs globaux et gestion des utilisateurs.")}
     <h3>Tableau de bord Admin</h3>
@@ -6369,7 +6395,7 @@ const MANUAL_CHAPTERS = [
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
     <p>Deux outils d'import sont disponibles : « Importer (PropDesk) », qui lit un export JSON de PropDesk et fait correspondre automatiquement traders et PropFirms avant un aperçu détaillé et sélectif ; et « Importer migration (ancien site) », pour une sauvegarde JSON issue d'une ancienne version. Le bouton « Sauvegarde JSON » exporte l'intégralité des données du site pour archivage ou migration.</p>` },
-  { n:'18', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
+  { n:'19', id:'m-droits', title:"Droits d'accès et confidentialité", html:`
     <p>Contralytix distingue plusieurs niveaux de droits sur les données, applicables à tous les enregistrements (traders, PropFirms, comptes, sessions, prépas de séance).</p>
     <h3>Propriété des enregistrements</h3>
     <p>Chaque enregistrement appartient à l'utilisateur qui l'a créé. Seuls ce créateur et les administrateurs peuvent le modifier ou le supprimer ; les autres utilisateurs le voient en lecture seule, signalé par un badge « Lecture seule ».</p>
@@ -6386,7 +6412,7 @@ function viewManuel(){
     <div class="panel" style="margin-bottom:20px;">
       <div class="panel-body">
         <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Manuel d'utilisation — Contralytix</div>
-        <div class="field-hint" style="margin:0 0 14px;">Version du document : septembre 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 15).</div>
+        <div class="field-hint" style="margin:0 0 14px;">Version du document : septembre 2026. Ce manuel décrit chaque section de l'application. En cas d'écart avec le comportement observé, consultez d'abord l'onglet « Nouveautés » (chapitre 16).</div>
         <div class="manual-toc">
           ${MANUAL_CHAPTERS.map(c=>`<a href="#${c.id}" data-manual-anchor="${c.id}"><span class="mn">${c.n}</span>${c.title}</a>`).join('')}
         </div>
@@ -6426,6 +6452,7 @@ function viewConfidentialite(){
             <tr><td>Compte</td><td>Adresse e-mail, date d'inscription, dernière connexion (aucun mot de passe stocké — connexion par code à usage unique envoyé par e-mail, ou via Google)</td><td>Renseignées à l'inscription</td></tr>
             <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, justificatifs de payout (fichiers), notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
             <tr><td>Données déclaratives (Fiscalité)</td><td>Réglages déclaratifs (périodicité URSSAF, versement libératoire), déclarations et cases cochées de la checklist fiscale</td><td>Saisies par vous dans la page Fiscalité</td></tr>
+            <tr><td>Frais généraux</td><td>Frais liés à votre activité de trading mais non rattachés à un compte propfirm (abonnement, données de marché, hébergement, logiciels, formation...), montants, devises et dates</td><td>Saisis par vous dans la page Frais généraux</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
@@ -6478,7 +6505,7 @@ function viewConfidentialite(){
 
         <div class="rgpd-block">
           <h2>7. Sécurité</h2>
-          <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 18 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
+          <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 19 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
         </div>
 
         <div class="rgpd-block">
@@ -13186,6 +13213,14 @@ function applyFiscalLandingVisibility(){
     if(el) el.style.display = hidden ? 'none' : '';
   });
 }
+// Même mécanisme que applyFiscalLandingVisibility ci-dessus, pour le module Frais généraux.
+function applyFraisGenerauxLandingVisibility(){
+  const hidden = !!(state.appSettings && state.appSettings.hiddenPages && state.appSettings.hiddenPages.includes('frais-generaux'));
+  ['ml-feature-frais-generaux','ml-pricing-frais-generaux','ml-faq-frais-generaux'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = hidden ? 'none' : '';
+  });
+}
 // Affiche les vrais montants sur la page d'accueil publique (visiteur non connecté) au lieu de
 // les cacher derrière "disponibles une fois connecté" — un tarif masqué est un frein à la
 // conversion, pas une protection utile. Utilise state.pricingSettings (rempli par
@@ -13228,6 +13263,7 @@ function applyLandingPricing(){
   // valeurs par défaut, rien n'est masqué sur la landing tant que ce n'est pas corrigé côté DB).
   await loadAppSettings();
   applyFiscalLandingVisibility();
+  applyFraisGenerauxLandingVisibility();
   // Idem pour les tarifs affichés sur la landing publique (voir applyLandingPricing ci-dessus) :
   // chargés avant même la vérification de session, avec repli silencieux sur les valeurs par
   // défaut de state.pricingSettings si la lecture anonyme d'app_settings n'est pas autorisée.
@@ -13324,6 +13360,7 @@ function applyLandingPricing(){
       // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages.
       await loadAppSettings();
       applyFiscalLandingVisibility();
+      applyFraisGenerauxLandingVisibility();
       await loadPricingSettings();
       applyLandingPricing();
     }
