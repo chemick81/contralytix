@@ -1074,6 +1074,8 @@ th.th-sort-active svg{opacity:1;}
     <a href="#loading" data-ml-auth="login" class="btn btn-outline btn-sm">Se connecter</a>
   </header>
 
+  <div id="ml-maintenance-banner" class="announce-banner announce-warning" style="display:none;justify-content:center;text-align:center;"></div>
+
   <main>
     <section class="ml-hero">
       <h1>Contralytix — la gestion financière de tes comptes Prop Firm, enfin centralisée</h1>
@@ -1497,6 +1499,10 @@ const state = {
   // propres données par défaut comme n'importe quel utilisateur, et n'active la vue "toute la
   // plateforme" qu'au moment où il en a besoin pour investiguer un souci.
   adminDebugView: false,
+  // true juste avant un signOut() déclenché par le mode maintenance (voir enterApp()/
+  // startMaintenanceWatch()) — lu une seule fois par onAuthStateChange (branche !session) pour
+  // afficher le bon message sur l'écran de connexion, puis remis à false.
+  maintenanceKickPending: false,
   session: null,
   profile: null,
   subscription: null,
@@ -1544,6 +1550,7 @@ const state = {
   appSettings: {
     hiddenPages: [],
     announcement: { enabled:false, message:'', type:'info' },
+    maintenance: { enabled:false, message:'' },
   },
   filters: {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
@@ -1687,12 +1694,13 @@ async function loadAppSettings(){
     state.appSettings = {
       hiddenPages: Array.isArray(data.value.hiddenPages) ? data.value.hiddenPages : [],
       announcement: { enabled:false, message:'', type:'info', ...(data.value.announcement||{}) },
+      maintenance: { enabled:false, message:'', ...(data.value.maintenance||{}) },
     };
   }
 }
 async function saveAppSettings(successMessage){
   if(!isAdmin()) return false;
-  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement }, updated_at: new Date().toISOString() };
+  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement, maintenance: state.appSettings.maintenance }, updated_at: new Date().toISOString() };
   const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
   if(error){
     showToast("Impossible d'enregistrer les réglages : " + error.message + " — la table 'app_settings' existe-t-elle bien dans Supabase ? Voir app_settings.sql.", 'danger');
@@ -1739,6 +1747,25 @@ async function saveAnnouncement(enabled, message, type){
   await logActivity('SETTINGS', 'app_settings', 'announcement', enabled ? `Bannière d\u2019annonce activée : "${state.appSettings.announcement.message}"` : 'Bannière d\u2019annonce désactivée');
   showToast('Message global mis à jour.');
   render(); // la bannière est rendue par render(), pas renderView()
+}
+// Mode maintenance : bloque l'accès à toute l'application aux utilisateurs non-admin (aucune
+// donnée chargée ni écrite pour eux — voir enterApp()/startMaintenanceWatch()), pendant qu'un
+// admin garde un accès complet pour finaliser une mise à jour ou une migration en cours. Décision
+// utilisateur du 16/09/2026 : "admins uniquement", toggle Admin stocké en base (même mécanisme que
+// l'annonce globale ci-dessus), déconnexion forcée des utilisateurs déjà connectés. Voir
+// claude/mode-maintenance.md.
+function maintenanceModeActive(){
+  return !!(state.appSettings && state.appSettings.maintenance && state.appSettings.maintenance.enabled);
+}
+async function saveMaintenanceMode(enabled, message){
+  if(!isAdmin()) return;
+  const prev = state.appSettings.maintenance;
+  state.appSettings.maintenance = { enabled, message: (message||'').trim() };
+  const ok = await saveAppSettings();
+  if(!ok){ state.appSettings.maintenance = prev; render(); return; }
+  await logActivity('SETTINGS', 'app_settings', 'maintenance', enabled ? `Mode maintenance activé : "${state.appSettings.maintenance.message}"` : 'Mode maintenance désactivé');
+  showToast(enabled ? 'Mode maintenance activé — seuls les admins peuvent utiliser l’application.' : 'Mode maintenance désactivé.');
+  render();
 }
 
 async function upsert(collection, item){
@@ -2905,8 +2932,17 @@ function renderAuthScreen(){
   const stepNum = (n, active) => `<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${active?'var(--accent)':'var(--surface-2)'};color:${active?'var(--accent-text)':'var(--text-faint)'};">${n}</div>`;
   document.getElementById('app-root').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
+  const maint = state.appSettings && state.appSettings.maintenance;
   document.getElementById('loading').innerHTML = `
-    <div style="width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
+    <div style="width:100%;max-width:360px;">
+      ${(maint && maint.enabled) ? `
+      <div style="background:var(--surface);border:1px solid var(--warning,#b8860b);border-left:4px solid var(--warning,#b8860b);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;">
+        ${icon('shield')}
+        <div style="font-size:12.5px;color:var(--text);line-height:1.4;">
+          <strong>Maintenance en cours.</strong> L’application est temporairement réservée aux administrateurs${maint.message ? ` — ${escapeHtml(maint.message)}` : '.'}
+        </div>
+      </div>` : ''}
+    <div style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:32px;height:32px;border-radius:var(--radius-sm);object-fit:cover;"/>
         <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text);">Contralyti<span class="brand-x">x</span></div>
@@ -2942,6 +2978,7 @@ function renderAuthScreen(){
       <div style="text-align:center;margin-top:16px;">
         <a id="auth-privacy-link" href="#" style="font-size:11.5px;color:var(--text-faint);text-decoration:underline;">Confidentialité &amp; RGPD</a>
       </div>
+    </div>
     </div>
   `;
   document.getElementById('auth-privacy-link').onclick = (e)=>{
@@ -4409,6 +4446,10 @@ function render(){
       ${canSeeAllData() ? `
         <div class="announce-banner announce-warning">
           ${icon('shield')}<span>Vue debug (admin) active — Dashboard, Comptabilité, Bilan Visuel et Comparatif affichent les données de <strong>tous les utilisateurs</strong>, pas seulement les tiennes. Désactive-la depuis le menu une fois l'investigation terminée.</span>
+        </div>` : ''}
+      ${maintenanceModeActive() ? `
+        <div class="announce-banner announce-danger">
+          ${icon('shield')}<span><strong>Mode maintenance actif</strong> — tous les utilisateurs non-admin sont bloqués et déconnectés${state.appSettings.maintenance.message ? ` (« ${escapeHtml(state.appSettings.maintenance.message)} »)` : ''}. Pense à le désactiver depuis Admin &gt; Réglages une fois la mise à jour terminée.</span>
         </div>` : ''}
       <div class="topbar">
         <div>
@@ -6423,6 +6464,8 @@ const MANUAL_CHAPTERS = [
     <p>Masquer « Fiscalité » a un effet plus large que les autres pages : les échéances URSSAF / 2042-C-PRO disparaissent aussi du Calendrier, et les mentions du module sur la page publique (carte fonctionnalité, ligne de l'offre Premium, FAQ) se masquent également — utile comme coupe-circuit rapide si une migration de base de données touchant ce module doit être vérifiée avant réouverture à tous les utilisateurs.</p>
     <h3>Message global</h3>
     <p>Un panneau « Message global » permet d'afficher une bannière en haut de l'application, visible par tous les utilisateurs tant qu'elle est activée (par exemple pour annoncer une maintenance ou une nouveauté). Le message et son style (information, avertissement, urgent) sont modifiables à tout moment ; désactiver l'interrupteur masque immédiatement la bannière pour tout le monde.</p>
+    <h3>Mode maintenance</h3>
+    <p>Un panneau « Mode maintenance » permet de bloquer l'accès à l'ensemble de l'application à tous les utilisateurs non-admin, le temps d'une mise à jour ou d'une migration de base de données — aucune donnée n'est alors chargée ni écrite pour eux, ce qui évite tout conflit d'écriture pendant l'intervention. Un utilisateur déjà connecté au moment de l'activation est automatiquement déconnecté avec un message explicite ; un visiteur qui tente de se connecter pendant que le mode est actif en est empêché de la même façon. Un administrateur garde toujours un accès complet, quel que soit l'état de ce réglage, et voit un bandeau d'avertissement lui rappelant que le mode est actif tant qu'il ne l'a pas désactivé. Un message optionnel peut être ajouté pour préciser la raison ou l'heure de retour prévue.</p>
     <h3>Seuils fiscaux</h3>
     <p>Un panneau « Seuils fiscaux » permet de tenir à jour, chaque année, les valeurs utilisées par le module Fiscalité (année de référence, plafond micro-BNC, franchise en base de TVA — base et majorée —, abattement forfaitaire et note de source) sans intervention technique. Ces seuils sont partagés par tous les utilisateurs du site.</p>
     <h3>Gestion des utilisateurs</h3>
@@ -9574,6 +9617,7 @@ function viewAdmin(){
     </div>`;
 
   const ann = state.appSettings.announcement || { enabled:false, message:'', type:'info' };
+  const maint = state.appSettings.maintenance || { enabled:false, message:'' };
   const settingsPanel = `
     <div class="panel-grid" style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
       <div class="panel">
@@ -9618,6 +9662,23 @@ function viewAdmin(){
         </div>
         <button class="btn btn-primary btn-sm" id="ann-save">${icon('check')}Enregistrer</button>
         </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;${maint.enabled?'border-color:var(--danger);':''}">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('shield')}Mode maintenance${maint.enabled?`<span class="badge badge-danger">Actif</span>`:''}</div></div>
+      <div class="panel-body">
+      <div class="field-hint" style="margin:0 0 12px;">Bloque l’accès à toute l’application aux utilisateurs non-admin (aucune donnée n’est chargée ni écrite pour eux) — utile pendant une mise à jour ou une migration en base pour éviter tout conflit d’écriture. Les utilisateurs déjà connectés sont automatiquement déconnectés dès l’activation. Toi (admin) gardes un accès complet, quel que soit l’état de ce réglage.</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;">
+          <label class="switch"><input type="checkbox" id="maint-enabled" ${maint.enabled?'checked':''}/><span class="switch-track"></span></label>
+          Activer le mode maintenance
+        </label>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Message affiché aux utilisateurs (optionnel)</label>
+        <textarea id="maint-message" rows="2" placeholder="Ex : Mise à jour en cours, retour prévu vers 23h." style="width:100%;resize:vertical;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px;font-family:inherit;font-size:13px;">${escapeHtml(maint.message||'')}</textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" id="maint-save">${icon('check')}Enregistrer</button>
       </div>
     </div>
     <div class="panel" style="margin-bottom:16px;">
@@ -10864,6 +10925,18 @@ function bindViewEvents(){
     const type = document.getElementById('ann-type').value;
     if(enabled && !message.trim()){ showToast('Ajoute un message avant d\u2019activer la bannière.', 'danger'); return; }
     saveAnnouncement(enabled, message, type);
+  };
+  // Admin : mode maintenance
+  const maintSaveBtn = document.getElementById('maint-save');
+  if(maintSaveBtn) maintSaveBtn.onclick = ()=>{
+    const enabled = document.getElementById('maint-enabled').checked;
+    const message = document.getElementById('maint-message').value;
+    const wasEnabled = state.appSettings.maintenance && state.appSettings.maintenance.enabled;
+    if(enabled && !wasEnabled){
+      confirmModal('Tous les utilisateurs non-admin actuellement connect\u00e9s vont \u00eatre d\u00e9connect\u00e9s dans les secondes qui suivent, et ne pourront plus se reconnecter tant que le mode maintenance est actif. Toi seul (admin) garderas l\u2019acc\u00e8s. Confirmer l\u2019activation\u00a0?', ()=> saveMaintenanceMode(enabled, message));
+    } else {
+      saveMaintenanceMode(enabled, message);
+    }
   };
   const prSaveBtn = document.getElementById('pr-save');
   if(prSaveBtn) prSaveBtn.onclick = async ()=>{
@@ -13409,6 +13482,37 @@ function applyFraisGenerauxLandingVisibility(){
     if(el) el.style.display = hidden ? 'none' : '';
   });
 }
+// Bannière de maintenance sur la landing publique (visiteur non connecté, avant même de tenter de
+// se connecter) — même source que la bannière affichée sur l'écran de connexion (renderAuthScreen)
+// et dans l'app pour les admins (voir maintenanceModeActive()/claude/mode-maintenance.md).
+function applyMaintenanceLandingVisibility(){
+  const banner = document.getElementById('ml-maintenance-banner');
+  if(!banner) return;
+  const maint = state.appSettings && state.appSettings.maintenance;
+  if(maint && maint.enabled){
+    banner.style.display = 'flex';
+    banner.innerHTML = `${icon('shield')}<span><strong>Maintenance en cours.</strong> L’application est temporairement réservée aux administrateurs${maint.message ? ` — ${escapeHtml(maint.message)}` : '.'}</span>`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+// Vérifie périodiquement (toutes les 30s) le drapeau global de maintenance : si un utilisateur
+// non-admin est en train d'utiliser l'app au moment où un admin active le mode maintenance, il est
+// automatiquement déconnecté (voir onAuthStateChange, branche !session, state.maintenanceKickPending)
+// plutôt que de rester sur une session ouverte pouvant continuer à écrire en base. Rafraîchit aussi
+// la bannière de la landing publique pour un visiteur pas encore connecté. Décision utilisateur du
+// 16/09/2026 : déconnexion forcée avec message, voir claude/mode-maintenance.md.
+function startMaintenanceWatch(){
+  setInterval(async ()=>{
+    await loadAppSettings();
+    if(appStarted && !isAdmin() && maintenanceModeActive()){
+      state.maintenanceKickPending = true;
+      await supabaseClient.auth.signOut();
+    } else if(!appStarted){
+      applyMaintenanceLandingVisibility();
+    }
+  }, 30000);
+}
 // Affiche les vrais montants sur la page d'accueil publique (visiteur non connecté) au lieu de
 // les cacher derrière "disponibles une fois connecté" — un tarif masqué est un frein à la
 // conversion, pas une protection utile. Utilise state.pricingSettings (rempli par
@@ -13452,6 +13556,8 @@ function applyLandingPricing(){
   await loadAppSettings();
   applyFiscalLandingVisibility();
   applyFraisGenerauxLandingVisibility();
+  applyMaintenanceLandingVisibility();
+  startMaintenanceWatch();
   // Idem pour les tarifs affichés sur la landing publique (voir applyLandingPricing ci-dessus) :
   // chargés avant même la vérification de session, avec repli silencieux sur les valeurs par
   // défaut de state.pricingSettings si la lecture anonyme d'app_settings n'est pas autorisée.
@@ -13493,6 +13599,17 @@ function applyLandingPricing(){
     appStarted = true;
     state.session = session;
     await loadProfile();
+    // Chargé très tôt (avant tout autre chargement de données) pour pouvoir bloquer l'entrée
+    // dans l'app dès que possible si le mode maintenance est actif — voir maintenanceModeActive()/
+    // claude/mode-maintenance.md. Un utilisateur non-admin n'atteint alors jamais loadAll() : aucune
+    // donnée n'est chargée ni écrite pour lui pendant la maintenance.
+    await loadAppSettings();
+    if(maintenanceModeActive() && !isAdmin()){
+      appStarted = false;
+      state.maintenanceKickPending = true;
+      await supabaseClient.auth.signOut();
+      return;
+    }
     await syncDashboardLayoutFromProfile();
     await loadSubscription();
     computePermissions();
@@ -13501,7 +13618,6 @@ function applyLandingPricing(){
     // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
     syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
-    await loadAppSettings();
     await loadPricingSettings();
     await loadFiscalThresholds();
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
@@ -13526,6 +13642,8 @@ function applyLandingPricing(){
     if(session && !appStarted){ enterApp(session); }
     else if(session && appStarted){ state.session = session; }
     else if(!session){
+      const wasMaintenanceKick = !!state.maintenanceKickPending;
+      state.maintenanceKickPending = false;
       appStarted = false;
       state.session = null; state.profile = null; state.subscription = null; state.permissions = null;
       state.traders = []; state.propfirms = []; state.accounts = []; state.payouts = []; state.promo_codes = [];
@@ -13533,7 +13651,7 @@ function applyLandingPricing(){
       state.support_messages = [];
       state.payout_receipts = [];
       state.fiscalChecklist = {};
-      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' } };
+      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' } };
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
       if(ml) ml.style.display = '';
@@ -13543,10 +13661,16 @@ function applyLandingPricing(){
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       chatOpen = false; chatMessages = [];
       document.getElementById('chat-widget-root').innerHTML = '';
-      renderAuthScreen();
       // Recharge le drapeau global (retombé aux valeurs par défaut ci-dessus à la déconnexion)
-      // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages.
+      // pour que la landing publique redevienne cohérente avec Admin > Gestion des pages, ET pour
+      // que la bannière de maintenance ci-dessous reflète l'état réel AVANT le rendu de l'écran de
+      // connexion (sinon renderAuthScreen() s'appuierait sur les valeurs par défaut ci-dessus).
       await loadAppSettings();
+      if(wasMaintenanceKick){
+        state.authError = 'Tu as été déconnecté : l’application est en maintenance. Merci de réessayer plus tard.';
+      }
+      renderAuthScreen();
+      applyMaintenanceLandingVisibility();
       applyFiscalLandingVisibility();
       applyFraisGenerauxLandingVisibility();
       await loadPricingSettings();
