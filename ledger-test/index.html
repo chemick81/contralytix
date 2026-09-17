@@ -1485,6 +1485,7 @@ const DASHBOARD_WIDGETS = [
   { id:'performance',    label:'Performance & rendement' },
   { id:'delays',         label:'Délais moyens' },
   { id:'chart',          label:'Performance globale (courbe)' },
+  { id:'chartBars',      label:'Dépenses vs Payouts (barres, 6 derniers mois)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
   { id:'monthRecap',     label:'Récap du mois' },
@@ -4976,6 +4977,10 @@ function viewDashboard(){
     const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
+  // Réutilisé par le widget "Dépenses vs Payouts (barres)" — voir renderMiniChart ci-dessous.
+  // Décision utilisateur du 17/09/2026 : garder ce graphique EN PLUS de la courbe "Performance
+  // globale" (qui l'avait initialement remplacé), pas à sa place.
+  const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
   // Bloc des 6 mois précédant la fenêtre affichée par chartData — sert uniquement au badge de
   // tendance "+X% vs période précédente" du widget "Performance globale" (voir
   // renderPerformanceCurve ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
@@ -5250,6 +5255,17 @@ function viewDashboard(){
         <div class="panel-body">
           ${renderPerformanceCurve(chartData)}
           <div class="field-hint" style="margin-top:6px;">Net cumulé = somme des (payouts − dépenses) mois par mois, sur les 6 derniers mois affichés — pas un solde de compte réel.</div>
+        </div>
+      </div>`,
+    chartBars: `
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois${chartConverted?` <span class="text-faint" style="font-weight:400;font-size:11px;">${convertedLabel(chartConverted, chartMixed)}</span>`:''}</div></div>
+        <div class="panel-body">
+          ${renderMiniChart(chartData, maxVal)}
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:var(--danger)"></span>Dépenses</span>
+            <span><span class="legend-dot" style="background:var(--accent)"></span>Payouts</span>
+          </div>
         </div>
       </div>`,
     accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
@@ -6462,7 +6478,7 @@ const MANUAL_CHAPTERS = [
     <h3>Mes comptes</h3>
     <p>Trois cartes résument tes comptes par type — Challenge, PA et Live — avec leur capital engagé ou sous gestion (Contralytix ne suit pas de solde de compte en temps réel : pour un Challenge, c'est le total dépensé en achats et mensualités ; pour un PA ou un Live, c'est la somme des tailles de compte actuellement actives) et le détail des statuts (en cours, réussi, breached, fermé...).</p>
     <h3>Performance globale</h3>
-    <p>Une courbe retrace le net cumulé (payouts moins dépenses, mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents.</p>
+    <p>Une courbe retrace le net cumulé (payouts moins dépenses, mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents. Un second graphique, en barres, détaille les montants de dépenses et de payouts mois par mois sur la même période.</p>
     <h3>Délais moyens</h3>
     <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
     <h3>Graphique et comptes récents</h3>
