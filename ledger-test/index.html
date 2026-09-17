@@ -1476,9 +1476,10 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 const DASHBOARD_WIDGETS = [
   { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
+  { id:'accountsByType', label:'Mes comptes (par type)' },
   { id:'performance',    label:'Performance & rendement' },
   { id:'delays',         label:'Délais moyens' },
-  { id:'chart',          label:'Dépenses vs Payouts (6 derniers mois)' },
+  { id:'chart',          label:'Performance globale (courbe)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
   { id:'monthRecap',     label:'Récap du mois' },
@@ -3204,6 +3205,14 @@ function daysBetween(startStr, endStr){
   const a = new Date(startStr+'T00:00:00');
   const b = new Date(endStr+'T00:00:00');
   return Math.round((b - a) / 86400000);
+}
+// Ajoute (ou retire, si n<0) n jours calendaires à une date "YYYY-MM-DD" — arithmétique locale,
+// jamais via toISOString (UTC), comme le reste du fichier. Utilisé par le calcul de "période
+// précédente équivalente" des badges de tendance du Dashboard (voir viewDashboard()).
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 }
 // Prochaine échéance de mensualité (>= today) pour un compte en paiement mensuel
 function nextMonthlyDueDate(purchaseDate, today){
@@ -4962,7 +4971,25 @@ function viewDashboard(){
     const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
-  const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
+  // Bloc des 6 mois précédant la fenêtre affichée par chartData — sert uniquement au badge de
+  // tendance "+X% vs période précédente" du widget "Performance globale" (voir
+  // renderPerformanceCurve ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
+  // des 6 mois d'avant. Décision utilisateur du 17/09/2026 (inspiration maquette externe).
+  const prevMonths6 = [];
+  for(let i=11;i>=6;i--){
+    const total = (tm - 1) - i;
+    const y = ty + Math.floor(total/12);
+    const m = ((total % 12) + 12) % 12;
+    prevMonths6.push(`${y}-${pad2(m+1)}`);
+  }
+  const prevChartData6 = prevMonths6.map(mk=>{
+    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
+    return { mk, exp, pay };
+  });
+  const last6NetSum = chartData.reduce((s,d)=>s+(d.pay-d.exp),0);
+  const prev6NetSum = prevChartData6.reduce((s,d)=>s+(d.pay-d.exp),0);
+  const perfTrendPct = prev6NetSum ? Math.round((last6NetSum-prev6NetSum)/Math.abs(prev6NetSum)*100) : null;
 
   // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
   // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
@@ -5037,6 +5064,31 @@ function viewDashboard(){
   const capitalActif = accountsF
     .filter(a=>(a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF')
     .reduce((s,a)=>s+sizeValue(a), 0);
+  // Même répartition que capitalActif ci-dessus, mais par type — alimente le widget "Mes comptes"
+  // (voir dashboardAccountsByTypeWidgetHtml). Contralytix ne suit pas de solde de compte en temps
+  // réel (pas de synchro broker/propfirm) : par décision utilisateur du 17/09/2026, le "solde"
+  // affiché par type est donc un capital engagé/sous gestion, pas un solde live — capital = somme
+  // des tailles nominales (PA/Live actifs) ou total dépensé en achats+mensualités (Challenge, tout
+  // l'historique, comme "Coût moyen / compte financé").
+  const capitalActifPA = pas.filter(a=>a.status==='ACTIF').reduce((s,a)=>s+sizeValue(a), 0);
+  const capitalActifLive = lives.filter(a=>a.status==='ACTIF').reduce((s,a)=>s+sizeValue(a), 0);
+  const challengeCapitalMoney = sumMoneyLines(
+    allExpensesUnfiltered.filter(e=>(e.type==='ACHAT'||e.type==='MENSUALITE') && challenges.some(c=>c.id===e.accountId))
+  );
+  // Résumé des statuts réellement possibles par type (voir STATUS_OPTIONS_BY_TYPE) — n'affiche que
+  // les catégories non nulles, jamais un statut inventé comme "en attente" qui n'existe pas dans le
+  // modèle de données Contralytix.
+  const accountStatusSummary = (list, statuses)=>{
+    if(!list.length) return 'Aucun compte pour l’instant';
+    // statuses: [status, singulier, pluriel] — pluriel explicite (pas d'auto-ajout de "s") pour
+    // rester cohérent avec le reste de l'app, où "breached" ne prend jamais de "s" (voir la tuile
+    // "Taux de réussite" : "{n} réussi(s) · {n} breached").
+    const parts = statuses.map(([st,sg,pl])=>{
+      const n = list.filter(a=>a.status===st).length;
+      return n>0 ? `${n} ${n>1?(pl||sg):sg}` : null;
+    }).filter(Boolean);
+    return parts.length ? parts.join(' · ') : `${list.length} compte(s)`;
+  };
 
   // Mensualités à venir : charge récurrente des comptes actifs en paiement mensuel — vision
   // "cash-flow à venir", complémentaire du récap du mois (qui regarde en arrière).
@@ -5049,20 +5101,62 @@ function viewDashboard(){
   const regularityScores = myTraders.map(t=>computePayoutRegularity(t)).filter(r=>r.hasData).map(r=>r.score);
   const avgRegularity = regularityScores.length ? Math.round(regularityScores.reduce((s,v)=>s+v,0)/regularityScores.length) : null;
 
-  // Tendance vs mois précédent : réutilise chartData (6 derniers mois, déjà dans la devise
-  // d'affichage courante) — chartData[5] = mois en cours, chartData[4] = mois précédent. Pas de
-  // pourcentage affiché si le mois précédent est à 0 (division non significative), juste la
-  // direction (l'utilisateur voit déjà les deux montants sur le graphique juste en dessous).
+  // Tendances vs période précédente — décision utilisateur du 17/09/2026 (inspirée d'une maquette
+  // externe) : étendu à toutes les tuiles chiffrées (Dépenses/Payouts/Net/Net global/Comptes
+  // actifs), et fonctionne désormais aussi avec une période personnalisée complète (dateFrom ET
+  // dateTo), pas seulement en vue "mois en cours". Deux cas :
+  // - Période personnalisée complète active : compare à la période équivalente immédiatement
+  //   précédente, de même durée (ex: juin-août vs mars-mai).
+  // - Sinon (aucun filtre, ou filtre de dates incomplet — une seule borne) : comportement
+  //   historique, mois en cours vs mois précédent, via chartData (6 derniers mois, déjà dans la
+  //   devise d'affichage courante).
+  // Les totaux comparés sont toujours normalisés en EUR ici (indépendamment de la devise
+  // d'affichage des tuiles), pour éviter de comparer des montants dans deux devises différentes
+  // dans le cas rare où la période courante et la période précédente ne mélangent pas les mêmes
+  // devises.
   const trendPct = (curr, prev)=> prev ? Math.round((curr-prev)/Math.abs(prev)*100) : null;
+  const eurSum = (items)=> items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0);
+  const customPeriodActive = !!(f.dateFrom && f.dateTo);
+  const anyDateFilterActive = !!(f.dateFrom || f.dateTo);
   const currMonth = chartData[chartData.length-1], prevMonth = chartData[chartData.length-2];
-  const payoutsTrend = trendPct(currMonth.pay, prevMonth.pay);
-  const netTrend = trendPct(currMonth.pay-currMonth.exp, prevMonth.pay-prevMonth.exp);
+  let expensesTrend=null, payoutsTrend=null, netTrend=null, netGlobalTrend=null, activeAccountsTrend=null;
+  if(customPeriodActive){
+    const spanDays = daysBetween(f.dateFrom, f.dateTo) + 1;
+    const prevTo = addDays(f.dateFrom, -1);
+    const prevFrom = addDays(prevTo, -(spanDays-1));
+    const inPrev = (d)=> !!d && d>=prevFrom && d<=prevTo;
+    const prevExpenses = allExpensesUnfiltered.filter(e=>inPrev(e.date));
+    const prevPayouts = payoutsUnfiltered.filter(p=>inPrev(p.date));
+    let prevGeneral = computeGeneralExpenseLines().filter(e=>inPrev(e.date));
+    if(f.trader.length) prevGeneral = prevGeneral.filter(e=>!e.traderId || f.trader.includes(e.traderId));
+    const currExpEur = eurSum(allExpenses), currPayEur = eurSum(payoutsF), currGenEur = eurSum(generalExpensesF);
+    const prevExpEur = eurSum(prevExpenses), prevPayEur = eurSum(prevPayouts), prevGenEur = eurSum(prevGeneral);
+    expensesTrend = trendPct(currExpEur, prevExpEur);
+    payoutsTrend = trendPct(currPayEur, prevPayEur);
+    netTrend = trendPct(currPayEur-currExpEur, prevPayEur-prevExpEur);
+    netGlobalTrend = trendPct(currPayEur-currExpEur-currGenEur, prevPayEur-prevExpEur-prevGenEur);
+    const currOpened = accountsF.filter(a=>a.purchaseDate>=f.dateFrom && a.purchaseDate<=f.dateTo).length;
+    const prevOpened = accountsF.filter(a=>inPrev(a.purchaseDate)).length;
+    activeAccountsTrend = trendPct(currOpened, prevOpened);
+  } else if(!anyDateFilterActive){
+    expensesTrend = trendPct(currMonth.exp, prevMonth.exp);
+    payoutsTrend = trendPct(currMonth.pay, prevMonth.pay);
+    netTrend = trendPct(currMonth.pay-currMonth.exp, prevMonth.pay-prevMonth.exp);
+    // Les frais généraux ne sont pas ventilés dans chartData (scopé comptes propfirm uniquement) :
+    // en l'absence de filtre de période, on approxime la tendance de Net global par celle de Net
+    // (comptes propfirm) — la valeur AFFICHÉE sur la tuile reste exacte, seule la flèche de
+    // tendance est une approximation dans ce cas précis.
+    netGlobalTrend = netTrend;
+    const openedInMonth = (mk)=> accountsF.filter(a=>a.purchaseDate && monthKey(a.purchaseDate)===mk).length;
+    activeAccountsTrend = trendPct(openedInMonth(currMonth.mk), openedInMonth(prevMonth.mk));
+  }
+  // else (une seule borne de dates renseignée, plage incomplète) : toutes les tendances restent
+  // null — comportement conservateur, comme avant cette évolution.
   const trendBadge = (pct)=>{
-    // Masqué dès qu'une plage de dates personnalisée est active : le total affiché sur la tuile ne
-    // représente alors plus "ce mois-ci", et comparer au mois précédent n'aurait plus de sens.
-    if(pct===null || f.dateFrom || f.dateTo) return '';
+    if(pct===null) return '';
     const up = pct>=0;
-    return ` <span class="text-faint" style="font-size:10px;color:${up?'var(--accent)':'var(--danger)'};">${up?'▲':'▼'} ${Math.abs(pct)}% vs mois préc.</span>`;
+    const suffix = customPeriodActive ? 'vs période préc.' : 'vs mois préc.';
+    return ` <span class="text-faint" style="font-size:10px;color:${up?'var(--accent)':'var(--danger)'};">${up?'▲':'▼'} ${Math.abs(pct)}% ${suffix}</span>`;
   };
 
   const filterBar = `
@@ -5106,16 +5200,14 @@ function viewDashboard(){
         <div class="panel-body">
           <div class="stats-grid">
             <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Traders actifs${infoTip("Traders dont le statut est « Actif », sur le total de traders que tu gères.")}</div><div class="stat-value">${activeTraders}</div><div class="stat-sub">${myTraders.length} au total</div></div>
-            <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Challenges en cours${infoTip("Comptes de type Challenge dont le statut est « Actif » (pas encore réussi, ni breach, ni clôturé).")}</div><div class="stat-value">${enCours}</div><div class="stat-sub">${challenges.length} challenge(s) créés</div></div>
-            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">PA actifs${infoTip("Comptes de type « Prop Account » (compte financé après réussite d'un challenge) actuellement au statut Actif.")}</div><div class="stat-value">${pasActifs}</div><div class="stat-sub">${pas.length} PA au total</div></div>
+            <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Comptes actifs${infoTip("Comptes (Challenge en cours + PA + Live) actuellement au statut Actif, sur le nombre total de comptes filtrés. Le détail par type est dans le widget « Mes comptes » ci-dessous.")}</div><div class="stat-value">${enCours+pasActifs+livesActifs}</div><div class="stat-sub">sur ${accountsF.length} au total${trendBadge(activeAccountsTrend)}</div></div>
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Taux de réussite${infoTip("Part des challenges passés en statut « Réussi », parmi tous les challenges réussis + breachés (les challenges encore en cours ne comptent pas).")}</div><div class="stat-value">${tauxReussite}%</div><div class="stat-sub">${reussis} réussi(s) · ${breachedCh} breached</div></div>
+            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des achats de challenges, des mensualités et des frais d'activation, sur la période filtrée. Convertie dans une seule devise si tes comptes utilisent des devises différentes.")}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(expensesTrend)}</div></div>
           </div>
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Comptes Live actifs${infoTip("Comptes de type « Live » (capital réel après validation d'un PA) actuellement au statut Actif.")}</div><div class="stat-value">${livesActifs}</div><div class="stat-sub">${lives.length} Live au total</div></div>
-            <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Dépenses${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des achats de challenges, des mensualités et des frais d'activation, sur la période filtrée. Convertie dans une seule devise si tes comptes utilisent des devises différentes.")}</div><div class="stat-value">${fmtMoneyCur(totalExpenses, dashMoney.currency)}</div><div class="stat-sub">achats + mensualités + activation${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}</div></div>
             <div class="stat-tile" style="--rail:var(--accent)"><div class="stat-label">Payouts${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Somme des versements (payouts) reçus sur la période filtrée, tous comptes confondus.")}</div><div class="stat-value">${fmtMoneyCur(totalPayouts, dashMoney.currency)}</div><div class="stat-sub">${payoutsF.length} versement(s)${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(payoutsTrend)}</div></div>
             <div class="stat-tile" style="--rail:${net>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net (comptes propfirm)${infoTip("Payouts reçus moins dépenses de comptes propfirm (achats, mensualités, activations, resets), sur la période filtrée — scopé trader/propfirm, pour comparer une propfirm à une autre. N'inclut PAS tes frais généraux (voir la tuile « Net global » ci-contre). Un chiffre négatif veut dire que tu as dépensé plus que ce que tu as touché sur cette période.")}</div><div class="stat-value" style="color:${net>=0?'var(--accent)':'var(--danger)'}">${net>=0?'+':''}${fmtMoneyCur(net, dashMoney.currency)}</div><div class="stat-sub">payouts − dépenses comptes${dashMoney.converted?` · ${convertedLabel(dashMoney.converted, dashMoney.mixed)}`:''}${trendBadge(netTrend)}</div></div>
-            <div class="stat-tile" style="--rail:${netGlobal>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais inclut aussi tes frais généraux (abonnement plateforme, données de marché, hébergement...) — non rattachés à un compte, donc jamais filtrés par trader/propfirm. C'est ta vue la plus réaliste de rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobal>=0?'var(--accent)':'var(--danger)'}">${netGlobal>=0?'+':''}${fmtMoneyCur(netGlobal, dashMoneyGlobal.currency)}</div><div class="stat-sub">payouts − dépenses comptes − frais généraux${dashMoneyGlobal.converted?` · ${convertedLabel(dashMoneyGlobal.converted, dashMoneyGlobal.mixed)}`:''}</div></div>
+            <div class="stat-tile" style="--rail:${netGlobal>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Net global (+ frais généraux)${infoTip("Comme « Net (comptes propfirm) », mais inclut aussi tes frais généraux (abonnement plateforme, données de marché, hébergement...) — non rattachés à un compte, donc jamais filtrés par trader/propfirm. C'est ta vue la plus réaliste de rentabilité globale.")}</div><div class="stat-value" style="color:${netGlobal>=0?'var(--accent)':'var(--danger)'}">${netGlobal>=0?'+':''}${fmtMoneyCur(netGlobal, dashMoneyGlobal.currency)}</div><div class="stat-sub">payouts − dépenses comptes − frais généraux${dashMoneyGlobal.converted?` · ${convertedLabel(dashMoneyGlobal.converted, dashMoneyGlobal.mixed)}`:''}${trendBadge(netGlobalTrend)}</div></div>
           </div>
         </div>
       </div>`,
@@ -5146,15 +5238,16 @@ function viewDashboard(){
       </div>`,
     chart: `
       <div class="panel">
-        <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois${chartConverted?` <span class="text-faint" style="font-weight:400;font-size:11px;">${convertedLabel(chartConverted, chartMixed)}</span>`:''}</div></div>
+        <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
+          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— net cumulé, 6 derniers mois${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
+          ${perfTrendPct!==null ? `<span class="badge ${perfTrendPct>=0?'badge-accent':'badge-danger'}" style="font-weight:700;">${perfTrendPct>=0?'▲':'▼'} ${perfTrendPct>=0?'+':''}${perfTrendPct}% vs 6 mois préc.</span>` : ''}
+        </div>
         <div class="panel-body">
-          ${renderMiniChart(chartData, maxVal)}
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--danger)"></span>Dépenses</span>
-            <span><span class="legend-dot" style="background:var(--accent)"></span>Payouts</span>
-          </div>
+          ${renderPerformanceCurve(chartData)}
+          <div class="field-hint" style="margin-top:6px;">Net cumulé = somme des (payouts − dépenses) mois par mois, sur les 6 derniers mois affichés — pas un solde de compte réel.</div>
         </div>
       </div>`,
+    accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
     propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
     monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
@@ -5251,6 +5344,78 @@ function renderMiniChart(data, maxVal){
     bars += `<text x="${x+barW+2}" y="166" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`;
   });
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">${bars}</svg>`;
+}
+// Courbe "Performance globale" du Dashboard (widget "chart") — remplace l'ancien graphique en
+// barres Dépenses vs Payouts, décision utilisateur du 17/09/2026 inspirée d'une maquette externe.
+// Trace le net cumulé (somme des (payouts − dépenses) mois par mois) sur la fenêtre de chartData,
+// en aire dorée façon courbe de performance — pas un solde de compte réel (voir le texte d'aide
+// affiché sous le graphique dans le widget appelant).
+function renderPerformanceCurve(chartData){
+  const w=560, h=190, padL=8, padR=8, padTop=16, padBottom=28;
+  const plotW = w - padL - padR, plotH = h - padTop - padBottom;
+  let cum = 0;
+  const points = chartData.map(d=>{ cum += (d.pay - d.exp); return { mk:d.mk, cum }; });
+  const values = points.map(p=>p.cum);
+  const minV = Math.min(0, ...values), maxV = Math.max(0, ...values);
+  const range = (maxV - minV) || 1;
+  const stepX = points.length>1 ? plotW/(points.length-1) : 0;
+  const xAt = i => padL + i*stepX;
+  const yAt = v => padTop + plotH - ((v - minV)/range)*plotH;
+  const linePts = points.map((p,i)=>`${xAt(i).toFixed(1)},${yAt(p.cum).toFixed(1)}`).join(' ');
+  const areaPts = `${xAt(0).toFixed(1)},${yAt(0).toFixed(1)} ${linePts} ${xAt(points.length-1).toFixed(1)},${yAt(0).toFixed(1)}`;
+  const dots = points.map((p,i)=>`<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(p.cum).toFixed(1)}" r="3" fill="var(--gold)"/>`).join('');
+  const labels = points.map((p,i)=>`<text x="${xAt(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(p.mk)}</text>`).join('');
+  const valueLabels = points.map((p,i)=>`<text x="${xAt(i).toFixed(1)}" y="${Math.max(10, yAt(p.cum)-8)}" text-anchor="middle" font-size="9.5" fill="var(--gold)" font-family="JetBrains Mono, monospace">${p.cum>=0?'+':''}${fmtMoneyShort(p.cum)}</text>`).join('');
+  const zeroY = yAt(0);
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">
+    <defs>
+      <linearGradient id="perfCurveGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--gold)" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${minV<0 && maxV>0 ? `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${w-padR}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-dasharray="3,3"/>` : ''}
+    <polygon points="${areaPts}" fill="url(#perfCurveGrad)"/>
+    <polyline points="${linePts}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    ${valueLabels}
+    ${labels}
+  </svg>`;
+}
+// Widget "Mes comptes" (par type Challenge/PA/Live) du Dashboard — remplace les tuiles éparpillées
+// (Challenges en cours, PA actifs, Comptes Live actifs) du panneau "Vue d'ensemble" par 3 cartes
+// compactes, décision utilisateur du 17/09/2026 inspirée d'une maquette externe. "Solde" par type =
+// capital engagé/sous gestion (voir capitalActifPA/capitalActifLive/challengeCapitalMoney dans
+// viewDashboard) — Contralytix ne suit pas de solde de compte en temps réel.
+function dashboardAccountsByTypeWidgetHtml(opts){
+  const { challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary } = opts;
+  const card = (label, icon_, amountHtml, sub, rail)=>`
+    <div class="stat-tile" style="--rail:${rail};">
+      <div class="stat-label" style="display:flex;align-items:center;gap:6px;">${icon(icon_)}${label}</div>
+      <div class="stat-value">${amountHtml}</div>
+      <div class="stat-sub">${sub}</div>
+    </div>`;
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('layers')}Mes comptes</div></div>
+      <div class="panel-body">
+        <div class="stats-grid" style="margin-bottom:0;">
+          ${card('Challenge', 'bolt',
+            challengeCapitalMoney.amount>0 ? fmtSumMoney(challengeCapitalMoney,{compact:true}) : '—',
+            accountStatusSummary(challenges, [['ACTIF','en cours'],['REUSSI','réussi','réussis'],['BREACHED','breached']]),
+            'var(--slate)')}
+          ${card('PA', 'wallet',
+            capitalActifPA>0 ? fmtMoneyCur(capitalActifPA,'USD') : '—',
+            accountStatusSummary(pas, [['ACTIF','actif'],['BREACHED','breached'],['FERME','fermé']]),
+            'var(--accent)')}
+          ${card('Live', 'barChart',
+            capitalActifLive>0 ? fmtMoneyCur(capitalActifLive,'USD') : '—',
+            accountStatusSummary(lives, [['ACTIF','actif'],['BREACHED','breached'],['FERME','fermé']]),
+            'var(--gold)')}
+        </div>
+        <div class="field-hint" style="margin-top:10px;">Challenge : total dépensé (achats + mensualités), tout l'historique. PA/Live : capital sous gestion (tailles cumulées des comptes actifs) — pas un solde de compte en temps réel.</div>
+      </div>
+    </div>`;
 }
 
 /* ============================================================
@@ -6281,15 +6446,18 @@ const MANUAL_CHAPTERS = [
     <h3>Indicateurs clés</h3>
     <ul>
       <li><b>Traders actifs</b> — nombre de traders au statut Actif, sur le total enregistré.</li>
-      <li><b>Challenges en cours</b> — nombre de comptes Challenge actuellement actifs.</li>
-      <li><b>PA actifs</b> — nombre de comptes financés (PA) actuellement actifs.</li>
+      <li><b>Comptes actifs</b> — nombre de comptes (Challenge en cours + PA + Live) actuellement actifs, sur le total de comptes filtrés. Le détail par type se trouve dans le widget « Mes comptes » juste en dessous.</li>
       <li><b>Taux de réussite</b> — part des Challenges déjà tranchés (réussis ou breached) soldés par une réussite.</li>
-      <li><b>Comptes Live actifs</b> — nombre de comptes Live actuellement actifs.</li>
       <li><b>Dépenses</b> — somme des achats, mensualités et frais d'activation, sur la période filtrée.</li>
       <li><b>Payouts</b> — somme des versements reçus, sur la période filtrée.</li>
       <li><b>Net (comptes propfirm)</b> — payouts moins dépenses de comptes propfirm, sur la période filtrée.</li>
       <li><b>Net global (+ frais généraux)</b> — comme ci-dessus, mais en ajoutant tes frais généraux (voir chapitre 15) — la vue la plus réaliste de ta rentabilité globale.</li>
     </ul>
+    <p>Dépenses, Payouts, Net, Net global et Comptes actifs affichent chacun une petite flèche de tendance (▲/▼) comparée à la période précédente : si tu as choisi une période personnalisée complète (date de début ET de fin), la comparaison se fait avec la période équivalente juste avant (ex : juin-août vs mars-mai) ; sinon, avec le mois précédent.</p>
+    <h3>Mes comptes</h3>
+    <p>Trois cartes résument tes comptes par type — Challenge, PA et Live — avec leur capital engagé ou sous gestion (Contralytix ne suit pas de solde de compte en temps réel : pour un Challenge, c'est le total dépensé en achats et mensualités ; pour un PA ou un Live, c'est la somme des tailles de compte actuellement actives) et le détail des statuts (en cours, réussi, breached, fermé...).</p>
+    <h3>Performance globale</h3>
+    <p>Une courbe retrace le net cumulé (payouts moins dépenses, mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents.</p>
     <h3>Délais moyens</h3>
     <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
     <h3>Graphique et comptes récents</h3>
