@@ -259,6 +259,11 @@ a{color:var(--accent);text-decoration:none;}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
 .stat-tile{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:10px;padding:16px 16px;min-width:0;}
 .stat-label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+/* icon(name) renvoie un <svg> brut sans width/height ni classe — sans cette règle, un stat-label
+   contenant une icône (voir dashboardAccountsByTypeWidgetHtml, widget "Mes comptes") s'affiche à la
+   taille par défaut du navigateur (icône géante). Même bug/même correctif que
+   claude/fix-icones-surdimensionnees.md, ici sur un emplacement qui n'existait pas encore alors. */
+.stat-label svg{width:13px;height:13px;flex-shrink:0;}
 .stat-value{font-size:24px;font-weight:700;margin-top:8px;font-family:'JetBrains Mono',monospace;}
 .stat-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
 
