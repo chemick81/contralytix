@@ -866,9 +866,16 @@ th.th-sort-active svg{opacity:1;}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
 
 /* CHART */
-.chart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--text-dim);margin-top:10px;}
+.chart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--text-dim);margin-top:10px;flex-wrap:wrap;}
 .chart-legend span{display:flex;align-items:center;gap:6px;}
-.legend-dot{width:8px;height:8px;border-radius:2px;}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+/* Puces cliquables pour masquer/afficher une série du widget "Performance globale" fusionné
+   (barres Dépenses/Payouts + courbe Net cumulé) — voir renderCombinedPerfChart(), fusion du
+   18/09/2026. Inactive = grisée + barrée, sans supprimer la puce (on retrouve son état). */
+.chart-legend-chip{display:flex;align-items:center;gap:6px;font-size:11.5px;font-family:inherit;background:var(--bg-alt);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 8px;cursor:pointer;color:var(--text-dim);transition:opacity .15s,background .15s;}
+.chart-legend-chip:hover{background:var(--bg-hover,var(--bg-alt));}
+.chart-legend-chip:not(.active){opacity:.45;text-decoration:line-through;}
+.chart-legend-chip:not(.active) .legend-dot{opacity:.5;}
 
 /* DONUT (anneaux KPI du Dashboard) */
 .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
@@ -1484,8 +1491,7 @@ const DASHBOARD_WIDGETS = [
   { id:'accountsByType', label:'Mes comptes (par type)' },
   { id:'performance',    label:'Performance & rendement' },
   { id:'delays',         label:'Délais moyens' },
-  { id:'chart',          label:'Performance globale (courbe)' },
-  { id:'chartBars',      label:'Dépenses vs Payouts (barres, 6 derniers mois)' },
+  { id:'chart',          label:'Performance globale (barres + courbe)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
   { id:'monthRecap',     label:'Récap du mois' },
@@ -2485,6 +2491,39 @@ function computePermissions(){
   return state.permissions;
 }
 function perms(){ return state.permissions || computePermissions(); }
+
+// Sécurité ajoutée le 17/09/2026 (voir claude/incident-webhook-stripe-echec-temporaire.md) :
+// create-checkout-session.js redirige vers `${SITE_URL}/?checkout=success` après un paiement
+// Stripe réussi, mais l'activation réelle (profiles.role -> PREMIUM) dépend du webhook Stripe,
+// qui peut être en retard de quelques secondes, voire tomber en échec silencieux (déjà vu en
+// prod). Sans ça, un utilisateur revenant sur l'app juste après son paiement pouvait se retrouver
+// encore bloqué en Free sans explication. On réessaie donc quelques fois avant d'abandonner ; en
+// cas d'échec prolongé du webhook, l'alerte admin (check-stripe-payment-gaps.js, planifiée toutes
+// les heures) prend le relai indépendamment de cette fonction.
+async function handleCheckoutReturn(){
+  const params = new URLSearchParams(window.location.search);
+  const checkoutStatus = params.get('checkout');
+  if(!checkoutStatus) return;
+  // Nettoie l'URL tout de suite (avant même le traitement) pour ne jamais rejouer ce bloc sur un
+  // simple F5 ou un retour en arrière du navigateur.
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+  if(checkoutStatus !== 'success') return;
+  if(perms().isPremium) return; // déjà à jour (webhook plus rapide que l'utilisateur), rien à faire
+  showToast('Paiement reçu, activation de ton abonnement en cours…');
+  const attempts = 6, delayMs = 5000; // ~30s de tentatives, au-delà on laisse la main
+  for(let i=0; i<attempts; i++){
+    await new Promise(r=>setTimeout(r, delayMs));
+    await loadProfile();
+    await loadSubscription();
+    computePermissions();
+    if(perms().isPremium){
+      render();
+      showToast('Abonnement Premium activé !');
+      return;
+    }
+  }
+  showToast("L'activation prend plus de temps que prévu. Si ton compte n'est pas passé Premium d'ici quelques minutes, contacte le support.");
+}
 
 /* ============================================================
    TEASER FLOU — LISTES PRINCIPALES EN FORMULE FREE
@@ -4220,13 +4259,22 @@ function normalizeDashboardLayout(parsed){
   const rawCollapsed = (parsed.collapsed && typeof parsed.collapsed==='object') ? parsed.collapsed : {};
   const collapsed = {};
   order.forEach(id=>{ collapsed[id] = !!rawCollapsed[id]; });
-  return { order, hidden, sizes, collapsed };
+  // Séries affichées dans le widget "chart" fusionné (barres Dépenses/Payouts + courbe Net cumulé,
+  // voir claude/dashboard-redesign-inspiration-externe.md, fusion du 18/09/2026) — chaque série peut
+  // être masquée indépendamment, mémorisé par compte comme le reste de la disposition.
+  const rawChartSeries = (parsed.chartSeries && typeof parsed.chartSeries==='object') ? parsed.chartSeries : {};
+  const chartSeries = {
+    exp: rawChartSeries.exp !== false,
+    pay: rawChartSeries.pay !== false,
+    net: rawChartSeries.net !== false,
+  };
+  return { order, hidden, sizes, collapsed, chartSeries };
 }
 function defaultDashboardLayout(){
   const defaultOrder = DASHBOARD_WIDGETS.map(w=>w.id);
   const sizes = {}, collapsed = {};
   defaultOrder.forEach(id=>{ sizes[id]='lg'; collapsed[id]=false; });
-  return { order: defaultOrder, hidden: [], sizes, collapsed };
+  return { order: defaultOrder, hidden: [], sizes, collapsed, chartSeries: { exp:true, pay:true, net:true } };
 }
 function loadDashboardLayout(){
   try{
@@ -4359,7 +4407,7 @@ function openDashboardCustomizeModal(){
       document.getElementById('dlw-reset').onclick = ()=>{
         const sizes = {}, collapsed = {};
         DASHBOARD_WIDGETS.forEach(w=>{ sizes[w.id]='lg'; collapsed[w.id]=false; });
-        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [], sizes, collapsed };
+        state.dashboardLayout = { order: DASHBOARD_WIDGETS.map(w=>w.id), hidden: [], sizes, collapsed, chartSeries: { exp:true, pay:true, net:true } };
         saveDashboardLayout();
         openDashboardCustomizeModal();
       };
@@ -4977,13 +5025,12 @@ function viewDashboard(){
     const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
-  // Réutilisé par le widget "Dépenses vs Payouts (barres)" — voir renderMiniChart ci-dessous.
-  // Décision utilisateur du 17/09/2026 : garder ce graphique EN PLUS de la courbe "Performance
-  // globale" (qui l'avait initialement remplacé), pas à sa place.
+  // Échelle des barres Dépenses/Payouts du widget "Performance globale" fusionné — voir
+  // renderCombinedPerfChart ci-dessous.
   const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
   // Bloc des 6 mois précédant la fenêtre affichée par chartData — sert uniquement au badge de
   // tendance "+X% vs période précédente" du widget "Performance globale" (voir
-  // renderPerformanceCurve ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
+  // renderCombinedPerfChart ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
   // des 6 mois d'avant. Décision utilisateur du 17/09/2026 (inspiration maquette externe).
   const prevMonths6 = [];
   for(let i=11;i>=6;i--){
@@ -5246,28 +5293,28 @@ function viewDashboard(){
           </div>
         </div>
       </div>`,
-    chart: `
+    chart: (()=>{
+      const cs = state.dashboardLayout.chartSeries || { exp:true, pay:true, net:true };
+      const chip = (key, label, dotColor)=>`<button type="button" class="chart-legend-chip ${cs[key]?'active':''}" data-chart-series-toggle="${key}" style="--dot:${dotColor};">
+        <span class="legend-dot" style="background:${dotColor};"></span>${label}
+      </button>`;
+      return `
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— net cumulé, 6 derniers mois${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
+          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— 6 derniers mois${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
           ${perfTrendPct!==null ? `<span class="badge ${perfTrendPct>=0?'badge-accent':'badge-danger'}" style="font-weight:700;">${perfTrendPct>=0?'▲':'▼'} ${perfTrendPct>=0?'+':''}${perfTrendPct}% vs 6 mois préc.</span>` : ''}
         </div>
         <div class="panel-body">
-          ${renderPerformanceCurve(chartData)}
-          <div class="field-hint" style="margin-top:6px;">Net cumulé = somme des (payouts − dépenses) mois par mois, sur les 6 derniers mois affichés — pas un solde de compte réel.</div>
-        </div>
-      </div>`,
-    chartBars: `
-      <div class="panel">
-        <div class="panel-head"><div class="section-title">Dépenses vs Payouts — 6 derniers mois${chartConverted?` <span class="text-faint" style="font-weight:400;font-size:11px;">${convertedLabel(chartConverted, chartMixed)}</span>`:''}</div></div>
-        <div class="panel-body">
-          ${renderMiniChart(chartData, maxVal)}
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:var(--danger)"></span>Dépenses</span>
-            <span><span class="legend-dot" style="background:var(--accent)"></span>Payouts</span>
+          <div class="chart-legend" style="margin-bottom:8px;">
+            ${chip('exp','Dépenses','var(--danger)')}
+            ${chip('pay','Payouts','var(--accent)')}
+            ${chip('net','Net cumulé','var(--gold)')}
           </div>
+          ${renderCombinedPerfChart(chartData, maxVal, cs)}
+          <div class="field-hint" style="margin-top:6px;">Dépenses/Payouts = montants du mois. Net cumulé = somme des (payouts − dépenses) mois par mois — pas un solde de compte réel. Clique une puce ci-dessus pour l'afficher/la masquer.</div>
         </div>
-      </div>`,
+      </div>`;
+    })(),
     accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
     propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
@@ -5351,55 +5398,77 @@ function fmtMoneyShort(n){
   if(Math.abs(v)>=1000) return (v/1000).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'k';
   return Math.round(v).toLocaleString('fr-FR');
 }
-function renderMiniChart(data, maxVal){
-  const w=560,h=190,barW=22,gap=46,groupW=barW*2+8;
-  let bars='';
-  data.forEach((d,i)=>{
-    const x = 30 + i*gap*2.4;
-    const hExp = (d.exp/maxVal)*130;
-    const hPay = (d.pay/maxVal)*130;
-    bars += `<rect x="${x}" y="${150-hExp}" width="${barW}" height="${hExp}" rx="3" fill="var(--danger)" opacity="0.85"/>`;
-    bars += `<rect x="${x+barW+4}" y="${150-hPay}" width="${barW}" height="${hPay}" rx="3" fill="var(--accent)" opacity="0.9"/>`;
-    if(d.exp>0) bars += `<text x="${x+barW/2}" y="${Math.max(10,150-hExp-4)}" text-anchor="middle" font-size="9.5" fill="var(--danger)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.exp)}</text>`;
-    if(d.pay>0) bars += `<text x="${x+barW+4+barW/2}" y="${Math.max(10,150-hPay-4)}" text-anchor="middle" font-size="9.5" fill="var(--accent)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.pay)}</text>`;
-    bars += `<text x="${x+barW+2}" y="166" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`;
-  });
-  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">${bars}</svg>`;
-}
-// Courbe "Performance globale" du Dashboard (widget "chart") — remplace l'ancien graphique en
-// barres Dépenses vs Payouts, décision utilisateur du 17/09/2026 inspirée d'une maquette externe.
-// Trace le net cumulé (somme des (payouts − dépenses) mois par mois) sur la fenêtre de chartData,
-// en aire dorée façon courbe de performance — pas un solde de compte réel (voir le texte d'aide
-// affiché sous le graphique dans le widget appelant).
-function renderPerformanceCurve(chartData){
-  const w=560, h=190, padL=8, padR=8, padTop=16, padBottom=28;
+// Widget "chart" du Dashboard — fusion des 2 anciens graphiques distincts (barres Dépenses/Payouts
+// et courbe "Performance globale") en un seul, décision utilisateur du 18/09/2026 (voir
+// claude/dashboard-redesign-inspiration-externe.md). Barres = dépenses/payouts du mois (échelle
+// 0→maxVal, propre à chaque mois) ; courbe = net cumulé (somme des (payouts−dépenses) mois par mois,
+// échelle indépendante min/max) — les deux se partagent le même axe des mois (x), mais PAS la même
+// échelle verticale (natures différentes : montant du mois vs cumul), comme un graphique combo
+// classique à double axe. `series` = { exp, pay, net } (booléens) contrôle l'affichage indépendant
+// de chaque série — voir state.dashboardLayout.chartSeries, persisté par compte comme le reste de la
+// disposition du Dashboard.
+function renderCombinedPerfChart(chartData, maxVal, series){
+  const showExp = series.exp !== false, showPay = series.pay !== false, showNet = series.net !== false;
+  if(!showExp && !showPay && !showNet){
+    return `<div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune série sélectionnée — active Dépenses, Payouts ou Net cumulé ci-dessus.</div>`;
+  }
+  const w=560, h=210, padL=10, padR=10, padTop=18, padBottom=30;
   const plotW = w - padL - padR, plotH = h - padTop - padBottom;
-  let cum = 0;
-  const points = chartData.map(d=>{ cum += (d.pay - d.exp); return { mk:d.mk, cum }; });
-  const values = points.map(p=>p.cum);
-  const minV = Math.min(0, ...values), maxV = Math.max(0, ...values);
-  const range = (maxV - minV) || 1;
-  const stepX = points.length>1 ? plotW/(points.length-1) : 0;
-  const xAt = i => padL + i*stepX;
-  const yAt = v => padTop + plotH - ((v - minV)/range)*plotH;
-  const linePts = points.map((p,i)=>`${xAt(i).toFixed(1)},${yAt(p.cum).toFixed(1)}`).join(' ');
-  const areaPts = `${xAt(0).toFixed(1)},${yAt(0).toFixed(1)} ${linePts} ${xAt(points.length-1).toFixed(1)},${yAt(0).toFixed(1)}`;
-  const dots = points.map((p,i)=>`<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(p.cum).toFixed(1)}" r="3" fill="var(--gold)"/>`).join('');
-  const labels = points.map((p,i)=>`<text x="${xAt(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(p.mk)}</text>`).join('');
-  const valueLabels = points.map((p,i)=>`<text x="${xAt(i).toFixed(1)}" y="${Math.max(10, yAt(p.cum)-8)}" text-anchor="middle" font-size="9.5" fill="var(--gold)" font-family="JetBrains Mono, monospace">${p.cum>=0?'+':''}${fmtMoneyShort(p.cum)}</text>`).join('');
-  const zeroY = yAt(0);
-  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;overflow:visible;">
-    <defs>
-      <linearGradient id="perfCurveGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--gold)" stop-opacity="0.35"/>
-        <stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    ${minV<0 && maxV>0 ? `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${w-padR}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-dasharray="3,3"/>` : ''}
-    <polygon points="${areaPts}" fill="url(#perfCurveGrad)"/>
-    <polyline points="${linePts}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-    ${dots}
-    ${valueLabels}
+  const n = chartData.length;
+  const stepX = n>1 ? plotW/(n-1) : 0;
+  const centerX = i => padL + i*stepX;
+  const baseY = padTop + plotH;
+  const barMaxH = plotH*0.82;
+  const barW = Math.min(22, stepX*0.28 || 22);
+
+  let bars = '';
+  if(showExp || showPay){
+    chartData.forEach((d,i)=>{
+      const cx = centerX(i);
+      let bx = cx - (showExp && showPay ? barW+2 : barW/2);
+      if(showExp){
+        const hExp = maxVal>0 ? (d.exp/maxVal)*barMaxH : 0;
+        bars += `<rect x="${bx.toFixed(1)}" y="${(baseY-hExp).toFixed(1)}" width="${barW}" height="${hExp.toFixed(1)}" rx="3" fill="var(--danger)" opacity="0.85"/>`;
+        if(d.exp>0) bars += `<text x="${(bx+barW/2).toFixed(1)}" y="${Math.max(padTop-4, baseY-hExp-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--danger)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.exp)}</text>`;
+        bx += barW + 4;
+      }
+      if(showPay){
+        const hPay = maxVal>0 ? (d.pay/maxVal)*barMaxH : 0;
+        bars += `<rect x="${bx.toFixed(1)}" y="${(baseY-hPay).toFixed(1)}" width="${barW}" height="${hPay.toFixed(1)}" rx="3" fill="var(--accent)" opacity="0.9"/>`;
+        if(d.pay>0) bars += `<text x="${(bx+barW/2).toFixed(1)}" y="${Math.max(padTop-4, baseY-hPay-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="JetBrains Mono, monospace">${fmtMoneyShort(d.pay)}</text>`;
+      }
+    });
+  }
+
+  let lineBlock = '';
+  if(showNet){
+    let cum = 0;
+    const values = chartData.map(d=>{ cum += (d.pay - d.exp); return cum; });
+    const minV = Math.min(0, ...values), maxV = Math.max(0, ...values);
+    const range = (maxV - minV) || 1;
+    const yAt = v => padTop + plotH - ((v - minV)/range)*plotH;
+    const linePts = values.map((v,i)=>`${centerX(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    const areaPts = `${centerX(0).toFixed(1)},${yAt(0).toFixed(1)} ${linePts} ${centerX(values.length-1).toFixed(1)},${yAt(0).toFixed(1)}`;
+    const dots = values.map((v,i)=>`<circle cx="${centerX(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3" fill="var(--gold)"/>`).join('');
+    const valueLabels = values.map((v,i)=>`<text x="${centerX(i).toFixed(1)}" y="${Math.max(10, yAt(v)-8).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="var(--gold)" font-family="JetBrains Mono, monospace">${v>=0?'+':''}${fmtMoneyShort(v)}</text>`).join('');
+    lineBlock = `
+      <defs>
+        <linearGradient id="perfCurveGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--gold)" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="var(--gold)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon points="${areaPts}" fill="url(#perfCurveGrad)"/>
+      <polyline points="${linePts}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${valueLabels}`;
+  }
+
+  const labels = chartData.map((d,i)=>`<text x="${centerX(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`).join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;overflow:visible;">
+    ${bars}
+    ${lineBlock}
     ${labels}
   </svg>`;
 }
@@ -6478,11 +6547,9 @@ const MANUAL_CHAPTERS = [
     <h3>Mes comptes</h3>
     <p>Trois cartes résument tes comptes par type — Challenge, PA et Live — avec leur capital engagé ou sous gestion (Contralytix ne suit pas de solde de compte en temps réel : pour un Challenge, c'est le total dépensé en achats et mensualités ; pour un PA ou un Live, c'est la somme des tailles de compte actuellement actives) et le détail des statuts (en cours, réussi, breached, fermé...).</p>
     <h3>Performance globale</h3>
-    <p>Une courbe retrace le net cumulé (payouts moins dépenses, mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents. Un second graphique, en barres, détaille les montants de dépenses et de payouts mois par mois sur la même période.</p>
+    <p>Un seul graphique combine les barres Dépenses/Payouts (montants du mois) et la courbe Net cumulé (somme des (payouts − dépenses) mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents. Trois puces au-dessus du graphique (Dépenses, Payouts, Net cumulé) permettent d'afficher ou de masquer chaque série indépendamment — ton choix est mémorisé sur ton compte.</p>
     <h3>Délais moyens</h3>
-    <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>
-    <h3>Graphique et comptes récents</h3>
-    <p>Un graphique compare les dépenses et les payouts sur les 6 derniers mois. À côté, un encart liste les comptes créés le plus récemment, avec leur statut.</p>` },
+    <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>` },
   { n:'4', id:'m-traders', title:"Traders", html:`
     <p>La section Traders liste l'ensemble des traders suivis, avec leurs statistiques et leurs badges.</p>
     ${manualShot('04-traders.jpg', "Liste des traders, avec badges débloqués et statistiques.")}
@@ -10633,6 +10700,18 @@ function bindViewEvents(){
         renderView();
       };
     });
+    // Puces de la légende du widget "Performance globale" fusionné : masque/affiche une série
+    // (Dépenses/Payouts/Net cumulé) indépendamment, mémorisé par compte — voir renderCombinedPerfChart().
+    document.querySelectorAll('[data-chart-series-toggle]').forEach(b=>{
+      b.onclick = (e)=>{
+        e.stopPropagation();
+        const key = b.dataset.chartSeriesToggle;
+        if(!state.dashboardLayout.chartSeries) state.dashboardLayout.chartSeries = { exp:true, pay:true, net:true };
+        state.dashboardLayout.chartSeries[key] = !state.dashboardLayout.chartSeries[key];
+        saveDashboardLayout();
+        renderView();
+      };
+    });
     // Flèches monter/descendre : déplace le widget par rapport à son voisin visible le plus proche
     // (les modules masqués, eux, gardent leur position dans le tableau order — ils sont juste ignorés).
     const moveDashWidget = (id, dir)=>{
@@ -13825,6 +13904,7 @@ function applyLandingPricing(){
     renderChatWidget();
     maybeShowWelcomeModal();
     maybeShowNewMessagesToast();
+    handleCheckoutReturn(); // fire-and-forget, voir sa définition (retour de paiement Stripe)
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
