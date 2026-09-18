@@ -4153,7 +4153,7 @@ const BASE_NAV = [
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
-  { id:'subscription', label:'Tarifs', icon:'wallet' },
+  { id:'subscription', label:'Abonnement', icon:'wallet' },
   { id:'profil', label:'Profil', icon:'userCircle' },
   { id:'parametres', label:'Paramètres', icon:'gear' },
   { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
@@ -6371,7 +6371,7 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Abonnement." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
     { q:"Puis-je changer le nom affiché dans l'application ?", a:"Oui, depuis la page Profil : un champ « Nom affiché » remplace ton adresse e-mail dans la barre latérale et les échanges avec le support. Purement cosmétique, sans effet sur la connexion." },
     { q:"Comment gérer les emails que Contralytix m'envoie ?", a:"Depuis Paramètres > Notifications, trois interrupteurs indépendants : rappels d'échéance URSSAF, résumé de performance hebdomadaire, et annonces produit (désactivé par défaut). Chacun se coche ou se décoche à tout moment." },
@@ -6413,8 +6413,8 @@ const HELP_CATEGORIES = [
     { q:"La vidéo YouTube ne s'affiche pas, que faire ?", a:"Vérifie que la vidéo n'est pas configurée en « non répertoriée » avec lecture externe désactivée côté YouTube Studio. Un lien « Ouvrir sur YouTube » reste toujours disponible en secours." },
   ]},
   { id:'abonnement', label:'Abonnement & Tarifs', icon:'wallet', questions:[
-    { q:"Comment passer en Premium ?", a:"Depuis la page Tarifs, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
-    { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Tarifs, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
+    { q:"Comment passer en Premium ?", a:"Depuis la page Abonnement, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
+    { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Abonnement, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
@@ -6538,7 +6538,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Abonnement — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -6711,10 +6711,10 @@ const MANUAL_CHAPTERS = [
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
   { n:'17', id:'m-abonnement', title:"Abonnement et tarifs", html:`
-    <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
+    <p>La section Abonnement affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
-    ${manualShot('15-abonnement.jpg', "Page Tarifs — ici pour un compte Admin (accès illimité) ; un compte Free, Premium ou Lifetime y voit à la place le comparatif des formules.")}
+    ${manualShot('15-abonnement.jpg', "Page Abonnement — ici pour un compte Admin (accès illimité) ; un compte Free, Premium ou Lifetime y voit à la place le comparatif des formules.")}
     <h3>Comparatif des formules</h3>
     <ul>
       <li><b>Free</b> — gratuite : jusqu'à 2 traders, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité et Dashboard toujours limités à tes propres traders et comptes, support communautaire.</li>
