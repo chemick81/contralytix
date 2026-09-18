@@ -1569,7 +1569,7 @@ const state = {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
-    bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'' },
+    bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'', showFraisGeneraux:true },
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
     calendrier: { month: '', trader:[], traderMenuOpen:false },
@@ -6640,7 +6640,7 @@ const MANUAL_CHAPTERS = [
   { n:'10', id:'m-bilan', title:"Bilan visuel", html:`
     <p>Le Bilan visuel présente des cartes récapitulatives mensuelles, par trader et par PropFirm, destinées à être partagées. <b>Fonctionnalité réservée aux formules Premium et Lifetime.</b></p>
     ${manualShot('09-bilan.jpg', "Cartes de bilan visuel mensuelles, exportables en image PNG.")}
-    <p>Un filtre permet de choisir le mois et un ou plusieurs traders. Chaque carte affiche les dépenses, les payouts et le résultat net du mois pour un trader donné, et peut être exportée individuellement en image PNG, ou en une fois via « Tout exporter (PNG) ».</p>` },
+    <p>Un filtre permet de choisir le mois et un ou plusieurs traders. Chaque carte affiche les dépenses, les payouts et le résultat net du mois pour un trader donné, et peut être exportée individuellement en image PNG, ou en une fois via « Tout exporter (PNG) ». Si le module Frais généraux est activé, un bouton « Frais généraux affichés/masqués » permet de faire apparaître ou disparaître la carte récapitulative des frais généraux (valable pour les deux vues, Cartes par trader et Vue globale PropFirm).</p>` },
   { n:'11', id:'m-sessions', title:"Sessions de Trading", html:`
     <p>La section Sessions de Trading est un journal de bord orienté organisation : chaque session de trading peut être débriefée avec son replay vidéo, des notes détaillées et une évaluation de la performance. Volontairement, aucune donnée financière n'y figure — la comptabilité réelle reste sur la page Comptabilité.</p>
     ${manualShot('10-sessions.jpg', "Liste des sessions de trading, avec durée et performance de chaque session.")}
@@ -7857,11 +7857,20 @@ function generalExpenseBilanCardHtml(lines, periodLabelStr, cardId, fileName){
 
 function viewBilanVisuel(){
   const f = state.filters.bilan;
+  // Coupe-circuit module (Admin > Gestion des pages + formule Premium) : si le module Frais
+  // généraux n'est de toute façon pas disponible, inutile de proposer un bouton pour le
+  // masquer/afficher dans Bilan Visuel. Voir claude/frais-generaux-module.md.
+  const fraisGenerauxAvailable = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
   const modeToggle = `
-    <div class="recap-granularity" style="margin-bottom:14px;">
+    <div class="recap-granularity" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <button class="btn btn-sm ${f.viewMode!=='cards'?'btn-primary':'btn-outline'}" data-bilan-mode="global">${icon('image')}Vue globale (PropFirm)</button>
       <button class="btn btn-sm ${f.viewMode==='cards'?'btn-primary':'btn-outline'}" data-bilan-mode="cards">Cartes par trader</button>
+      ${fraisGenerauxAvailable ? `<button class="btn btn-sm ${f.showFraisGeneraux?'btn-primary':'btn-outline'}" id="bilan-toggle-frais-generaux" style="margin-left:auto;">${icon('card')}Frais généraux ${f.showFraisGeneraux?'affichés':'masqués'}</button>` : ''}
     </div>`;
+  // Applicable aux 2 vues (cartes par trader ET vue globale PropFirm) — décision utilisateur du
+  // 18/09/2026. Réinitialisé à chaque session (comme les autres filtres de cette page), pas
+  // persisté en base.
+  const showFraisGenerauxNow = fraisGenerauxAvailable && f.showFraisGeneraux;
 
   if(f.viewMode==='cards'){
     const month = f.month || monthKey(todayISO());
@@ -7890,13 +7899,14 @@ function viewBilanVisuel(){
         ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
       </div>`;
 
-    const showGeneralExpensesBilan = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
     // Un frais "partagé" (sans trader) reste toujours visible ; un frais rattaché à un trader
     // suit le filtre trader de la page, comme partout ailleurs (voir claude/frais-generaux-module.md).
-    const geCardMonthLines = showGeneralExpensesBilan ? computeGeneralExpenseLines()
+    // showFraisGenerauxNow : bouton de bascule propre à Bilan Visuel (décision utilisateur du
+    // 18/09/2026), en plus du coupe-circuit module existant.
+    const geCardMonthLines = showFraisGenerauxNow ? computeGeneralExpenseLines()
       .filter(l=>monthKey(l.date)===month)
       .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
-    const geCardHtml = showGeneralExpensesBilan
+    const geCardHtml = showFraisGenerauxNow
       ? generalExpenseBilanCardHtml(geCardMonthLines, monthLabel(month), `bilan-card-frais-generaux-${month}`, `Bilan_FraisGeneraux_${month}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
       : '';
     const grid = (entries.length===0 && !geCardHtml)
@@ -7938,12 +7948,11 @@ function viewBilanVisuel(){
       ${f.trader.length ? `<button class="pill-reset" id="fb-clear">Réinitialiser</button>` : ''}
     </div>`;
 
-  const showGeneralExpensesBilanGlobal = perms().canFraisGeneraux && fraisGenerauxModuleEnabled();
   const geKeyFn = granularity==='year' ? yearKey : granularity==='quarter' ? quarterKey : monthKey;
-  const geGlobalLines = showGeneralExpensesBilanGlobal ? computeGeneralExpenseLines()
+  const geGlobalLines = showFraisGenerauxNow ? computeGeneralExpenseLines()
     .filter(l=>geKeyFn(l.date)===periodKey)
     .filter(l=>!f.trader.length || !l.traderId || f.trader.includes(l.traderId)) : [];
-  const geGlobalCardHtml = showGeneralExpensesBilanGlobal
+  const geGlobalCardHtml = showFraisGenerauxNow
     ? generalExpenseBilanCardHtml(geGlobalLines, periodLabel(periodKey, granularity), `bilan-global-card-frais-generaux-${periodKey}`, `Bilan_Global_FraisGeneraux_${periodKey}.png`.replace(/[^a-zA-Z0-9_.-]+/g,'_'))
     : '';
 
@@ -11260,6 +11269,11 @@ function bindViewEvents(){
     state.filters.bilan.viewMode = b.dataset.bilanMode;
     renderView();
   });
+  const bilanFraisGenerauxToggle = document.getElementById('bilan-toggle-frais-generaux');
+  if(bilanFraisGenerauxToggle) bilanFraisGenerauxToggle.onclick = ()=>{
+    state.filters.bilan.showFraisGeneraux = !state.filters.bilan.showFraisGeneraux;
+    renderView();
+  };
   document.querySelectorAll('[data-bilan-gran]').forEach(b=>b.onclick=()=>{
     state.filters.bilan.globalGranularity = b.dataset.bilanGran;
     state.filters.bilan.globalPeriod = '';
