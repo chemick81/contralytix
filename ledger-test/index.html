@@ -2047,18 +2047,31 @@ async function bulkSyncBrevoContacts(){
   });
   return res.json().catch(()=>({ sent:false, error:'Réponse invalide du serveur.' }));
 }
+// Appelle admin-delete-user.js (service_role + Stripe) plutôt que de supprimer directement la
+// ligne 'profiles' avec l'anon key : ça permet d'annuler au passage un éventuel abonnement
+// Stripe actif (Mensuel/Annuel) de l'utilisateur, pour ne jamais laisser un client continuer à
+// être prélevé après suppression de son profil. Voir netlify/functions/admin-delete-user.js.
 async function deleteUserProfile(userId, email){
   if(!isAdmin()) return;
   if(userId===currentUserId()){ showToast('Impossible de te supprimer toi-même.', 'danger'); return; }
-  const { data, error } = await supabaseClient.from('profiles').delete().eq('id', userId).select();
-  if(error){ showToast('Erreur de suppression : ' + error.message, 'danger'); return; }
-  if(!data || data.length===0){
-    showToast("Suppression bloquée par les règles de sécurité (RLS) de la table 'profiles' — aucune ligne n'a réellement été supprimée. Il faut ajouter une policy DELETE pour les admins dans Supabase.", 'danger');
-    return;
+  try{
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/.netlify/functions/admin-delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token||''}` },
+      body: JSON.stringify({ userId }),
+    });
+    const result = await res.json().catch(()=>({}));
+    if(!res.ok){ showToast('Erreur de suppression : ' + (result.error||`HTTP ${res.status}`), 'danger'); return; }
+    state.profiles = state.profiles.filter(x=>x.id!==userId);
+    const stripeNote = result.cancelledStripeSubscription
+      ? ' Son abonnement Stripe actif a été résilié.'
+      : (result.stripeCancelError ? ' ⚠️ Échec de résiliation Stripe (vérifie manuellement dans le Dashboard) : ' + result.stripeCancelError : '');
+    await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}${stripeNote}`);
+    showToast('Utilisateur supprimé de la liste.' + stripeNote, stripeNote.startsWith(' ⚠️') ? 'danger' : '');
+  }catch(err){
+    showToast('Erreur réseau lors de la suppression : ' + err.message, 'danger');
   }
-  state.profiles = state.profiles.filter(x=>x.id!==userId);
-  await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}`);
-  showToast('Utilisateur supprimé de la liste.');
 }
 // Admin > Dernières inscriptions > "Bannir" : contrairement à deleteUserProfile() (qui ne
 // supprime que la ligne 'profiles', limitée par l'anon key), ceci appelle une Netlify function
@@ -11140,7 +11153,7 @@ function bindViewEvents(){
   });
   document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.deleteUser, email = b.dataset.email;
-    confirmModal(`Supprimer ${email} de la liste des utilisateurs ? Cela retire son profil (rôle, accès admin éventuel) de l'application, mais ne supprime pas son compte de connexion Supabase : il pourra encore se connecter en tant que simple utilisateur.`, async ()=>{
+    confirmModal(`Supprimer ${email} de la liste des utilisateurs ? Cela retire son profil (rôle, accès admin éventuel) de l'application et résilie son abonnement Stripe actif s'il en a un (Mensuel/Annuel — pas Lifetime), mais ne supprime pas son compte de connexion Supabase : il pourra encore se connecter en tant que simple utilisateur.`, async ()=>{
       await deleteUserProfile(id, email);
       renderView();
     }, true);
