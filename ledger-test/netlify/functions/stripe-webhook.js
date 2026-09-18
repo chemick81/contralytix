@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-async function upsertSubscription({ userId, plan, status, billingCycle, stripeCustomerId, stripeSubscriptionId, expiresAt }) {
+async function upsertSubscription({ userId, plan, status, billingCycle, stripeCustomerId, stripeSubscriptionId, expiresAt, startedAt }) {
   const payload = {
     user_id: userId,
     plan,
@@ -27,6 +27,12 @@ async function upsertSubscription({ userId, plan, status, billingCycle, stripeCu
     stripe_subscription_id: stripeSubscriptionId || null,
     expires_at: expiresAt || null,
   };
+  // started_at ne doit être (ré)écrit QUE quand un abonnement démarre réellement
+  // (checkout.session.completed, seul appelant qui passe startedAt) : un renouvellement
+  // (invoice.paid) ou un changement de formule (customer.subscription.updated) ne doit
+  // jamais faire "repartir à zéro" la date de début affichée à l'utilisateur. Omis du
+  // payload ici, la clé started_at est absente du SET de l'upsert et reste donc intacte.
+  if (startedAt) payload.started_at = startedAt;
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .upsert(payload, { onConflict: 'user_id' });
@@ -131,6 +137,7 @@ exports.handler = async (event) => {
             stripeCustomerId: session.customer,
             stripeSubscriptionId: null,
             expiresAt: null,
+            startedAt: new Date().toISOString(),
           });
         } else {
           // Mensuel / Annuel : l'objet subscription contient la date d'expiration réelle
@@ -143,6 +150,7 @@ exports.handler = async (event) => {
             stripeCustomerId: session.customer,
             stripeSubscriptionId: subscription.id,
             expiresAt: getCurrentPeriodEnd(subscription),
+            startedAt: new Date().toISOString(),
           });
         }
         break;
