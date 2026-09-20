@@ -883,11 +883,22 @@ th.th-sort-active svg{opacity:1;}
 .cash-gauge-burn{background:var(--danger);height:100%;}
 .cash-gauge-legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint);margin-top:6px;}
 
-/* Widget "Puis-je racheter un compte cette semaine ?" (voir dashboardDecisionRepurchaseWidgetHtml). */
-.decision-verdict-pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:7px 16px;border-radius:var(--radius-pill);}
+/* Widget "Puis-je racheter un compte cette semaine ?" (voir dashboardDecisionRepurchaseWidgetHtml).
+   Disposition à 3 colonnes (détail / verdict / marge), validée par l'utilisateur sur la maquette. */
+.decision-grid{display:grid;grid-template-columns:1.3fr auto 1fr;gap:20px;align-items:center;}
 .decision-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text-dim);padding:5px 0;border-bottom:1px dashed var(--border);}
 .decision-row:last-child{border-bottom:none;}
 .decision-row b{color:var(--text);font-weight:600;}
+.decision-col-verdict{text-align:center;padding:0 20px;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+.decision-verdict-pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:7px 16px;border-radius:var(--radius-pill);}
+.decision-verdict-sub{margin-top:10px;font-size:11.5px;color:var(--text-faint);max-width:150px;margin-inline:auto;}
+.decision-margin-label{font-size:12.5px;color:var(--text-dim);margin-bottom:4px;}
+.decision-margin-value{font-size:19px;font-weight:700;color:var(--accent);}
+@media (max-width:880px){
+  .decision-grid{grid-template-columns:1fr;}
+  .decision-col-verdict{border:none;border-top:1px dashed var(--border);border-bottom:1px dashed var(--border);padding:12px 0;text-align:left;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .decision-verdict-sub{margin-inline:0;max-width:none;}
+}
 
 /* DONUT (anneaux KPI du Dashboard) */
 .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
@@ -1473,8 +1484,8 @@ document.getElementById('favicon').href = LOGO_DATA_URI;
 
 // ⚠️ CONFIGURATION OBLIGATOIRE ⚠️
 // Dashboard Supabase > Project Settings > API > "Project URL" et "anon public" key
-const SUPABASE_URL = 'https://ijjagnowplglbcpzyfax.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqamFnbm93cGxnbGJjcHp5ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzcxNTIsImV4cCI6MjEwMjkxMzE1Mn0.wF9MTreYLudRQbyO0Gn2Dtqju5m1G8BUizeayWyYV64';
+const SUPABASE_URL = 'https://cnqrcirxprzxxutojklm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucXJjaXJ4cHJ6eHh1dG9qa2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjUzMzcsImV4cCI6MjA5OTc0MTMzN30.oHq13DxXsh0xY2HApsL7dwsV8OjR-NWGp_1EhE-zDSw';
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -2061,18 +2072,31 @@ async function bulkSyncBrevoContacts(){
   });
   return res.json().catch(()=>({ sent:false, error:'Réponse invalide du serveur.' }));
 }
+// Appelle admin-delete-user.js (service_role + Stripe) plutôt que de supprimer directement la
+// ligne 'profiles' avec l'anon key : ça permet d'annuler au passage un éventuel abonnement
+// Stripe actif (Mensuel/Annuel) de l'utilisateur, pour ne jamais laisser un client continuer à
+// être prélevé après suppression de son profil. Voir netlify/functions/admin-delete-user.js.
 async function deleteUserProfile(userId, email){
   if(!isAdmin()) return;
   if(userId===currentUserId()){ showToast('Impossible de te supprimer toi-même.', 'danger'); return; }
-  const { data, error } = await supabaseClient.from('profiles').delete().eq('id', userId).select();
-  if(error){ showToast('Erreur de suppression : ' + error.message, 'danger'); return; }
-  if(!data || data.length===0){
-    showToast("Suppression bloquée par les règles de sécurité (RLS) de la table 'profiles' — aucune ligne n'a réellement été supprimée. Il faut ajouter une policy DELETE pour les admins dans Supabase.", 'danger');
-    return;
+  try{
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/.netlify/functions/admin-delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token||''}` },
+      body: JSON.stringify({ userId }),
+    });
+    const result = await res.json().catch(()=>({}));
+    if(!res.ok){ showToast('Erreur de suppression : ' + (result.error||`HTTP ${res.status}`), 'danger'); return; }
+    state.profiles = state.profiles.filter(x=>x.id!==userId);
+    const stripeNote = result.cancelledStripeSubscription
+      ? ' Son abonnement Stripe actif a été résilié.'
+      : (result.stripeCancelError ? ' ⚠️ Échec de résiliation Stripe (vérifie manuellement dans le Dashboard) : ' + result.stripeCancelError : '');
+    await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}${stripeNote}`);
+    showToast('Utilisateur supprimé de la liste.' + stripeNote, stripeNote.startsWith(' ⚠️') ? 'danger' : '');
+  }catch(err){
+    showToast('Erreur réseau lors de la suppression : ' + err.message, 'danger');
   }
-  state.profiles = state.profiles.filter(x=>x.id!==userId);
-  await logActivity('DELETE', 'profile', userId, `Utilisateur supprimé : ${email||userId}`);
-  showToast('Utilisateur supprimé de la liste.');
 }
 // Admin > Dernières inscriptions > "Bannir" : contrairement à deleteUserProfile() (qui ne
 // supprime que la ligne 'profiles', limitée par l'anon key), ceci appelle une Netlify function
@@ -4154,7 +4178,7 @@ const BASE_NAV = [
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
-  { id:'subscription', label:'Tarifs', icon:'wallet' },
+  { id:'subscription', label:'Abonnement', icon:'wallet' },
   { id:'profil', label:'Profil', icon:'userCircle' },
   { id:'parametres', label:'Paramètres', icon:'gear' },
   { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
@@ -5533,19 +5557,34 @@ function dashboardDecisionRepurchaseWidgetHtml(opts){
       </div>`;
   }
   const canBuy = repurchaseMargin>=0;
+  // Nombre de resets que la marge restante permettrait de financer, si une provision de reset est
+  // définie (sinon "—" plutôt qu'une division par zéro) — répond à "de quoi financer combien de
+  // resets d'avance", pas juste un montant abstrait.
+  const resetsFinancables = (canBuy && nextPurchaseBuffer>0) ? (repurchaseMargin/nextPurchaseBuffer) : null;
   return `
     <div class="panel">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Puis-je racheter un compte cette semaine&nbsp;?${infoTip("Trésorerie propfirm (payouts − dépenses, tout l'historique, convertis en EUR + ton ajustement manuel) comparée au coût de ton prochain achat prévu + une provision de sécurité pour un reset. Réglages modifiables via l'icône engrenage.")}</div>${editBtn}</div>
       <div class="panel-body">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
-          <span class="decision-verdict-pill" style="background:${canBuy?'var(--accent-dim)':'var(--danger-dim)'};color:${canBuy?'var(--accent)':'var(--danger)'};">${canBuy?'✓ Oui':'✗ Pas encore'}</span>
-          <div style="font-size:12.5px;color:var(--text-dim);">${canBuy
-            ? `Marge restante après achat : <b class="mono" style="color:var(--text);">${fmtEur(repurchaseMargin)}</b>`
-            : `Il manque <b class="mono" style="color:var(--danger);">${fmtEur(-repurchaseMargin)}</b> pour racheter sans sortir de ta poche`}</div>
+        <div class="decision-grid">
+          <div>
+            <div class="decision-row"><span>Trésorerie propfirm disponible</span><b class="mono">${fmtEur(treasuryEur)}</b></div>
+            <div class="decision-row"><span>Prochain achat prévu</span><b class="mono">${fmtEur(nextPurchaseBudget)}</b></div>
+            <div class="decision-row"><span>Provision de sécurité (reset)</span><b class="mono">${fmtEur(nextPurchaseBuffer)}</b></div>
+          </div>
+          <div class="decision-col-verdict">
+            <span class="decision-verdict-pill" style="background:${canBuy?'var(--accent-dim)':'var(--danger-dim)'};color:${canBuy?'var(--accent)':'var(--danger)'};">${canBuy?'✓ Oui':'✗ Pas encore'}</span>
+            <div class="decision-verdict-sub">${canBuy
+              ? `La trésorerie couvre l'achat + un reset, sans toucher au cash personnel.`
+              : `Complète ta trésorerie ou ajuste ton budget avant de racheter.`}</div>
+          </div>
+          <div>
+            <div class="decision-margin-label">${canBuy?'Marge restante après achat':'Montant manquant'}</div>
+            <div class="decision-margin-value mono" style="color:${canBuy?'var(--accent)':'var(--danger)'};">${canBuy?fmtEur(repurchaseMargin):fmtEur(-repurchaseMargin)}</div>
+            ${resetsFinancables!==null ? `
+            <div class="decision-margin-label" style="margin-top:10px;">De quoi financer</div>
+            <div class="decision-margin-value mono" style="color:var(--text);">${resetsFinancables.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})} reset${resetsFinancables>=2?'s':''}</div>` : ''}
+          </div>
         </div>
-        <div class="decision-row"><span>Trésorerie propfirm disponible</span><b class="mono">${fmtEur(treasuryEur)}</b></div>
-        <div class="decision-row"><span>Prochain achat prévu</span><b class="mono">${fmtEur(nextPurchaseBudget)}</b></div>
-        <div class="decision-row"><span>Provision de sécurité (reset)</span><b class="mono">${fmtEur(nextPurchaseBuffer)}</b></div>
       </div>
     </div>`;
 }
@@ -6509,7 +6548,7 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Tarifs." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Abonnement." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
     { q:"Puis-je changer le nom affiché dans l'application ?", a:"Oui, depuis la page Profil : un champ « Nom affiché » remplace ton adresse e-mail dans la barre latérale et les échanges avec le support. Purement cosmétique, sans effet sur la connexion." },
     { q:"Comment gérer les emails que Contralytix m'envoie ?", a:"Depuis Paramètres > Notifications, trois interrupteurs indépendants : rappels d'échéance URSSAF, résumé de performance hebdomadaire, et annonces produit (désactivé par défaut). Chacun se coche ou se décoche à tout moment." },
@@ -6551,8 +6590,8 @@ const HELP_CATEGORIES = [
     { q:"La vidéo YouTube ne s'affiche pas, que faire ?", a:"Vérifie que la vidéo n'est pas configurée en « non répertoriée » avec lecture externe désactivée côté YouTube Studio. Un lien « Ouvrir sur YouTube » reste toujours disponible en secours." },
   ]},
   { id:'abonnement', label:'Abonnement & Tarifs', icon:'wallet', questions:[
-    { q:"Comment passer en Premium ?", a:"Depuis la page Tarifs, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
-    { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Tarifs, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
+    { q:"Comment passer en Premium ?", a:"Depuis la page Abonnement, choisis mensuel ou annuel puis lance le paiement sécurisé via Stripe. Un code promo peut être saisi avant de valider si tu en as un." },
+    { q:"Comment annuler ou modifier mon abonnement ?", a:"Depuis la page Abonnement, le bouton « Portail Stripe » donne accès à tes factures, à la modification de formule et à la résiliation." },
     { q:"Y a-t-il une formule à paiement unique ?", a:"Oui, la formule Lifetime : un seul paiement pour un accès Premium permanent, sans reconduction." },
   ]},
   { id:'securite', label:'Sécurité & Données', icon:'lock', questions:[
@@ -6676,7 +6715,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Tarifs — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Traders, PropFirms, Comptes, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Abonnement — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — indicateurs clés, alertes et délais moyens.")}
@@ -6849,10 +6888,10 @@ const MANUAL_CHAPTERS = [
     <h3>Gestion depuis l'espace Admin</h3>
     <p>Les administrateurs peuvent gérer ce journal directement depuis la page Nouveautés, sans toucher au code : un bouton « Ajouter une nouveauté » permet de publier une entrée (type, titre, description), et chaque entrée existante dispose de boutons pour la modifier ou la supprimer.</p>` },
   { n:'17', id:'m-abonnement', title:"Abonnement et tarifs", html:`
-    <p>La section Tarifs affiche la formule en cours et permet de changer de formule.</p>
+    <p>La section Abonnement affiche la formule en cours et permet de changer de formule.</p>
     <h3>Formule actuelle</h3>
     <p>Un panneau rappelle la formule active, son statut, le cycle de facturation, la date de début et la date de renouvellement. Un lien vers le portail de facturation Stripe permet de consulter ses factures, changer de formule ou résilier.</p>
-    ${manualShot('15-abonnement.jpg', "Page Tarifs — ici pour un compte Admin (accès illimité) ; un compte Free, Premium ou Lifetime y voit à la place le comparatif des formules.")}
+    ${manualShot('15-abonnement.jpg', "Page Abonnement — ici pour un compte Admin (accès illimité) ; un compte Free, Premium ou Lifetime y voit à la place le comparatif des formules.")}
     <h3>Comparatif des formules</h3>
     <ul>
       <li><b>Free</b> — gratuite : jusqu'à 2 traders, un nombre limité de comptes gratuits par trader, les 5 sessions live les plus récentes, suivi des payouts, tes propres Traders et Comptes toujours visibles (ceux des autres utilisateurs sont floutés, avec une invitation à passer en Premium), aperçu partiel du catalogue PropFirms, Comptabilité et Dashboard toujours limités à tes propres traders et comptes, support communautaire.</li>
@@ -11295,7 +11334,7 @@ function bindViewEvents(){
   });
   document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.deleteUser, email = b.dataset.email;
-    confirmModal(`Supprimer ${email} de la liste des utilisateurs ? Cela retire son profil (rôle, accès admin éventuel) de l'application, mais ne supprime pas son compte de connexion Supabase : il pourra encore se connecter en tant que simple utilisateur.`, async ()=>{
+    confirmModal(`Supprimer ${email} de la liste des utilisateurs ? Cela retire son profil (rôle, accès admin éventuel) de l'application et résilie son abonnement Stripe actif s'il en a un (Mensuel/Annuel — pas Lifetime), mais ne supprime pas son compte de connexion Supabase : il pourra encore se connecter en tant que simple utilisateur.`, async ()=>{
       await deleteUserProfile(id, email);
       renderView();
     }, true);
