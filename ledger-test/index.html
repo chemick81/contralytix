@@ -877,6 +877,29 @@ th.th-sort-active svg{opacity:1;}
 .chart-legend-chip:not(.active){opacity:.45;text-decoration:line-through;}
 .chart-legend-chip:not(.active) .legend-dot{opacity:.5;}
 
+/* Widget "Burn vs fund" — jauge horizontale à 2 segments (voir dashboardBurnVsFundWidgetHtml). */
+.cash-gauge-track{height:13px;border-radius:var(--radius-pill);background:var(--bg-alt);border:1px solid var(--border);overflow:hidden;display:flex;}
+.cash-gauge-fund{background:var(--accent);height:100%;}
+.cash-gauge-burn{background:var(--danger);height:100%;}
+.cash-gauge-legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint);margin-top:6px;}
+
+/* Widget "Puis-je racheter un compte cette semaine ?" (voir dashboardDecisionRepurchaseWidgetHtml).
+   Disposition à 3 colonnes (détail / verdict / marge), validée par l'utilisateur sur la maquette. */
+.decision-grid{display:grid;grid-template-columns:1.3fr auto 1fr;gap:20px;align-items:center;}
+.decision-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text-dim);padding:5px 0;border-bottom:1px dashed var(--border);}
+.decision-row:last-child{border-bottom:none;}
+.decision-row b{color:var(--text);font-weight:600;}
+.decision-col-verdict{text-align:center;padding:0 20px;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+.decision-verdict-pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:7px 16px;border-radius:var(--radius-pill);}
+.decision-verdict-sub{margin-top:10px;font-size:11.5px;color:var(--text-faint);max-width:150px;margin-inline:auto;}
+.decision-margin-label{font-size:12.5px;color:var(--text-dim);margin-bottom:4px;}
+.decision-margin-value{font-size:19px;font-weight:700;color:var(--accent);}
+@media (max-width:880px){
+  .decision-grid{grid-template-columns:1fr;}
+  .decision-col-verdict{border:none;border-top:1px dashed var(--border);border-bottom:1px dashed var(--border);padding:12px 0;text-align:left;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .decision-verdict-sub{margin-inline:0;max-width:none;}
+}
+
 /* DONUT (anneaux KPI du Dashboard) */
 .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
 .donut-ring{width:140px;height:140px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;}
@@ -1488,8 +1511,10 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 const DASHBOARD_WIDGETS = [
   { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
+  { id:'decisionRepurchase', label:'Puis-je racheter un compte cette semaine ?' },
   { id:'accountsByType', label:'Mes comptes (par type)' },
   { id:'performance',    label:'Performance & rendement' },
+  { id:'burnVsFund',     label:'Burn vs fund' },
   { id:'delays',         label:'Délais moyens' },
   { id:'chart',          label:'Performance globale (barres + courbe)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
@@ -5229,6 +5254,33 @@ function viewDashboard(){
     return ` <span class="text-faint" style="font-size:10px;color:${up?'var(--accent)':'var(--danger)'};">${up?'▲':'▼'} ${Math.abs(pct)}% ${suffix}</span>`;
   };
 
+  // --- Trésorerie propfirm / "Puis-je racheter un compte cette semaine ?" -------------------
+  // Solde cumulé, tout l'historique (comme coutMoyenReussi ci-dessus, pas juste la période
+  // filtrée) : payouts − dépenses (achats+mensualités+activation+resets), toujours converti en EUR
+  // (pivot stable dans le temps, indépendant du switch d'affichage €/$ — même logique que la page
+  // Fiscalité) + un ajustement manuel (profiles.cash_balance_adjustment) que l'utilisateur règle
+  // lui-même pour refléter l'argent sorti du circuit (retrait perso, dépense non trackée dans
+  // l'app...) — sans ça, ce solde dérive de la réalité dès qu'un euro sort sans passer par une
+  // saisie. Respecte le filtre trader/propfirm (comme allExpensesUnfiltered/payoutsUnfiltered),
+  // pas le filtre de dates (c'est un solde, pas un flux sur une période).
+  const cashAdjustment = Number((state.profile && state.profile.cashBalanceAdjustment) || 0);
+  const treasuryEur = eurSum(payoutsUnfiltered) - eurSum(allExpensesUnfiltered) + cashAdjustment;
+  const nextPurchaseBudget = (state.profile && state.profile.nextPurchaseBudget!=null && state.profile.nextPurchaseBudget!=='') ? Number(state.profile.nextPurchaseBudget) : null;
+  const nextPurchaseBuffer = Number((state.profile && state.profile.nextPurchaseBuffer) || 0);
+  const repurchaseMargin = nextPurchaseBudget!=null ? treasuryEur - nextPurchaseBudget - nextPurchaseBuffer : null;
+
+  // --- Burn vs fund (mois en cours) -----------------------------------------------------------
+  // Part des dépenses du mois (achats/mensualités/activation/resets) financée par les payouts du
+  // même mois, vs payée "de la poche". Réutilise chartData (dernier mois de la fenêtre 6 mois,
+  // déjà calculé plus haut) pour la clé du mois en cours, mais recalcule en EUR pur (chartData suit
+  // la préférence d'affichage €/$, alors que cette jauge doit rester stable comme treasuryEur).
+  const curMonthKey = chartData[chartData.length-1].mk;
+  const monthCostEur = eurSum(allExpensesUnfiltered.filter(e=>monthKey(e.date)===curMonthKey));
+  const monthPayEur = eurSum(payoutsUnfiltered.filter(p=>monthKey(p.date)===curMonthKey));
+  const burnFundRatio = monthCostEur>0 ? monthPayEur/monthCostEur : null;
+  const fundedByPayoutsEur = Math.min(monthPayEur, monthCostEur);
+  const paidOutOfPocketEur = Math.max(0, monthCostEur - monthPayEur);
+
   const filterBar = `
     <div class="filter-bar">
       ${renderMultiSelect('fd-trader', myTraders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
@@ -5328,6 +5380,8 @@ function viewDashboard(){
         </div>
       </div>`;
     })(),
+    decisionRepurchase: dashboardDecisionRepurchaseWidgetHtml({ treasuryEur, cashAdjustment, nextPurchaseBudget, nextPurchaseBuffer, repurchaseMargin }),
+    burnVsFund: dashboardBurnVsFundWidgetHtml({ monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur }),
     accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
     propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
@@ -5484,6 +5538,129 @@ function renderCombinedPerfChart(chartData, maxVal, series){
     ${lineBlock}
     ${labels}
   </svg>`;
+}
+// Widget "Puis-je racheter un compte cette semaine ?" — voir treasuryEur/repurchaseMargin dans
+// viewDashboard(). Tant que l'utilisateur n'a pas renseigné le coût de son prochain achat prévu
+// (profiles.next_purchase_budget), affiche une invite plutôt qu'un verdict inventé.
+function dashboardDecisionRepurchaseWidgetHtml(opts){
+  const { treasuryEur, cashAdjustment, nextPurchaseBudget, nextPurchaseBuffer, repurchaseMargin } = opts;
+  const editBtn = `<button type="button" class="btn btn-ghost btn-sm" id="cash-settings-edit" title="Régler la trésorerie">${icon('gear')}</button>`;
+  if(nextPurchaseBudget===null){
+    return `
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Puis-je racheter un compte cette semaine&nbsp;?</div>${editBtn}</div>
+        <div class="panel-body">
+          <div class="field-hint" style="margin-bottom:10px;">Trésorerie propfirm actuelle : <b class="mono" style="color:var(--text);">${fmtEur(treasuryEur)}</b> (payouts − dépenses, tout l'historique${cashAdjustment?`, ajustement manuel inclus`:''}).</div>
+          <div class="empty-sub" style="margin-bottom:10px;">Indique le coût de ton prochain achat prévu pour obtenir un verdict.</div>
+          <button type="button" class="btn btn-primary btn-sm" id="cash-settings-edit-2">Configurer le prochain achat</button>
+        </div>
+      </div>`;
+  }
+  const canBuy = repurchaseMargin>=0;
+  // Nombre de resets que la marge restante permettrait de financer, si une provision de reset est
+  // définie (sinon "—" plutôt qu'une division par zéro) — répond à "de quoi financer combien de
+  // resets d'avance", pas juste un montant abstrait.
+  const resetsFinancables = (canBuy && nextPurchaseBuffer>0) ? (repurchaseMargin/nextPurchaseBuffer) : null;
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Puis-je racheter un compte cette semaine&nbsp;?${infoTip("Trésorerie propfirm (payouts − dépenses, tout l'historique, convertis en EUR + ton ajustement manuel) comparée au coût de ton prochain achat prévu + une provision de sécurité pour un reset. Réglages modifiables via l'icône engrenage.")}</div>${editBtn}</div>
+      <div class="panel-body">
+        <div class="decision-grid">
+          <div>
+            <div class="decision-row"><span>Trésorerie propfirm disponible</span><b class="mono">${fmtEur(treasuryEur)}</b></div>
+            <div class="decision-row"><span>Prochain achat prévu</span><b class="mono">${fmtEur(nextPurchaseBudget)}</b></div>
+            <div class="decision-row"><span>Provision de sécurité (reset)</span><b class="mono">${fmtEur(nextPurchaseBuffer)}</b></div>
+          </div>
+          <div class="decision-col-verdict">
+            <span class="decision-verdict-pill" style="background:${canBuy?'var(--accent-dim)':'var(--danger-dim)'};color:${canBuy?'var(--accent)':'var(--danger)'};">${canBuy?'✓ Oui':'✗ Pas encore'}</span>
+            <div class="decision-verdict-sub">${canBuy
+              ? `La trésorerie couvre l'achat + un reset, sans toucher au cash personnel.`
+              : `Complète ta trésorerie ou ajuste ton budget avant de racheter.`}</div>
+          </div>
+          <div>
+            <div class="decision-margin-label">${canBuy?'Marge restante après achat':'Montant manquant'}</div>
+            <div class="decision-margin-value mono" style="color:${canBuy?'var(--accent)':'var(--danger)'};">${canBuy?fmtEur(repurchaseMargin):fmtEur(-repurchaseMargin)}</div>
+            ${resetsFinancables!==null ? `
+            <div class="decision-margin-label" style="margin-top:10px;">De quoi financer</div>
+            <div class="decision-margin-value mono" style="color:var(--text);">${resetsFinancables.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})} reset${resetsFinancables>=2?'s':''}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+// Widget "Burn vs fund" — part des dépenses du mois en cours financée par les payouts du même mois
+// (voir monthCostEur/monthPayEur/burnFundRatio dans viewDashboard). Un ratio < 1 veut dire qu'une
+// partie des achats/resets du mois a dû être payée hors trésorerie propfirm.
+function dashboardBurnVsFundWidgetHtml(opts){
+  const { monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur } = opts;
+  if(monthCostEur<=0){
+    return `
+      <div class="panel">
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund</div></div>
+        <div class="panel-body"><div class="empty-sub">Aucune dépense enregistrée ce mois-ci pour l'instant.</div></div>
+      </div>`;
+  }
+  const fundPct = Math.round((fundedByPayoutsEur/monthCostEur)*100);
+  return `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— mois en cours</span>${infoTip("Part des dépenses du mois (achats, mensualités, activations, resets) financée par les payouts encaissés le même mois. Un ratio en dessous de 1 signifie qu'une partie a été payée hors trésorerie propfirm.")}</div></div>
+      <div class="panel-body">
+        <div style="text-align:center;font-size:22px;font-weight:700;margin-bottom:8px;">${burnFundRatio===null?'—':burnFundRatio.toFixed(2)}<span style="font-size:12px;color:var(--text-faint);font-weight:500;"> financé / dépensé</span></div>
+        <div class="cash-gauge-track"><div class="cash-gauge-fund" style="width:${fundPct}%"></div><div class="cash-gauge-burn" style="width:${100-fundPct}%"></div></div>
+        <div class="cash-gauge-legend"><span>Financé par payouts&nbsp;: <b class="mono" style="color:var(--text);">${fmtEur(fundedByPayoutsEur)}</b></span><span>Payé de la poche&nbsp;: <b class="mono" style="color:var(--text);">${fmtEur(paidOutOfPocketEur)}</b></span></div>
+      </div>
+    </div>`;
+}
+// Modale de réglage des 3 champs qui alimentent le widget "Puis-je racheter..." — même pattern que
+// saveFiscalUserSettings (colonnes dédiées sur profiles, sauvegarde optimiste avec rollback).
+function editCashSettingsModal(){
+  const p = state.profile || {};
+  openModal({
+    title: 'Trésorerie & prochain achat',
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:12px;">Ces réglages alimentent les widgets "Puis-je racheter un compte cette semaine ?" et "Burn vs fund" du Dashboard. Tous les montants sont en EUR.</div>
+      <div class="field">
+        <label>Ajustement manuel de trésorerie</label>
+        <input type="number" step="0.01" id="cash-adj-input" value="${p.cashBalanceAdjustment!=null?p.cashBalanceAdjustment:0}"/>
+        <div class="field-hint">Corrige le solde calculé automatiquement (payouts − dépenses) pour refléter l'argent sorti du circuit : un retrait vers ton compte perso (valeur négative) ou un apport externe (valeur positive).</div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>Coût du prochain achat prévu</label>
+        <input type="number" step="0.01" min="0" id="cash-budget-input" value="${p.nextPurchaseBudget!=null?p.nextPurchaseBudget:''}" placeholder="Ex : 349"/>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>Provision de sécurité (reset)</label>
+        <input type="number" step="0.01" min="0" id="cash-buffer-input" value="${p.nextPurchaseBuffer!=null?p.nextPurchaseBuffer:0}"/>
+        <div class="field-hint">Montant mis de côté au cas où un compte proche de son seuil de drawdown ait besoin d'un reset avant le prochain payout.</div>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="cash-settings-cancel">Annuler</button><button class="btn btn-primary" id="cash-settings-save">Enregistrer</button>`,
+    onMount(){
+      document.getElementById('cash-settings-cancel').onclick = closeModal;
+      document.getElementById('cash-settings-save').onclick = async ()=>{
+        const adj = Number(document.getElementById('cash-adj-input').value) || 0;
+        const budgetRaw = document.getElementById('cash-budget-input').value;
+        const budget = budgetRaw==='' ? null : Number(budgetRaw);
+        const buffer = Number(document.getElementById('cash-buffer-input').value) || 0;
+        closeModal();
+        await saveCashSettings({ cashBalanceAdjustment: adj, nextPurchaseBudget: budget, nextPurchaseBuffer: buffer });
+      };
+    }
+  });
+}
+async function saveCashSettings(patch){
+  const uid = currentUserId();
+  if(!uid || !state.profile) return;
+  const prev = { cashBalanceAdjustment: state.profile.cashBalanceAdjustment, nextPurchaseBudget: state.profile.nextPurchaseBudget, nextPurchaseBuffer: state.profile.nextPurchaseBuffer };
+  Object.assign(state.profile, patch); // optimiste
+  render();
+  const { error } = await supabaseClient.from('profiles').update(toRow(patch)).eq('id', uid);
+  if(error){
+    Object.assign(state.profile, prev); // rollback
+    showToast("Impossible d'enregistrer la trésorerie (colonnes absentes ? voir migration_tresorerie.sql) : " + error.message, 'danger');
+    render();
+    return;
+  }
+  showToast('Trésorerie mise à jour.');
 }
 // Widget "Mes comptes" (par type Challenge/PA/Live) du Dashboard — remplace les tuiles éparpillées
 // (Challenges en cours, PA actifs, Comptes Live actifs) du panneau "Vue d'ensemble" par 3 cartes
@@ -10838,6 +11015,10 @@ function bindViewEvents(){
   };
   const dashCustomizeBtn = document.getElementById('dash-customize-btn');
   if(dashCustomizeBtn) dashCustomizeBtn.onclick = openDashboardCustomizeModal;
+  const cashSettingsBtn = document.getElementById('cash-settings-edit');
+  if(cashSettingsBtn) cashSettingsBtn.onclick = editCashSettingsModal;
+  const cashSettingsBtn2 = document.getElementById('cash-settings-edit-2');
+  if(cashSettingsBtn2) cashSettingsBtn2.onclick = editCashSettingsModal;
   const dashCalPrev = document.getElementById('dashcal-prev');
   if(dashCalPrev) dashCalPrev.onclick = ()=>{
     const mk = state.filters.dashboard.calMonth || todayISO().slice(0,7);
