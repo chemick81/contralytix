@@ -11355,7 +11355,9 @@ function bindViewEvents(){
   };
   document.querySelectorAll('[data-set-plan]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.setPlan, plan = b.dataset.plan, cycle = b.dataset.cycle;
-    const label = plan==='PREMIUM' ? (cycle==='LIFETIME' ? 'offrir une licence Premium Lifetime' : 'passer cet utilisateur en Premium') : 'repasser cet utilisateur en Free';
+    const label = plan==='PREMIUM' ? (cycle==='LIFETIME' ? 'offrir une licence Premium Lifetime' : 'passer cet utilisateur en Premium')
+      : plan==='BETA' ? 'passer cet utilisateur en Beta (fonctionnalités Premium offertes, sans abonnement)'
+      : 'repasser cet utilisateur en Free';
     confirmModal(`Confirmer : ${label} ?`, async ()=>{
       await setUserPlan(id, plan, cycle);
       renderView();
