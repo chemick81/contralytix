@@ -859,6 +859,7 @@ th.th-sort-active svg{opacity:1;}
 .badge-free{background:var(--slate-dim);color:var(--slate);}
 .badge-premium{background:var(--gold-dim);color:var(--gold);}
 .badge-admin{background:var(--accent-dim);color:var(--accent);}
+.badge-beta{background:var(--accent-dim);color:var(--accent);}
 .upgrade-cta{display:inline-flex;align-items:center;gap:6px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(217,166,90,0.35);border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;transition:filter .12s;}
 .upgrade-cta:hover{filter:brightness(1.15);}
 .locked-feature{position:relative;filter:grayscale(.5);opacity:.7;}
@@ -2015,6 +2016,19 @@ async function setUserPlan(userId, plan, billingCycle){
   const p = state.profiles.find(x=>x.id===userId);
   if(p && p.role==='ADMIN'){ showToast("Impossible de modifier le plan d'un ADMIN.", 'danger'); return; }
 
+  // BETA : accès Premium offert par un admin, sans abonnement réel — on ne touche donc jamais à
+  // la table "subscriptions" ici (pas de ligne fictive plan=BETA), contrairement à FREE/PREMIUM
+  // ci-dessous. "Repasser Free" depuis Beta repasse par le chemin normal plus bas (plan='FREE').
+  if(plan==='BETA'){
+    const { error: roleErr } = await supabaseClient.from('profiles').update({ role: 'BETA' }).eq('id', userId);
+    if(roleErr){ showToast('Erreur rôle : ' + roleErr.message, 'danger'); return; }
+    if(p) p.role = 'BETA';
+    await logActivity('ROLE_CHANGE', 'profile', userId, 'Rôle changé en BETA (accès Premium offert, sans abonnement)');
+    if(p && p.email) syncBrevoContact(p.email, 'BETA', p.notifProductAnnouncements);
+    showToast('Utilisateur passé en Beta (accès Premium offert, sans abonnement).');
+    return;
+  }
+
   const subPayload = {
     user_id: userId,
     plan,
@@ -2509,9 +2523,14 @@ async function loadSubscription(){
 function computePermissions(){
   const role = state.profile ? state.profile.role : 'FREE';
   const isAdminRole = role === 'ADMIN';
-  const isPremiumRole = isAdminRole || role === 'PREMIUM';
+  // BETA : rôle attribué manuellement par un admin (voir setUserPlan), donne les mêmes
+  // fonctionnalités que Premium SANS ligne "subscriptions" ni passage par Stripe — décision du
+  // 20/09/2026, pour tester l'app avec des utilisateurs beta sans facturation fictive.
+  const isBetaRole = role === 'BETA';
+  const isPremiumRole = isAdminRole || role === 'PREMIUM' || isBetaRole;
   state.permissions = {
     isAdmin: isAdminRole,
+    isBeta: isBetaRole,
     isPremium: isPremiumRole,
     canImport: isPremiumRole,
     canExportExcel: isPremiumRole,
@@ -2862,6 +2881,7 @@ function planBadgeHtml(){
   const map = {
     ADMIN:   { label:'ADMIN',   cls:'badge-admin' },
     PREMIUM: { label:'PREMIUM', cls:'badge-premium' },
+    BETA:    { label:'BETA',    cls:'badge-beta' },
     FREE:    { label:'FREE',    cls:'badge-free' },
   };
   const b = map[role] || map.FREE;
@@ -9981,7 +10001,11 @@ function viewAdmin(){
   const activeSubs = subs.filter(s=>s.status==='ACTIVE');
   const totalUsers = state.profiles.length;
   const premiumCount = state.profiles.filter(p=>p.role==='PREMIUM'||p.role==='ADMIN').length;
-  const freeCount = totalUsers - premiumCount;
+  // Beta compté à part : accès Premium offert par un admin, sans abonnement — ne doit ni gonfler
+  // "Premium" (aucun revenu réel derrière) ni "Free" (l'utilisateur a bien les fonctionnalités
+  // Premium). Voir claude/... rôle BETA du 20/09/2026.
+  const betaCount = state.profiles.filter(p=>p.role==='BETA').length;
+  const freeCount = totalUsers - premiumCount - betaCount;
   const lifetimeCount = activeSubs.filter(s=>s.billingCycle==='LIFETIME' && s.plan==='PREMIUM').length;
   const cancelledCount = subs.filter(s=>s.status==='CANCELLED').length;
 
@@ -10011,6 +10035,7 @@ function viewAdmin(){
     <div class="panel-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
       ${statCard('Utilisateurs', totalUsers)}
       ${statCard('Premium', premiumCount)}
+      ${statCard('Beta', betaCount)}
       ${statCard('Free', freeCount)}
       ${statCard('Lifetime', lifetimeCount)}
       ${statCard('MRR', fmtMoney(mrr))}
@@ -10027,7 +10052,7 @@ function viewAdmin(){
             ${lastSignups.length===0 ? `<tr><td colspan="4"><div class="empty-sub" style="padding:12px 0;">Aucune inscription.</div></td></tr>` :
               lastSignups.map(p=>`<tr>
                 <td>${p.email||'—'}</td>
-                <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':'badge-slate'}">${p.role}</span></td>
+                <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':p.role==='BETA'?'badge-accent':'badge-slate'}">${p.role}</span></td>
                 <td class="text-dim mono">${p.createdAt?fmtDate(p.createdAt.slice(0,10)):'—'}</td>
                 <td>${p.role==='ADMIN'?'':`<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="banSpamSignup('${p.id}', '${escapeHtml(p.email||'').replace(/'/g,"\\'")}')" title="Supprimer ce compte et bloquer son domaine e-mail pour les futures inscriptions">Bannir</button>`}</td>
               </tr>`).join('')}
@@ -10051,7 +10076,7 @@ function viewAdmin(){
                 const linkedTraders = tradersForProfile(p);
                 return `<tr>
                 <td>${p.email||'—'}${p.id===currentUserId()?' <span class="text-faint">(toi)</span>':''}</td>
-                <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':'badge-slate'}">${p.role}</span></td>
+                <td><span class="badge ${p.role==='ADMIN'?'badge-gold':p.role==='PREMIUM'?'badge-gold':p.role==='BETA'?'badge-accent':'badge-slate'}">${p.role}</span></td>
                 <td class="text-dim">${(p.role==='PREMIUM' && p.subscription && p.subscription.billingCycle) ? p.subscription.billingCycle : '—'}</td>
                 <td>${linkedTraders.length ? linkedTraders.map(t=>`<span class="badge badge-slate" style="margin:1px 3px 1px 0;" title="${t.status==='INACTIF'?'Trader inactif':''}">${escapeHtml(t.pseudo)}${t.status==='INACTIF'?' (inactif)':''}</span>`).join('') : '<span class="text-faint">— aucun</span>'}</td>
                 <td class="text-dim mono">${p.createdAt?fmtDate(p.createdAt.slice(0,10)):'—'}</td>
@@ -10059,6 +10084,7 @@ function viewAdmin(){
                 <td style="display:flex;gap:6px;flex-wrap:wrap;">
                   ${p.id===currentUserId() || p.role==='ADMIN' ? '' : `
                     ${p.role!=='PREMIUM' ? `<button class="btn btn-outline btn-sm" data-set-plan="${p.id}" data-plan="PREMIUM" data-cycle="MONTHLY">Passer Premium</button>` : ''}
+                    ${p.role!=='BETA' ? `<button class="btn btn-outline btn-sm" data-set-plan="${p.id}" data-plan="BETA" data-cycle="" title="Fonctionnalités Premium offertes, sans abonnement">Passer Beta</button>` : ''}
                     ${p.role!=='FREE' ? `<button class="btn btn-outline btn-sm" data-set-plan="${p.id}" data-plan="FREE" data-cycle="">Repasser Free</button>` : ''}
                     <button class="btn btn-outline btn-sm" data-set-plan="${p.id}" data-plan="PREMIUM" data-cycle="LIFETIME">Offrir Lifetime</button>
                     <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);" data-delete-user="${p.id}" data-email="${(p.email||'cet utilisateur').replace(/"/g,'&quot;')}">Supprimer</button>
@@ -10318,7 +10344,10 @@ function viewSubscription(){
   const PRICING = state.pricingSettings; // tarifs administrables (Admin > Tarifs affichés)
   const role = state.profile ? state.profile.role : 'FREE';
   const sub = state.subscription || { plan:'FREE', status:'ACTIVE', billingCycle:null };
-  const isPremium = role==='PREMIUM' || role==='ADMIN';
+  // BETA : accès Premium offert par un admin, sans ligne "subscriptions" réelle — traité à part de
+  // isPremium pour ne pas afficher de cycle de facturation / renouvellement fictif pour ces comptes.
+  const isBeta = role==='BETA';
+  const isPremium = role==='PREMIUM' || role==='ADMIN' || isBeta;
 
   const statusLabelFr = { ACTIVE:'Actif', CANCELLED:'Annulé', EXPIRED:'Expiré' }[sub.status] || sub.status || '—';
   // On n'affiche une formule/cycle de facturation que pour un compte réellement Premium/Admin.
@@ -10330,15 +10359,15 @@ function viewSubscription(){
     <div class="panel" style="margin-bottom:16px;padding:20px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
         ${planBadgeHtml()}
-        <div style="font-size:16px;font-weight:700;">${role==='ADMIN' ? 'Accès Admin (toutes fonctionnalités)' : (isPremium ? 'Formule Premium' : 'Formule Free')}</div>
+        <div style="font-size:16px;font-weight:700;">${role==='ADMIN' ? 'Accès Admin (toutes fonctionnalités)' : (isBeta ? 'Accès Beta (fonctionnalités Premium offertes)' : (isPremium ? 'Formule Premium' : 'Formule Free'))}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;font-size:13px;">
-        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Statut</div>${statusLabelFr}</div>
-        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Formule</div>${cycleLabelFr}</div>
+        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Statut</div>${isBeta ? 'Offert par un admin' : statusLabelFr}</div>
+        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Formule</div>${isBeta ? '—' : cycleLabelFr}</div>
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Début</div>${sub.startedAt ? fmtDate(sub.startedAt.slice(0,10)) : '—'}</div>
-        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Renouvellement</div>${(isPremium && sub.expiresAt) ? fmtDate(sub.expiresAt.slice(0,10)) : (isPremium && sub.billingCycle==='LIFETIME' ? 'Jamais (Lifetime)' : '—')}</div>
+        <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Renouvellement</div>${isBeta ? 'Aucun (accès Beta)' : ((isPremium && sub.expiresAt) ? fmtDate(sub.expiresAt.slice(0,10)) : (isPremium && sub.billingCycle==='LIFETIME' ? 'Jamais (Lifetime)' : '—'))}</div>
       </div>
-      ${role!=='ADMIN' ? `
+      ${(role!=='ADMIN' && !isBeta) ? `
         <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
           ${sub.stripeCustomerId ? `<button class="btn btn-outline" onclick="openBillingPortal()">Portail Stripe (factures, résiliation, formule)</button>` : ''}
         </div>` : ''}
@@ -10401,7 +10430,7 @@ function viewSubscription(){
         : `<button class="btn ${gold||highlight?'btn-primary':'btn-outline'}" style="width:100%;" onclick="${ctaAction}">${ctaLabel}</button>`}
     </div>`;
 
-  const plansPanel = role==='ADMIN' ? '' : `
+  const plansPanel = (role==='ADMIN' || isBeta) ? '' : `
     <div class="sub-plans-wrap">
     <div style="position:relative;z-index:1;text-align:center;margin-bottom:20px;">
       <div class="section-title" style="margin-bottom:14px;">Formules disponibles</div>
@@ -10437,7 +10466,7 @@ function viewSubscription(){
     </div>`;
 
   const promoResult = state.filters.tarifs.promoResult;
-  const promoPanel = role==='ADMIN' ? '' : `
+  const promoPanel = (role==='ADMIN' || isBeta) ? '' : `
     <div class="panel" style="max-width:420px;margin:0 auto 20px;padding:14px 16px;">
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);margin-bottom:8px;">Code promo</div>
       <div style="display:flex;gap:8px;">
