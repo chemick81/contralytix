@@ -5289,14 +5289,17 @@ function viewDashboard(){
   const nextPurchaseBuffer = Number((state.profile && state.profile.nextPurchaseBuffer) || 0);
   const repurchaseMargin = nextPurchaseBudget!=null ? treasuryEur - nextPurchaseBudget - nextPurchaseBuffer : null;
 
-  // --- Burn vs fund (mois en cours) -----------------------------------------------------------
-  // Part des dépenses du mois (achats/mensualités/activation/resets) financée par les payouts du
-  // même mois, vs payée "de la poche". Réutilise chartData (dernier mois de la fenêtre 6 mois,
-  // déjà calculé plus haut) pour la clé du mois en cours, mais recalcule en EUR pur (chartData suit
-  // la préférence d'affichage €/$, alors que cette jauge doit rester stable comme treasuryEur).
+  // --- Burn vs fund (mois en cours, ou période filtrée si un filtre dates est actif) -------------
+  // Part des dépenses financée par les payouts, vs payée "de la poche". Par défaut (aucun filtre
+  // dates posé) : mois calendaire en cours, comme avant. Si l'utilisateur pose un filtre dates dans
+  // la barre du Dashboard, le widget bascule sur cette période (allExpenses/payoutsF, déjà filtrés
+  // par trader/propfirm/dates plus haut) et son sous-titre l'indique — décision utilisateur du
+  // 21/09/2026. Recalcule toujours en EUR pur (chartData suit la préférence d'affichage €/$, alors
+  // que cette jauge doit rester stable comme treasuryEur).
+  const burnFundUsesDateFilter = !!(f.dateFrom || f.dateTo);
   const curMonthKey = chartData[chartData.length-1].mk;
-  const monthCostEur = eurSum(allExpensesUnfiltered.filter(e=>monthKey(e.date)===curMonthKey));
-  const monthPayEur = eurSum(payoutsUnfiltered.filter(p=>monthKey(p.date)===curMonthKey));
+  const monthCostEur = burnFundUsesDateFilter ? eurSum(allExpenses) : eurSum(allExpensesUnfiltered.filter(e=>monthKey(e.date)===curMonthKey));
+  const monthPayEur = burnFundUsesDateFilter ? eurSum(payoutsF) : eurSum(payoutsUnfiltered.filter(p=>monthKey(p.date)===curMonthKey));
   const burnFundRatio = monthCostEur>0 ? monthPayEur/monthCostEur : null;
   const fundedByPayoutsEur = Math.min(monthPayEur, monthCostEur);
   const paidOutOfPocketEur = Math.max(0, monthCostEur - monthPayEur);
@@ -5401,7 +5404,7 @@ function viewDashboard(){
       </div>`;
     })(),
     decisionRepurchase: dashboardDecisionRepurchaseWidgetHtml({ treasuryEur, cashAdjustment, nextPurchaseBudget, nextPurchaseBuffer, repurchaseMargin }),
-    burnVsFund: dashboardBurnVsFundWidgetHtml({ monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur }),
+    burnVsFund: dashboardBurnVsFundWidgetHtml({ monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur, usesDateFilter: burnFundUsesDateFilter }),
     accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
     propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
@@ -5612,18 +5615,19 @@ function dashboardDecisionRepurchaseWidgetHtml(opts){
 // (voir monthCostEur/monthPayEur/burnFundRatio dans viewDashboard). Un ratio < 1 veut dire qu'une
 // partie des achats/resets du mois a dû être payée hors trésorerie propfirm.
 function dashboardBurnVsFundWidgetHtml(opts){
-  const { monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur } = opts;
+  const { monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur, usesDateFilter } = opts;
+  const periodLabel = usesDateFilter ? 'période filtrée' : 'mois en cours';
   if(monthCostEur<=0){
     return `
       <div class="panel">
-        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund</div></div>
-        <div class="panel-body"><div class="empty-sub">Aucune dépense enregistrée ce mois-ci pour l'instant.</div></div>
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${periodLabel}</span></div></div>
+        <div class="panel-body"><div class="empty-sub">${usesDateFilter ? 'Aucune dépense enregistrée sur la période filtrée.' : "Aucune dépense enregistrée ce mois-ci pour l'instant."}</div></div>
       </div>`;
   }
   const fundPct = Math.round((fundedByPayoutsEur/monthCostEur)*100);
   return `
     <div class="panel">
-      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— mois en cours</span>${infoTip("Part des dépenses du mois (achats, mensualités, activations, resets) financée par les payouts encaissés le même mois. Un ratio en dessous de 1 signifie qu'une partie a été payée hors trésorerie propfirm.")}</div></div>
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('exchange')}Burn vs fund <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${periodLabel}</span>${infoTip(usesDateFilter ? "Part des dépenses de la période filtrée (achats, mensualités, activations, resets) financée par les payouts encaissés sur cette même période. Un ratio en dessous de 1 signifie qu'une partie a été payée hors trésorerie propfirm." : "Part des dépenses du mois (achats, mensualités, activations, resets) financée par les payouts encaissés le même mois. Un ratio en dessous de 1 signifie qu'une partie a été payée hors trésorerie propfirm.")}</div></div>
       <div class="panel-body">
         <div style="text-align:center;font-size:22px;font-weight:700;margin-bottom:8px;">${burnFundRatio===null?'—':burnFundRatio.toFixed(2)}<span style="font-size:12px;color:var(--text-faint);font-weight:500;"> financé / dépensé</span></div>
         <div class="cash-gauge-track"><div class="cash-gauge-fund" style="width:${fundPct}%"></div><div class="cash-gauge-burn" style="width:${100-fundPct}%"></div></div>
