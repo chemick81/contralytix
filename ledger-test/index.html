@@ -870,8 +870,8 @@ th.th-sort-active svg{opacity:1;}
 .chart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--text-dim);margin-top:10px;flex-wrap:wrap;}
 .chart-legend span{display:flex;align-items:center;gap:6px;}
 .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-/* Puces cliquables pour masquer/afficher une série du widget "Performance globale" fusionné
-   (barres Dépenses/Payouts + courbe Net cumulé) — voir renderCombinedPerfChart(), fusion du
+/* Puces cliquables pour masquer/afficher une série du widget "Cash flow" (ex "Performance globale"
+   fusionné) (barres Dépenses/Payouts + courbe Net cumulé) — voir renderCombinedPerfChart(), fusion du
    18/09/2026. Inactive = grisée + barrée, sans supprimer la puce (on retrouve son état). */
 .chart-legend-chip{display:flex;align-items:center;gap:6px;font-size:11.5px;font-family:inherit;background:var(--bg-alt);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 8px;cursor:pointer;color:var(--text-dim);transition:opacity .15s,background .15s;}
 .chart-legend-chip:hover{background:var(--bg-hover,var(--bg-alt));}
@@ -1517,7 +1517,7 @@ const DASHBOARD_WIDGETS = [
   { id:'performance',    label:'Performance & rendement' },
   { id:'burnVsFund',     label:'Burn vs fund' },
   { id:'delays',         label:'Délais moyens' },
-  { id:'chart',          label:'Performance globale (barres + courbe)' },
+  { id:'chart',          label:'Cash flow (barres + courbe)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
   { id:'monthRecap',     label:'Récap du mois' },
@@ -5065,56 +5065,97 @@ function viewDashboard(){
   const dashMoneyGlobal = sumMoneyNet([...allExpenses, ...generalExpensesF], payoutsF);
   const netGlobal = dashMoneyGlobal.net;
 
-  // last 6 months chart data — construits par arithmétique calendaire locale, jamais via toISOString (UTC)
+  // Widget "Cash flow" (ex "Performance globale") — construits par arithmétique calendaire locale,
+  // jamais via toISOString (UTC). Filtre PROPRE au widget (granularité mois/trimestre/année/libre),
+  // indépendant du filtre de dates global du Dashboard, sauvegardé sur le compte
+  // (profiles.cashflow_granularity/cashflow_custom_from/cashflow_custom_to, voir
+  // migration_cashflow_20260923.sql) — décision utilisateur du 23/09/2026, remplace le lien au
+  // filtre dates global posé le 23/09/2026 plus tôt le même jour. Reste scopé trader/propfirm
+  // (accIds) comme tous les widgets du Dashboard, mais jamais par f.dateFrom/f.dateTo.
   const allExpensesUnfiltered = computeAllExpenses().filter(e=>accIds.has(e.accountId));
   const payoutsUnfiltered = state.payouts.filter(p=>accIds.has(p.accountId));
-  const months = [];
-  const [ty, tm] = todayISO().split('-').map(Number);
-  for(let i=5;i>=0;i--){
-    const total = (tm - 1) - i;
-    const y = ty + Math.floor(total/12);
-    const m = ((total % 12) + 12) % 12;
-    months.push(`${y}-${pad2(m+1)}`);
-  }
   const { useEur: chartConverted, mixed: chartMixed } = resolveDisplayCurrency([...allExpensesUnfiltered, ...payoutsUnfiltered]);
   const chartVal = (it)=> chartConverted ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
-  // Widget "Performance globale" lié au filtre de dates du Dashboard — décision utilisateur du
-  // 23/09/2026 : les 6 barres/mois restent fixes (calendrier), mais si un filtre dates est actif on
-  // ne compte que l'activité de la période filtrée dans chaque mois (allExpenses/payoutsF, déjà
-  // filtrés plus haut) — les mois hors filtre tombent à 0. Même logique que Burn vs fund.
-  const chartUsesDateFilter = !!(f.dateFrom || f.dateTo);
-  const chartSourceExp = chartUsesDateFilter ? allExpenses : allExpensesUnfiltered;
-  const chartSourcePay = chartUsesDateFilter ? payoutsF : payoutsUnfiltered;
-  const chartData = months.map(mk=>{
-    const exp = chartSourceExp.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
-    const pay = chartSourcePay.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
-    return { mk, exp, pay };
-  });
-  // Échelle des barres Dépenses/Payouts du widget "Performance globale" fusionné — voir
-  // renderCombinedPerfChart ci-dessous.
-  const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
-  // Bloc des 6 mois précédant la fenêtre affichée par chartData — sert uniquement au badge de
-  // tendance "+X% vs période précédente" du widget "Performance globale" (voir
-  // renderCombinedPerfChart ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
-  // des 6 mois d'avant. Décision utilisateur du 17/09/2026 (inspiration maquette externe). Le badge
-  // est masqué si un filtre dates est actif (comparer à "la période précédente" n'a plus de sens
-  // une fois qu'on regarde une période arbitraire choisie) — décision du 23/09/2026, voir
-  // chartUsesDateFilter ci-dessus.
-  const prevMonths6 = [];
-  for(let i=11;i>=6;i--){
-    const total = (tm - 1) - i;
-    const y = ty + Math.floor(total/12);
-    const m = ((total % 12) + 12) % 12;
-    prevMonths6.push(`${y}-${pad2(m+1)}`);
+
+  const cfGranRaw = (state.profile && state.profile.cashflowGranularity) || 'month';
+  const cfGran = ['month','quarter','year','custom'].includes(cfGranRaw) ? cfGranRaw : 'month';
+  const cfCustomFrom = (state.profile && state.profile.cashflowCustomFrom) || '';
+  const cfCustomTo = (state.profile && state.profile.cashflowCustomTo) || '';
+  const cfKeyFn = cfGran==='year' ? yearKey : cfGran==='quarter' ? quarterKey : monthKey;
+
+  // Construit les N dernières clés de période (mois/trimestre/année), la plus ancienne en premier —
+  // réutilisé aussi pour la fenêtre "précédente" du badge de tendance (2N clés, on garde la 1ère moitié).
+  const buildPeriodKeys = (gran, count)=>{
+    const [ty2, tm2] = todayISO().split('-').map(Number);
+    const keys = [];
+    if(gran==='year'){
+      for(let i=count-1;i>=0;i--) keys.push(String(ty2-i));
+    } else if(gran==='quarter'){
+      const curQ = Math.ceil(tm2/3);
+      const curQAbs = ty2*4 + (curQ-1);
+      for(let i=count-1;i>=0;i--){
+        const totalQ = curQAbs - i;
+        const y = Math.floor(totalQ/4), q = (((totalQ%4)+4)%4)+1;
+        keys.push(`${y}-T${q}`);
+      }
+    } else {
+      for(let i=count-1;i>=0;i--){
+        const total = (tm2-1) - i;
+        const y = ty2 + Math.floor(total/12);
+        const m = ((total % 12) + 12) % 12;
+        keys.push(`${y}-${pad2(m+1)}`);
+      }
+    }
+    return keys;
+  };
+
+  let cfKeys, cfConfigured = true;
+  if(cfGran==='custom'){
+    if(cfCustomFrom && cfCustomTo && cfCustomFrom<=cfCustomTo){
+      cfKeys = [];
+      let cur = cfCustomFrom.slice(0,7);
+      const endMk = cfCustomTo.slice(0,7);
+      let guard = 0;
+      while(cur<=endMk && guard<600){ cfKeys.push(cur); cur = addMonths(cur+'-01', 1).slice(0,7); guard++; }
+    } else {
+      cfKeys = [];
+      cfConfigured = false;
+    }
+  } else {
+    cfKeys = buildPeriodKeys(cfGran, cfGran==='year' ? 3 : cfGran==='quarter' ? 4 : 6);
   }
-  const prevChartData6 = prevMonths6.map(mk=>{
-    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
-    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
+
+  const chartData = cfKeys.map(mk=>{
+    const exp = allExpensesUnfiltered.filter(e=>cfKeyFn(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+    const pay = payoutsUnfiltered.filter(p=>cfKeyFn(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
-  const last6NetSum = chartData.reduce((s,d)=>s+(d.pay-d.exp),0);
-  const prev6NetSum = prevChartData6.reduce((s,d)=>s+(d.pay-d.exp),0);
-  const perfTrendPct = (!chartUsesDateFilter && prev6NetSum) ? Math.round((last6NetSum-prev6NetSum)/Math.abs(prev6NetSum)*100) : null;
+  // Échelle des barres Dépenses/Payouts du widget "Cash flow" — voir renderCombinedPerfChart ci-dessous.
+  const maxVal = Math.max(1, ...chartData.map(d=>Math.max(d.exp,d.pay)));
+
+  // Badge de tendance "+X% vs période préc." : compare la somme du Net cumulé de la fenêtre affichée
+  // à la fenêtre équivalente immédiatement précédente (même granularité, même nombre de périodes).
+  // Masqué en mode "libre" (comparer à "la période précédente" n'a plus de sens pour une plage
+  // arbitraire) — décision utilisateur du 23/09/2026, comme le 17/09/2026 initial (inspiration
+  // maquette externe) mais généralisé aux 3 granularités fixes.
+  let perfTrendPct = null, trendCompareLabel = '';
+  if(cfGran!=='custom' && cfKeys.length){
+    const count = cfKeys.length;
+    const prevKeys = buildPeriodKeys(cfGran, count*2).slice(0, count);
+    const prevChartData = prevKeys.map(mk=>{
+      const exp = allExpensesUnfiltered.filter(e=>cfKeyFn(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+      const pay = payoutsUnfiltered.filter(p=>cfKeyFn(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
+      return { mk, exp, pay };
+    });
+    const curNetSum = chartData.reduce((s,d)=>s+(d.pay-d.exp),0);
+    const prevNetSum = prevChartData.reduce((s,d)=>s+(d.pay-d.exp),0);
+    perfTrendPct = prevNetSum ? Math.round((curNetSum-prevNetSum)/Math.abs(prevNetSum)*100) : null;
+    trendCompareLabel = cfGran==='year' ? `vs ${count} an${count>1?'s':''} préc.` : cfGran==='quarter' ? `vs ${count} trim. préc.` : `vs ${count} mois préc.`;
+  }
+  const cfSubtitle = cfGran==='year' ? `${cfKeys.length||3} dernières années`
+    : cfGran==='quarter' ? `${cfKeys.length||4} derniers trimestres`
+    : cfGran==='custom' ? (cfConfigured ? 'période personnalisée' : 'à configurer')
+    : `${cfKeys.length||6} derniers mois`;
 
   // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
   // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
@@ -5396,20 +5437,38 @@ function viewDashboard(){
       const chip = (key, label, dotColor)=>`<button type="button" class="chart-legend-chip ${cs[key]?'active':''}" data-chart-series-toggle="${key}" style="--dot:${dotColor};">
         <span class="legend-dot" style="background:${dotColor};"></span>${label}
       </button>`;
+      const granBtn = (val, label)=>`<button type="button" class="recap-gran-btn ${cfGran===val?'active':''}" data-cashflow-gran="${val}">${label}</button>`;
       return `
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${chartUsesDateFilter?'période filtrée':'6 derniers mois'}${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
-          ${perfTrendPct!==null ? `<span class="badge ${perfTrendPct>=0?'badge-accent':'badge-danger'}" style="font-weight:700;">${perfTrendPct>=0?'▲':'▼'} ${perfTrendPct>=0?'+':''}${perfTrendPct}% vs 6 mois préc.</span>` : ''}
+          <div class="section-title">Cash flow <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${cfSubtitle}${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
+          ${perfTrendPct!==null ? `<span class="badge ${perfTrendPct>=0?'badge-accent':'badge-danger'}" style="font-weight:700;">${perfTrendPct>=0?'▲':'▼'} ${perfTrendPct>=0?'+':''}${perfTrendPct}% ${trendCompareLabel}</span>` : ''}
         </div>
         <div class="panel-body">
+          <div class="recap-granularity" style="margin-bottom:12px;">
+            ${granBtn('month','Mois')}
+            ${granBtn('quarter','Trimestre')}
+            ${granBtn('year','Année')}
+            ${granBtn('custom','Libre')}
+          </div>
+          ${cfGran==='custom' ? `
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <input type="date" id="cashflow-custom-from" value="${cfCustomFrom}" />
+            <span class="text-faint">→</span>
+            <input type="date" id="cashflow-custom-to" value="${cfCustomTo}" />
+            <button type="button" class="btn btn-outline btn-sm" id="cashflow-custom-apply">Appliquer</button>
+          </div>` : ''}
+          ${(cfGran==='custom' && !cfConfigured) ? `
+          <div class="empty-sub">Choisis une plage de dates ci-dessus pour afficher le Cash flow sur cette période.</div>
+          ` : `
           <div class="chart-legend" style="margin-bottom:8px;">
             ${chip('exp','Dépenses','var(--danger)')}
             ${chip('pay','Payouts','var(--accent)')}
             ${chip('net','Net cumulé','var(--gold)')}
           </div>
           ${renderCombinedPerfChart(chartData, maxVal, cs)}
-          <div class="field-hint" style="margin-top:6px;">Dépenses/Payouts = montants du mois. Net cumulé = somme des (payouts − dépenses) mois par mois — pas un solde de compte réel. Clique une puce ci-dessus pour l'afficher/la masquer.</div>
+          <div class="field-hint" style="margin-top:6px;">Dépenses/Payouts = montants de la période. Net cumulé = somme des (payouts − dépenses) période par période — pas un solde de compte réel. Clique une puce ci-dessus pour l'afficher/la masquer.</div>
+          `}
         </div>
       </div>`;
     })(),
@@ -5695,6 +5754,23 @@ async function saveCashSettings(patch){
     return;
   }
   showToast('Trésorerie mise à jour.');
+}
+// Filtre du widget "Cash flow" (mois/trimestre/année/libre) — propre au widget, indépendant du
+// filtre de dates global du Dashboard, sauvegardé sur le compte (voir migration_cashflow_20260923.sql).
+// Même pattern optimiste + rollback que saveCashSettings ci-dessus.
+async function saveCashflowFilter(patch){
+  const uid = currentUserId();
+  if(!uid || !state.profile) return;
+  const prev = { cashflowGranularity: state.profile.cashflowGranularity, cashflowCustomFrom: state.profile.cashflowCustomFrom, cashflowCustomTo: state.profile.cashflowCustomTo };
+  Object.assign(state.profile, patch); // optimiste
+  render();
+  const { error } = await supabaseClient.from('profiles').update(toRow(patch)).eq('id', uid);
+  if(error){
+    Object.assign(state.profile, prev); // rollback
+    showToast("Impossible d'enregistrer le filtre Cash flow (colonnes absentes ? voir migration_cashflow_20260923.sql) : " + error.message, 'danger');
+    render();
+    return;
+  }
 }
 // Widget "Mes comptes" (par type Challenge/PA/Live) du Dashboard — remplace les tuiles éparpillées
 // (Challenges en cours, PA actifs, Comptes Live actifs) du panneau "Vue d'ensemble" par 3 cartes
@@ -6770,8 +6846,8 @@ const MANUAL_CHAPTERS = [
     <p>Dépenses, Payouts, Net, Net global et Comptes actifs affichent chacun une petite flèche de tendance (▲/▼) comparée à la période précédente : si tu as choisi une période personnalisée complète (date de début ET de fin), la comparaison se fait avec la période équivalente juste avant (ex : juin-août vs mars-mai) ; sinon, avec le mois précédent.</p>
     <h3>Mes comptes</h3>
     <p>Trois cartes résument tes comptes par type — Challenge, PA et Live — avec leur capital engagé ou sous gestion (Contralytix ne suit pas de solde de compte en temps réel : pour un Challenge, c'est le total dépensé en achats et mensualités ; pour un PA ou un Live, c'est la somme des tailles de compte actuellement actives) et le détail des statuts (en cours, réussi, breached, fermé...).</p>
-    <h3>Performance globale</h3>
-    <p>Un seul graphique combine les barres Dépenses/Payouts (montants du mois) et la courbe Net cumulé (somme des (payouts − dépenses) mois par mois) sur les 6 derniers mois, avec un badge de variation par rapport aux 6 mois précédents. Trois puces au-dessus du graphique (Dépenses, Payouts, Net cumulé) permettent d'afficher ou de masquer chaque série indépendamment — ton choix est mémorisé sur ton compte.</p>
+    <h3>Cash flow</h3>
+    <p>Un graphique combine les barres Dépenses/Payouts (montants de la période) et la courbe Net cumulé (somme des (payouts − dépenses) période par période), avec un badge de variation par rapport à la période équivalente précédente. Ce widget a son propre filtre (Mois, Trimestre, Année ou Libre — une plage de dates personnalisée), indépendant des filtres du haut de page, et ton choix est mémorisé sur ton compte. Trois puces au-dessus du graphique (Dépenses, Payouts, Net cumulé) permettent d'afficher ou de masquer chaque série indépendamment — ce choix aussi est mémorisé sur ton compte.</p>
     <h3>Délais moyens</h3>
     <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>` },
   { n:'4', id:'m-traders', title:"Traders", html:`
@@ -10942,7 +11018,7 @@ function bindViewEvents(){
         renderView();
       };
     });
-    // Puces de la légende du widget "Performance globale" fusionné : masque/affiche une série
+    // Puces de la légende du widget "Cash flow" : masque/affiche une série
     // (Dépenses/Payouts/Net cumulé) indépendamment, mémorisé par compte — voir renderCombinedPerfChart().
     document.querySelectorAll('[data-chart-series-toggle]').forEach(b=>{
       b.onclick = (e)=>{
@@ -10954,6 +11030,22 @@ function bindViewEvents(){
         renderView();
       };
     });
+    // Chips de granularité du widget "Cash flow" (Mois/Trimestre/Année/Libre) — sauvegardé sur le
+    // compte (saveCashflowFilter), indépendant du filtre de dates global du Dashboard.
+    document.querySelectorAll('[data-cashflow-gran]').forEach(b=>{
+      b.onclick = (e)=>{
+        e.stopPropagation();
+        saveCashflowFilter({ cashflowGranularity: b.dataset.cashflowGran });
+      };
+    });
+    const cashflowApplyBtn = document.getElementById('cashflow-custom-apply');
+    if(cashflowApplyBtn) cashflowApplyBtn.onclick = (e)=>{
+      e.stopPropagation();
+      const from = document.getElementById('cashflow-custom-from').value;
+      const to = document.getElementById('cashflow-custom-to').value;
+      if(!from || !to || from>to){ showToast('Plage de dates invalide.', 'danger'); return; }
+      saveCashflowFilter({ cashflowGranularity:'custom', cashflowCustomFrom: from, cashflowCustomTo: to });
+    };
     // Flèches monter/descendre : déplace le widget par rapport à son voisin visible le plus proche
     // (les modules masqués, eux, gardent leur position dans le tableau order — ils sont juste ignorés).
     const moveDashWidget = (id, dir)=>{
