@@ -1720,6 +1720,90 @@ async function loadAll(){
 const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
 
 /* ============================================================
+   TEMPS RÉEL — Sessions de trading (23/09/2026)
+   Une session créée/modifiée/supprimée par un autre utilisateur (ex: le trader que tu suis)
+   apparaît sans F5, via Supabase Realtime. Supabase n'envoie que les lignes que la policy RLS
+   de yt_sessions autorise à lire (voir migration_rls_yt_sessions_20260923.sql, qui ajoute aussi
+   la table à la publication supabase_realtime). Filet de sécurité : rechargement des sessions au
+   retour sur l'onglet après 5 min d'absence (le canal temps réel peut décrocher en veille).
+============================================================ */
+let ytSessionsChannel = null;
+let appHiddenAt = null;
+const SESSIONS_REFRESH_AFTER_MS = 5*60*1000;
+function startSessionsRealtime(){
+  if(!SUPABASE_CONFIGURED || !state.session || ytSessionsChannel) return;
+  ytSessionsChannel = supabaseClient.channel('rt-yt-sessions')
+    .on('postgres_changes', { event:'*', schema:'public', table:'yt_sessions' }, onYtSessionChange)
+    .subscribe();
+}
+function stopSessionsRealtime(){
+  if(ytSessionsChannel){ try{ supabaseClient.removeChannel(ytSessionsChannel); }catch(e){} ytSessionsChannel = null; }
+}
+// Saisie en cours ou modale ouverte : on ne re-rend pas (on casserait le champ actif) — les
+// données sont déjà à jour en mémoire et s'afficheront au prochain rendu.
+function userIsBusy(){
+  const ae = document.activeElement;
+  const typing = !!ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA' || ae.tagName==='SELECT' || ae.isContentEditable);
+  const modalOpen = !!document.querySelector('#modal-root .modal-overlay');
+  return typing || modalOpen;
+}
+function refreshSessionsViewIfVisible(){
+  if(state.route!=='sessions' || userIsBusy()) return;
+  render();
+}
+function onYtSessionChange(payload){
+  if(payload.eventType==='DELETE'){
+    const id = payload.old && payload.old.id;
+    if(!id || !state.yt_sessions.some(x=>x.id===id)) return;
+    state.yt_sessions = state.yt_sessions.filter(x=>x.id!==id);
+    if(state.sessionDetailId===id){
+      state.sessionDetailId = null;
+      if(state.route==='sessions'){ showToast('Cette session vient d’être supprimée.'); render(); }
+      return;
+    }
+    refreshSessionsViewIfVisible();
+    return;
+  }
+  const rec = fromRow(payload.new || {});
+  if(!rec.id) return;
+  const idx = state.yt_sessions.findIndex(x=>x.id===rec.id);
+  if(idx===-1){
+    state.yt_sessions.push(rec);
+    // Toast uniquement pour la session d'un AUTRE utilisateur et dans mon périmètre
+    // (une session créée par moi dans un autre onglet arrive silencieusement).
+    if(rec.createdBy && rec.createdBy!==currentUserId() && isMineSession(rec)){
+      const t = getTrader(rec.traderId);
+      showToast(`Nouvelle session${t?` de ${t.pseudo}`:''} : ${rec.title||'Session sans nom'}`, '', ()=>{
+        state.route = 'sessions'; state.sessionDetailId = rec.id; render();
+      });
+    }
+    refreshSessionsViewIfVisible();
+    return;
+  }
+  // Mise à jour. Si je suis en train d'éditer CETTE session, on ne touche à rien : c'est très
+  // probablement l'écho de ma propre sauvegarde, et l'écraser pourrait ramener une version plus
+  // ancienne de mes notes (autosave débouncé).
+  if(state.route==='sessions' && state.sessionDetailId===rec.id && userIsBusy()) return;
+  const before = JSON.stringify(state.yt_sessions[idx]);
+  state.yt_sessions[idx] = { ...state.yt_sessions[idx], ...rec };
+  if(JSON.stringify(state.yt_sessions[idx])===before) return; // écho identique : rien à rafraîchir
+  refreshSessionsViewIfVisible();
+}
+async function reloadSessionsFromServer(){
+  if(!SUPABASE_CONFIGURED || !state.session) return;
+  const { data, error } = await supabaseClient.from('yt_sessions').select('*');
+  if(error || !data) return;
+  state.yt_sessions = data.map(fromRow);
+  stopSessionsRealtime(); startSessionsRealtime(); // reconnecte un canal éventuellement décroché
+  refreshSessionsViewIfVisible();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='hidden'){ appHiddenAt = Date.now(); return; }
+  if(appHiddenAt && Date.now()-appHiddenAt >= SESSIONS_REFRESH_AFTER_MS) reloadSessionsFromServer();
+  appHiddenAt = null;
+});
+
+/* ============================================================
    RÉGLAGES GLOBAUX (Admin) : visibilité des pages + annonce
    Stockés dans la table Supabase 'app_settings' (une ligne, key='global',
    value=jsonb). Lecture libre pour tout utilisateur connecté (RLS SELECT),
@@ -2632,6 +2716,16 @@ function isMineAccount(a){
 // Bilan Visuel, Comparatif...) : les miens uniquement, sauf si le toggle "Vue debug (admin)"
 // est actif (canSeeAllData()) — un seul endroit à changer si la règle évolue.
 function accountsInScope(){ return canSeeAllData() ? state.accounts : state.accounts.filter(isMineAccount); }
+// Sessions de trading visibles (fix confidentialité 23/09/2026) : celles que j'ai créées, ou
+// rattachées à un de MES traders (créé par moi, ou dont l'email = mon email de connexion). Partage
+// dans les deux sens entre un utilisateur et le trader qu'il suit, comme pour les comptes. Admin :
+// uniquement avec « Vue debug (admin) ». Même règle côté base : migration_rls_yt_sessions_20260923.sql.
+function isMineSession(sess){
+  if(!sess) return false;
+  if(sess.createdBy===currentUserId()) return true;
+  return !!sess.traderId && isMineTrader(getTrader(sess.traderId));
+}
+function sessionsInScope(){ return canSeeAllData() ? state.yt_sessions : state.yt_sessions.filter(isMineSession); }
 const FREE_VISIBLE_RATIO = 0.3;
 function freeVisibleCount(total){
   if(perms().isPremium) return total;
@@ -3027,6 +3121,7 @@ async function signInWithGoogle(){
   await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
 }
 async function signOut(){
+  stopSessionsRealtime();
   await supabaseClient.auth.signOut();
   // Repart de l'étape 1 (saisie e-mail) à la prochaine ouverture de l'écran de connexion,
   // plutôt que de rester bloqué sur l'étape "code" d'une session précédente.
@@ -4583,7 +4678,7 @@ function render(){
         </div>` : ''}
       <div class="topbar">
         <div>
-          ${(state.route==='sessions' && state.sessionDetailId && state.yt_sessions.find(x=>x.id===state.sessionDetailId)) ? `
+          ${(state.route==='sessions' && state.sessionDetailId && sessionsInScope().find(x=>x.id===state.sessionDetailId)) ? `
             <button class="btn btn-ghost btn-sm" id="session-back-btn" style="padding-left:2px;">${icon('chevLeft')}Retour aux sessions</button>
           ` : `
             <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
@@ -4699,7 +4794,7 @@ function renderTopbarActions(){
   else if(state.route==='fiscalite') el.innerHTML = `<button class="btn btn-primary" id="export-fiscal-zip" title="PDF récapitulatif + tous les justificatifs de payout de l'année, dans un seul ZIP">${icon('download')}Export année (ZIP)</button>`;
   else if(state.route==='frais-generaux') el.innerHTML = `<button class="btn btn-primary" id="add-general-expense">${icon('plus')}Nouveau frais</button>`;
   else if(state.route==='sessions'){
-    const detail = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
+    const detail = state.sessionDetailId ? sessionsInScope().find(x=>x.id===state.sessionDetailId) : null;
     el.innerHTML = detail
       ? `<button class="btn btn-outline btn-sm" id="session-share-btn">${icon('link')}Partager</button>${canEdit(detail) ? `<button class="btn btn-danger btn-sm" id="session-delete-btn">${icon('trash')}Supprimer la session</button>` : ''}`
       : `<button class="btn btn-primary" id="add-session">${icon('plus')}Nouvelle session</button>`;
@@ -4982,10 +5077,9 @@ function dashboardUpcomingWidgetHtml(accountsF){
 }
 // Widget "Dernière session de trading" — la session la plus récente (respecte le filtre trader du dashboard).
 function dashboardLastSessionWidgetHtml(f, myTraderIds){
-  let sessions = [...state.yt_sessions];
-  // myTraderIds non-null : Dashboard restreint (tout le monde sauf admin) — jamais la session
-  // d'un autre utilisateur, même sans filtre trader explicite sélectionné.
-  if(myTraderIds) sessions = sessions.filter(s=>s.traderId && myTraderIds.has(s.traderId));
+  // Même périmètre que la page Sessions (sessionsInScope) — jamais la session d'un autre
+  // utilisateur hors « Vue debug (admin) ». myTraderIds n'est plus utilisé ici, gardé pour la signature.
+  let sessions = [...sessionsInScope()];
   if(f.trader.length) sessions = sessions.filter(s=>s.traderId && f.trader.includes(s.traderId));
   sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
   const s = sessions[0];
@@ -9975,8 +10069,9 @@ function viewSessionDetail(s){
 // (sur chaque frappe dans la recherche) sans jamais recréer le champ #fs-q lui-même.
 function sessionsResultsHtml(){
   const f = state.filters.sessions;
-  const total = state.yt_sessions.length;
-  let list = [...state.yt_sessions];
+  const scoped = sessionsInScope();
+  const total = scoped.length;
+  let list = [...scoped];
   if(f.q){
     const q = f.q.toLowerCase();
     list = list.filter(s=>(s.title||'').toLowerCase().includes(q) || (s.notes||'').toLowerCase().includes(q));
@@ -9988,12 +10083,11 @@ function sessionsResultsHtml(){
   // filtres actifs) restent consultables — même logique que maxFreeAccounts ailleurs dans l'app.
   // Mes propres sessions sont TOUJOURS débloquées (jamais floutées derrière celles d'un autre
   // compte visible) ; le quota Free ne s'applique qu'aux sessions des autres comptes.
-  const allByRecency = [...state.yt_sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  const allByRecency = [...scoped].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
   let unlockedIds;
   if(perms().isPremium){
     unlockedIds = new Set(allByRecency.map(s=>s.id));
   } else {
-    const isMineSession = s=> s.createdBy===currentUserId() || isMineTrader(getTrader(s.traderId));
     const mine = allByRecency.filter(isMineSession);
     const others = allByRecency.filter(s=>!isMineSession(s));
     unlockedIds = new Set(mine.map(s=>s.id));
@@ -10061,11 +10155,12 @@ function bindSessionsResultsEvents(){
 
 function viewSessionsList(){
   const f = state.filters.sessions;
-  const total = state.yt_sessions.length;
+  const scoped = sessionsInScope();
+  const total = scoped.length;
   const currentMonth = monthKey(todayISO());
-  const sessionsThisMonth = state.yt_sessions.filter(s=>s.date && monthKey(s.date)===currentMonth).length;
-  const totalDurationMin = state.yt_sessions.reduce((sum,s)=>sum + (minutesBetweenTimes(s.startTime, s.endTime)||0), 0);
-  const allByRecency = [...state.yt_sessions].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  const sessionsThisMonth = scoped.filter(s=>s.date && monthKey(s.date)===currentMonth).length;
+  const totalDurationMin = scoped.reduce((sum,s)=>sum + (minutesBetweenTimes(s.startTime, s.endTime)||0), 0);
+  const allByRecency = [...scoped].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
   const lastSession = allByRecency[0];
 
   const statsStrip = `
@@ -10082,7 +10177,7 @@ function viewSessionsList(){
     <div class="filter-bar">
       <div class="results-counter" id="fs-counter">${counterHtml}</div>
       <div class="search-wrap">${icon('search')}<input type="text" id="fs-q" placeholder="Rechercher un titre ou une note…" value="${f.q}" style="min-width:200px;"/></div>
-      ${renderMultiSelect('fs-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      ${renderMultiSelect('fs-trader', (canSeeAllData() ? state.traders : myTraders()).map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       <div class="filter-bar-spacer"></div>
       <div id="fs-reset-wrap">${resetHtml}</div>
     </div>`;
@@ -10090,7 +10185,7 @@ function viewSessionsList(){
   return `${statsStrip}${filterBar}<div id="fs-table-wrap">${tablePanel}</div>`;
 }
 function viewSessions(){
-  const s = state.sessionDetailId ? state.yt_sessions.find(x=>x.id===state.sessionDetailId) : null;
+  const s = state.sessionDetailId ? sessionsInScope().find(x=>x.id===state.sessionDetailId) : null;
   if(s) return viewSessionDetail(s);
   if(state.sessionDetailId) state.sessionDetailId = null;
   return viewSessionsList();
@@ -14281,6 +14376,7 @@ function applyLandingPricing(){
     document.getElementById('app-root').style.display = 'flex';
     render();
     renderChatWidget();
+    startSessionsRealtime();
     maybeShowWelcomeModal();
     maybeShowNewMessagesToast();
     handleCheckoutReturn(); // fire-and-forget, voir sa définition (retour de paiement Stripe)
