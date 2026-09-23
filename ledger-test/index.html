@@ -492,17 +492,6 @@ th.th-sort-active svg{opacity:1;}
 @keyframes pop{from{transform:translateY(6px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 .modal.wide{max-width:640px;}
 .modal.xwide{max-width:960px;}
-.modal{position:relative;}
-/* Protection des saisies : secousse légère quand on clique sur le fond d'une modale modifiée */
-.modal.modal-nudge{animation:modalNudge .32s ease;border-color:var(--accent,#2dd4bf);}
-@keyframes modalNudge{0%,100%{transform:none}25%{transform:translateX(-5px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
-/* Confirmation d'abandon affichée DANS la modale (le formulaire reste intact dessous) */
-.modal-discard{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,0.55);border-radius:inherit;animation:fadeIn .12s ease;}
-.modal-discard-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:18px 20px;max-width:340px;width:100%;animation:pop .14s ease;}
-.modal-discard-card h4{margin:0 0 6px;font-size:14.5px;}
-.modal-discard-card p{margin:0 0 16px;font-size:13px;color:var(--text-dim);line-height:1.5;}
-.modal-discard-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
-@media (prefers-reduced-motion: reduce){.modal.modal-nudge{animation:none;}}
 
 /* CHANGELOG */
 .manual-toc{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 18px;}
@@ -2316,7 +2305,7 @@ function deleteTraderModal(trader){
       };
       refreshStatus();
 
-      document.getElementById('del-tr-cancel').onclick = requestCloseModal;
+      document.getElementById('del-tr-cancel').onclick = closeModal;
       document.getElementById('del-tr-run').onclick = async ()=>{
         const runBtn = document.getElementById('del-tr-run');
         runBtn.disabled = true;
@@ -2462,7 +2451,7 @@ async function assignTraderOwnerModal(trader){
     `,
     footHtml: `<button class="btn btn-outline" id="ato-cancel">Annuler</button><button class="btn btn-primary" id="ato-confirm">Assigner</button>`,
     onMount(){
-      document.getElementById('ato-cancel').onclick = requestCloseModal;
+      document.getElementById('ato-cancel').onclick = closeModal;
       document.getElementById('ato-confirm').onclick = async ()=>{
         const userId = document.getElementById('ato-select').value;
         if(!userId){ document.getElementById('ato-error').textContent = 'Choisis un compte utilisateur.'; return; }
@@ -3774,67 +3763,7 @@ function showToast(msg, type='', onClick){
 /* ============================================================
    MODAL SYSTEM
 ============================================================ */
-// --- Protection des saisies dans les modales -------------------------------
-// `modalDirty` passe à true dès que l'utilisateur modifie un champ de la modale ouverte.
-// - Clic sur le fond sombre : ferme seulement si rien n'a été saisi ; sinon la modale
-//   reste ouverte (légère secousse + rappel), car ce geste est presque toujours
-//   accidentel (retour sur la fenêtre après un copier-coller, sélection de texte…).
-// - ✕, Annuler, Échap : fermeture volontaire → confirmation « Abandonner la saisie ? »
-//   affichée dans la modale, sans détruire le formulaire.
-// closeModal() reste la fermeture inconditionnelle (après enregistrement, etc.).
-var modalDirty = false;
-var modalNudgeHintShown = false;
-function closeModal(){
-  modalDirty = false;
-  document.getElementById('modal-root').innerHTML='';
-}
-function requestCloseModal(){
-  const root = document.getElementById('modal-root');
-  const modal = root.querySelector('.modal');
-  if(!modal) return;
-  if(!modalDirty){ closeModal(); return; }
-  if(modal.querySelector('.modal-discard')) return;
-  const layer = document.createElement('div');
-  layer.className = 'modal-discard';
-  layer.setAttribute('role','alertdialog');
-  layer.setAttribute('aria-modal','true');
-  layer.innerHTML = `
-    <div class="modal-discard-card">
-      <h4>Abandonner la saisie ?</h4>
-      <p>Les informations saisies dans ce formulaire seront perdues.</p>
-      <div class="modal-discard-actions">
-        <button class="btn btn-danger" data-act="discard">Abandonner</button>
-        <button class="btn btn-primary" data-act="keep">Continuer la saisie</button>
-      </div>
-    </div>`;
-  layer.addEventListener('click', (e)=>{
-    const act = e.target.closest('[data-act]')?.dataset.act;
-    if(act==='discard') closeModal();
-    else if(act==='keep' || e.target===layer) layer.remove();
-  });
-  modal.appendChild(layer);
-  layer.querySelector('[data-act="keep"]').focus();
-}
-function nudgeModal(){
-  const modal = document.querySelector('#modal-root .modal');
-  if(!modal) return;
-  modal.classList.remove('modal-nudge');
-  void modal.offsetWidth; // relance l'animation
-  modal.classList.add('modal-nudge');
-  setTimeout(()=>modal.classList.remove('modal-nudge'), 600);
-  if(!modalNudgeHintShown){
-    modalNudgeHintShown = true;
-    showToast('Saisie conservée — utilise Annuler ou ✕ pour fermer la fenêtre.');
-  }
-}
-document.addEventListener('keydown', (e)=>{
-  if(e.key!=='Escape') return;
-  const modal = document.querySelector('#modal-root .modal');
-  if(!modal) return;
-  const layer = modal.querySelector('.modal-discard');
-  if(layer){ layer.remove(); return; }
-  requestCloseModal();
-});
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
 // Composant générique de filtre à choix multiple (case à cocher) — dropdown à bouton.
 // options: [{v,l}], selected: array de valeurs, filterObj/openField: pour mémoriser l'état ouvert/fermé.
@@ -4123,27 +4052,8 @@ function openModal({ title, bodyHtml, footHtml, wide, onMount }){
         ${footHtml ? `<div class="modal-foot">${footHtml}</div>` : ''}
       </div>
     </div>`;
-  modalDirty = false;
-  modalNudgeHintShown = false;
-  const overlay = document.getElementById('modal-overlay');
-  const modalEl = overlay.querySelector('.modal');
-  const markDirty = (e)=>{
-    const t = e.target;
-    if(!t || t.closest('.modal-discard') || t.dataset.noDirty!=null || t.type==='search') return;
-    modalDirty = true;
-  };
-  modalEl.addEventListener('input', markDirty);
-  modalEl.addEventListener('change', markDirty);
-  document.getElementById('modal-close-btn').onclick = requestCloseModal;
-  // On ne ferme que si le clic a commencé ET fini sur le fond : une sélection de texte
-  // démarrée dans un champ et relâchée à l'extérieur ne ferme plus la fenêtre.
-  let downOnOverlay = false;
-  overlay.addEventListener('mousedown', (e)=>{ downOnOverlay = (e.target===overlay); });
-  overlay.addEventListener('click', (e)=>{
-    if(e.target!==overlay || !downOnOverlay) return;
-    downOnOverlay = false;
-    if(modalDirty) nudgeModal(); else closeModal();
-  });
+  document.getElementById('modal-close-btn').onclick = closeModal;
+  document.getElementById('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='modal-overlay') closeModal(); });
   if(onMount) onMount();
 }
 function confirmModal(message, onConfirm, danger=true){
@@ -4152,7 +4062,7 @@ function confirmModal(message, onConfirm, danger=true){
     bodyHtml: `<p style="font-size:13.5px;color:var(--text-dim);line-height:1.5;">${message}</p>`,
     footHtml: `<button class="btn btn-outline" id="cf-cancel">Annuler</button><button class="btn ${danger?'btn-danger':'btn-primary'}" id="cf-ok">Confirmer</button>`,
     onMount(){
-      document.getElementById('cf-cancel').onclick = requestCloseModal;
+      document.getElementById('cf-cancel').onclick = closeModal;
       document.getElementById('cf-ok').onclick = ()=>{ closeModal(); onConfirm(); };
     }
   });
@@ -4178,7 +4088,7 @@ function openContactModal(prefill){
     `,
     footHtml: `<button class="btn btn-outline" id="ct-cancel">Annuler</button><button class="btn btn-primary" id="ct-send">Envoyer</button>`,
     onMount(){
-      document.getElementById('ct-cancel').onclick = requestCloseModal;
+      document.getElementById('ct-cancel').onclick = closeModal;
       document.getElementById('ct-send').onclick = async ()=>{
         const subject = document.getElementById('ct-subject').value;
         const message = document.getElementById('ct-message').value.trim();
@@ -4227,7 +4137,7 @@ function openReplyMsgModal(m){
     `,
     footHtml: `<button class="btn btn-outline" id="rm-cancel">Annuler</button><button class="btn btn-primary" id="rm-send">Envoyer la réponse</button>`,
     onMount(){
-      document.getElementById('rm-cancel').onclick = requestCloseModal;
+      document.getElementById('rm-cancel').onclick = closeModal;
       document.getElementById('rm-send').onclick = async ()=>{
         const reply = document.getElementById('rm-reply').value.trim();
         const errEl = document.getElementById('rm-error');
@@ -5168,9 +5078,16 @@ function viewDashboard(){
   }
   const { useEur: chartConverted, mixed: chartMixed } = resolveDisplayCurrency([...allExpensesUnfiltered, ...payoutsUnfiltered]);
   const chartVal = (it)=> chartConverted ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  // Widget "Performance globale" lié au filtre de dates du Dashboard — décision utilisateur du
+  // 23/09/2026 : les 6 barres/mois restent fixes (calendrier), mais si un filtre dates est actif on
+  // ne compte que l'activité de la période filtrée dans chaque mois (allExpenses/payoutsF, déjà
+  // filtrés plus haut) — les mois hors filtre tombent à 0. Même logique que Burn vs fund.
+  const chartUsesDateFilter = !!(f.dateFrom || f.dateTo);
+  const chartSourceExp = chartUsesDateFilter ? allExpenses : allExpensesUnfiltered;
+  const chartSourcePay = chartUsesDateFilter ? payoutsF : payoutsUnfiltered;
   const chartData = months.map(mk=>{
-    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
-    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
+    const exp = chartSourceExp.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+    const pay = chartSourcePay.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
     return { mk, exp, pay };
   });
   // Échelle des barres Dépenses/Payouts du widget "Performance globale" fusionné — voir
@@ -5179,7 +5096,10 @@ function viewDashboard(){
   // Bloc des 6 mois précédant la fenêtre affichée par chartData — sert uniquement au badge de
   // tendance "+X% vs période précédente" du widget "Performance globale" (voir
   // renderCombinedPerfChart ci-dessous), qui compare le net cumulé des 6 derniers mois au net cumulé
-  // des 6 mois d'avant. Décision utilisateur du 17/09/2026 (inspiration maquette externe).
+  // des 6 mois d'avant. Décision utilisateur du 17/09/2026 (inspiration maquette externe). Le badge
+  // est masqué si un filtre dates est actif (comparer à "la période précédente" n'a plus de sens
+  // une fois qu'on regarde une période arbitraire choisie) — décision du 23/09/2026, voir
+  // chartUsesDateFilter ci-dessus.
   const prevMonths6 = [];
   for(let i=11;i>=6;i--){
     const total = (tm - 1) - i;
@@ -5194,7 +5114,7 @@ function viewDashboard(){
   });
   const last6NetSum = chartData.reduce((s,d)=>s+(d.pay-d.exp),0);
   const prev6NetSum = prevChartData6.reduce((s,d)=>s+(d.pay-d.exp),0);
-  const perfTrendPct = prev6NetSum ? Math.round((last6NetSum-prev6NetSum)/Math.abs(prev6NetSum)*100) : null;
+  const perfTrendPct = (!chartUsesDateFilter && prev6NetSum) ? Math.round((last6NetSum-prev6NetSum)/Math.abs(prev6NetSum)*100) : null;
 
   // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
   // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
@@ -5479,7 +5399,7 @@ function viewDashboard(){
       return `
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— 6 derniers mois${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
+          <div class="section-title">Performance globale <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— ${chartUsesDateFilter?'période filtrée':'6 derniers mois'}${chartConverted?` · ${convertedLabel(chartConverted, chartMixed)}`:''}</span></div>
           ${perfTrendPct!==null ? `<span class="badge ${perfTrendPct>=0?'badge-accent':'badge-danger'}" style="font-weight:700;">${perfTrendPct>=0?'▲':'▼'} ${perfTrendPct>=0?'+':''}${perfTrendPct}% vs 6 mois préc.</span>` : ''}
         </div>
         <div class="panel-body">
@@ -5749,7 +5669,7 @@ function editCashSettingsModal(){
       </div>`,
     footHtml: `<button class="btn btn-outline" id="cash-settings-cancel">Annuler</button><button class="btn btn-primary" id="cash-settings-save">Enregistrer</button>`,
     onMount(){
-      document.getElementById('cash-settings-cancel').onclick = requestCloseModal;
+      document.getElementById('cash-settings-cancel').onclick = closeModal;
       document.getElementById('cash-settings-save').onclick = async ()=>{
         const adj = Number(document.getElementById('cash-adj-input').value) || 0;
         const budgetRaw = document.getElementById('cash-budget-input').value;
@@ -9291,7 +9211,7 @@ function generalExpenseFormModal(existing){
         document.getElementById('gef-startdate-label').textContent = isUnique ? 'Date' : 'Date de début (1ère échéance)';
         document.getElementById('gef-enddate-wrap').style.display = isUnique ? 'none' : 'block';
       });
-      document.getElementById('gef-cancel').onclick = requestCloseModal;
+      document.getElementById('gef-cancel').onclick = closeModal;
       document.getElementById('gef-save').onclick = async ()=>{
         const category = document.getElementById('gef-category').value;
         const recurrence = document.getElementById('gef-recurrence').value;
@@ -9708,7 +9628,7 @@ function prepFormModal(existing){
     `,
     footHtml: `<button class="btn btn-outline" id="mp-cancel">Annuler</button><button class="btn btn-primary" id="mp-save">Enregistrer</button>`,
     onMount(){
-      document.getElementById('mp-cancel').onclick = requestCloseModal;
+      document.getElementById('mp-cancel').onclick = closeModal;
       const keyInput = document.getElementById('mp-ai-key');
       keyInput.value = localStorage.getItem(AI_USER_KEY_STORAGE) || '';
       document.getElementById('mp-generate').onclick = async ()=>{
@@ -10623,7 +10543,7 @@ function editDisplayNameModal(){
       <input id="display-name-input" placeholder="Ex : Mickael" value="${escapeHtml((state.profile && state.profile.displayName) || '')}" maxlength="60"/>`,
     footHtml: `<button class="btn btn-outline" id="dn-cancel">Annuler</button><button class="btn btn-primary" id="dn-save">Enregistrer</button>`,
     onMount(){
-      document.getElementById('dn-cancel').onclick = requestCloseModal;
+      document.getElementById('dn-cancel').onclick = closeModal;
       document.getElementById('dn-save').onclick = async ()=>{
         const val = document.getElementById('display-name-input').value.trim().slice(0,60);
         const prev = state.profile.displayName;
@@ -10662,7 +10582,7 @@ function requestAccountDeletionModal(){
       </div>`,
     footHtml: `<button class="btn btn-outline" id="racc-cancel">Annuler</button><button class="btn btn-danger" id="racc-send-code">Envoyer le code de confirmation</button>`,
     onMount(){
-      document.getElementById('racc-cancel').onclick = requestCloseModal;
+      document.getElementById('racc-cancel').onclick = closeModal;
       const portalLink = document.getElementById('racc-portal-link');
       if(portalLink) portalLink.onclick = (e)=>{ e.preventDefault(); closeModal(); openBillingPortal(); };
       document.getElementById('racc-send-code').onclick = async (e)=>{
@@ -10702,7 +10622,7 @@ function confirmAccountDeletionModal(){
       </div>`,
     footHtml: `<button class="btn btn-outline" id="racc-code-cancel">Annuler</button><button class="btn btn-danger" id="racc-code-confirm" disabled>Supprimer définitivement</button>`,
     onMount(){
-      document.getElementById('racc-code-cancel').onclick = requestCloseModal;
+      document.getElementById('racc-code-cancel').onclick = closeModal;
       const input = document.getElementById('racc-code-input');
       const confirmBtn = document.getElementById('racc-code-confirm');
       input.focus();
@@ -11723,7 +11643,7 @@ function changelogEntryFormModal(existing){
         type = chip.dataset.clType;
         document.querySelectorAll('[data-cl-type]').forEach(ch=>ch.classList.toggle('selected', ch.dataset.clType===type));
       });
-      document.getElementById('cl-cancel').onclick = requestCloseModal;
+      document.getElementById('cl-cancel').onclick = closeModal;
       document.getElementById('cl-save').onclick = async ()=>{
         const title = document.getElementById('cl-title').value.trim();
         const description = document.getElementById('cl-desc').value.trim();
@@ -11815,7 +11735,7 @@ function promoCodeFormModal(existing){
         active = chip.dataset.active==='1';
         document.querySelectorAll('[data-active]').forEach(c=>c.classList.toggle('selected', (c.dataset.active==='1')===active));
       });
-      document.getElementById('pf-cancel').onclick = requestCloseModal;
+      document.getElementById('pf-cancel').onclick = closeModal;
       document.getElementById('pf-save').onclick = async ()=>{
         const code = document.getElementById('pf-code').value.trim().toUpperCase();
         const label = document.getElementById('pf-label').value.trim();
@@ -11885,7 +11805,7 @@ function traderFormModal(existing){
         isPublic = chip.dataset.visibility==='public';
         document.querySelectorAll('[data-visibility]').forEach(c=>c.classList.toggle('selected', (c.dataset.visibility==='public')===isPublic));
       });
-      document.getElementById('tf-cancel').onclick = requestCloseModal;
+      document.getElementById('tf-cancel').onclick = closeModal;
       document.getElementById('tf-save').onclick = async ()=>{
         const firstName = document.getElementById('tf-first').value.trim();
         const lastName = document.getElementById('tf-last').value.trim();
@@ -11968,7 +11888,7 @@ function firmFormModal(existing){
         }
         e.target.value = '';
       });
-      document.getElementById('ff-cancel').onclick = requestCloseModal;
+      document.getElementById('ff-cancel').onclick = closeModal;
       document.getElementById('ff-save').onclick = async ()=>{
         const name = document.getElementById('ff-name').value.trim();
         if(!name){ document.getElementById('ff-error').textContent = 'Le nom est obligatoire.'; return; }
@@ -12069,7 +11989,7 @@ function ratingFormModal(firm, existing){
         const errEl = document.getElementById('rf-error');
         if(errEl) errEl.textContent = '';
       };
-      document.getElementById('rf-cancel').onclick = requestCloseModal;
+      document.getElementById('rf-cancel').onclick = closeModal;
       const delBtn = document.getElementById('rf-delete');
       if(delBtn) delBtn.onclick = ()=>{
         confirmModal('Supprimer ton avis sur cette PropFirm ?', async ()=>{
@@ -12334,7 +12254,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         const terminal = e.target.value!=='ACTIF';
         document.getElementById('af-enddate-wrap').style.display = terminal ? 'block' : 'none';
       };
-      document.getElementById('af-cancel').onclick = requestCloseModal;
+      document.getElementById('af-cancel').onclick = closeModal;
       document.getElementById('af-save').onclick = async ()=>{
         if(afFxFetchPromise) await afFxFetchPromise;
         const traderId = document.getElementById('af-trader').value;
@@ -12616,7 +12536,7 @@ function bulkAccountFormModal(){
       document.getElementById('baf-activation-date').addEventListener('change', ()=>{ bafFxFetchPromise = autofillFxRate(true); });
       bafFxFetchPromise = autofillFxRate();
 
-      document.getElementById('baf-cancel').onclick = requestCloseModal;
+      document.getElementById('baf-cancel').onclick = closeModal;
       document.getElementById('baf-save').onclick = async ()=>{
         if(bafFxFetchPromise) await bafFxFetchPromise;
         const errorEl = document.getElementById('baf-error');
@@ -12750,7 +12670,7 @@ function statusChangeModal(acc, newStatus){
     `,
     footHtml: `<button class="btn btn-outline" id="sc-cancel">Annuler</button><button class="btn ${newStatus==='BREACHED'?'btn-danger':'btn-primary'}" id="sc-ok">Confirmer</button>`,
     onMount(){
-      document.getElementById('sc-cancel').onclick = requestCloseModal;
+      document.getElementById('sc-cancel').onclick = closeModal;
       document.getElementById('sc-ok').onclick = async ()=>{
         const date = document.getElementById('sc-date').value || todayISO();
         const oldStatus = acc.status;
@@ -13703,7 +13623,7 @@ function openImportPropDeskModal(plan){
       updateSelectedCount();
       updateNewTraderCount();
 
-      document.getElementById('import-cancel').onclick = requestCloseModal;
+      document.getElementById('import-cancel').onclick = closeModal;
       document.getElementById('import-confirm').onclick = async ()=>{
         const btn = document.getElementById('import-confirm');
         const selected = [...root.querySelectorAll('[data-import-acc]')].filter(b=>b.checked);
@@ -13922,7 +13842,7 @@ function openMigrationImportModal(json){
     `,
     footHtml: `<button class="btn btn-outline" id="mi-cancel">Annuler</button><button class="btn btn-primary" id="mi-run">Lancer l'import</button>`,
     onMount(){
-      document.getElementById('mi-cancel').onclick = requestCloseModal;
+      document.getElementById('mi-cancel').onclick = closeModal;
       document.getElementById('mi-run').onclick = async ()=>{
         document.getElementById('mi-run').disabled = true;
         document.getElementById('mi-run').textContent = 'Import en cours…';
