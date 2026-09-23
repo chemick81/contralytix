@@ -725,6 +725,9 @@ th.th-sort-active svg{opacity:1;}
 .link-tag svg{width:11px;height:11px;flex-shrink:0;}
 .link-tag:hover{filter:brightness(1.15);}
 .acc-card{transition:box-shadow .3s ease, border-color .3s ease;}
+/* Fond teinté selon le statut (23/09/2026) — color-mix sur --surface pour rester très léger dans les 3 thèmes */
+.acc-card-breached{background:color-mix(in srgb, var(--danger) 7%, var(--surface));}
+.acc-card-reussi{background:color-mix(in srgb, var(--slate) 9%, var(--surface));}
 .acc-card.flash-highlight{box-shadow:0 0 0 2px var(--flash-color,var(--gold));border-color:var(--flash-color,var(--gold));}
 .alert-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);cursor:pointer;}
 .alert-row:last-child{border-bottom:none;}
@@ -1526,6 +1529,7 @@ const DASHBOARD_WIDGETS = [
   { id:'lastSession',    label:'Dernière session de trading' },
 ];
 
+const DEFAULT_ACCOUNT_STATUS_FILTER = ['ACTIF'];
 const state = {
   route: 'dashboard',
   theme: loadThemePrefs().theme, // 'dark' | 'light' | 'premium'
@@ -1592,7 +1596,10 @@ const state = {
     maintenance: { enabled:false, message:'' },
   },
   filters: {
-    accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
+    // Page Comptes filtrée par défaut sur les comptes actifs — décision utilisateur du 23/09/2026.
+    // Les sauts vers un compte précis (data-jump-acc...) repartent de status:[] pour qu'un compte
+    // breached/réussi/fermé reste toujours trouvable.
+    accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'', showFraisGeneraux:true },
@@ -3619,13 +3626,15 @@ function statusLabel(acc){
 }
 function statusBadgeClass(acc){
   if(acc.status==='BREACHED') return 'badge-danger';
-  if(acc.status==='REUSSI' || acc.status==='ACTIF') return 'badge-accent';
+  if(acc.status==='REUSSI') return 'badge-slate'; // gris : étape terminée, plus d'action à suivre (23/09/2026)
+  if(acc.status==='ACTIF') return 'badge-accent';
   if(acc.status==='FERME') return 'badge-slate';
   return 'badge-slate';
 }
 function railColor(acc){
   if(acc.status==='BREACHED') return 'var(--danger)';
-  if(acc.status==='REUSSI' || acc.status==='ACTIF') return 'var(--accent)';
+  if(acc.status==='REUSSI') return 'var(--slate)';
+  if(acc.status==='ACTIF') return 'var(--accent)';
   if(acc.status==='FERME') return 'var(--slate)';
   return 'var(--slate)';
 }
@@ -5284,7 +5293,15 @@ function viewDashboard(){
   const eurSum = (items)=> items.reduce((s,it)=>s+toEur(it.amount, it.fxRateToEur),0);
   const customPeriodActive = !!(f.dateFrom && f.dateTo);
   const anyDateFilterActive = !!(f.dateFrom || f.dateTo);
-  const currMonth = chartData[chartData.length-1], prevMonth = chartData[chartData.length-2];
+  // Série mensuelle DÉDIÉE (mois précédent + mois en cours), indépendante de la granularité du
+  // widget Cash flow : chartData peut être en trimestres/années, ou VIDE en mode « Libre » non
+  // configuré — le lire ici faisait planter tout le rendu du Dashboard (page blanche), fix 23/09/2026.
+  const monthlyTrendData = buildPeriodKeys('month', 2).map(mk=>{
+    const exp = allExpensesUnfiltered.filter(e=>monthKey(e.date)===mk).reduce((s,e)=>s+chartVal(e),0);
+    const pay = payoutsUnfiltered.filter(p=>monthKey(p.date)===mk).reduce((s,p)=>s+chartVal(p),0);
+    return { mk, exp, pay };
+  });
+  const currMonth = monthlyTrendData[1], prevMonth = monthlyTrendData[0];
   let expensesTrend=null, payoutsTrend=null, netTrend=null, netGlobalTrend=null, activeAccountsTrend=null;
   if(customPeriodActive){
     const spanDays = daysBetween(f.dateFrom, f.dateTo) + 1;
@@ -5348,7 +5365,7 @@ function viewDashboard(){
   // 21/09/2026. Recalcule toujours en EUR pur (chartData suit la préférence d'affichage €/$, alors
   // que cette jauge doit rester stable comme treasuryEur).
   const burnFundUsesDateFilter = !!(f.dateFrom || f.dateTo);
-  const curMonthKey = chartData[chartData.length-1].mk;
+  const curMonthKey = currMonth.mk; // toujours un mois (YYYY-MM), quelle que soit la granularité du Cash flow
   const monthCostEur = burnFundUsesDateFilter ? eurSum(allExpenses) : eurSum(allExpensesUnfiltered.filter(e=>monthKey(e.date)===curMonthKey));
   const monthPayEur = burnFundUsesDateFilter ? eurSum(payoutsF) : eurSum(payoutsUnfiltered.filter(p=>monthKey(p.date)===curMonthKey));
   const burnFundRatio = monthCostEur>0 ? monthPayEur/monthCostEur : null;
@@ -5466,7 +5483,7 @@ function viewDashboard(){
             ${chip('pay','Payouts','var(--accent)')}
             ${chip('net','Net cumulé','var(--gold)')}
           </div>
-          ${renderCombinedPerfChart(chartData, maxVal, cs)}
+          ${renderCombinedPerfChart(chartData, maxVal, cs, cfGran==='year' ? yearLabel : cfGran==='quarter' ? quarterLabel : monthLabel)}
           <div class="field-hint" style="margin-top:6px;">Dépenses/Payouts = montants de la période. Net cumulé = somme des (payouts − dépenses) période par période — pas un solde de compte réel. Clique une puce ci-dessus pour l'afficher/la masquer.</div>
           `}
         </div>
@@ -5566,7 +5583,7 @@ function fmtMoneyShort(n){
 // classique à double axe. `series` = { exp, pay, net } (booléens) contrôle l'affichage indépendant
 // de chaque série — voir state.dashboardLayout.chartSeries, persisté par compte comme le reste de la
 // disposition du Dashboard.
-function renderCombinedPerfChart(chartData, maxVal, series){
+function renderCombinedPerfChart(chartData, maxVal, series, labelFn = monthLabel){
   const showExp = series.exp !== false, showPay = series.pay !== false, showNet = series.net !== false;
   if(!showExp && !showPay && !showNet){
     return `<div class="empty-sub" style="padding:24px 0;text-align:center;">Aucune série sélectionnée — active Dépenses, Payouts ou Net cumulé ci-dessus.</div>`;
@@ -5575,7 +5592,7 @@ function renderCombinedPerfChart(chartData, maxVal, series){
   const plotW = w - padL - padR, plotH = h - padTop - padBottom;
   const n = chartData.length;
   const stepX = n>1 ? plotW/(n-1) : 0;
-  const centerX = i => padL + i*stepX;
+  const centerX = i => n>1 ? padL + i*stepX : padL + plotW/2; // 1 seule période : centrée
   const baseY = padTop + plotH;
   const barMaxH = plotH*0.82;
   const barW = Math.min(22, stepX*0.28 || 22);
@@ -5623,7 +5640,7 @@ function renderCombinedPerfChart(chartData, maxVal, series){
       ${valueLabels}`;
   }
 
-  const labels = chartData.map((d,i)=>`<text x="${centerX(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${monthLabel(d.mk)}</text>`).join('');
+  const labels = chartData.map((d,i)=>`<text x="${centerX(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="JetBrains Mono, monospace">${labelFn(d.mk)}</text>`).join('');
 
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;overflow:visible;">
     ${bars}
@@ -7327,7 +7344,8 @@ function viewAccounts(){
   const statusBtnLabel = !f.status.length ? 'Tous statuts'
     : f.status.length===1 ? STATUS_LABELS[f.status[0]]
     : `${f.status.length} statuts`;
-  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || f.status.length);
+  const statusIsDefault = f.status.length===DEFAULT_ACCOUNT_STATUS_FILTER.length && DEFAULT_ACCOUNT_STATUS_FILTER.every(v=>f.status.includes(v));
+  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || !statusIsDefault);
 
   const filterBar = `
     <div class="filter-bar">
@@ -7348,7 +7366,7 @@ function viewAccounts(){
               <input type="checkbox" data-status-opt="${s.v}" ${f.status.includes(s.v)?'checked':''}/>
               ${s.l}
             </label>`).join('')}
-          ${f.status.length ? `<button type="button" class="status-ms-clear" id="f-status-clear">Réinitialiser</button>` : ''}
+          ${f.status.length ? `<button type="button" class="status-ms-clear" id="f-status-clear">Tous les statuts</button>` : ''}
         </div>
       </div>
       ${renderMultiSelect('f-groupby', [
@@ -7362,7 +7380,11 @@ function viewAccounts(){
     return emptyState('card','Aucun compte','Crée un compte Challenge ou PA pour un trader.');
   }
   if(list.length===0){
-    return filterBar + emptyState('search','Aucun résultat','Essaie d\u2019élargir tes filtres.');
+    // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
+    const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size;
+    return filterBar + (onlyStatusHides
+      ? `<div class="empty">${icon('search')}<div class="empty-title">Aucun compte ${f.status.length===1 ? (STATUS_LABELS[f.status[0]]||'').toLowerCase() : 'pour ces statuts'}</div><div class="empty-sub">Tes autres comptes (réussis, breached, fermés) sont masqués par le filtre de statut.</div><button type="button" class="btn btn-outline btn-sm" id="f-show-all-status" style="margin-top:12px;">Voir tous les statuts</button></div>`
+      : emptyState('search','Aucun résultat','Essaie d\u2019élargir tes filtres.'));
   }
 
   if(f.groupBy.length){
@@ -7487,7 +7509,7 @@ function accountCard(a){
   }
 
   return `
-    <div class="acc-card" id="acc-${a.id}" style="--rail:${railColor(a)}">
+    <div class="acc-card${a.status==='BREACHED'?' acc-card-breached':a.status==='REUSSI'?' acc-card-reussi':''}" id="acc-${a.id}" style="--rail:${railColor(a)}">
       <div class="acc-top">
         <div>
           <div class="acc-title">
@@ -11329,7 +11351,7 @@ function bindViewEvents(){
   bindMultiSelectDropdown('f-groupby', state.filters.accounts, 'groupBy', 'groupByMenuOpen');
   const resetAllBtn = document.getElementById('f-reset-all');
   if(resetAllBtn) resetAllBtn.onclick = ()=>{
-    state.filters.accounts = { q:'', trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
+    state.filters.accounts = { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
     setTraderFilterEverywhere([]);
     renderView();
   };
@@ -11355,6 +11377,8 @@ function bindViewEvents(){
     });
     const statusMenu = document.getElementById('f-status-menu');
     if(statusMenu) statusMenu.onclick = (e)=>e.stopPropagation();
+    const showAllStatus = document.getElementById('f-show-all-status');
+    if(showAllStatus) showAllStatus.onclick = ()=>{ state.filters.accounts.status = []; renderView(); };
     const statusClear = document.getElementById('f-status-clear');
     if(statusClear) statusClear.onclick = (e)=>{
       e.stopPropagation();
@@ -11580,9 +11604,19 @@ function bindViewEvents(){
   document.querySelectorAll('[data-jump-to]').forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
     const targetId = b.dataset.jumpTo;
-    const el = document.getElementById('acc-'+targetId);
+    const flashColor = b.style.color;
+    let el = document.getElementById('acc-'+targetId);
+    // Compte lié masqué uniquement par le filtre de statut (ex: Challenge « Réussi » alors que la page
+    // est filtrée par défaut sur « Actif ») : on ajoute son statut au filtre plutôt que d'échouer.
+    const target = getAccount(targetId);
+    const fa = state.filters.accounts;
+    if(!el && target && fa.status.length && !fa.status.includes(target.status)){
+      fa.status.push(target.status);
+      renderView();
+      el = document.getElementById('acc-'+targetId);
+    }
     if(!el){ showToast('Le compte lié n\u2019est pas visible avec les filtres actuels.', 'danger'); return; }
-    el.style.setProperty('--flash-color', b.style.color);
+    el.style.setProperty('--flash-color', flashColor);
     el.scrollIntoView({ behavior:'smooth', block:'center' });
     el.classList.add('flash-highlight');
     setTimeout(()=>el.classList.remove('flash-highlight'), 1600);
