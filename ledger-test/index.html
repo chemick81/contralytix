@@ -768,6 +768,18 @@ th.th-sort-active svg{opacity:1;}
 .nav-group{margin-bottom:2px;}
 .nav-group-head{padding:7px 10px;}
 .nav-foot{gap:6px;padding-top:8px;flex-shrink:0;}
+.side-currency{display:flex;flex-direction:column;gap:4px;}
+.side-currency-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);padding:0 2px;}
+.side-seg{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);}
+.side-seg button{border:none;background:transparent;color:var(--text-dim);font-size:11.5px;font-weight:600;padding:6px 4px;border-radius:6px;white-space:nowrap;}
+.side-seg button:hover{color:var(--text);}
+.side-seg button.active{background:var(--accent-dim);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent);}
+.side-seg .seg-short{display:none;}
+@media (max-width: 880px){
+  .side-seg{grid-template-columns:1fr;}
+  .side-seg .seg-long{display:none;}
+  .side-seg .seg-short{display:inline;}
+}
 .side-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(28px,1fr));gap:4px;}
 .side-tool{display:flex;align-items:center;justify-content:center;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);padding:0;}
 .side-tool svg{width:15px;height:15px;}
@@ -1885,6 +1897,8 @@ const state = {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
+    // Admin > Utilisateurs (26/09/2026) : filtres + tri du tableau.
+    adminUsers: { q:'', plan:'', cycle:'', trader:'', login:'', signup:'', sort:'createdAt', dir:'desc' },
     rentabilite: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, includeGeneral:true, proofTab:'payouts', proofShowAll:false },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'', showFraisGeneraux:true },
     sessions: { q:'', trader:[], traderMenuOpen:false },
@@ -5005,8 +5019,17 @@ function render(){
         </div>
         <!-- Barre d'outils compacte (26/09/2026) : icônes seules + infobulle, pour que tout le menu
              tienne dans la hauteur de l'écran. Bouton « Réinitialiser » retiré à la demande de l'utilisateur. -->
+        <!-- Affichage des montants (26/09/2026) : sélecteur à deux choix explicites au lieu d'une icône
+             ambiguë. « Devise du compte » = chaque montant dans sa devise ($ ou €) ; « Tout en € » =
+             tout converti au taux BCE de chaque opération. -->
+        <div class="side-currency" role="group" aria-label="Affichage des montants" title="Affichage des montants : chaque montant dans la devise de son compte, ou tout converti en euros (taux BCE du jour de chaque opération)">
+          <div class="side-currency-label nav-label">Montants</div>
+          <div class="side-seg">
+            <button type="button" class="${state.currencyDisplayMode!=='eur'?'active':''}" data-currency-mode="original" aria-pressed="${state.currencyDisplayMode!=='eur'}"><span class="seg-long">Devise du compte</span><span class="seg-short">$€</span></button>
+            <button type="button" class="${state.currencyDisplayMode==='eur'?'active':''}" data-currency-mode="eur" aria-pressed="${state.currencyDisplayMode==='eur'}"><span class="seg-long">Tout en €</span><span class="seg-short">€</span></button>
+          </div>
+        </div>
         <div class="side-tools" role="toolbar" aria-label="Outils">
-          <button class="side-tool ${state.currencyDisplayMode==='eur'?'on':''}" id="currency-display-toggle" title="${state.currencyDisplayMode==='eur' ? 'Montants : tout en € (cliquer pour la devise d’origine)' : 'Montants : devise d’origine (cliquer pour tout afficher en €)'}" aria-label="Basculer l'affichage des montants">${icon('exchange')}</button>
           <button class="side-tool" id="numbers-toggle" title="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}" aria-label="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}">${icon(state.numbersVisible?'eyeOff':'eye')}</button>
           <button class="side-tool" id="theme-toggle" title="Thème : passer en ${themeToggleTarget().label.toLowerCase()}" aria-label="Changer de thème">${icon(themeToggleTarget().icon)}</button>
           ${isAdmin() ? `<button class="side-tool ${state.adminDebugView?'on-gold':''}" id="admin-debug-toggle" title="${state.adminDebugView ? 'Vue debug (admin) : ON — cliquer pour désactiver' : 'Vue debug (admin) : OFF — voir les données de tous les utilisateurs'}" aria-label="Vue debug admin">${icon('shield')}</button>` : ''}
@@ -5071,11 +5094,15 @@ function render(){
   if(document.getElementById('global-search-btn')) document.getElementById('global-search-btn').onclick = globalSearchModal;
   if(document.getElementById('session-back-btn')) document.getElementById('session-back-btn').onclick = ()=>{ state.sessionDetailId = null; render(); };
   document.getElementById('theme-toggle').onclick = ()=>{ state.theme = nextTheme(state.theme); saveThemePrefs(); render(); };
-  document.getElementById('currency-display-toggle').onclick = ()=>{
-    state.currencyDisplayMode = state.currencyDisplayMode==='eur' ? 'original' : 'eur';
-    saveCurrencyDisplayMode();
-    render();
-  };
+  document.querySelectorAll('[data-currency-mode]').forEach(b=>{
+    b.onclick = ()=>{
+      if(state.currencyDisplayMode===b.dataset.currencyMode) return;
+      state.currencyDisplayMode = b.dataset.currencyMode;
+      saveCurrencyDisplayMode();
+      showToast(state.currencyDisplayMode==='eur' ? 'Tous les montants sont maintenant affichés en euros (taux BCE de chaque opération).' : 'Chaque montant est affiché dans la devise de son compte.');
+      render();
+    };
+  });
   document.getElementById('numbers-toggle').onclick = ()=>{ state.numbersVisible = !state.numbersVisible; render(); };
   if(document.getElementById('admin-debug-toggle')) document.getElementById('admin-debug-toggle').onclick = ()=>{
     state.adminDebugView = !state.adminDebugView;
@@ -8358,9 +8385,9 @@ const MANUAL_CHAPTERS = [
       <li><b>La barre latérale</b> (à gauche) — logo, menu de navigation vers toutes les sections, adresse e-mail du compte connecté, formule en cours, et boutons d'action rapide.</li>
       <li><b>La zone principale</b> (à droite) — titre de la section active, barre d'actions contextuelle (boutons « Nouveau… », exports, etc.) et contenu de la page.</li>
     </ul>
-    <p>En bas de la barre latérale, une rangée d'icônes regroupe les commandes rapides (survole une icône pour voir son nom) :</p>
+    <p>En bas de la barre latérale, le sélecteur <b>Montants</b> choisit comment les sommes sont affichées dans toute l'application : <b>« Devise du compte »</b> (chaque montant dans la devise où il a été enregistré, $ ou €) ou <b>« Tout en € »</b> (tout converti en euros au taux BCE du jour de chaque opération — pratique si tes comptes mélangent dollars et euros). Le choix est mémorisé sur cet appareil.</p>
+    <p>Juste en dessous, une rangée d'icônes regroupe les commandes rapides (survole une icône pour voir son nom) :</p>
     <ul>
-      <li><b>Devise</b> — bascule l'affichage des montants entre la devise d'origine et tout en euros (icône surlignée quand « tout en € » est actif).</li>
       <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
       <li><b>Thème (Sombre / Clair / Premium doré)</b> — un clic fait défiler les 3 thèmes visuels de l'application, dont un thème « Premium doré » à l'ambiance plus chaude. Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
       <li><b>Vue debug</b> (administrateurs uniquement) — affiche les données de tous les utilisateurs pour investiguer un souci.</li>
@@ -8631,6 +8658,7 @@ const MANUAL_CHAPTERS = [
     <p>Un panneau « Seuils fiscaux » permet de tenir à jour, chaque année, les valeurs utilisées par le module Fiscalité (année de référence, plafond micro-BNC, franchise en base de TVA — base et majorée —, abattement forfaitaire et note de source) sans intervention technique. Ces seuils sont partagés par tous les utilisateurs du site.</p>
     <h3>Gestion des utilisateurs</h3>
     <p>Pour chaque utilisateur, un administrateur peut : le faire passer en formule Premium, le repasser en Free, lui offrir un accès Lifetime, ou supprimer son accès. Une colonne « Trader(s) lié(s) » indique, pour chaque compte, quel(s) trader(s) lui correspondent — un trader créé par ce compte, ou dont l'email correspond à celui du compte (même règle que le rattachement automatique des filtres à « son » trader à la connexion). Utile pour identifier rapidement, par exemple, un utilisateur inscrit mais sans aucun trader créé.</p>
+    <p>Au-dessus du tableau, une barre de filtres permet de retrouver un utilisateur : recherche (email, nom affiché ou pseudo de trader), plan (Free, Premium, Beta, Admin), formule (mensuel, annuel, Lifetime, sans abonnement), trader lié (avec / sans), dernière connexion (moins de 7 ou 30 jours, inactif depuis plus de 30 jours, jamais connecté) et date d'inscription. Un clic sur l'en-tête Email, Plan, Trader(s) lié(s), Inscrit le ou Dernière connexion trie le tableau ; un second clic inverse l'ordre. Le titre indique le nombre d'utilisateurs affichés sur le total.</p>
     <h3>Journal d'activité</h3>
     <p>Un journal enregistre les actions effectuées sur le site (création, modification, suppression), avec date, auteur, type d'action et descriptif.</p>
     <h3>Import de données et sauvegarde</h3>
@@ -11698,6 +11726,88 @@ const ADMIN_TABS = [
   { id:'settings',    label:'Paramètres',      icon:'layout' },
   { id:'log',         label:'Journal',         icon:'clock' },
 ];
+
+/* Admin > Utilisateurs : filtres et tri (26/09/2026). */
+const ADMIN_USER_FILTER_OPTIONS = {
+  plan:   [['', 'Tous les plans'], ['FREE','Free'], ['PREMIUM','Premium'], ['BETA','Beta'], ['ADMIN','Admin']],
+  cycle:  [['', 'Toutes les formules'], ['MONTHLY','Mensuel'], ['YEARLY','Annuel'], ['LIFETIME','Lifetime'], ['NONE','Sans abonnement']],
+  trader: [['', 'Trader lié : tous'], ['WITH','Avec trader lié'], ['WITHOUT','Sans trader lié']],
+  login:  [['', 'Connexion : toutes'], ['7','Connecté < 7 jours'], ['30','Connecté < 30 jours'], ['INACTIVE','Inactif > 30 jours'], ['NEVER','Jamais connecté']],
+  signup: [['', 'Inscription : toutes'], ['7','Inscrit < 7 jours'], ['30','Inscrit < 30 jours'], ['90','Inscrit < 90 jours']],
+};
+function adminDaysSince(iso){
+  if(!iso) return null;
+  return (Date.now() - new Date(iso).getTime()) / 86400000;
+}
+function adminUserCycle(p){
+  const sub = p.subscription;
+  return (sub && sub.status!=='CANCELLED' && sub.billingCycle) ? sub.billingCycle : null;
+}
+function adminFilteredUsers(){
+  const f = state.filters.adminUsers;
+  const q = (f.q||'').trim().toLowerCase();
+  const list = state.profiles.filter(p=>{
+    const traders = tradersForProfile(p);
+    if(q){
+      const hay = [(p.email||''), (p.displayName||''), ...traders.map(t=>t.pseudo||'')].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(f.plan && p.role!==f.plan) return false;
+    if(f.cycle){
+      const cyc = adminUserCycle(p);
+      if(f.cycle==='NONE' ? !!cyc : cyc!==f.cycle) return false;
+    }
+    if(f.trader==='WITH' && !traders.length) return false;
+    if(f.trader==='WITHOUT' && traders.length) return false;
+    if(f.login){
+      const d = adminDaysSince(p.lastLogin);
+      if(f.login==='NEVER'){ if(d!==null) return false; }
+      else if(f.login==='INACTIVE'){ if(d===null || d<=30) return false; }
+      else if(d===null || d>Number(f.login)) return false;
+    }
+    if(f.signup){
+      const d = adminDaysSince(p.createdAt);
+      if(d===null || d>Number(f.signup)) return false;
+    }
+    return true;
+  });
+  const dir = f.dir==='asc' ? 1 : -1;
+  const key = {
+    email: p=>(p.email||'').toLowerCase(),
+    role: p=>p.role||'',
+    traders: p=>tradersForProfile(p).length,
+    createdAt: p=>p.createdAt||'',
+    lastLogin: p=>p.lastLogin||'',
+  }[f.sort] || (p=>p.createdAt||'');
+  list.sort((a,b)=>{ const x=key(a), y=key(b); return (x<y?-1:x>y?1:0)*dir; });
+  return list;
+}
+function adminUsersFilterBarHtml(){
+  const f = state.filters.adminUsers;
+  const sel = (id, k)=>`<select id="${id}" aria-label="${ADMIN_USER_FILTER_OPTIONS[k][0][1]}">${ADMIN_USER_FILTER_OPTIONS[k].map(([v,l])=>`<option value="${v}" ${f[k]===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  const active = f.q||f.plan||f.cycle||f.trader||f.login||f.signup;
+  return `<div class="filter-bar" style="padding:12px 18px 0;margin-bottom:10px;">
+    <input type="text" id="au-q" placeholder="Rechercher un email, un nom ou un trader…" aria-label="Rechercher un utilisateur" value="${escapeHtml(f.q||'')}" style="min-width:240px;"/>
+    ${sel('au-plan','plan')}${sel('au-cycle','cycle')}${sel('au-trader','trader')}${sel('au-login','login')}${sel('au-signup','signup')}
+    <div class="filter-bar-spacer"></div>
+    ${active ? `<button class="pill-reset" id="au-clear">Réinitialiser</button>` : ''}
+  </div>`;
+}
+function adminSortTh(key, label){
+  const f = state.filters.adminUsers;
+  const on = f.sort===key;
+  return `<th data-au-sort="${key}" title="Trier par ${label.toLowerCase()}" style="cursor:pointer;white-space:nowrap;user-select:none;${on?'color:var(--text);':''}">${label} <span style="opacity:${on?1:.35};font-size:10px;">${on ? (f.dir==='asc'?'▲':'▼') : '▲▼'}</span></th>`;
+}
+function rerenderAdminKeepFocus(focusId){
+  const root = document.getElementById('view-root');
+  if(!root) return;
+  root.innerHTML = viewAdmin();
+  bindViewEvents();
+  if(focusId){
+    const el = document.getElementById(focusId);
+    if(el){ el.focus(); const v = el.value; if(el.setSelectionRange) el.setSelectionRange(v.length, v.length); }
+  }
+}
 function viewAdmin(){
   const subs = state.allSubscriptions || [];
   const activeSubs = subs.filter(s=>s.status==='ACTIVE');
@@ -11763,18 +11873,20 @@ function viewAdmin(){
       </div>
     </div>`;
 
+  const adminUsersList = adminFilteredUsers();
   const usersTable = `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between;">
-        <div class="section-title">Utilisateurs (${state.profiles.length})</div>
+        <div class="section-title">Utilisateurs (${adminUsersList.length===state.profiles.length ? state.profiles.length : `${adminUsersList.length} / ${state.profiles.length}`})</div>
         <button class="btn btn-outline btn-sm" id="mk-sync-brevo" title="Chaque inscription/changement de plan synchronise déjà automatiquement Brevo — ce bouton sert surtout pour les comptes existants avant la mise en place de la synchro, ou en cas de doute.">${icon('megaphone')}Resynchroniser avec Brevo</button>
       </div>
+      ${adminUsersFilterBarHtml()}
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Email</th><th>Plan</th><th>Formule</th><th>Trader(s) lié(s)</th><th>Inscrit le</th><th>Dernière connexion</th><th></th></tr></thead>
+          <thead><tr>${adminSortTh('email','Email')}${adminSortTh('role','Plan')}<th>Formule</th>${adminSortTh('traders','Trader(s) lié(s)')}${adminSortTh('createdAt','Inscrit le')}${adminSortTh('lastLogin','Dernière connexion')}<th></th></tr></thead>
           <tbody>
-            ${state.profiles.length===0 ? `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;">Aucun utilisateur.</div></td></tr>` :
-              state.profiles.map(p=>{
+            ${adminUsersList.length===0 ? `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;">${state.profiles.length ? 'Aucun utilisateur ne correspond à ces filtres.' : 'Aucun utilisateur.'}</div></td></tr>` :
+              adminUsersList.map(p=>{
                 const linkedTraders = tradersForProfile(p);
                 return `<tr>
                 <td>${p.email||'—'}${p.id===currentUserId()?' <span class="text-faint">(toi)</span>':''}</td>
@@ -13081,6 +13193,27 @@ function bindViewEvents(){
     }
     mkSyncBrevo.disabled = false; mkSyncBrevo.innerHTML = icon('megaphone') + 'Resynchroniser avec Brevo';
   };
+  // Admin > Utilisateurs : filtres et tri
+  if(document.getElementById('au-q')){
+    const af = state.filters.adminUsers;
+    document.getElementById('au-q').oninput = (e)=>{
+      af.q = e.target.value;
+      clearTimeout(window.__auTimer);
+      window.__auTimer = setTimeout(()=>rerenderAdminKeepFocus('au-q'), 180);
+    };
+    [['au-plan','plan'],['au-cycle','cycle'],['au-trader','trader'],['au-login','login'],['au-signup','signup']].forEach(([id,k])=>{
+      const el = document.getElementById(id);
+      if(el) el.onchange = ()=>{ af[k] = el.value; rerenderAdminKeepFocus(); };
+    });
+    const clr = document.getElementById('au-clear');
+    if(clr) clr.onclick = ()=>{ Object.assign(af, { q:'', plan:'', cycle:'', trader:'', login:'', signup:'' }); rerenderAdminKeepFocus(); };
+    document.querySelectorAll('[data-au-sort]').forEach(th=>th.onclick=()=>{
+      const k = th.dataset.auSort;
+      if(af.sort===k) af.dir = af.dir==='asc' ? 'desc' : 'asc';
+      else { af.sort = k; af.dir = (k==='email'||k==='role') ? 'asc' : 'desc'; }
+      rerenderAdminKeepFocus();
+    });
+  }
   document.querySelectorAll('[data-set-plan]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.setPlan, plan = b.dataset.plan, cycle = b.dataset.cycle;
     const label = plan==='PREMIUM' ? (cycle==='LIFETIME' ? 'offrir une licence Premium Lifetime' : 'passer cet utilisateur en Premium')
