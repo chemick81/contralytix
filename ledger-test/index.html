@@ -45,6 +45,11 @@
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
   "inLanguage": "fr-FR",
+  "sameAs": [
+    "https://www.youtube.com/@Contralytix",
+    "https://www.tiktok.com/@contralytix",
+    "https://discord.gg/mCtStKZUJj"
+  ],
   "offers": [
     { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "EUR" },
     { "@type": "Offer", "name": "Premium (mensuel)", "price": "9.90", "priceCurrency": "EUR" },
@@ -227,6 +232,15 @@ a{color:var(--accent);text-decoration:none;}
 .legal-foot-links a{color:var(--text-faint);text-decoration:none;}
 .legal-foot-links a:hover{color:var(--text-dim);text-decoration:underline;}
 .legal-foot-sep{color:var(--text-faint);}
+.social-links{display:flex;justify-content:center;gap:6px;padding:8px 4px 0;}
+.social-links a{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;color:var(--text-faint);border:1px solid transparent;transition:color .12s,border-color .12s,background .12s;}
+.social-links a:hover,.social-links a:focus-visible{color:var(--text);background:var(--surface-2);border-color:var(--border);}
+.social-links svg{width:15px;height:15px;}
+.ml-social{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.ml-social a{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:1px solid var(--border);color:var(--text-dim);text-decoration:none;font-size:13px;font-weight:600;transition:color .12s,border-color .12s;}
+.ml-social a:hover,.ml-social a:focus-visible{color:var(--text);border-color:var(--accent);}
+.ml-social svg{width:16px;height:16px;}
+.ml-community{margin-top:18px;text-align:center;font-size:14px;color:var(--text-dim);}
 .icon-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);font-size:12px;}
 .icon-btn:hover{color:var(--text);border-color:var(--text-faint);}
 .icon-btn svg{width:14px;height:14px;}
@@ -1562,6 +1576,8 @@ th.th-sort-active svg{opacity:1;}
 
     <section class="ml-final-cta">
       <a href="#loading" data-ml-auth="signup" class="btn btn-primary">Rejoindre Contralytix gratuitement</a>
+      <div class="ml-community">Rejoins la communauté : questions, nouveautés, bilans en vidéo.</div>
+      <div class="ml-social"><a href="https://discord.gg/mCtStKZUJj" target="_blank" rel="noopener" aria-label="Contralytix sur Discord"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.009c.12.099.246.198.373.292a.077.077 0 0 1-.007.128 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.182 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg>Discord</a><a href="https://www.youtube.com/@Contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur YouTube"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z"/></svg>YouTube</a><a href="https://www.tiktok.com/@contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur TikTok"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z"/></svg>TikTok</a></div>
     </section>
   </main>
 
@@ -1572,6 +1588,7 @@ th.th-sort-active svg{opacity:1;}
       <a href="#" id="ml-legal-cgv">CGV / CGU</a><span class="legal-foot-sep">·</span>
       <a href="#" id="ml-legal-mentions">Mentions légales</a>
     </div>
+    <div class="social-links" style="margin-top:6px;"><a href="https://discord.gg/mCtStKZUJj" target="_blank" rel="noopener" aria-label="Contralytix sur Discord" title="Contralytix sur Discord"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.009c.12.099.246.198.373.292a.077.077 0 0 1-.007.128 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.182 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg></a><a href="https://www.youtube.com/@Contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur YouTube" title="Contralytix sur YouTube"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z"/></svg></a><a href="https://www.tiktok.com/@contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur TikTok" title="Contralytix sur TikTok"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z"/></svg></a></div>
   </footer>
 </div>
 
@@ -4920,6 +4937,15 @@ function renderNavGroups(){
   nav.filter(n=>!usedIds.has(n.id) && !LEGAL_NAV_IDS.includes(n.id)).forEach(n=>{ html += navItemHtml(n); });
   return html;
 }
+// Réseaux Contralytix (26/09/2026) — une seule liste pour la barre latérale, la landing et le bilan public.
+const SOCIAL_LINKS = [
+  { id:'discord', label:'Discord', url:'https://discord.gg/mCtStKZUJj', path:'M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.009c.12.099.246.198.373.292a.077.077 0 0 1-.007.128 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.182 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z' },
+  { id:'youtube', label:'YouTube', url:'https://www.youtube.com/@Contralytix', path:'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z' },
+  { id:'tiktok', label:'TikTok', url:'https://www.tiktok.com/@contralytix', path:'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z' }
+];
+function socialLinksHtml(cls){
+  return `<div class="${cls||'social-links'}">${SOCIAL_LINKS.map(s=>`<a href="${s.url}" target="_blank" rel="noopener" aria-label="Contralytix sur ${s.label}" title="Contralytix sur ${s.label}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${s.path}"/></svg>${cls==='ml-social'?s.label:''}</a>`).join('')}</div>`;
+}
 function legalFooterLinksHtml(){
   const nav = getNav();
   const items = LEGAL_NAV_IDS.map(id=>nav.find(n=>n.id===id)).filter(Boolean);
@@ -4960,6 +4986,7 @@ function render(){
         <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
         <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
         ${legalFooterLinksHtml()}
+        ${socialLinksHtml()}
         <div class="app-version nav-label">Contralytix v${currentAppVersion()}</div>
       </div>
     </aside>
@@ -6468,7 +6495,7 @@ async function renderPublicCohortReport(token, month){
         ${ecPeriodSelect('pub-month', data.months, month)}
       </div>
       ${cohortReportHtml(data)}
-      <div class="pub-foot">Contralytix — la gestion financière des comptes Prop Firm. <a href="${location.origin}${location.pathname}">contralytix.fr</a></div>
+      <div class="pub-foot">Contralytix — la gestion financière des comptes Prop Firm. <a href="${location.origin}${location.pathname}">contralytix.fr</a>${socialLinksHtml('ml-social')}</div>
     </div>`;
   const sel = document.getElementById('pub-month');
   if(sel) sel.onchange = ()=>{
