@@ -760,6 +760,31 @@ th.th-sort-active svg{opacity:1;}
 .changelog-desc{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
 .changelog-date{font-size:11px;color:var(--text-faint);margin-top:5px;letter-spacing:.02em;}
 .changelog-version{font-size:11px;font-weight:500;color:var(--text-faint);}
+/* Barre latérale compacte (26/09/2026) : le menu défile seul si besoin, le pied reste toujours visible. */
+.sidebar{padding:16px 12px 12px;overflow:hidden;}
+.brand{padding:4px 8px 14px 8px;}
+.nav{overflow-y:auto;overflow-x:hidden;min-height:0;gap:1px;scrollbar-width:thin;margin:0 -4px;padding:0 4px;}
+.nav-item{padding:7px 10px;font-size:13px;}
+.nav-group{margin-bottom:2px;}
+.nav-group-head{padding:7px 10px;}
+.nav-foot{gap:6px;padding-top:8px;flex-shrink:0;}
+.side-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(28px,1fr));gap:4px;}
+.side-tool{display:flex;align-items:center;justify-content:center;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);padding:0;}
+.side-tool svg{width:15px;height:15px;}
+.side-tool:hover,.side-tool:focus-visible{color:var(--text);border-color:var(--text-faint);}
+.side-tool.on{color:var(--accent);border-color:var(--accent);background:var(--accent-dim);}
+.side-tool.on-gold{color:var(--gold);border-color:var(--gold);}
+.side-tool.danger:hover{color:var(--danger);border-color:var(--danger);}
+.side-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.side-meta .social-links{padding:0;justify-content:flex-start;gap:2px;}
+.side-meta .social-links a{width:26px;height:26px;}
+.side-meta .social-links svg{width:14px;height:14px;}
+.side-meta .app-version{padding-top:0;}
+@media (max-width: 880px){
+  .side-tools{grid-template-columns:1fr;}
+  .side-meta{flex-direction:column;}
+  .side-meta .social-links{flex-direction:column;align-items:center;}
+}
 .app-version{font-size:10.5px;color:var(--text-faint);text-align:center;padding-top:8px;letter-spacing:.03em;}
 .changelog-admin-actions{display:flex;gap:4px;flex-shrink:0;}
 
@@ -4978,16 +5003,18 @@ function render(){
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" class="nav-label">${escapeHtml(accountDisplayLabel())}</div>
           <div class="nav-label">${planBadgeHtml()}</div>
         </div>
-        <button class="icon-btn" id="currency-display-toggle" title="Basculer l'affichage des montants entre devise d'origine et équivalent EUR">${icon('exchange')}<span class="nav-label">${state.currencyDisplayMode==='eur' ? 'Tout afficher en €' : 'Devise d’origine ($/€)'}</span></button>
-        <button class="icon-btn" id="numbers-toggle">${icon(state.numbersVisible?'eyeOff':'eye')}<span class="nav-label">${state.numbersVisible?'Masquer les n° compte':'Afficher les n° compte'}</span></button>
-        <button class="icon-btn" id="theme-toggle" title="Changer de thème (Sombre → Clair → Premium doré)">${icon(themeToggleTarget().icon)}<span class="nav-label">${themeToggleTarget().label}</span></button>
-        ${isAdmin() ? `<button class="icon-btn" id="admin-debug-toggle" style="${state.adminDebugView?'color:var(--gold);':''}" title="Voir les données de tous les utilisateurs (Dashboard, Comptabilité, Bilan, Comparatif) pour investiguer un souci — désactive-la une fois terminé.">${icon('shield')}<span class="nav-label">${state.adminDebugView ? 'Vue debug (admin) : ON' : 'Vue debug (admin) : OFF'}</span></button>` : ''}
-        ${isAdmin() ? `<button class="icon-btn" id="reset-data">${icon('reset')}<span class="nav-label">Réinitialiser</span></button>` : ''}
-        <button class="icon-btn" id="contact-btn">${icon('mail')}<span class="nav-label">Contact</span></button>
-        <button class="icon-btn" id="logout-btn">${icon('x')}<span class="nav-label">Déconnexion</span></button>
+        <!-- Barre d'outils compacte (26/09/2026) : icônes seules + infobulle, pour que tout le menu
+             tienne dans la hauteur de l'écran. Bouton « Réinitialiser » retiré à la demande de l'utilisateur. -->
+        <div class="side-tools" role="toolbar" aria-label="Outils">
+          <button class="side-tool ${state.currencyDisplayMode==='eur'?'on':''}" id="currency-display-toggle" title="${state.currencyDisplayMode==='eur' ? 'Montants : tout en € (cliquer pour la devise d’origine)' : 'Montants : devise d’origine (cliquer pour tout afficher en €)'}" aria-label="Basculer l'affichage des montants">${icon('exchange')}</button>
+          <button class="side-tool" id="numbers-toggle" title="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}" aria-label="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}">${icon(state.numbersVisible?'eyeOff':'eye')}</button>
+          <button class="side-tool" id="theme-toggle" title="Thème : passer en ${themeToggleTarget().label.toLowerCase()}" aria-label="Changer de thème">${icon(themeToggleTarget().icon)}</button>
+          ${isAdmin() ? `<button class="side-tool ${state.adminDebugView?'on-gold':''}" id="admin-debug-toggle" title="${state.adminDebugView ? 'Vue debug (admin) : ON — cliquer pour désactiver' : 'Vue debug (admin) : OFF — voir les données de tous les utilisateurs'}" aria-label="Vue debug admin">${icon('shield')}</button>` : ''}
+          <button class="side-tool" id="contact-btn" title="Contacter le support" aria-label="Contact">${icon('mail')}</button>
+          <button class="side-tool danger" id="logout-btn" title="Déconnexion" aria-label="Déconnexion">${icon('x')}</button>
+        </div>
         ${legalFooterLinksHtml()}
-        ${socialLinksHtml()}
-        <div class="app-version nav-label">Contralytix v${currentAppVersion()}</div>
+        <div class="side-meta">${socialLinksHtml()}<span class="app-version nav-label">v${currentAppVersion()}</span></div>
       </div>
     </aside>
     <div class="main">
@@ -8331,13 +8358,16 @@ const MANUAL_CHAPTERS = [
       <li><b>La barre latérale</b> (à gauche) — logo, menu de navigation vers toutes les sections, adresse e-mail du compte connecté, formule en cours, et boutons d'action rapide.</li>
       <li><b>La zone principale</b> (à droite) — titre de la section active, barre d'actions contextuelle (boutons « Nouveau… », exports, etc.) et contenu de la page.</li>
     </ul>
-    <p>En bas de la barre latérale se trouvent les commandes suivantes :</p>
+    <p>En bas de la barre latérale, une rangée d'icônes regroupe les commandes rapides (survole une icône pour voir son nom) :</p>
     <ul>
+      <li><b>Devise</b> — bascule l'affichage des montants entre la devise d'origine et tout en euros (icône surlignée quand « tout en € » est actif).</li>
       <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
       <li><b>Thème (Sombre / Clair / Premium doré)</b> — un clic fait défiler les 3 thèmes visuels de l'application, dont un thème « Premium doré » à l'ambiance plus chaude. Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
-      <li><b>Réinitialiser</b> (administrateurs uniquement) — supprime définitivement toutes les données pour l'ensemble des utilisateurs du site. Action irréversible.</li>
+      <li><b>Vue debug</b> (administrateurs uniquement) — affiche les données de tous les utilisateurs pour investiguer un souci.</li>
+      <li><b>Contact</b> — envoie un message au support.</li>
       <li><b>Déconnexion</b> — ferme la session en cours.</li>
     </ul>
+    <p>Sous cette rangée : les liens légaux, les liens vers la communauté Contralytix (Discord, YouTube, TikTok) et le numéro de version. Le menu est conçu pour tenir dans la hauteur de l'écran ; sur un petit écran, seule la liste des pages défile, le bas de la barre reste toujours visible.</p>
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
