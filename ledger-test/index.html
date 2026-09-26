@@ -530,6 +530,7 @@ th.th-sort-active svg{opacity:1;}
   .rt-step-bar{grid-column:1 / 2;}
   .rt-step-rate{grid-column:1 / 3;margin-top:0;}
 }
+.rt-count{font-size:11px;font-weight:700;background:var(--gold-dim);color:var(--gold);border-radius:var(--radius-pill);padding:2px 9px;}
 .rt-tabs{display:flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:var(--radius-pill);}
 .rt-tab{border:none;background:transparent;color:var(--text-dim);font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-pill);display:flex;align-items:center;gap:6px;}
 .rt-tab span{font-size:10.5px;background:var(--surface-3);color:var(--text-faint);border-radius:var(--radius-pill);padding:1px 7px;}
@@ -5380,7 +5381,7 @@ function rtExpenseLabel(e){
   const a = getAccount(e.accountId) || {};
   const firm = getFirm(a.propFirmId);
   const kind = { ACHAT:'Achat', MENSUALITE:'Mensualité', ACTIVATION:'Activation', RESET:'Reset' }[e.type] || e.type;
-  return `${kind} · ${escapeHtml(firm?firm.name:'—')}${a.accountNumber?` <span class="text-faint">${escapeHtml(a.accountNumber)}</span>`:''}`;
+  return `${kind} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${escapeHtml(firm?firm.name:'—')}</span>${a.accountNumber?` <span class="text-faint">${escapeHtml(a.accountNumber)}</span>`:''}`;
 }
 function computeRentabiliteData(){
   const f = state.filters.rentabilite;
@@ -5450,6 +5451,9 @@ function computeRentabiliteData(){
   const childOf = new Map();
   state.accounts.forEach(a=>{ if(a.parentChallengeId) childOf.set(a.parentChallengeId, true); });
   const passed = challenges.filter(c=>c.status==='REUSSI' || childOf.has(c.id));
+  // Taux de réussite aligné sur le Dashboard (26/09/2026) : réussis ÷ (réussis + breached) — un
+  // challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul.
+  const failed = challenges.filter(c=>c.status==='BREACHED' && !(c.status==='REUSSI' || childOf.has(c.id)));
   const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
   const fundedDirect = funded.filter(a=>!a.parentChallengeId);
   const paid = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=1);
@@ -5469,8 +5473,11 @@ function computeRentabiliteData(){
   const chainNets = roots.map(chainNet);
   const profitableChains = chainNets.filter(n=>n>0).length;
 
-  // Justificatifs : payouts (payout_receipts / receiptPath) ET dépenses (expense_receipts).
-  // « Bilan vérifié » = part du montant TOTAL (dépenses + payouts) appuyée par une pièce.
+  // Justificatifs : décision du 26/09/2026 — la vérification porte UNIQUEMENT sur les payouts
+  // (payout_receipts / receiptPath). Justifier chaque dépense serait trop lourd pour l'utilisateur,
+  // et n'apporte pas de confiance réelle : le risque de triche est d'OMETTRE une dépense, ce
+  // qu'aucune pièce jointe ne détecte. Le code « dépenses » (expense_receipts) reste en place mais
+  // n'est plus affiché ni compté.
   const justified = payouts.filter(rtPayoutHasReceipt);
   const justifiedAmount = justified.reduce((s,p)=>s+val(p),0);
   const justifPctAmount = totalPay>0 ? justifiedAmount/totalPay*100 : null;
@@ -5504,7 +5511,7 @@ function computeRentabiliteData(){
     totalExp, totalPay, net, roi, byType, curve, minCum, breakEvenDate, daysToBreakEven, firstDate,
     payoutCount: payouts.length,
     costPerPayout: payouts.length ? totalExp/payouts.length : null,
-    funnel: { challenges:challenges.length, passed:passed.length, funded:funded.length, fundedDirect:fundedDirect.length, paid:paid.length, recurring:recurring.length },
+    funnel: { challenges:challenges.length, passed:passed.length, failed:failed.length, inProgress:challenges.length-passed.length-failed.length, funded:funded.length, fundedDirect:fundedDirect.length, paid:paid.length, recurring:recurring.length },
     chains: roots.length, profitableChains,
     justifiedCount: justified.length, justifPctAmount, unjustified,
     expJustifPct, verifiedPct, expenseLines,
@@ -5611,10 +5618,10 @@ function viewRentabilite(){
         <div class="stat-value" style="color:${d.minCum<0?'var(--danger)':'inherit'}">${d.minCum<0?'−'+rtFmt(-d.minCum, cur):rtFmt(0, cur)}</div>
         <div class="stat-sub">Avance de trésorerie maximale</div>
       </div>
-      <div class="stat-tile" style="--rail:${d.verifiedPct!=null && d.verifiedPct>=80?'var(--accent)':'var(--gold)'}">
-        <div class="stat-label">Bilan vérifié${infoTip("Part du montant total (dépenses + payouts) appuyée par un justificatif : facture de challenge, mail de payout, relevé… Plus ce taux est haut, plus ton bilan est crédible si tu le partages.")}</div>
-        <div class="stat-value">${d.verifiedPct==null?'—':Math.round(d.verifiedPct)+' %'}</div>
-        <div class="stat-sub">Payouts ${d.justifPctAmount==null?'—':Math.round(d.justifPctAmount)+' %'} · Dépenses ${d.expJustifPct==null?'—':Math.round(d.expJustifPct)+' %'}</div>
+      <div class="stat-tile" style="--rail:${d.justifPctAmount!=null && d.justifPctAmount>=80?'var(--accent)':'var(--gold)'}">
+        <div class="stat-label">Payouts prouvés${infoTip("Part du montant de tes payouts appuyée par une preuve (mail de la propfirm, virement reçu…). C'est ce qui rend ton bilan crédible si tu le partages : un gain se prouve, une dépense se déclare.")}</div>
+        <div class="stat-value">${d.justifPctAmount==null?'—':Math.round(d.justifPctAmount)+' %'}</div>
+        <div class="stat-sub">${d.justifiedCount} / ${d.payoutCount} payout(s) avec justificatif</div>
       </div>
     </div>`;
 
@@ -5622,7 +5629,7 @@ function viewRentabilite(){
   const maxStep = Math.max(1, fn.challenges, fn.funded);
   const steps = [
     { label:'Challenges achetés', n:fn.challenges, rate:null, tip:"Tous les comptes de type Challenge du périmètre." },
-    { label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.challenges), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA." },
+    { label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.passed+fn.failed) + (fn.inProgress?` · ${fn.inProgress} en cours`:''), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA. Le taux = réussis ÷ (réussis + breached), comme sur le Dashboard : les challenges encore en cours ne comptent pas. Avec un filtre de dates, seuls les challenges achetés sur la période sont pris en compte." },
     { label:'Comptes financés', n:fn.funded, rate:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : null, tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
     { label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), tip:"Comptes financés ayant versé au moins un payout." },
     { label:'Payouts récurrents (2+)', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
@@ -5656,7 +5663,7 @@ function viewRentabilite(){
       </div>
     </div>`;
 
-  const proofTab = f.proofTab==='depenses' ? 'depenses' : 'payouts';
+  const proofTab = 'payouts'; // onglet Dépenses retiré le 26/09/2026 (voir computeRentabiliteData)
   const expAvail = state.expenseReceiptsAvailable !== false;
   let proofBody;
   if(proofTab==='payouts'){
@@ -5667,7 +5674,7 @@ function viewRentabilite(){
           const a = getAccount(p.accountId) || {};
           const firm = getFirm(a.propFirmId);
           return `<button type="button" class="rt-proof-item" data-rt-jump-acc="${a.id||''}" title="Ouvrir le compte pour ajouter le justificatif">
-            <span>${escapeHtml(firm?firm.name:'—')} <span class="text-faint">· ${escapeHtml(a.accountNumber||'')} · ${fmtDate(p.date)}</span></span>
+            <span class="firm-name-inline">${firmLogoHtml(firm,16)}${escapeHtml(firm?firm.name:'—')} <span class="text-faint">· ${escapeHtml(a.accountNumber||'')} · ${fmtDate(p.date)}</span></span>
             <span class="mono">${fmtMoneyDisp(p.amount, p.currency, p.fxRateToEur)}</span>
           </button>`;}).join('')}</div>
         ${d.unjustified.length>6?`<div class="text-faint" style="font-size:11.5px;margin-top:8px;">+ ${d.unjustified.length-6} autre(s) payout(s) sans justificatif</div>`:''}`;
@@ -5694,11 +5701,8 @@ function viewRentabilite(){
   const proof = `
     <div class="panel">
       <div class="panel-head">
-        <div class="section-title">Justificatifs${infoTip("Une facture de challenge, un mail de payout, un relevé… Chaque pièce ajoutée augmente ton taux de bilan vérifié. Les fichiers restent privés : seuls toi (et l'admin) y avez accès.")}</div>
-        <div class="rt-tabs">
-          <button type="button" class="rt-tab ${proofTab==='payouts'?'active':''}" data-rt-proof-tab="payouts">Payouts <span>${d.unjustified.length}</span></button>
-          <button type="button" class="rt-tab ${proofTab==='depenses'?'active':''}" data-rt-proof-tab="depenses">Dépenses <span>${d.expenseLines.filter(e=>!e._ok).length}</span></button>
-        </div>
+        <div class="section-title">Payouts sans preuve${infoTip("Tes payouts les plus importants sans justificatif. Clique pour ouvrir le compte et ajouter le mail ou le virement reçu. Les fichiers restent privés : seuls toi (et l'admin) y avez accès.")}</div>
+        ${d.unjustified.length ? `<span class="rt-count">${d.unjustified.length}</span>` : ''}
       </div>
       <div class="panel-body">${proofBody}</div>
     </div>`;
@@ -5713,7 +5717,7 @@ function viewRentabilite(){
             ${d.firms.map(x=>{
               const firm = getFirm(x.id);
               return `<tr>
-                <td>${escapeHtml(firm?firm.name:'—')}</td>
+                <td style="font-weight:600;"><span class="firm-name-inline">${firmLogoHtml(firm,18)}${escapeHtml(firm?firm.name:'—')}</span></td>
                 <td class="num">${x.challenges}</td>
                 <td class="num">${x.funded}</td>
                 <td class="num">${rtRate(x.paidAccounts, x.funded)}</td>
@@ -5899,7 +5903,7 @@ function cohortReportHtml(r){
   const rate = (a,b)=> b>0 ? Math.round(a/b*100)+' %' : '—';
   const steps = [
     { label:'Challenges achetés', n:fn.challenges||0, rate:'' },
-    { label:'Évaluations réussies', n:fn.passed||0, rate:rate(fn.passed||0, fn.challenges||0) },
+    { label:'Évaluations réussies', n:fn.passed||0, rate:(fn.failed!=null ? rate(fn.passed||0, (fn.passed||0)+(fn.failed||0)) : rate(fn.passed||0, fn.challenges||0)) },
     { label:'Comptes financés', n:fn.funded||0, rate:'' },
     { label:'Au moins 1 payout', n:fn.paid||0, rate:rate(fn.paid||0, fn.funded||0) },
     { label:'Payouts récurrents (2+)', n:fn.recurring||0, rate:rate(fn.recurring||0, fn.paid||0) },
@@ -5939,9 +5943,9 @@ function cohortReportHtml(r){
         <div class="stat-sub">Investi en moyenne pour un versement</div>
       </div>
       <div class="stat-tile" style="--rail:${Number(r.verified_pct)>=80?'var(--accent)':'var(--gold)'}">
-        <div class="stat-label">Bilan vérifié${infoTip("Part du montant total (dépenses + payouts) appuyée par un justificatif déposé par les membres. Le reste est déclaratif.")}</div>
+        <div class="stat-label">Payouts prouvés${infoTip("Part du montant des payouts des membres appuyée par une preuve (mail de la propfirm, virement). Les dépenses, elles, sont déclarées par les membres.")}</div>
         <div class="stat-value">${r.verified_pct==null?'—':Math.round(r.verified_pct)+' %'}</div>
-        <div class="stat-sub">des montants appuyés par une pièce</div>
+        <div class="stat-sub">du montant des payouts appuyé par une preuve</div>
       </div>
     </div>
     <div class="rt-grid-2" style="margin-top:0;">
@@ -5971,7 +5975,7 @@ function cohortReportHtml(r){
     </div>
     <div class="ec-method">
       ${icon('shield')}
-      <div><strong>Méthode.</strong> Chiffres calculés par Contralytix le ${genLabel}, directement à partir des comptes, dépenses et payouts enregistrés par les membres ayant donné leur accord. Montants convertis en euros au taux BCE de chaque opération. Aucun chiffre individuel ni aucune identité n'est communiqué, et rien n'est affiché sous ${r.threshold} membres actifs.</div>
+      <div><strong>Méthode.</strong> Chiffres calculés par Contralytix le ${genLabel}, directement à partir des comptes, dépenses et payouts enregistrés par les membres ayant donné leur accord. Montants convertis en euros au taux BCE de chaque opération. Les payouts peuvent être appuyés par une preuve (taux affiché ci-dessus) ; les dépenses sont déclarées par les membres. Aucun chiffre individuel ni aucune identité n'est communiqué, et rien n'est affiché sous ${r.threshold} membres actifs.</div>
     </div>`;
 }
 function ecPeriodSelect(id, months, current){
