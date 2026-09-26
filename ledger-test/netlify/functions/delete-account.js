@@ -53,7 +53,10 @@ const MAX_CODE_ATTEMPTS = 5;
 
 // Même ordre que RESET_TABLE_ORDER dans index.html (enfants avant parents).
 const OWNED_DELETE_ORDER = [
+  'expense_receipts',   // 26/09/2026 — justificatifs de dépenses (migration_ecole_justificatifs_20260926.sql)
   'payout_receipts',
+  'account_resets',     // 26/09/2026 — manquait (module Resets), sinon lignes orphelines après suppression
+  'general_expenses',   // 26/09/2026 — manquait (module Frais généraux)
   'payouts',
   'account_notes',
   'propfirm_ratings',
@@ -138,7 +141,13 @@ exports.handler = async (event) => {
       .from('payout_receipts')
       .select('path')
       .eq('created_by', uid);
-    const paths = (receipts || []).map(r => r.path).filter(Boolean);
+    // + justificatifs de DÉPENSES (même bucket, sous <uid>/expenses/...) — table absente tant que
+    //   la migration du 26/09/2026 n'est pas passée : l'erreur éventuelle est simplement ignorée.
+    const { data: expReceipts } = await supabaseAdmin
+      .from('expense_receipts')
+      .select('path')
+      .eq('created_by', uid);
+    const paths = [...(receipts || []), ...(expReceipts || [])].map(r => r.path).filter(Boolean);
     if (paths.length) {
       const { error: storageErr } = await supabaseAdmin.storage.from('fiscal-receipts').remove(paths);
       if (storageErr) console.warn('delete-account: échec suppression stockage', storageErr.message);
