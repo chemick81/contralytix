@@ -490,6 +490,20 @@ th.th-sort-active svg{opacity:1;}
 .rt-hero-chart{min-width:0;display:flex;flex-direction:column;justify-content:center;}
 .rt-curve{width:100%;height:150px;display:block;}
 .rt-curve-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:6px;}
+.rt-step{position:relative;border-radius:8px;}
+.rt-step.has-pop{cursor:pointer;}
+.rt-step.has-pop:hover .rt-step-label,.rt-step.open .rt-step-label{color:var(--text);}
+.rt-step-pop{display:none;position:absolute;left:204px;top:calc(100% + 4px);z-index:30;width:min(460px,calc(100% - 204px));background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:6px;cursor:default;}
+.rt-step-pop::before{content:'';position:absolute;left:0;right:0;top:-10px;height:10px;}
+.rt-step.has-pop:hover .rt-step-pop,.rt-step.open .rt-step-pop,.rt-step.has-pop:focus-within .rt-step-pop{display:block;}
+.rt-pop-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);padding:6px 8px 8px;}
+.rt-pop-head span{background:var(--surface-3);color:var(--text-dim);border-radius:var(--radius-pill);padding:1px 8px;letter-spacing:0;}
+.rt-pop-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;}
+.rt-pop-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border:none;background:transparent;color:var(--text);font-size:12.5px;padding:7px 8px;border-radius:7px;text-align:left;}
+.rt-pop-row:hover{background:var(--surface-2);}
+.rt-pop-right{display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;font-size:12px;}
+.rt-pop-foot{font-size:10.5px;color:var(--text-faint);padding:6px 8px 2px;border-top:1px solid var(--border-soft);margin-top:4px;}
+@media (max-width:900px){ .rt-step-pop{left:0;width:100%;} }
 .rt-curve-wrap{position:relative;cursor:crosshair;touch-action:pan-y;}
 .rt-curve-cross{position:absolute;top:0;bottom:0;width:1px;background:var(--text-faint);opacity:.5;display:none;pointer-events:none;}
 .rt-curve-dot{position:absolute;width:10px;height:10px;border-radius:50%;margin:-5px 0 0 -5px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);display:none;pointer-events:none;}
@@ -5471,6 +5485,16 @@ function computeRentabiliteData(){
   const fundedDirect = funded.filter(a=>!a.parentChallengeId);
   const paid = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=1);
   const recurring = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=2);
+  // Listes détaillées de chaque étape (popup au survol de l'entonnoir, 26/09/2026) + total des
+  // payouts par compte (tous temps, dans la devise d'affichage).
+  const payoutSumByAcc = new Map();
+  state.payouts.filter(p=>accIds.has(p.accountId)).forEach(p=>payoutSumByAcc.set(p.accountId, (payoutSumByAcc.get(p.accountId)||0) + val(p)));
+  const byDateDesc = (a,b)=>(b.purchaseDate||b.activationDate||'').localeCompare(a.purchaseDate||a.activationDate||'');
+  const funnelLists = {
+    challenges: [...challenges].sort(byDateDesc), passed: [...passed].sort(byDateDesc), funded: [...funded].sort(byDateDesc),
+    paid: [...paid].sort((a,b)=>(payoutSumByAcc.get(b.id)||0)-(payoutSumByAcc.get(a.id)||0)),
+    recurring: [...recurring].sort((a,b)=>(payoutSumByAcc.get(b.id)||0)-(payoutSumByAcc.get(a.id)||0)),
+  };
 
   // « Parcours » = un challenge + le(s) PA/Live qui en découlent (ou un compte financé en accès
   // direct). Un parcours est rentable si ses payouts dépassent TOUTES ses dépenses, challenge compris.
@@ -5524,6 +5548,7 @@ function computeRentabiliteData(){
     totalExp, totalPay, net, roi, byType, curve, minCum, breakEvenDate, daysToBreakEven, firstDate,
     payoutCount: payouts.length,
     costPerPayout: payouts.length ? totalExp/payouts.length : null,
+    funnelLists, payoutCountByAcc: allPayoutsByAcc, payoutSumByAcc,
     funnel: { challenges:challenges.length, passed:passed.length, failed:failed.length, inProgress:challenges.length-passed.length-failed.length, funded:funded.length, fundedDirect:fundedDirect.length, paid:paid.length, recurring:recurring.length },
     chains: roots.length, profitableChains,
     justifiedCount: justified.length, justifPctAmount, unjustified,
@@ -5567,6 +5592,32 @@ function rtCurveSvg(curve, cur){
     <div class="rt-curve-axis"><span>${fmtDate(curve[0].date)}</span><span>${fmtDate(curve[curve.length-1].date)}</span></div>`;
 }
 
+// Popup d'une étape de l'entonnoir : la liste des comptes concernés (clic = ouvre le compte).
+function rtStepPopHtml(step, d, cur, multiTrader){
+  const list = d.funnelLists[step.key] || [];
+  const row = (a)=>{
+    const firm = getFirm(a.propFirmId);
+    const tr = multiTrader ? getTrader(a.traderId) : null;
+    const nPay = d.payoutCountByAcc.get(a.id) || 0;
+    let right;
+    if(step.key==='paid' || step.key==='recurring'){
+      right = `<span class="text-faint">${nPay} payout${nPay>1?'s':''}</span> <span class="mono" style="color:var(--accent);">+${fmtMoneyCur(d.payoutSumByAcc.get(a.id)||0, cur)}</span>`;
+    } else if(step.key==='funded'){
+      right = `${typeBadgeHtml(a.type)} <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>`;
+    } else {
+      right = `<span class="text-faint">${fmtDate(a.purchaseDate)}</span> <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>`;
+    }
+    return `<button type="button" class="rt-pop-row" data-rt-jump-acc="${escapeHtml(a.id)}">
+      <span class="firm-name-inline">${firmLogoHtml(firm,16)}<span>${escapeHtml(firm?firm.name:'—')} <span class="text-faint">${escapeHtml(a.accountNumber||'')}${tr?` · ${escapeHtml(tr.pseudo)}`:''}</span></span></span>
+      <span class="rt-pop-right">${right}</span>
+    </button>`;
+  };
+  return `<div class="rt-step-pop" role="tooltip">
+    <div class="rt-pop-head">${step.label} <span>${list.length}</span></div>
+    <div class="rt-pop-list">${list.map(row).join('')}</div>
+    <div class="rt-pop-foot">Clique sur un compte pour l'ouvrir</div>
+  </div>`;
+}
 function viewRentabilite(){
   const f = state.filters.rentabilite;
   const restricted = !canSeeAllData();
@@ -5646,24 +5697,26 @@ function viewRentabilite(){
     </div>`;
 
   const fn = d.funnel;
+  const multiTrader = myTraders.length > 1;
   const maxStep = Math.max(1, fn.challenges, fn.funded);
   const steps = [
-    { label:'Challenges achetés', n:fn.challenges, rate:null, tip:"Tous les comptes de type Challenge du périmètre." },
-    { label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.passed+fn.failed) + (fn.inProgress?` · ${fn.inProgress} en cours`:''), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA. Le taux = réussis ÷ (réussis + breached), comme sur le Dashboard : les challenges encore en cours ne comptent pas. Avec un filtre de dates, seuls les challenges achetés sur la période sont pris en compte." },
-    { label:'Comptes financés', n:fn.funded, rate:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : null, tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
-    { label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), tip:"Comptes financés ayant versé au moins un payout." },
-    { label:'Payouts récurrents (2+)', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
+    { key:'challenges', label:'Challenges achetés', n:fn.challenges, rate:null, tip:"Tous les comptes de type Challenge du périmètre." },
+    { key:'passed', label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.passed+fn.failed) + (fn.inProgress?` · ${fn.inProgress} en cours`:''), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA. Le taux = réussis ÷ (réussis + breached), comme sur le Dashboard : les challenges encore en cours ne comptent pas. Avec un filtre de dates, seuls les challenges achetés sur la période sont pris en compte." },
+    { key:'funded', label:'Comptes financés', n:fn.funded, rate:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : null, tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
+    { key:'paid', label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), tip:"Comptes financés ayant versé au moins un payout." },
+    { key:'recurring', label:'Payouts récurrents (2+)', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
   ];
   const funnel = `
     <div class="panel">
       <div class="panel-head"><div class="section-title">Ton entonnoir${infoTip("Où tes comptes s'arrêtent, du challenge acheté au payout régulier. Le pourcentage compare chaque étape à la précédente.")}</div></div>
       <div class="panel-body rt-funnel">
         ${steps.map((s,i)=>`
-          <div class="rt-step">
+          <div class="rt-step ${s.n?'has-pop':''}" data-rt-step="${s.key}" tabindex="${s.n?0:-1}">
             <div class="rt-step-label">${s.label}${infoTip(s.tip)}</div>
             <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/maxStep*100)}%;opacity:${1 - i*0.13}"></div></div>
             <div class="rt-step-n mono">${s.n}</div>
             <div class="rt-step-rate">${s.rate||''}</div>
+            ${s.n ? rtStepPopHtml(s, d, cur, multiTrader) : ''}
           </div>`).join('')}
       </div>
     </div>`;
@@ -5807,6 +5860,15 @@ function bindRentabiliteCurve(){
 function bindRentabiliteEvents(){
   if(state.route!=='rentabilite') return;
   bindRentabiliteCurve();
+  // Entonnoir : la popup s'ouvre au survol (CSS) ; au doigt / clavier, un tap sur la ligne l'ouvre.
+  document.querySelectorAll('.rt-step.has-pop').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('.rt-step-pop') || e.target.closest('.info-tip')) return;
+      const open = el.classList.contains('open');
+      document.querySelectorAll('.rt-step.open').forEach(x=>x.classList.remove('open'));
+      if(!open) el.classList.add('open');
+    });
+  });
   const f = state.filters.rentabilite;
   bindMultiSelectDropdown('rt-trader', f, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   bindDateRangeFilter('rt-date', f);
