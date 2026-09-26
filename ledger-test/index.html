@@ -477,6 +477,165 @@ th.th-sort-active svg{opacity:1;}
 .recap-total-row{border-top:2px solid var(--border);}
 .recap-total-row td{font-weight:700;padding-top:10px;}
 .filter-bar-spacer{flex:1 1 auto;}
+/* RENTABILITÉ RÉELLE (route 'rentabilite', 26/09/2026) */
+.rt-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
+.rt-toggle input{accent-color:var(--accent);}
+.rt-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;padding:24px 26px;margin-bottom:16px;}
+.rt-hero-value{font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin-top:10px;}
+.rt-hero-split{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;font-size:13px;color:var(--text-dim);}
+.rt-hero-split strong{color:var(--text);font-weight:600;}
+.rt-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px;}
+.rt-hero-note{margin-top:16px;padding-top:14px;border-top:1px solid var(--border-soft);font-size:13px;color:var(--text-dim);line-height:1.5;}
+.rt-hero-note strong{color:var(--text);}
+.rt-hero-chart{min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.rt-curve{width:100%;height:150px;display:block;}
+.rt-curve-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:6px;}
+.rt-curve-empty{font-size:12.5px;color:var(--text-faint);padding:40px 0;text-align:center;}
+.rt-of{font-size:15px;color:var(--text-faint);font-weight:500;}
+.rt-funnel{display:flex;flex-direction:column;gap:12px;}
+.rt-step{display:grid;grid-template-columns:190px minmax(0,1fr) 44px 150px;align-items:center;gap:14px;}
+.rt-step-label{font-size:12.5px;color:var(--text-dim);display:flex;align-items:center;}
+.rt-step-bar{height:22px;background:var(--surface-2);border-radius:6px;overflow:hidden;}
+.rt-step-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .3s;}
+.rt-step-n{font-size:15px;font-weight:700;text-align:right;}
+.rt-step-rate{font-size:11.5px;color:var(--text-faint);}
+.rt-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.rt-bd-row{margin-bottom:12px;}
+.rt-bd-row:last-child{margin-bottom:0;}
+.rt-bd-top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin-bottom:5px;}
+.rt-bd-bar{height:6px;background:var(--surface-2);border-radius:var(--radius-pill);overflow:hidden;}
+.rt-bd-bar div{height:100%;background:var(--danger);opacity:.75;border-radius:var(--radius-pill);}
+.rt-proof-list{display:flex;flex-direction:column;}
+.rt-proof-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 6px;border:none;border-bottom:1px solid var(--border-soft);background:transparent;color:var(--text);font-size:12.5px;text-align:left;border-radius:6px;}
+.rt-proof-item:hover{background:var(--surface-2);}
+.rt-proof-item:last-child{border-bottom:none;}
+.rt-proof-ok{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--accent);}
+.rt-proof-ok svg{width:16px;height:16px;flex-shrink:0;}
+.rt-table-wrap{overflow-x:auto;}
+.rt-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.rt-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);font-weight:600;padding:10px 18px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+.rt-table td{padding:11px 18px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+.rt-table tr:last-child td{border-bottom:none;}
+.rt-table .num{text-align:right;}
+@media (max-width:900px){
+  .rt-hero{grid-template-columns:1fr;gap:18px;padding:18px;}
+  .rt-grid-2{grid-template-columns:1fr;}
+  .rt-step{grid-template-columns:130px minmax(0,1fr) 34px;}
+  .rt-step-rate{grid-column:2 / 4;margin-top:-8px;}
+}
+@media (max-width:640px){
+  .rt-hero-value{font-size:34px;}
+  .rt-step{grid-template-columns:1fr 34px;gap:6px 10px;}
+  .rt-step-label{grid-column:1 / 3;}
+  .rt-step-bar{grid-column:1 / 2;}
+  .rt-step-rate{grid-column:1 / 3;margin-top:0;}
+}
+.rt-tabs{display:flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:var(--radius-pill);}
+.rt-tab{border:none;background:transparent;color:var(--text-dim);font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-pill);display:flex;align-items:center;gap:6px;}
+.rt-tab span{font-size:10.5px;background:var(--surface-3);color:var(--text-faint);border-radius:var(--radius-pill);padding:1px 7px;}
+.rt-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.15);}
+.rt-tab.active span{background:var(--gold-dim);color:var(--gold);}
+.rt-proof-row{cursor:default;}
+.rt-proof-row:hover{background:transparent;}
+.rt-proof-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rt-proof-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.rt-mini{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:var(--radius-pill);}
+.rt-mini svg{width:12px;height:12px;}
+.rt-mini:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.rt-mini.ok{color:var(--accent);border-color:var(--accent-dim);background:var(--accent-dim);}
+.rt-mini:disabled{opacity:.45;cursor:not-allowed;}
+.rt-link{border:none;background:transparent;color:var(--accent);font-size:12px;font-weight:600;padding:8px 0 0;}
+.rt-proof-warn{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--gold);background:var(--gold-dim);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.4;}
+.rt-proof-warn svg{width:14px;height:14px;flex-shrink:0;margin-top:1px;}
+.rt-proof-item .mono,.rt-page .stat-value,.rt-bd-top .mono{white-space:nowrap;}
+@media (max-width:640px){ .rt-page .stat-value{font-size:19px;} .rt-proof-txt{white-space:normal;} }
+/* MODE ÉCOLE + BILAN PUBLIC (26/09/2026) */
+.ec-intro{padding:34px 36px;background:radial-gradient(120% 140% at 100% 0%,var(--accent-dim),transparent 55%),var(--surface);}
+.ec-intro-body{max-width:640px;}
+.ec-kicker{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);}
+.ec-intro h2{font-family:'Space Grotesk',sans-serif;font-size:26px;line-height:1.2;margin:10px 0 12px;}
+.ec-intro p{color:var(--text-dim);font-size:14px;line-height:1.6;margin:0 0 18px;}
+.ec-points{list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:10px;}
+.ec-points li{display:flex;gap:10px;font-size:13px;color:var(--text-dim);line-height:1.5;}
+.ec-points li strong{color:var(--text);}
+.ec-points svg{width:16px;height:16px;color:var(--accent);flex-shrink:0;margin-top:2px;}
+.ec-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.ec-topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+.ec-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.ec-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:12.5px;font-weight:600;padding:7px 14px 7px 7px;border-radius:var(--radius-pill);}
+.ec-pill.active{border-color:var(--accent);color:var(--text);background:var(--accent-dim);}
+.ec-pill-tag{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill);background:var(--surface-3);color:var(--text-faint);}
+.ec-pill-tag.owner{background:var(--gold-dim);color:var(--gold);}
+.ec-pill-n{font-size:11px;color:var(--text-faint);font-weight:500;}
+.ec-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
+.ec-card{padding:18px 20px;}
+.ec-code{font-size:28px;font-weight:700;letter-spacing:4px;margin-top:10px;color:var(--text);}
+.ec-card-sub{font-size:12.5px;color:var(--text-dim);margin-top:6px;line-height:1.5;}
+.ec-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.ec-card-actions svg{width:14px;height:14px;}
+.ec-member{display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:22px;}
+.ec-member > div:first-child svg{width:20px;height:20px;color:var(--accent);}
+.ec-member-txt{flex:1;font-size:13px;color:var(--text-dim);line-height:1.5;}
+.ec-member-txt strong{color:var(--text);}
+.ec-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.ec-report-title{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;}
+.ec-report-sub{font-size:12px;color:var(--text-faint);margin-top:2px;}
+.ec-report-tools{display:flex;gap:6px;align-items:center;}
+.ec-report-tools svg{width:15px;height:15px;}
+.ec-period{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;}
+.ec-hero{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);}
+.ec-hero-side{display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border-soft);padding-left:28px;}
+.ec-big-pct{font-family:'JetBrains Mono',monospace;font-size:64px;font-weight:700;line-height:1;letter-spacing:-2px;}
+.ec-big-pct span{font-size:30px;margin-left:2px;}
+.ec-big-pct-label{font-size:13.5px;color:var(--text-dim);margin-top:10px;line-height:1.5;}
+.ec-big-pct-label strong{color:var(--text);}
+.ec-bucket{display:grid;grid-template-columns:120px minmax(0,1fr) 30px;align-items:center;gap:12px;margin-bottom:10px;}
+.ec-bucket:last-child{margin-bottom:0;}
+.ec-bucket-label{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+.ec-bucket-bar{height:18px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
+.ec-bucket-bar div{height:100%;border-radius:5px;}
+.ec-bucket-n{font-size:13px;font-weight:700;text-align:right;}
+.ec-step{grid-template-columns:150px minmax(0,1fr) 40px 50px;}
+.ec-method{display:flex;gap:12px;align-items:flex-start;font-size:12px;line-height:1.6;color:var(--text-faint);padding:14px 18px;border:1px dashed var(--border);border-radius:var(--radius-md);margin-top:16px;}
+.ec-method svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--text-dim);}
+.ec-method strong{color:var(--text-dim);}
+.ec-locked{text-align:center;padding:40px 24px;}
+.ec-locked-icon svg{width:28px;height:28px;color:var(--text-faint);}
+.ec-locked-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin-top:10px;}
+.ec-locked-sub{font-size:13px;color:var(--text-dim);max-width:460px;margin:8px auto 0;line-height:1.55;}
+.ec-locked-bar{height:6px;max-width:260px;margin:18px auto 0;background:var(--surface-2);border-radius:var(--radius-pill);overflow:hidden;}
+.ec-locked-bar div{height:100%;background:var(--accent);border-radius:var(--radius-pill);}
+.ec-locked-foot{font-size:11.5px;color:var(--text-faint);margin-top:10px;}
+.ec-consent p{font-size:13.5px;margin:0 0 10px;}
+.ec-consent ul{margin:0 0 14px;padding-left:18px;font-size:12.5px;color:var(--text-dim);line-height:1.6;display:flex;flex-direction:column;gap:6px;}
+.ec-consent ul strong{color:var(--text);}
+.ec-consent-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);cursor:pointer;}
+.ec-consent-check input{margin-top:3px;accent-color:var(--accent);}
+#public-report-root{min-height:100vh;background:var(--bg);}
+.pub-wrap{max-width:1100px;margin:0 auto;padding:22px 24px 48px;}
+.pub-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px;}
+.pub-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;}
+.pub-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
+.pub-head h1{font-size:32px;margin:8px 0 8px;line-height:1.15;}
+.pub-head p{margin:0;max-width:620px;color:var(--text-dim);font-size:14px;line-height:1.6;}
+.pub-foot{margin-top:34px;text-align:center;font-size:12px;color:var(--text-faint);}
+.pub-foot a{color:var(--accent);}
+@media (max-width:900px){
+  .ec-admin-grid{grid-template-columns:1fr;}
+  .ec-hero{grid-template-columns:1fr;}
+  .ec-hero-side{border-left:none;padding-left:0;border-top:1px solid var(--border-soft);padding-top:18px;}
+  .ec-step{grid-template-columns:130px minmax(0,1fr) 34px;}
+}
+@media (max-width:640px){
+  .ec-intro{padding:24px 20px;}
+  .ec-intro h2{font-size:21px;}
+  .ec-big-pct{font-size:48px;}
+  .ec-member{flex-direction:column;align-items:flex-start;}
+  .ec-bucket{grid-template-columns:100px minmax(0,1fr) 26px;}
+  .ec-step{grid-template-columns:1fr 34px;}
+  .pub-wrap{padding:16px 16px 40px;}
+  .pub-head h1{font-size:25px;}
+}
 
 /* EMPTY STATE */
 .empty{text-align:center;padding:50px 20px;color:var(--text-dim);}
@@ -1573,6 +1732,11 @@ const state = {
   // frais payé (ajouté aux dépenses via computeAccountExpenses) et, si la PropFirm a changé le
   // n° de compte à cette occasion, l'ancien numéro (previousAccountNumber). Décision du 29/08/2026.
   account_resets: [],
+  // Justificatifs de DÉPENSES (26/09/2026, voir loadExpenseReceipts) — chargés hors TABLES.
+  expense_receipts: [],
+  expenseReceiptsAvailable: null,
+  // Mode École (26/09/2026, voir ecoleState()) — initialisé à la demande.
+  ecole: null,
   yt_sessions: [],
   market_prep: [],
   propfirm_ratings: [],
@@ -1602,6 +1766,7 @@ const state = {
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
+    rentabilite: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, includeGeneral:true, proofTab:'payouts', proofShowAll:false },
     bilan: { month:'', trader:[], traderMenuOpen:false, monthMenuOpen:false, viewMode:'global', globalGranularity:'month', globalPeriod:'', showFraisGeneraux:true },
     sessions: { q:'', trader:[], traderMenuOpen:false },
     aide: { q:'' },
@@ -1677,6 +1842,7 @@ function setTraderFilterEverywhere(traderIds){
   state.filters.accounting.trader = ids;
   state.filters.bilan.trader = ids;
   state.filters.calendrier.trader = ids;
+  state.filters.rentabilite.trader = ids;
 }
 function isAdmin(){ return !!(state.profile && state.profile.role === 'ADMIN'); }
 // Vue debug admin : true seulement si la personne est admin ET a explicitement activé le
@@ -1719,6 +1885,7 @@ async function loadAll(){
     else{ state[t] = data.map(fromRow); }
   }
   purgeForeignTraderEmails();
+  await loadExpenseReceipts();
 }
 /* RGPD — minimisation (26/09/2026) : l'email d'une fiche trader est une donnée personnelle.
    Un utilisateur n'en a besoin que pour SES fiches (créées par lui, ou rattachées à son email
@@ -1767,7 +1934,7 @@ function traderEmailCell(t){
   </span>`;
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
-const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
+const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses','expense_receipts'];
 
 /* ============================================================
    TEMPS RÉEL — Sessions de trading (23/09/2026)
@@ -2018,7 +2185,7 @@ async function remove(collection, id){
 // account_status_history n'est pas dans TABLES (elle n'est pas chargée dans `state`,
 // voir purgeStatusHistory) mais doit quand même être purgée avant les comptes, sinon
 // la suppression des comptes échoue sur account_status_history_account_id_fkey.
-const RESET_TABLE_ORDER = ['payout_receipts','payouts','account_notes','account_resets','propfirm_ratings','market_prep','yt_sessions','general_expenses','accounts','traders','propfirms'];
+const RESET_TABLE_ORDER = ['expense_receipts','payout_receipts','payouts','account_notes','account_resets','propfirm_ratings','market_prep','yt_sessions','general_expenses','accounts','traders','propfirms'];
 async function resetAllData(){
   const { error: histError } = await supabaseClient.from('account_status_history').delete().not('id','is',null);
   if(histError) showToast('Erreur de réinitialisation (account_status_history) : ' + histError.message, 'danger');
@@ -4342,6 +4509,8 @@ function requestPropfirmModal(){
 // ET par le panneau "Gestion des pages" de l'espace Admin.
 const BASE_NAV = [
   { id:'dashboard', label:'Dashboard', icon:'grid' },
+  { id:'rentabilite', label:'Rentabilité réelle', icon:'trophy' },
+  { id:'ecole', label:'Mode École', icon:'layers' },
   { id:'traders', label:'Traders', icon:'users' },
   { id:'propfirms', label:'PropFirms', icon:'building' },
   { id:'accounts', label:'Comptes', icon:'card' },
@@ -4386,7 +4555,7 @@ const NAV_GROUPS = [
   { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts'] },
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
   { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite','frais-generaux'] },
-  { id:'perf',     label:'Performance',         items:['comparatif'] },
+  { id:'perf',     label:'Performance',         items:['rentabilite','ecole','comparatif'] },
   { id:'compte',   label:'Mon compte',          items:['profil','parametres','subscription'] },
   { id:'aide',     label:'Aide',                items:['aide-centre','manuel','changelog'] },
 ];
@@ -4804,6 +4973,8 @@ function topbarSub(){
     bilan: 'Cartes visuelles mensuelles, par trader et par propfirm',
     sessions: 'Journal de trading — replay, notes et performance de chaque session',
     comparatif: 'Performance comparée des PropFirms',
+    rentabilite: 'Ce que tu as vraiment gagné, toutes dépenses comprises',
+    ecole: 'Bilans de cohorte anonymes, calculés à partir des comptes réels',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
     'aide-centre': 'Questions fr\u00e9quentes, organis\u00e9es par cat\u00e9gorie',
@@ -4913,6 +5084,8 @@ function renderView(){
   else if(state.route==='frais-generaux') el.innerHTML = perms().canFraisGeneraux ? viewFraisGeneraux() : lockedFeatureView('Les frais généraux');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
+  else if(state.route==='rentabilite') el.innerHTML = viewRentabilite();
+  else if(state.route==='ecole') el.innerHTML = viewEcole();
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
   else if(state.route==='profil') el.innerHTML = viewProfil();
@@ -5163,6 +5336,967 @@ function lockedWidgetInline(label){
     <button class="btn btn-primary btn-sm upgrade-cta" onclick="openUpgradeModal('${label.replace(/'/g,"\\'")}')">🚀 Passer à Premium</button>
   </div></div>`;
 }
+/* ============================================================
+   RENTABILITÉ RÉELLE (route 'rentabilite') — ajoutée le 26/09/2026
+   Réponse produit au débat « payouts affichés vs net réel » (commentaires YouTube Xeilos) :
+   une seule page qui montre au trader son VRAI résultat (payouts − toutes les dépenses, frais
+   généraux inclus par défaut), l'entonnoir Challenge → Financé → Payout, la part des payouts
+   appuyée par un justificatif, et la répartition par PropFirm.
+   Aucun changement de schéma : tout est calculé à partir des tables déjà chargées (accounts,
+   payouts, account_resets, payout_receipts, general_expenses) via les mêmes fonctions que le
+   Dashboard (computeAccountExpenses, computeGeneralExpenseLines, resolveDisplayCurrency).
+   Strictement personnelle comme le Dashboard (accountsInScope / isMineTrader), sauf Vue debug admin.
+============================================================ */
+const RT_EXPENSE_TYPE_LABELS = {
+  ACHAT:      'Achats de challenges / comptes',
+  MENSUALITE: 'Mensualités',
+  ACTIVATION: 'Frais d’activation',
+  RESET:      'Resets',
+  GENERAL:    'Frais généraux',
+};
+function rtPayoutHasReceipt(p){
+  if(p.receiptPath) return true;
+  return state.payout_receipts.some(r=>r.payoutId===p.id);
+}
+// Justificatifs de DÉPENSES (table expense_receipts, migration_ecole_justificatifs_20260926.sql) :
+// rattachés à l'id de la ligne de dépense calculée (computeAccountExpenses/computeGeneralExpenseLines),
+// la même clé que celle recalculée côté serveur par _ctx_ledger() pour le Mode École.
+function rtExpenseReceipts(key){ return (state.expense_receipts||[]).filter(r=>r.expenseKey===key); }
+function rtExpenseHasReceipt(key){ return rtExpenseReceipts(key).length>0; }
+// Chargée à part de loadAll()/TABLES : si la migration n'est pas encore passée, la page reste
+// utilisable (boutons « Joindre » désactivés avec une explication) au lieu d'un toast d'erreur.
+async function loadExpenseReceipts(){
+  if(!SUPABASE_CONFIGURED) return;
+  const { data, error } = await supabaseClient.from('expense_receipts').select('*');
+  if(error){ state.expense_receipts = []; state.expenseReceiptsAvailable = false; return; }
+  state.expense_receipts = (data||[]).map(fromRow);
+  state.expenseReceiptsAvailable = true;
+}
+function rtExpenseLabel(e){
+  if(e.type==='GENERAL'){
+    const cat = GENERAL_EXPENSE_CATEGORIES[e.category];
+    return `${cat?cat.short:'Frais général'}${e.label?' · '+escapeHtml(e.label):''}`;
+  }
+  const a = getAccount(e.accountId) || {};
+  const firm = getFirm(a.propFirmId);
+  const kind = { ACHAT:'Achat', MENSUALITE:'Mensualité', ACTIVATION:'Activation', RESET:'Reset' }[e.type] || e.type;
+  return `${kind} · ${escapeHtml(firm?firm.name:'—')}${a.accountNumber?` <span class="text-faint">${escapeHtml(a.accountNumber)}</span>`:''}`;
+}
+function computeRentabiliteData(){
+  const f = state.filters.rentabilite;
+  const restricted = !canSeeAllData();
+  const baseAccounts = restricted ? state.accounts.filter(isMineAccount) : state.accounts;
+  const inDate = (d)=> !!d && (!f.dateFrom || d>=f.dateFrom) && (!f.dateTo || d<=f.dateTo);
+  const hasDate = !!(f.dateFrom || f.dateTo);
+
+  // Comptes du périmètre (filtres trader / propfirm). L'entonnoir, lui, ne garde que les comptes
+  // achetés dans la période si un filtre de dates est actif (un challenge acheté en 2025 ne doit
+  // pas gonfler l'entonnoir de septembre 2026).
+  const accounts = baseAccounts.filter(a=>
+    (!f.trader.length || f.trader.includes(a.traderId)) &&
+    (!f.propfirm || a.propFirmId===f.propfirm)
+  );
+  const accIds = new Set(accounts.map(a=>a.id));
+
+  let accExpenses = computeAllExpenses().filter(e=>accIds.has(e.accountId));
+  let payouts = state.payouts.filter(p=>accIds.has(p.accountId));
+  let general = f.includeGeneral && !f.propfirm ? computeGeneralExpenseLines() : [];
+  if(f.trader.length) general = general.filter(e=>!e.traderId || f.trader.includes(e.traderId));
+  if(hasDate){
+    accExpenses = accExpenses.filter(e=>inDate(e.date));
+    payouts = payouts.filter(p=>inDate(p.date));
+    general = general.filter(e=>inDate(e.date));
+  }
+  const allExp = [...accExpenses, ...general.map(g=>({ ...g, type:'GENERAL' }))];
+  const { useEur, currency, mixed } = resolveDisplayCurrency([...allExp, ...payouts]);
+  const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const totalExp = allExp.reduce((s,e)=>s+val(e),0);
+  const totalPay = payouts.reduce((s,p)=>s+val(p),0);
+  const net = totalPay - totalExp;
+  const roi = totalExp>0 ? net/totalExp*100 : null;
+
+  // Répartition des dépenses par nature.
+  const byType = {};
+  allExp.forEach(e=>{ byType[e.type] = (byType[e.type]||0) + val(e); });
+
+  // Courbe du net cumulé + point de bascule (dernière fois où le cumul repasse >= 0).
+  const events = [
+    ...allExp.filter(e=>e.date).map(e=>({ date:e.date, v:-val(e) })),
+    ...payouts.filter(p=>p.date).map(p=>({ date:p.date, v:val(p) })),
+  ].sort((a,b)=>a.date.localeCompare(b.date));
+  const curve = [];
+  let cum = 0, minCum = 0, breakEvenDate = null;
+  events.forEach(ev=>{
+    const prev = cum;
+    cum += ev.v;
+    if(cum < minCum) minCum = cum;
+    if(prev < 0 && cum >= 0) breakEvenDate = ev.date;
+    if(cum < 0) breakEvenDate = null;
+    const last = curve[curve.length-1];
+    if(last && last.date===ev.date) last.cum = cum; else curve.push({ date:ev.date, cum });
+  });
+  const firstDate = events.length ? events[0].date : null;
+  const daysToBreakEven = (breakEvenDate && firstDate)
+    ? Math.round((new Date(breakEvenDate+'T00:00:00') - new Date(firstDate+'T00:00:00'))/86400000)
+    : null;
+
+  // Entonnoir.
+  const funnelAccounts = hasDate ? accounts.filter(a=>inDate(a.purchaseDate || a.activationDate)) : accounts;
+  const allPayoutsByAcc = new Map();
+  state.payouts.filter(p=>accIds.has(p.accountId)).forEach(p=>{
+    allPayoutsByAcc.set(p.accountId, (allPayoutsByAcc.get(p.accountId)||0)+1);
+  });
+  const challenges = funnelAccounts.filter(a=>a.type==='CHALLENGE');
+  const childOf = new Map();
+  state.accounts.forEach(a=>{ if(a.parentChallengeId) childOf.set(a.parentChallengeId, true); });
+  const passed = challenges.filter(c=>c.status==='REUSSI' || childOf.has(c.id));
+  const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
+  const fundedDirect = funded.filter(a=>!a.parentChallengeId);
+  const paid = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=1);
+  const recurring = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=2);
+
+  // « Parcours » = un challenge + le(s) PA/Live qui en découlent (ou un compte financé en accès
+  // direct). Un parcours est rentable si ses payouts dépassent TOUTES ses dépenses, challenge compris.
+  const roots = funnelAccounts.filter(a=>!a.parentChallengeId || !accIds.has(a.parentChallengeId));
+  const expAllTime = computeAllExpenses().filter(e=>accIds.has(e.accountId));
+  const payAllTime = state.payouts.filter(p=>accIds.has(p.accountId));
+  const chainNet = (root)=>{
+    const ids = new Set([root.id, ...accounts.filter(a=>a.parentChallengeId===root.id).map(a=>a.id)]);
+    const e = expAllTime.filter(x=>ids.has(x.accountId)).reduce((s,x)=>s+val(x),0);
+    const p = payAllTime.filter(x=>ids.has(x.accountId)).reduce((s,x)=>s+val(x),0);
+    return p - e;
+  };
+  const chainNets = roots.map(chainNet);
+  const profitableChains = chainNets.filter(n=>n>0).length;
+
+  // Justificatifs : payouts (payout_receipts / receiptPath) ET dépenses (expense_receipts).
+  // « Bilan vérifié » = part du montant TOTAL (dépenses + payouts) appuyée par une pièce.
+  const justified = payouts.filter(rtPayoutHasReceipt);
+  const justifiedAmount = justified.reduce((s,p)=>s+val(p),0);
+  const justifPctAmount = totalPay>0 ? justifiedAmount/totalPay*100 : null;
+  const unjustified = payouts.filter(p=>!rtPayoutHasReceipt(p)).sort((a,b)=>val(b)-val(a));
+  const expJustifiedAmount = allExp.filter(e=>rtExpenseHasReceipt(e.id)).reduce((s,e)=>s+val(e),0);
+  const expJustifPct = totalExp>0 ? expJustifiedAmount/totalExp*100 : null;
+  const verifiedPct = (totalExp+totalPay)>0 ? (justifiedAmount+expJustifiedAmount)/(totalExp+totalPay)*100 : null;
+  const expenseLines = allExp.map(e=>({ ...e, _val: val(e), _ok: rtExpenseHasReceipt(e.id) }))
+    .sort((a,b)=> (a._ok-b._ok) || (b._val-a._val));
+
+  // Par PropFirm.
+  const firmMap = new Map();
+  const firmEntry = (id)=>{
+    if(!firmMap.has(id)) firmMap.set(id, { id, exp:0, pay:0, challenges:0, funded:0, paidAccounts:0 });
+    return firmMap.get(id);
+  };
+  accExpenses.forEach(e=>{ const a = getAccount(e.accountId); if(a) firmEntry(a.propFirmId).exp += val(e); });
+  payouts.forEach(p=>{ const a = getAccount(p.accountId); if(a) firmEntry(a.propFirmId).pay += val(p); });
+  funnelAccounts.forEach(a=>{
+    const fe = firmEntry(a.propFirmId);
+    if(a.type==='CHALLENGE') fe.challenges++;
+    else { fe.funded++; if((allPayoutsByAcc.get(a.id)||0)>=1) fe.paidAccounts++; }
+  });
+  const firms = [...firmMap.values()]
+    .filter(x=>x.exp||x.pay||x.challenges||x.funded)
+    .map(x=>({ ...x, net:x.pay-x.exp, roi: x.exp>0 ? (x.pay-x.exp)/x.exp*100 : null }))
+    .sort((a,b)=>b.net-a.net);
+
+  return {
+    currency, converted:useEur, mixed,
+    totalExp, totalPay, net, roi, byType, curve, minCum, breakEvenDate, daysToBreakEven, firstDate,
+    payoutCount: payouts.length,
+    costPerPayout: payouts.length ? totalExp/payouts.length : null,
+    funnel: { challenges:challenges.length, passed:passed.length, funded:funded.length, fundedDirect:fundedDirect.length, paid:paid.length, recurring:recurring.length },
+    chains: roots.length, profitableChains,
+    justifiedCount: justified.length, justifPctAmount, unjustified,
+    expJustifPct, verifiedPct, expenseLines,
+    firms,
+    generalIncluded: general.length>0,
+  };
+}
+
+function rtFmt(n, cur){ return fmtMoneyCur(n, cur); }
+function rtPct(n){ return n==null ? '—' : (n>=0?'+':'') + Math.round(n) + ' %'; }
+function rtRate(a, b){ return b>0 ? Math.round(a/b*100) + ' %' : '—'; }
+
+// Courbe SVG du net cumulé (ligne + aire, ligne zéro). Pas de lib externe : même approche que les
+// autres mini-graphes de l'app. viewBox fixe, étirée en largeur (preserveAspectRatio none).
+function rtCurveSvg(curve){
+  if(curve.length < 2) return `<div class="rt-curve-empty">Pas encore assez de mouvements pour tracer la courbe.</div>`;
+  const W = 600, H = 150, P = 6;
+  const vals = curve.map(c=>c.cum);
+  const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  const span = (hi-lo) || 1;
+  const x = (i)=> P + i*(W-2*P)/(curve.length-1);
+  const y = (v)=> P + (hi - v)*(H-2*P)/span;
+  const pts = curve.map((c,i)=>`${x(i).toFixed(1)},${y(c.cum).toFixed(1)}`);
+  const zeroY = y(0).toFixed(1);
+  const last = vals[vals.length-1];
+  const color = last>=0 ? 'var(--accent)' : 'var(--danger)';
+  return `
+    <svg class="rt-curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution du net cumulé">
+      <line x1="0" x2="${W}" y1="${zeroY}" y2="${zeroY}" stroke="var(--border)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+      <polygon points="${x(0).toFixed(1)},${zeroY} ${pts.join(' ')} ${x(curve.length-1).toFixed(1)},${zeroY}" fill="${color}" opacity=".12"/>
+      <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    </svg>
+    <div class="rt-curve-axis"><span>${fmtDate(curve[0].date)}</span><span>${fmtDate(curve[curve.length-1].date)}</span></div>`;
+}
+
+function viewRentabilite(){
+  const f = state.filters.rentabilite;
+  const restricted = !canSeeAllData();
+  const myTraders = restricted ? state.traders.filter(isMineTrader) : state.traders;
+  const d = computeRentabiliteData();
+  const cur = d.currency;
+  const convNote = d.converted ? ` <span class="text-faint" style="font-size:11px;">${convertedLabel(true, d.mixed)}</span>` : '';
+
+  const filterBar = `
+    <div class="filter-bar">
+      ${renderMultiSelect('rt-trader', myTraders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
+      <select id="rt-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select>
+      ${dateRangeFilterHtml('rt-date', f)}
+      <label class="rt-toggle" title="${f.propfirm ? 'Les frais généraux ne sont rattachés à aucune propfirm : ils sont exclus quand une propfirm est sélectionnée.' : ''}">
+        <input type="checkbox" id="rt-general" ${f.includeGeneral?'checked':''} ${f.propfirm?'disabled':''}/> Inclure les frais généraux
+      </label>
+      <div class="filter-bar-spacer"></div>
+      ${(f.trader.length||f.propfirm||f.dateFrom||f.dateTo) ? `<button class="pill-reset" id="rt-clear">Réinitialiser</button>` : ''}
+    </div>`;
+
+  const nothing = !d.totalExp && !d.totalPay && !d.funnel.challenges && !d.funnel.funded;
+  if(nothing){
+    return filterBar + emptyState('trophy', 'Aucune donnée sur ce périmètre',
+      'Ajoute tes comptes (challenges, PA) et tes payouts : cette page calculera ton résultat réel, toutes dépenses comprises.');
+  }
+
+  const positive = d.net >= 0;
+  let breakEvenLine;
+  if(positive && d.breakEvenDate){
+    breakEvenLine = `Rentable depuis le <strong>${fmtDate(d.breakEvenDate)}</strong>${d.daysToBreakEven!=null?` — ${d.daysToBreakEven} jours après ta première dépense`:''}.`;
+  } else if(positive){
+    breakEvenLine = `Tu n'es jamais passé sous zéro sur cette période.`;
+  } else {
+    breakEvenLine = `Il te manque <strong>${rtFmt(-d.net, cur)}</strong> de payouts pour revenir à l'équilibre.`;
+  }
+
+  const hero = `
+    <div class="panel rt-hero">
+      <div class="rt-hero-main">
+        <div class="stat-label">Ton net réel${infoTip("Payouts reçus − TOUTES tes dépenses : achats de challenges, mensualités, frais d'activation, resets" + (d.generalIncluded ? " et frais généraux (data, plateforme, VPS…)" : "") + ". C'est le chiffre que les captures de payouts ne montrent jamais.")}</div>
+        <div class="rt-hero-value" style="color:${positive?'var(--accent)':'var(--danger)'}">${positive?'+':'−'}${rtFmt(Math.abs(d.net), cur)}${convNote}</div>
+        <div class="rt-hero-split">
+          <span><span class="rt-dot" style="background:var(--accent)"></span>Reçu <strong class="mono">${rtFmt(d.totalPay, cur)}</strong></span>
+          <span><span class="rt-dot" style="background:var(--danger)"></span>Dépensé <strong class="mono">${rtFmt(d.totalExp, cur)}</strong></span>
+          <span>ROI <strong class="mono" style="color:${positive?'var(--accent)':'var(--danger)'}">${rtPct(d.roi)}</strong></span>
+        </div>
+        <div class="rt-hero-note">${breakEvenLine}</div>
+      </div>
+      <div class="rt-hero-chart">
+        <div class="stat-label" style="margin-bottom:8px;">Net cumulé${infoTip("Chaque dépense fait descendre la courbe, chaque payout la fait remonter. La ligne pointillée, c'est l'équilibre (0).")}</div>
+        ${rtCurveSvg(d.curve)}
+      </div>
+    </div>`;
+
+  const tiles = `
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--slate)">
+        <div class="stat-label">Coût par payout${infoTip("Total dépensé ÷ nombre de payouts reçus. Combien il t'a fallu investir, en moyenne, pour décrocher un versement.")}</div>
+        <div class="stat-value">${d.costPerPayout==null?'—':rtFmt(d.costPerPayout, cur)}</div>
+        <div class="stat-sub">${d.payoutCount} payout(s) sur la période</div>
+      </div>
+      <div class="stat-tile" style="--rail:${d.profitableChains>0?'var(--accent)':'var(--slate)'}">
+        <div class="stat-label">Parcours rentables${infoTip("Un parcours = un challenge et le(s) compte(s) financé(s) qui en découlent (ou un compte en accès direct). Il est rentable si ses payouts couvrent toutes ses dépenses, challenge compris.")}</div>
+        <div class="stat-value">${d.profitableChains}<span class="rt-of"> / ${d.chains}</span></div>
+        <div class="stat-sub">${rtRate(d.profitableChains, d.chains)} de tes parcours ont rapporté plus qu'ils n'ont coûté</div>
+      </div>
+      <div class="stat-tile" style="--rail:var(--slate)">
+        <div class="stat-label">Creux maximal${infoTip("Le point le plus bas atteint par ton net cumulé : l'argent que tu as dû avancer de ta poche avant que les payouts ne compensent.")}</div>
+        <div class="stat-value" style="color:${d.minCum<0?'var(--danger)':'inherit'}">${d.minCum<0?'−'+rtFmt(-d.minCum, cur):rtFmt(0, cur)}</div>
+        <div class="stat-sub">Avance de trésorerie maximale</div>
+      </div>
+      <div class="stat-tile" style="--rail:${d.verifiedPct!=null && d.verifiedPct>=80?'var(--accent)':'var(--gold)'}">
+        <div class="stat-label">Bilan vérifié${infoTip("Part du montant total (dépenses + payouts) appuyée par un justificatif : facture de challenge, mail de payout, relevé… Plus ce taux est haut, plus ton bilan est crédible si tu le partages.")}</div>
+        <div class="stat-value">${d.verifiedPct==null?'—':Math.round(d.verifiedPct)+' %'}</div>
+        <div class="stat-sub">Payouts ${d.justifPctAmount==null?'—':Math.round(d.justifPctAmount)+' %'} · Dépenses ${d.expJustifPct==null?'—':Math.round(d.expJustifPct)+' %'}</div>
+      </div>
+    </div>`;
+
+  const fn = d.funnel;
+  const maxStep = Math.max(1, fn.challenges, fn.funded);
+  const steps = [
+    { label:'Challenges achetés', n:fn.challenges, rate:null, tip:"Tous les comptes de type Challenge du périmètre." },
+    { label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.challenges), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA." },
+    { label:'Comptes financés', n:fn.funded, rate:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : null, tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
+    { label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), tip:"Comptes financés ayant versé au moins un payout." },
+    { label:'Payouts récurrents (2+)', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
+  ];
+  const funnel = `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title">Ton entonnoir${infoTip("Où tes comptes s'arrêtent, du challenge acheté au payout régulier. Le pourcentage compare chaque étape à la précédente.")}</div></div>
+      <div class="panel-body rt-funnel">
+        ${steps.map((s,i)=>`
+          <div class="rt-step">
+            <div class="rt-step-label">${s.label}${infoTip(s.tip)}</div>
+            <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/maxStep*100)}%;opacity:${1 - i*0.13}"></div></div>
+            <div class="rt-step-n mono">${s.n}</div>
+            <div class="rt-step-rate">${s.rate||''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  const typeOrder = ['ACHAT','MENSUALITE','ACTIVATION','RESET','GENERAL'];
+  const typeRows = typeOrder.filter(t=>d.byType[t]).map(t=>({ t, v:d.byType[t] }));
+  const maxType = Math.max(1, ...typeRows.map(r=>r.v));
+  const breakdown = `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title">Où part l'argent</div></div>
+      <div class="panel-body">
+        ${typeRows.length ? typeRows.map(r=>`
+          <div class="rt-bd-row">
+            <div class="rt-bd-top"><span>${RT_EXPENSE_TYPE_LABELS[r.t]}</span><span class="mono">${rtFmt(r.v, cur)} <span class="text-faint">· ${Math.round(r.v/d.totalExp*100)} %</span></span></div>
+            <div class="rt-bd-bar"><div style="width:${r.v/maxType*100}%"></div></div>
+          </div>`).join('') : `<div class="text-faint" style="font-size:12.5px;">Aucune dépense sur la période.</div>`}
+      </div>
+    </div>`;
+
+  const proofTab = f.proofTab==='depenses' ? 'depenses' : 'payouts';
+  const expAvail = state.expenseReceiptsAvailable !== false;
+  let proofBody;
+  if(proofTab==='payouts'){
+    const topUnjustified = d.unjustified.slice(0,6);
+    proofBody = !d.payoutCount ? `<div class="text-faint" style="font-size:12.5px;">Aucun payout sur la période.</div>`
+      : !topUnjustified.length ? `<div class="rt-proof-ok">${icon('check')} Tous tes payouts ont un justificatif.</div>`
+      : `<div class="rt-proof-list">${topUnjustified.map(p=>{
+          const a = getAccount(p.accountId) || {};
+          const firm = getFirm(a.propFirmId);
+          return `<button type="button" class="rt-proof-item" data-rt-jump-acc="${a.id||''}" title="Ouvrir le compte pour ajouter le justificatif">
+            <span>${escapeHtml(firm?firm.name:'—')} <span class="text-faint">· ${escapeHtml(a.accountNumber||'')} · ${fmtDate(p.date)}</span></span>
+            <span class="mono">${fmtMoneyDisp(p.amount, p.currency, p.fxRateToEur)}</span>
+          </button>`;}).join('')}</div>
+        ${d.unjustified.length>6?`<div class="text-faint" style="font-size:11.5px;margin-top:8px;">+ ${d.unjustified.length-6} autre(s) payout(s) sans justificatif</div>`:''}`;
+  } else {
+    const lines = f.proofShowAll ? d.expenseLines : d.expenseLines.slice(0,8);
+    const missing = d.expenseLines.filter(e=>!e._ok).length;
+    proofBody = !d.expenseLines.length ? `<div class="text-faint" style="font-size:12.5px;">Aucune dépense sur la période.</div>` : `
+      ${!expAvail ? `<div class="rt-proof-warn">${icon('alertTriangle')} Justificatifs de dépenses pas encore activés sur cette base (migration SQL du 26/09/2026 à exécuter).</div>` : ''}
+      ${missing===0 ? `<div class="rt-proof-ok" style="margin-bottom:8px;">${icon('check')} Toutes tes dépenses ont un justificatif.</div>` : ''}
+      <div class="rt-proof-list">${lines.map(e=>{
+        const rec = rtExpenseReceipts(e.id);
+        return `<div class="rt-proof-item rt-proof-row">
+          <span class="rt-proof-txt">${rtExpenseLabel(e)} <span class="text-faint">· ${fmtDate(e.date)}</span></span>
+          <span class="rt-proof-actions">
+            <span class="mono">${rtFmt(e._val, cur)}</span>
+            ${e._ok
+              ? `<button type="button" class="rt-mini ok" data-rt-exp-view="${escapeHtml(rec[0].id)}" title="Voir le justificatif">${icon('check')}Vu</button><button type="button" class="rt-mini" data-rt-exp-del="${escapeHtml(rec[0].id)}" title="Retirer le justificatif">${icon('x')}</button>`
+              : `<button type="button" class="rt-mini" data-rt-exp-attach="${escapeHtml(e.id)}" data-rt-exp-type="${e.type}" data-rt-exp-acc="${escapeHtml(e.accountId||'')}" data-rt-exp-gen="${escapeHtml(e.generalExpenseId||'')}" ${expAvail?'':'disabled'}>${icon('upload')}Joindre</button>`}
+          </span>
+        </div>`;}).join('')}</div>
+      ${d.expenseLines.length>8 ? `<button type="button" class="rt-link" id="rt-proof-more">${f.proofShowAll?'Afficher moins':`Afficher les ${d.expenseLines.length} dépenses`}</button>` : ''}
+      <input type="file" id="rt-exp-file" accept="image/*,application/pdf" hidden/>`;
+  }
+  const proof = `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="section-title">Justificatifs${infoTip("Une facture de challenge, un mail de payout, un relevé… Chaque pièce ajoutée augmente ton taux de bilan vérifié. Les fichiers restent privés : seuls toi (et l'admin) y avez accès.")}</div>
+        <div class="rt-tabs">
+          <button type="button" class="rt-tab ${proofTab==='payouts'?'active':''}" data-rt-proof-tab="payouts">Payouts <span>${d.unjustified.length}</span></button>
+          <button type="button" class="rt-tab ${proofTab==='depenses'?'active':''}" data-rt-proof-tab="depenses">Dépenses <span>${d.expenseLines.filter(e=>!e._ok).length}</span></button>
+        </div>
+      </div>
+      <div class="panel-body">${proofBody}</div>
+    </div>`;
+
+  const firmsTable = `
+    <div class="panel">
+      <div class="panel-head"><div class="section-title">Rentabilité par PropFirm${infoTip("Dépenses et payouts rattachés aux comptes de chaque propfirm (hors frais généraux). Taux de payout = comptes financés ayant versé au moins un payout.")}</div></div>
+      <div class="rt-table-wrap">
+        <table class="rt-table">
+          <thead><tr><th>PropFirm</th><th class="num">Challenges</th><th class="num">Financés</th><th class="num">Taux de payout</th><th class="num">Dépensé</th><th class="num">Reçu</th><th class="num">Net</th><th class="num">ROI</th></tr></thead>
+          <tbody>
+            ${d.firms.map(x=>{
+              const firm = getFirm(x.id);
+              return `<tr>
+                <td>${escapeHtml(firm?firm.name:'—')}</td>
+                <td class="num">${x.challenges}</td>
+                <td class="num">${x.funded}</td>
+                <td class="num">${rtRate(x.paidAccounts, x.funded)}</td>
+                <td class="num mono">${rtFmt(x.exp, cur)}</td>
+                <td class="num mono">${rtFmt(x.pay, cur)}</td>
+                <td class="num mono" style="color:${x.net>=0?'var(--accent)':'var(--danger)'};font-weight:600;">${x.net>=0?'+':'−'}${rtFmt(Math.abs(x.net), cur)}</td>
+                <td class="num mono">${rtPct(x.roi)}</td>
+              </tr>`;}).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  return `
+    <div class="rt-page">
+      ${filterBar}
+      ${hero}
+      ${tiles}
+      ${funnel}
+      <div class="rt-grid-2">${breakdown}${proof}</div>
+      ${firmsTable}
+    </div>`;
+}
+
+function bindRentabiliteEvents(){
+  if(state.route!=='rentabilite') return;
+  const f = state.filters.rentabilite;
+  bindMultiSelectDropdown('rt-trader', f, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
+  bindDateRangeFilter('rt-date', f);
+  const firm = document.getElementById('rt-firm');
+  if(firm) firm.onchange = ()=>{ f.propfirm = firm.value; renderView(); };
+  const gen = document.getElementById('rt-general');
+  if(gen) gen.onchange = ()=>{ f.includeGeneral = gen.checked; renderView(); };
+  const clr = document.getElementById('rt-clear');
+  if(clr) clr.onclick = ()=>{ f.propfirm=''; f.dateFrom=''; f.dateTo=''; setTraderFilterEverywhere([]); renderView(); };
+  document.querySelectorAll('[data-rt-proof-tab]').forEach(b=>{
+    b.onclick = ()=>{ f.proofTab = b.dataset.rtProofTab; renderView(); };
+  });
+  const more = document.getElementById('rt-proof-more');
+  if(more) more.onclick = ()=>{ f.proofShowAll = !f.proofShowAll; renderView(); };
+  const fileInput = document.getElementById('rt-exp-file');
+  let pending = null;
+  document.querySelectorAll('[data-rt-exp-attach]').forEach(b=>{
+    b.onclick = ()=>{
+      pending = { key:b.dataset.rtExpAttach, type:b.dataset.rtExpType, accountId:b.dataset.rtExpAcc||null, generalExpenseId:b.dataset.rtExpGen||null, btn:b };
+      if(fileInput){ fileInput.value=''; fileInput.click(); }
+    };
+  });
+  if(fileInput) fileInput.onchange = async ()=>{
+    const file = fileInput.files && fileInput.files[0];
+    if(!file || !pending) return;
+    if(file.size > 10*1024*1024){ showToast('Fichier trop lourd (10 Mo maximum).', 'danger'); return; }
+    pending.btn.disabled = true; pending.btn.textContent = 'Envoi…';
+    const safeKey = pending.key.replace(/[^a-zA-Z0-9_-]/g,'_');
+    const path = `${currentUserId()}/expenses/${safeKey}/${Date.now()}-${file.name.replace(/[^\w.\-]/g,'_')}`;
+    const { error: upErr } = await supabaseClient.storage.from('fiscal-receipts').upload(path, file, { upsert:true });
+    if(upErr){ showToast('Échec de l’envoi : ' + upErr.message, 'danger'); renderView(); return; }
+    await upsert('expense_receipts', { id: uid('erc'), expenseKey: pending.key, expenseType: pending.type, accountId: pending.accountId, generalExpenseId: pending.generalExpenseId, path, fileName: file.name, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+    showToast('Justificatif ajouté.');
+    renderView();
+  };
+  document.querySelectorAll('[data-rt-exp-view]').forEach(b=>{
+    b.onclick = async ()=>{
+      const r = (state.expense_receipts||[]).find(x=>x.id===b.dataset.rtExpView);
+      if(!r) return;
+      const { data, error } = await supabaseClient.storage.from('fiscal-receipts').createSignedUrl(r.path, 300);
+      if(!error && data) window.open(data.signedUrl, '_blank');
+      else showToast('Impossible d’ouvrir le justificatif : ' + (error?error.message:'lien introuvable'), 'danger');
+    };
+  });
+  document.querySelectorAll('[data-rt-exp-del]').forEach(b=>{
+    b.onclick = ()=>{
+      confirmModal('Retirer ce justificatif ? Le fichier sera supprimé.', async ()=>{
+        const r = (state.expense_receipts||[]).find(x=>x.id===b.dataset.rtExpDel);
+        if(r){
+          await supabaseClient.storage.from('fiscal-receipts').remove([r.path]);
+          await remove('expense_receipts', r.id);
+        }
+        renderView();
+      });
+    };
+  });
+  document.querySelectorAll('[data-rt-jump-acc]').forEach(b=>{
+    b.onclick = ()=>{
+      const acc = getAccount(b.dataset.rtJumpAcc);
+      if(!acc) return;
+      state.route = 'accounts';
+      state.filters.accounts = { q: acc.accountNumber, trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
+      render();
+    };
+  });
+}
+
+/* ============================================================
+   MODE ÉCOLE (route 'ecole') + BILAN PUBLIC (?bilan=<jeton>) — ajoutés le 26/09/2026
+   Une école / communauté crée une cohorte et partage un code d'invitation. Chaque élève qui
+   rejoint donne un consentement explicite ; ses chiffres sont alors comptés, de façon ANONYME et
+   AGRÉGÉE, dans le bilan de la cohorte. Tous les calculs sont faits CÔTÉ SERVEUR
+   (cohort_report / public_cohort_report, voir migration_ecole_justificatifs_20260926.sql) à
+   partir des vraies tables : un membre n'envoie aucun « chiffre » qu'il pourrait arranger, et
+   l'école ne voit jamais ni la liste des membres ni un chiffre individuel. Aucun chiffre n'est
+   affiché tant que moins de 5 membres ont de l'activité sur la période (seuil d'anonymat).
+============================================================ */
+const ECOLE_INVITE_STORAGE_KEY = 'ctx_pending_cohort_invite';
+function ecoleState(){
+  if(!state.ecole) state.ecole = { loaded:false, loading:false, available:true, owned:[], counts:{}, memberships:[], selectedId:null, month:'', report:null, reportLoading:false, reportError:'' };
+  return state.ecole;
+}
+function ecoleMissingSchema(error){
+  const m = (error && (error.message||'')) + ' ' + (error && error.code || '');
+  return /does not exist|42P01|PGRST202|PGRST205|Could not find the function|schema cache/i.test(m);
+}
+async function loadEcole(){
+  const es = ecoleState();
+  if(es.loading) return;
+  es.loading = true;
+  const [owned, counts, mem] = await Promise.all([
+    supabaseClient.from('cohorts').select('*').eq('owner_id', currentUserId()).order('created_at', { ascending:true }),
+    supabaseClient.rpc('my_owned_cohort_counts'),
+    supabaseClient.rpc('my_cohort_memberships'),
+  ]);
+  es.loading = false; es.loaded = true;
+  const err = owned.error || counts.error || mem.error;
+  if(err){
+    es.available = !ecoleMissingSchema(err);
+    if(es.available) showToast('Mode École : ' + err.message, 'danger');
+    if(state.route==='ecole') renderView();
+    return;
+  }
+  es.available = true;
+  es.owned = (owned.data||[]).map(fromRow);
+  es.counts = {}; (counts.data||[]).forEach(r=>{ es.counts[r.cohort_id] = r.members; });
+  es.memberships = (mem.data||[]).map(fromRow);
+  const all = [...es.owned.map(c=>c.id), ...es.memberships.map(m=>m.cohortId)];
+  if(!es.selectedId || !all.includes(es.selectedId)) es.selectedId = all[0] || null;
+  if(state.route==='ecole') renderView();
+  if(es.selectedId) loadCohortReport();
+}
+async function loadCohortReport(){
+  const es = ecoleState();
+  if(!es.selectedId) return;
+  es.reportLoading = true; es.reportError = '';
+  if(state.route==='ecole') renderView();
+  const { data, error } = await supabaseClient.rpc('cohort_report', { p_cohort: es.selectedId, p_month: es.month || null });
+  es.reportLoading = false;
+  es.report = error ? null : data;
+  es.reportError = error ? error.message : '';
+  if(state.route==='ecole') renderView();
+}
+function ecoleInviteLink(code){ return `${location.origin}${location.pathname}?ecole=${encodeURIComponent(code)}`; }
+function ecolePublicLink(token){ return `${location.origin}${location.pathname}?bilan=${encodeURIComponent(token)}`; }
+async function copyToClipboard(text, okMsg){
+  try{ await navigator.clipboard.writeText(text); showToast(okMsg || 'Copié.'); }
+  catch(e){ showToast('Copie impossible — sélectionne le lien à la main.', 'danger'); }
+}
+function randomToken(len){
+  const hex = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g,'');
+  return hex.slice(0, len);
+}
+
+/* ---------- Rendu du rapport (partagé : page École + bilan public) ---------- */
+function ecSigned(n){ const v = Number(n)||0; return (v>=0?'+':'−') + fmtEur(Math.abs(v)); }
+function ecPeriodLabel(p){ return (!p || p==='all') ? 'depuis le début' : monthLabelFull(p).toLowerCase(); }
+function cohortReportHtml(r){
+  if(!r) return '';
+  const period = ecPeriodLabel(r.period);
+  if(r.insufficient){
+    const pct = Math.min(100, Math.round((r.active||0)/(r.threshold||5)*100));
+    return `
+      <div class="panel ec-locked">
+        <div class="ec-locked-icon">${icon('lock')}</div>
+        <div class="ec-locked-title">Chiffres protégés</div>
+        <div class="ec-locked-sub">${r.active||0} membre(s) actif(s) ${period} sur les ${r.threshold||5} nécessaires. Pour garantir l'anonymat, aucun chiffre n'est affiché en dessous de ce seuil.</div>
+        <div class="ec-locked-bar"><div style="width:${pct}%"></div></div>
+        <div class="ec-locked-foot">${r.members||0} membre(s) dans la cohorte au total</div>
+      </div>`;
+  }
+  const positive = Number(r.net) >= 0;
+  const buckets = Array.isArray(r.buckets) ? r.buckets : [];
+  const maxB = Math.max(1, ...buckets.map(b=>b.count||0));
+  const fn = r.funnel || {};
+  const maxStep = Math.max(1, fn.challenges||0, fn.funded||0);
+  const rate = (a,b)=> b>0 ? Math.round(a/b*100)+' %' : '—';
+  const steps = [
+    { label:'Challenges achetés', n:fn.challenges||0, rate:'' },
+    { label:'Évaluations réussies', n:fn.passed||0, rate:rate(fn.passed||0, fn.challenges||0) },
+    { label:'Comptes financés', n:fn.funded||0, rate:'' },
+    { label:'Au moins 1 payout', n:fn.paid||0, rate:rate(fn.paid||0, fn.funded||0) },
+    { label:'Payouts récurrents (2+)', n:fn.recurring||0, rate:rate(fn.recurring||0, fn.paid||0) },
+  ];
+  const gen = r.generated_at ? new Date(r.generated_at) : new Date();
+  const genLabel = gen.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) + ' à ' + gen.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  return `
+    <div class="panel rt-hero ec-hero">
+      <div class="rt-hero-main">
+        <div class="stat-label">Résultat net des membres, ${period}</div>
+        <div class="rt-hero-value" style="color:${positive?'var(--accent)':'var(--danger)'}">${ecSigned(r.net)}</div>
+        <div class="rt-hero-split">
+          <span><span class="rt-dot" style="background:var(--accent)"></span>Payouts reçus <strong class="mono">${fmtEur(r.received)}</strong></span>
+          <span><span class="rt-dot" style="background:var(--danger)"></span>Dépenses <strong class="mono">${fmtEur(r.spent)}</strong></span>
+        </div>
+        <div class="rt-hero-note"><strong>${r.active}</strong> membre(s) actif(s) sur ${r.members} · toutes dépenses comprises (challenges, mensualités, activations, resets, frais généraux).</div>
+      </div>
+      <div class="ec-hero-side">
+        <div class="ec-big-pct" style="color:${Number(r.positive_pct)>=50?'var(--accent)':'var(--text)'}">${Math.round(Number(r.positive_pct)||0)}<span>%</span></div>
+        <div class="ec-big-pct-label">des membres actifs sont <strong>rentables</strong> ${period}<br/><span class="text-faint">${r.positive_members} sur ${r.active} · payouts &gt; dépenses</span></div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-tile" style="--rail:var(--slate)">
+        <div class="stat-label">Net médian par membre${infoTip("La moitié des membres actifs font mieux, l'autre moitié moins bien. Contrairement à la moyenne, la médiane n'est pas gonflée par quelques très gros résultats.")}</div>
+        <div class="stat-value" style="color:${Number(r.median_net)>=0?'var(--accent)':'var(--danger)'}">${ecSigned(r.median_net)}</div>
+        <div class="stat-sub">La moitié des membres entre ${ecSigned(r.p25_net)} et ${ecSigned(r.p75_net)}</div>
+      </div>
+      <div class="stat-tile" style="--rail:var(--slate)">
+        <div class="stat-label">Membres avec payout${infoTip("Membres actifs ayant reçu au moins un payout sur la période.")}</div>
+        <div class="stat-value">${r.paying_members}<span class="rt-of"> / ${r.active}</span></div>
+        <div class="stat-sub">${r.payout_count} payout(s) au total</div>
+      </div>
+      <div class="stat-tile" style="--rail:var(--slate)">
+        <div class="stat-label">Coût par payout${infoTip("Total des dépenses des membres ÷ nombre de payouts reçus.")}</div>
+        <div class="stat-value">${r.cost_per_payout==null?'—':fmtEur(r.cost_per_payout)}</div>
+        <div class="stat-sub">Investi en moyenne pour un versement</div>
+      </div>
+      <div class="stat-tile" style="--rail:${Number(r.verified_pct)>=80?'var(--accent)':'var(--gold)'}">
+        <div class="stat-label">Bilan vérifié${infoTip("Part du montant total (dépenses + payouts) appuyée par un justificatif déposé par les membres. Le reste est déclaratif.")}</div>
+        <div class="stat-value">${r.verified_pct==null?'—':Math.round(r.verified_pct)+' %'}</div>
+        <div class="stat-sub">des montants appuyés par une pièce</div>
+      </div>
+    </div>
+    <div class="rt-grid-2" style="margin-top:0;">
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Répartition des résultats${infoTip("Nombre de membres actifs par tranche de résultat net sur la période. Rouge = perte, vert = gain.")}</div></div>
+        <div class="panel-body">
+          ${buckets.map((b,i)=>`
+            <div class="ec-bucket">
+              <span class="ec-bucket-label">${escapeHtml(b.label)}</span>
+              <div class="ec-bucket-bar"><div style="width:${(b.count||0)/maxB*100}%;background:${i<3?'var(--danger)':'var(--accent)'};opacity:${b.count?0.85:0}"></div></div>
+              <span class="ec-bucket-n mono">${b.count||0}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="section-title">Entonnoir de la cohorte${infoTip("Cumul des comptes de tous les membres, depuis le début (indépendant de la période choisie).")}</div></div>
+        <div class="panel-body rt-funnel">
+          ${steps.map((s,i)=>`
+            <div class="rt-step ec-step">
+              <div class="rt-step-label">${s.label}</div>
+              <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/maxStep*100)}%;opacity:${1 - i*0.13}"></div></div>
+              <div class="rt-step-n mono">${s.n}</div>
+              <div class="rt-step-rate">${s.rate}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="ec-method">
+      ${icon('shield')}
+      <div><strong>Méthode.</strong> Chiffres calculés par Contralytix le ${genLabel}, directement à partir des comptes, dépenses et payouts enregistrés par les membres ayant donné leur accord. Montants convertis en euros au taux BCE de chaque opération. Aucun chiffre individuel ni aucune identité n'est communiqué, et rien n'est affiché sous ${r.threshold} membres actifs.</div>
+    </div>`;
+}
+function ecPeriodSelect(id, months, current){
+  return `<select id="${id}" class="ec-period"><option value="" ${!current?'selected':''}>Depuis le début</option>${(months||[]).map(m=>`<option value="${m}" ${current===m?'selected':''}>${monthLabelFull(m)}</option>`).join('')}</select>`;
+}
+
+/* ---------- Page École (connecté) ---------- */
+function viewEcole(){
+  const es = ecoleState();
+  if(!es.loaded){
+    if(!es.loading) setTimeout(loadEcole, 0);
+    return emptyState('layers', 'Chargement…', '');
+  }
+  if(!es.available){
+    return `<div class="panel ec-intro"><div class="ec-intro-body">
+      <div class="ec-kicker">Mode École</div>
+      <h2>Base de données pas encore prête</h2>
+      <p>Exécute la migration <code>migration_ecole_justificatifs_20260926.sql</code> sur ce projet Supabase, puis recharge la page.</p>
+    </div></div>`;
+  }
+  const hasAny = es.owned.length || es.memberships.length;
+  const actions = `
+    <div class="ec-actions">
+      <button class="btn btn-outline" id="ec-join">${icon('link')}Rejoindre une école</button>
+      <button class="btn btn-primary" id="ec-create">${icon('plus')}Créer une cohorte</button>
+    </div>`;
+  if(!hasAny){
+    return `
+      <div class="panel ec-intro">
+        <div class="ec-intro-body">
+          <div class="ec-kicker">Mode École</div>
+          <h2>Le bilan de tes élèves, en net réel — et vérifiable.</h2>
+          <p>Crée une cohorte, partage le code à tes élèves. Contralytix calcule automatiquement, à partir de leurs vrais comptes, le résultat net du groupe, la part d'élèves rentables, la médiane, l'entonnoir challenge → payout et le taux de justificatifs.</p>
+          <ul class="ec-points">
+            <li>${icon('shield')}<span><strong>Anonyme :</strong> tu ne vois jamais qui est dans la cohorte ni un chiffre individuel. Rien ne s'affiche sous 5 membres actifs.</span></li>
+            <li>${icon('check')}<span><strong>Consenti :</strong> chaque élève accepte explicitement, et peut quitter à tout moment.</span></li>
+            <li>${icon('barChart')}<span><strong>Incontestable :</strong> calculé côté serveur à partir des données réelles — personne ne saisit « son » bilan.</span></li>
+          </ul>
+          ${actions}
+        </div>
+      </div>`;
+  }
+  const sel = es.selectedId;
+  const owned = es.owned.find(c=>c.id===sel);
+  const membership = es.memberships.find(m=>m.cohortId===sel);
+  const pills = [
+    ...es.owned.map(c=>({ id:c.id, name:c.name, tag:'École', n:es.counts[c.id] })),
+    ...es.memberships.filter(m=>!es.owned.find(c=>c.id===m.cohortId)).map(m=>({ id:m.cohortId, name:m.name, tag:'Membre' })),
+  ];
+  const selector = `
+    <div class="ec-topbar">
+      <div class="ec-pills">
+        ${pills.map(p=>`<button type="button" class="ec-pill ${p.id===sel?'active':''}" data-ec-select="${p.id}">
+          <span class="ec-pill-tag ${p.tag==='École'?'owner':''}">${p.tag}</span>${escapeHtml(p.name)}${p.n!=null?` <span class="ec-pill-n">${p.n}</span>`:''}
+        </button>`).join('')}
+      </div>
+      ${actions}
+    </div>`;
+
+  let admin = '';
+  if(owned){
+    const n = es.counts[owned.id] || 0;
+    admin = `
+      <div class="ec-admin-grid">
+        <div class="panel ec-card">
+          <div class="stat-label">Inviter des élèves</div>
+          <div class="ec-code mono">${escapeHtml(owned.inviteCode)}</div>
+          <div class="ec-card-sub">${n} membre(s) · chaque élève confirme son accord en rejoignant</div>
+          <div class="ec-card-actions">
+            <button class="btn btn-primary btn-sm" data-ec-copy-invite>${icon('link')}Copier le lien d'invitation</button>
+            <button class="btn btn-ghost btn-sm" data-ec-regen-code title="Invalide l'ancien code (les membres actuels restent)">${icon('reset')}Nouveau code</button>
+          </div>
+        </div>
+        <div class="panel ec-card">
+          <div class="stat-label" style="display:flex;justify-content:space-between;align-items:center;">Bilan public
+            <label class="switch" title="Rendre le bilan consultable sans connexion">
+              <input type="checkbox" id="ec-public-toggle" ${owned.publicEnabled?'checked':''}/><span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="ec-card-sub" style="margin-top:10px;">${owned.publicEnabled
+            ? 'Toute personne ayant le lien peut consulter le bilan agrégé (mêmes règles d’anonymat). Idéal pour tes vidéos et ta page de vente.'
+            : 'Désactivé. Active-le pour obtenir un lien à publier (YouTube, Discord, site).'}</div>
+          <div class="ec-card-actions">
+            <button class="btn btn-outline btn-sm" data-ec-copy-public ${owned.publicEnabled?'':'disabled'}>${icon('link')}Copier le lien public</button>
+            ${owned.publicEnabled?`<a class="btn btn-ghost btn-sm" href="${ecolePublicLink(owned.publicToken)}" target="_blank" rel="noopener">${icon('eye')}Aperçu</a>`:''}
+            <button class="btn btn-ghost btn-sm" data-ec-regen-token title="Coupe l'ancien lien public">${icon('reset')}Nouveau lien</button>
+          </div>
+        </div>
+      </div>`;
+  } else if(membership){
+    admin = `
+      <div class="panel ec-member">
+        <div>${icon('shield')}</div>
+        <div class="ec-member-txt">Tu fais partie de <strong>${escapeHtml(membership.name)}</strong> depuis le ${fmtDate((membership.joinedAt||'').slice(0,10))}. Tes chiffres sont comptés de façon anonyme dans le bilan ci-dessous ; l'école ne voit jamais tes données individuelles.</div>
+        <button class="btn btn-outline btn-sm" data-ec-leave="${membership.cohortId}">Quitter la cohorte</button>
+      </div>`;
+  }
+
+  const r = es.report;
+  const reportHead = `
+    <div class="ec-report-head">
+      <div>
+        <div class="ec-report-title">${escapeHtml(owned ? owned.name : (membership ? membership.name : ''))}</div>
+        <div class="ec-report-sub">Bilan agrégé et anonyme</div>
+      </div>
+      <div class="ec-report-tools">
+        ${ecPeriodSelect('ec-month', r && r.months, es.month)}
+        ${owned ? `<button class="btn btn-ghost btn-sm" data-ec-rename title="Renommer">${icon('edit')}</button><button class="btn btn-ghost btn-sm" data-ec-delete title="Supprimer la cohorte">${icon('trash')}</button>` : ''}
+      </div>
+    </div>`;
+  const reportBody = es.reportLoading && !r ? emptyState('barChart','Calcul du bilan…','')
+    : es.reportError ? `<div class="panel" style="padding:18px;color:var(--danger);font-size:13px;">${escapeHtml(es.reportError)}</div>`
+    : cohortReportHtml(r);
+  return `<div class="rt-page ec-page">${selector}${admin}${reportHead}<div style="${es.reportLoading?'opacity:.55;transition:opacity .15s;':''}">${reportBody}</div></div>`;
+}
+
+function createCohortModal(){
+  openModal({
+    title: 'Créer une cohorte',
+    bodyHtml: `
+      <div class="field"><label>Nom de l'école / du groupe</label><input id="ec-new-name" type="text" maxlength="80" placeholder="Ex : Promo Intraday — Automne 2026"/></div>
+      <div class="field-hint">Tu obtiendras un code d'invitation à partager. Tu ne verras jamais qui a rejoint ni les chiffres individuels : uniquement des statistiques agrégées, à partir de 5 membres actifs.</div>`,
+    footHtml: `<button class="btn btn-outline" id="ec-new-cancel">Annuler</button><button class="btn btn-primary" id="ec-new-ok">Créer</button>`,
+    onMount(){
+      const input = document.getElementById('ec-new-name');
+      input.focus();
+      document.getElementById('ec-new-cancel').onclick = closeModal;
+      document.getElementById('ec-new-ok').onclick = async ()=>{
+        const name = input.value.trim();
+        if(name.length<2){ showToast('Donne un nom à la cohorte.', 'danger'); return; }
+        const { data, error } = await supabaseClient.from('cohorts').insert({ name }).select().single();
+        if(error){ showToast('Création impossible : ' + error.message, 'danger'); return; }
+        closeModal();
+        const es = ecoleState();
+        es.selectedId = data.id; es.month = ''; es.report = null;
+        await logActivity('CREATE', 'cohort', data.id, `Cohorte créée — ${name}`);
+        showToast('Cohorte créée. Partage le lien d’invitation à tes élèves.');
+        loadEcole();
+      };
+    }
+  });
+}
+function joinCohortModal(prefillCode){
+  let preview = null;
+  const renderStep = ()=>{
+    openModal({
+      title: preview ? `Rejoindre « ${escapeHtml(preview.name)} »` : 'Rejoindre une école',
+      bodyHtml: !preview ? `
+          <div class="field"><label>Code d'invitation</label><input id="ec-join-code" type="text" maxlength="12" style="text-transform:uppercase;letter-spacing:2px;font-family:'JetBrains Mono',monospace;" value="${escapeHtml(prefillCode||'')}" placeholder="EX : 7F3A9C21"/></div>
+          <div class="field-hint">Le code t'a été donné par ton école ou ta communauté.</div>`
+        : `
+          <div class="ec-consent">
+            <p><strong>${escapeHtml(preview.name)}</strong> souhaite inclure tes résultats dans son bilan collectif.</p>
+            <ul>
+              <li>Tes dépenses, payouts et comptes Contralytix sont comptés <strong>de façon anonyme et agrégée</strong> (totaux, médiane, répartition).</li>
+              <li>L'école ne voit <strong>jamais</strong> ton identité, ton email ni tes chiffres individuels. Rien n'est affiché sous 5 membres actifs.</li>
+              <li>Tu peux <strong>quitter à tout moment</strong> depuis la page Mode École : tes données cessent immédiatement d'être comptées.</li>
+            </ul>
+            <label class="ec-consent-check"><input type="checkbox" id="ec-consent"/> J'accepte que mes données soient utilisées de cette façon dans le bilan de ${escapeHtml(preview.name)}.</label>
+          </div>`,
+      footHtml: `<button class="btn btn-outline" id="ec-join-cancel">Annuler</button><button class="btn btn-primary" id="ec-join-ok" ${preview?'disabled':''}>${preview?'Rejoindre':'Continuer'}</button>`,
+      onMount(){
+        document.getElementById('ec-join-cancel').onclick = ()=>{ try{ sessionStorage.removeItem(ECOLE_INVITE_STORAGE_KEY); }catch(e){} closeModal(); };
+        const ok = document.getElementById('ec-join-ok');
+        if(!preview){
+          const input = document.getElementById('ec-join-code');
+          input.focus();
+          ok.onclick = async ()=>{
+            const code = input.value.trim().toUpperCase();
+            if(!code){ showToast('Saisis le code d’invitation.', 'danger'); return; }
+            const { data, error } = await supabaseClient.rpc('cohort_preview', { p_code: code });
+            if(error){ showToast(ecoleMissingSchema(error) ? 'Mode École pas encore activé sur cette base.' : 'Erreur : ' + error.message, 'danger'); return; }
+            if(!data){ showToast('Code inconnu. Vérifie-le auprès de ton école.', 'danger'); return; }
+            preview = { ...data, code };
+            renderStep();
+          };
+        } else {
+          const cb = document.getElementById('ec-consent');
+          cb.onchange = ()=>{ ok.disabled = !cb.checked; };
+          ok.onclick = async ()=>{
+            if(!cb.checked) return;
+            const { data, error } = await supabaseClient.rpc('join_cohort', { p_code: preview.code, p_consent: true });
+            if(error){ showToast('Adhésion impossible : ' + error.message, 'danger'); return; }
+            try{ sessionStorage.removeItem(ECOLE_INVITE_STORAGE_KEY); }catch(e){}
+            closeModal();
+            await logActivity('JOIN', 'cohort', data.id, `A rejoint la cohorte ${data.name} (consentement donné)`);
+            const es = ecoleState();
+            es.selectedId = data.id; es.month = ''; es.report = null;
+            state.route = 'ecole';
+            showToast(`Tu as rejoint ${data.name}.`);
+            render();
+            loadEcole();
+          };
+        }
+      }
+    });
+  };
+  renderStep();
+}
+// Lien d'invitation (?ecole=CODE) : mémorisé au chargement (voir boot), proposé une fois connecté.
+function maybePromptPendingCohortInvite(){
+  let code = null;
+  try{ code = sessionStorage.getItem(ECOLE_INVITE_STORAGE_KEY); }catch(e){}
+  if(!code) return;
+  setTimeout(()=>joinCohortModal(code), 400);
+}
+
+function bindEcoleEvents(){
+  if(state.route!=='ecole') return;
+  const es = ecoleState();
+  const owned = es.owned.find(c=>c.id===es.selectedId);
+  const on = (sel, fn)=>{ const el = document.querySelector(sel); if(el) el.onclick = fn; };
+  on('#ec-create', createCohortModal);
+  on('#ec-join', ()=>joinCohortModal(''));
+  document.querySelectorAll('[data-ec-select]').forEach(b=>{
+    b.onclick = ()=>{ es.selectedId = b.dataset.ecSelect; es.month = ''; es.report = null; renderView(); loadCohortReport(); };
+  });
+  const month = document.getElementById('ec-month');
+  if(month) month.onchange = ()=>{ es.month = month.value; loadCohortReport(); };
+  if(owned){
+    on('[data-ec-copy-invite]', ()=>copyToClipboard(ecoleInviteLink(owned.inviteCode), 'Lien d’invitation copié.'));
+    on('[data-ec-copy-public]', ()=>copyToClipboard(ecolePublicLink(owned.publicToken), 'Lien public copié.'));
+    const toggle = document.getElementById('ec-public-toggle');
+    if(toggle) toggle.onchange = async ()=>{
+      const { error } = await supabaseClient.from('cohorts').update({ public_enabled: toggle.checked }).eq('id', owned.id);
+      if(error){ showToast('Erreur : ' + error.message, 'danger'); toggle.checked = !toggle.checked; return; }
+      owned.publicEnabled = toggle.checked;
+      showToast(toggle.checked ? 'Bilan public activé.' : 'Bilan public désactivé : le lien ne fonctionne plus.');
+      renderView();
+    };
+    on('[data-ec-regen-code]', ()=>confirmModal('Générer un nouveau code d’invitation ? L’ancien lien ne permettra plus de rejoindre (les membres actuels restent).', async ()=>{
+      const code = randomToken(8).toUpperCase();
+      const { error } = await supabaseClient.from('cohorts').update({ invite_code: code }).eq('id', owned.id);
+      if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+      owned.inviteCode = code; showToast('Nouveau code généré.'); renderView();
+    }, false));
+    on('[data-ec-regen-token]', ()=>confirmModal('Générer un nouveau lien public ? L’ancien lien cessera immédiatement de fonctionner.', async ()=>{
+      const token = randomToken(64);
+      const { error } = await supabaseClient.from('cohorts').update({ public_token: token }).eq('id', owned.id);
+      if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+      owned.publicToken = token; showToast('Nouveau lien public généré.'); renderView();
+    }, false));
+    on('[data-ec-rename]', ()=>{
+      openModal({
+        title: 'Renommer la cohorte',
+        bodyHtml: `<div class="field"><label>Nom</label><input id="ec-rn" type="text" maxlength="80" value="${escapeHtml(owned.name)}"/></div>`,
+        footHtml: `<button class="btn btn-outline" id="ec-rn-cancel">Annuler</button><button class="btn btn-primary" id="ec-rn-ok">Enregistrer</button>`,
+        onMount(){
+          document.getElementById('ec-rn-cancel').onclick = closeModal;
+          document.getElementById('ec-rn-ok').onclick = async ()=>{
+            const name = document.getElementById('ec-rn').value.trim();
+            if(name.length<2) return;
+            const { error } = await supabaseClient.from('cohorts').update({ name }).eq('id', owned.id);
+            if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+            owned.name = name; closeModal(); renderView();
+          };
+        }
+      });
+    });
+    on('[data-ec-delete]', ()=>confirmModal(`Supprimer définitivement la cohorte <strong>${escapeHtml(owned.name)}</strong> ? Les membres en sont retirés et le lien public cesse de fonctionner. Les données des élèves, elles, ne sont pas touchées.`, async ()=>{
+      const { error } = await supabaseClient.from('cohorts').delete().eq('id', owned.id);
+      if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+      await logActivity('DELETE', 'cohort', owned.id, `Cohorte supprimée — ${owned.name}`);
+      es.selectedId = null; es.report = null; showToast('Cohorte supprimée.'); loadEcole();
+    }));
+  }
+  document.querySelectorAll('[data-ec-leave]').forEach(b=>{
+    b.onclick = ()=>confirmModal('Quitter cette cohorte ? Tes données cesseront immédiatement d’être comptées dans son bilan.', async ()=>{
+      const { error } = await supabaseClient.from('cohort_members').delete().eq('cohort_id', b.dataset.ecLeave).eq('user_id', currentUserId());
+      if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+      await logActivity('LEAVE', 'cohort', b.dataset.ecLeave, 'A quitté une cohorte');
+      es.selectedId = null; es.report = null; showToast('Tu as quitté la cohorte.'); loadEcole();
+    });
+  });
+}
+
+/* ---------- Bilan public (visiteur non connecté, ?bilan=<jeton>) ---------- */
+async function renderPublicCohortReport(token, month){
+  let root = document.getElementById('public-report-root');
+  if(!root){
+    root = document.createElement('div');
+    root.id = 'public-report-root';
+    document.body.appendChild(root);
+  }
+  root.innerHTML = `<div class="pub-wrap">${emptyState('barChart','Calcul du bilan…','')}</div>`;
+  const { data, error } = await supabaseClient.rpc('public_cohort_report', { p_token: token, p_month: month || null });
+  if(error || !data){
+    root.innerHTML = `
+      <div class="pub-wrap">
+        <div class="pub-brand"><img src="/favicon.png" alt="" width="26" height="26" onerror="this.style.display='none'"/>Contralytix</div>
+        <div class="panel ec-locked" style="margin-top:40px;">
+          <div class="ec-locked-icon">${icon('lock')}</div>
+          <div class="ec-locked-title">Bilan indisponible</div>
+          <div class="ec-locked-sub">Ce lien n'est plus actif, ou l'école a désactivé le partage public.</div>
+        </div>
+      </div>`;
+    return;
+  }
+  document.title = `${data.name} — Bilan réel | Contralytix`;
+  root.innerHTML = `
+    <div class="pub-wrap rt-page">
+      <div class="pub-top">
+        <div class="pub-brand"><img src="/favicon.png" alt="" width="26" height="26" onerror="this.style.display='none'"/>Contralytix</div>
+        <a class="btn btn-outline btn-sm" href="${location.origin}${location.pathname}">Suivre ma rentabilité réelle</a>
+      </div>
+      <div class="pub-head">
+        <div>
+          <div class="ec-kicker">Bilan de cohorte · net réel</div>
+          <h1>${escapeHtml(data.name)}</h1>
+          <p>Résultats agrégés et anonymes des membres ayant accepté de partager leurs données, calculés automatiquement par Contralytix — pas une sélection de captures d'écran.</p>
+        </div>
+        ${ecPeriodSelect('pub-month', data.months, month)}
+      </div>
+      ${cohortReportHtml(data)}
+      <div class="pub-foot">Contralytix — la gestion financière des comptes Prop Firm. <a href="${location.origin}${location.pathname}">contralytix.fr</a></div>
+    </div>`;
+  const sel = document.getElementById('pub-month');
+  if(sel) sel.onchange = ()=>{
+    const url = new URL(location.href);
+    if(sel.value) url.searchParams.set('mois', sel.value); else url.searchParams.delete('mois');
+    history.replaceState(null, '', url.toString());
+    renderPublicCohortReport(token, sel.value);
+  };
+}
+
 function viewDashboard(){
   const f = state.filters.dashboard;
   // Le Dashboard est toujours strictement personnel, sur toutes les formules (Free/Premium/
@@ -7248,7 +8382,7 @@ function viewConfidentialite(){
           <table class="rgpd-table">
             <tr><th>Catégorie</th><th>Exemples</th><th>Origine</th></tr>
             <tr><td>Compte</td><td>Adresse e-mail, date d'inscription, dernière connexion (aucun mot de passe stocké — connexion par code à usage unique envoyé par e-mail, ou via Google)</td><td>Renseignées à l'inscription</td></tr>
-            <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, justificatifs de payout (fichiers), notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
+            <tr><td>Données d'activité PropFirm</td><td>Traders, PropFirms, comptes Challenge/PA/Live, numéros de compte, dépenses, payouts, justificatifs de payout et de dépenses (fichiers), notes, sessions live, prépas de séance</td><td>Saisies par vous dans l'application</td></tr>
             <tr><td>Données déclaratives (Fiscalité)</td><td>Réglages déclaratifs (périodicité URSSAF, versement libératoire), déclarations et cases cochées de la checklist fiscale</td><td>Saisies par vous dans la page Fiscalité</td></tr>
             <tr><td>Frais généraux</td><td>Frais liés à votre activité de trading mais non rattachés à un compte propfirm (abonnement, données de marché, hébergement, logiciels, formation...), montants, devises et dates</td><td>Saisis par vous dans la page Frais généraux</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
@@ -7265,6 +8399,7 @@ function viewConfidentialite(){
             <li><b>Génération de la préparation de séance par IA</b> — exécution du contrat, à votre initiative, lorsque vous déclenchez cette fonctionnalité.</li>
             <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
             <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
+            <li><b>Mode École (bilan collectif d'une école ou d'une communauté)</b> — uniquement si vous rejoignez une cohorte, sur la base de votre <b>consentement explicite</b>, retirable à tout moment en quittant la cohorte (vos données cessent alors immédiatement d'être comptées). L'école ne reçoit que des statistiques agrégées calculées par Contralytix (totaux, médiane, répartition, à partir de 5 membres actifs minimum), jamais votre identité, votre e-mail ni vos chiffres individuels. Si l'école active le bilan public, ces mêmes statistiques agrégées sont consultables par toute personne disposant du lien.</li>
           </ul>
         </div>
 
@@ -11166,6 +12301,8 @@ function bindViewEvents(){
     });
   });
   bindDateRangeFilter('fd-date', state.filters.dashboard);
+  bindRentabiliteEvents();
+  bindEcoleEvents();
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   // Dashboard : glisser-déposer direct des widgets + sélecteur de taille S/M/L, sur la page elle-même
   if(state.route==='dashboard'){
@@ -14350,6 +15487,19 @@ function applyLandingPricing(){
   initBackToTop();
   initInfoTips();
   initPricingTilt();
+  // Mode École (26/09/2026) : ?ecole=CODE → mémorisé, proposé après connexion
+  // (maybePromptPendingCohortInvite) ; ?bilan=JETON → bilan public de cohorte, sans connexion.
+  const bootParams = new URLSearchParams(location.search);
+  const inviteParam = bootParams.get('ecole');
+  if(inviteParam){ try{ sessionStorage.setItem(ECOLE_INVITE_STORAGE_KEY, inviteParam.trim().toUpperCase()); }catch(e){} }
+  const bilanToken = bootParams.get('bilan');
+  if(bilanToken && SUPABASE_CONFIGURED){
+    const mlPub = document.getElementById('marketing-landing');
+    if(mlPub) mlPub.style.display = 'none';
+    document.getElementById('loading').style.display = 'none';
+    await renderPublicCohortReport(bilanToken, bootParams.get('mois') || '');
+    return;
+  }
   // Chargé avant même la vérification de session : pilote aussi la visibilité du module
   // Fiscalité sur la landing publique pour un visiteur pas encore connecté (voir
   // applyFiscalLandingVisibility ci-dessus). Sans effet silencieux si la policy RLS
@@ -14440,6 +15590,7 @@ function applyLandingPricing(){
     maybeShowWelcomeModal();
     maybeShowNewMessagesToast();
     handleCheckoutReturn(); // fire-and-forget, voir sa définition (retour de paiement Stripe)
+    maybePromptPendingCohortInvite();
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -14454,6 +15605,8 @@ function applyLandingPricing(){
       state.changelog_entries = [];
       state.support_messages = [];
       state.payout_receipts = [];
+      state.expense_receipts = [];
+      state.ecole = null;
       state.fiscalChecklist = {};
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' } };
       document.getElementById('app-root').style.display = 'none';
@@ -14486,6 +15639,7 @@ function applyLandingPricing(){
   if(session){ await enterApp(session); }
   else {
     renderAuthScreen();
+    if(inviteParam) showToast('Connecte-toi ou crée ton compte gratuit pour rejoindre ton école.');
     // Repart du haut de la landing à un chargement/F5 sans session — sauf en plein retour
     // OAuth/lien magique (jeton dans le hash ou ?code=), où l'écran de connexion n'est de toute
     // façon pas ce qui s'affiche (voir plus haut : #marketing-landing est masqué dans ce cas).
