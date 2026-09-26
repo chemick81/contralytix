@@ -490,6 +490,15 @@ th.th-sort-active svg{opacity:1;}
 .rt-hero-chart{min-width:0;display:flex;flex-direction:column;justify-content:center;}
 .rt-curve{width:100%;height:150px;display:block;}
 .rt-curve-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:6px;}
+.rt-curve-wrap{position:relative;cursor:crosshair;touch-action:pan-y;}
+.rt-curve-cross{position:absolute;top:0;bottom:0;width:1px;background:var(--text-faint);opacity:.5;display:none;pointer-events:none;}
+.rt-curve-dot{position:absolute;width:10px;height:10px;border-radius:50%;margin:-5px 0 0 -5px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);display:none;pointer-events:none;}
+.rt-curve-tip{position:absolute;z-index:5;display:none;pointer-events:none;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;box-shadow:var(--shadow);min-width:150px;white-space:nowrap;}
+.rt-tip-date{font-size:11px;color:var(--text-faint);font-weight:600;}
+.rt-tip-net{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;margin-top:3px;}
+.rt-tip-label{font-size:10.5px;color:var(--text-faint);}
+.rt-tip-moves{display:flex;flex-direction:column;gap:3px;margin-top:7px;padding-top:7px;border-top:1px solid var(--border-soft);font-size:11.5px;color:var(--text-dim);}
+.rt-tip-moves i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .rt-curve-empty{font-size:12.5px;color:var(--text-faint);padding:40px 0;text-align:center;}
 .rt-of{font-size:15px;color:var(--text-faint);font-weight:500;}
 .rt-funnel{display:flex;flex-direction:column;gap:12px;}
@@ -1833,6 +1842,8 @@ function applyMyTraderDefaultFilters(){
   if(!state.filters.accounting.trader.length) state.filters.accounting.trader = [t.id];
   if(!state.filters.bilan.trader.length) state.filters.bilan.trader = [t.id];
   if(!state.filters.calendrier.trader.length) state.filters.calendrier.trader = [t.id];
+  // 26/09/2026 : même filtre par défaut que le Dashboard, sinon les deux pages n'affichent pas le même périmètre.
+  if(!state.filters.rentabilite.trader.length) state.filters.rentabilite.trader = [t.id];
 }
 // Applique la même sélection de trader(s) à TOUS les filtres "trader" de l'app
 // (Dashboard, Comptes, Comptabilité, Bilan, Calendrier), pour que le choix se propage partout.
@@ -5434,7 +5445,9 @@ function computeRentabiliteData(){
     if(prev < 0 && cum >= 0) breakEvenDate = ev.date;
     if(cum < 0) breakEvenDate = null;
     const last = curve[curve.length-1];
-    if(last && last.date===ev.date) last.cum = cum; else curve.push({ date:ev.date, cum });
+    // pay/exp = mouvements du jour (affichés au survol de la courbe, voir bindRentabiliteCurve)
+    if(last && last.date===ev.date){ last.cum = cum; if(ev.v>=0) last.pay += ev.v; else last.exp += -ev.v; }
+    else curve.push({ date:ev.date, cum, pay: ev.v>0 ? ev.v : 0, exp: ev.v<0 ? -ev.v : 0 });
   });
   const firstDate = events.length ? events[0].date : null;
   const daysToBreakEven = (breakEvenDate && firstDate)
@@ -5526,7 +5539,8 @@ function rtRate(a, b){ return b>0 ? Math.round(a/b*100) + ' %' : '—'; }
 
 // Courbe SVG du net cumulé (ligne + aire, ligne zéro). Pas de lib externe : même approche que les
 // autres mini-graphes de l'app. viewBox fixe, étirée en largeur (preserveAspectRatio none).
-function rtCurveSvg(curve){
+let __rtCurve = null; // données de la courbe affichée, lues par bindRentabiliteCurve() au survol
+function rtCurveSvg(curve, cur){
   if(curve.length < 2) return `<div class="rt-curve-empty">Pas encore assez de mouvements pour tracer la courbe.</div>`;
   const W = 600, H = 150, P = 6;
   const vals = curve.map(c=>c.cum);
@@ -5538,12 +5552,18 @@ function rtCurveSvg(curve){
   const zeroY = y(0).toFixed(1);
   const last = vals[vals.length-1];
   const color = last>=0 ? 'var(--accent)' : 'var(--danger)';
+  __rtCurve = { curve, cur, W, H, P, lo, hi, span };
   return `
+    <div class="rt-curve-wrap" id="rt-curve-wrap">
     <svg class="rt-curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution du net cumulé">
       <line x1="0" x2="${W}" y1="${zeroY}" y2="${zeroY}" stroke="var(--border)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
       <polygon points="${x(0).toFixed(1)},${zeroY} ${pts.join(' ')} ${x(curve.length-1).toFixed(1)},${zeroY}" fill="${color}" opacity=".12"/>
       <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     </svg>
+      <div class="rt-curve-cross" id="rt-curve-cross"></div>
+      <div class="rt-curve-dot" id="rt-curve-dot"></div>
+      <div class="rt-curve-tip" id="rt-curve-tip"></div>
+    </div>
     <div class="rt-curve-axis"><span>${fmtDate(curve[0].date)}</span><span>${fmtDate(curve[curve.length-1].date)}</span></div>`;
 }
 
@@ -5597,7 +5617,7 @@ function viewRentabilite(){
       </div>
       <div class="rt-hero-chart">
         <div class="stat-label" style="margin-bottom:8px;">Net cumulé${infoTip("Chaque dépense fait descendre la courbe, chaque payout la fait remonter. La ligne pointillée, c'est l'équilibre (0).")}</div>
-        ${rtCurveSvg(d.curve)}
+        ${rtCurveSvg(d.curve, cur)}
       </div>
     </div>`;
 
@@ -5742,8 +5762,51 @@ function viewRentabilite(){
     </div>`;
 }
 
+// Survol de la courbe « Net cumulé » : ligne verticale + point + bulle (date, net cumulé,
+// mouvements du jour). Fonctionne aussi au doigt (touchmove).
+function bindRentabiliteCurve(){
+  const wrap = document.getElementById('rt-curve-wrap');
+  if(!wrap || !__rtCurve) return;
+  const { curve, cur, W, H, P, hi, span } = __rtCurve;
+  const cross = document.getElementById('rt-curve-cross');
+  const dot = document.getElementById('rt-curve-dot');
+  const tip = document.getElementById('rt-curve-tip');
+  const n = curve.length;
+  const signed = (v)=> (v>=0?'+':'−') + fmtMoneyCur(Math.abs(v), cur);
+  const show = (clientX)=>{
+    const rect = wrap.getBoundingClientRect();
+    const vx = (clientX - rect.left) / rect.width * W;
+    const i = Math.max(0, Math.min(n-1, Math.round((vx - P) / (W - 2*P) * (n-1))));
+    const c = curve[i];
+    const px = (P + i*(W-2*P)/(n-1)) / W * rect.width;
+    const py = (P + (hi - c.cum)*(H-2*P)/span) / H * rect.height;
+    const col = c.cum>=0 ? 'var(--accent)' : 'var(--danger)';
+    cross.style.left = px+'px'; cross.style.display = 'block';
+    dot.style.left = px+'px'; dot.style.top = py+'px'; dot.style.background = col; dot.style.display = 'block';
+    tip.innerHTML = `
+      <div class="rt-tip-date">${fmtDate(c.date)}</div>
+      <div class="rt-tip-net" style="color:${col}">${signed(c.cum)}</div>
+      <div class="rt-tip-label">net cumulé</div>
+      ${(c.pay||c.exp) ? `<div class="rt-tip-moves">
+        ${c.pay?`<span><i style="background:var(--accent)"></i>Payout ${'+'+fmtMoneyCur(c.pay, cur)}</span>`:''}
+        ${c.exp?`<span><i style="background:var(--danger)"></i>Dépense ${'−'+fmtMoneyCur(c.exp, cur)}</span>`:''}
+      </div>` : ''}`;
+    tip.style.display = 'block';
+    const tw = tip.offsetWidth;
+    let left = px + 12;
+    if(left + tw > rect.width) left = px - tw - 12;
+    tip.style.left = Math.max(0, left) + 'px';
+    tip.style.top = Math.max(0, Math.min(rect.height - tip.offsetHeight, py - tip.offsetHeight/2)) + 'px';
+  };
+  const hide = ()=>{ cross.style.display = dot.style.display = tip.style.display = 'none'; };
+  wrap.onmousemove = (e)=>show(e.clientX);
+  wrap.onmouseleave = hide;
+  wrap.ontouchstart = wrap.ontouchmove = (e)=>{ if(e.touches[0]) show(e.touches[0].clientX); };
+  wrap.ontouchend = ()=>setTimeout(hide, 1500);
+}
 function bindRentabiliteEvents(){
   if(state.route!=='rentabilite') return;
+  bindRentabiliteCurve();
   const f = state.filters.rentabilite;
   bindMultiSelectDropdown('rt-trader', f, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   bindDateRangeFilter('rt-date', f);
