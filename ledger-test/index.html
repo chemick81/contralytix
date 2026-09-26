@@ -199,6 +199,11 @@ a{color:var(--accent);text-decoration:none;}
 .brand-mark::after{content:'';position:absolute;left:6px;top:8px;width:16px;height:2px;background:var(--bg);opacity:.55;}
 .brand-mark::before{content:'';position:absolute;left:6px;top:13px;width:10px;height:2px;background:var(--bg);opacity:.55;}
 .brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;}
+.brand-home{cursor:pointer;border-radius:10px;transition:background .15s ease;}
+.brand-home:hover{background:var(--surface-2);}
+.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.ml-brand-home{cursor:pointer;border-radius:8px;}
+.ml-brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 .brand-sub{font-size:10px;color:var(--text-faint);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px;}
 /* Le "x" du nom Contralytix repris en doré avec un léger relief (extrusion via text-shadow en
    paliers), en écho au chevron doré du logo — couleurs fixes plutôt que var(--gold), pour rester
@@ -1350,7 +1355,7 @@ th.th-sort-active svg{opacity:1;}
 
 <div id="marketing-landing" class="marketing-landing">
   <header class="ml-topbar">
-    <div class="ml-brand">
+    <div class="ml-brand ml-brand-home" role="link" tabindex="0" title="Retour en haut de la page" aria-label="Contralytix — retour en haut de la page" onclick="window.scrollTo({top:0,behavior:'smooth'})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
       <img src="/favicon.png" alt="Contralytix" width="28" height="28" style="border-radius:6px;" onerror="this.style.display='none'"/>
       <span>Contralyti<span class="brand-x">x</span></span>
     </div>
@@ -5004,7 +5009,7 @@ function render(){
   const ann = state.appSettings && state.appSettings.announcement;
   root.innerHTML = `
     <aside class="sidebar">
-      <div class="brand">
+      <div class="brand brand-home" data-nav="dashboard" role="link" tabindex="0" title="Retour à l'accueil" aria-label="Contralytix — retour à l'accueil">
         <img src="${LOGO_DATA_URI}" alt="Contralytix" style="width:34px;height:34px;border-radius:8px;flex-shrink:0;object-fit:cover;"/>
         <div>
           <div class="brand-name">Contralyti<span class="brand-x">x</span></div>
@@ -5071,6 +5076,10 @@ function render(){
     </div>
   `;
   document.documentElement.setAttribute('data-theme', state.theme);
+  // Logo + nom (26/09/2026) : retour à l'accueil (Dashboard), aussi au clavier (Entrée / Espace).
+  document.querySelectorAll('.sidebar .brand-home').forEach(el=>{
+    el.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); el.click(); } };
+  });
   document.querySelectorAll('.sidebar [data-nav]').forEach(el=>{
     el.onclick = ()=>{
       state.route = el.dataset.nav;
