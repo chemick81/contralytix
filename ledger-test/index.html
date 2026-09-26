@@ -1714,7 +1714,7 @@ function fromRow(row){
 async function loadAll(){
   if(!SUPABASE_CONFIGURED) return;
   for(const t of TABLES){
-    const { data, error } = await supabaseClient.from(t).select('*');
+    const { data, error } = t==='traders' ? await fetchTradersRows() : await supabaseClient.from(t).select('*');
     if(error){ showToast('Erreur de chargement (' + t + ') : ' + error.message, 'danger'); state[t] = []; }
     else{ state[t] = data.map(fromRow); }
   }
@@ -1725,8 +1725,28 @@ async function loadAll(){
    de connexion). Les fiches publiques des autres utilisateurs arrivent donc sans email en
    mémoire : il n'est ni affiché, ni cherchable, ni exportable. Les admins (responsables du
    traitement : assignation de propriétaire, liens profil ↔ trader) le conservent.
-   ⚠ Ceci protège l'interface ; la protection côté base (API) est traitée par
-   diagnostic_traders_email_20260926.sql — voir claude/masquage-email-traders.md. */
+   Double sécurité : côté base, get_traders() ne renvoie déjà plus ces emails une fois la
+   migration migration_traders_email_prive_20260926.sql passée — voir claude/masquage-email-traders.md. */
+// Côté base (migration_traders_email_prive_20260926.sql) : la lecture directe de la colonne
+// traders.email est retirée aux utilisateurs ; les fiches sont lues via la fonction get_traders(),
+// qui applique la même visibilité que la policy traders_select_visible et ne renvoie l'email
+// qu'au créateur, à la personne liée par email, ou à un admin. Repli sur select('*') tant que
+// la migration n'est pas passée (fonction absente) : ce code peut être déployé avant le SQL.
+async function fetchTradersRows(){
+  const rpc = await supabaseClient.rpc('get_traders');
+  if(!rpc.error) return { data: (rpc.data||[]).map(r=>(r && r.get_traders) ? r.get_traders : r), error: null };
+  return await supabaseClient.from('traders').select('*');
+}
+// Écriture d'une fiche trader sans upsert : un upsert (INSERT ... ON CONFLICT DO UPDATE SET
+// email = excluded.email) exige le droit de LIRE la colonne email, retiré par la migration.
+// Un INSERT simple (création) ou un UPDATE ciblé par id (modification) n'en a pas besoin.
+async function writeTraderRow(row, exists){
+  if(exists){
+    const { id, ...fields } = row;
+    return await supabaseClient.from('traders').update(fields).eq('id', id);
+  }
+  return await supabaseClient.from('traders').insert(row);
+}
 function purgeForeignTraderEmails(){
   if(isAdmin() || !Array.isArray(state.traders)) return;
   const myId = currentUserId();
@@ -1952,7 +1972,9 @@ async function upsert(collection, item){
   // champ plutôt que de perdre toute la sauvegarde — le reste des données est conservé. On boucle
   // pour gérer le cas où PLUSIEURS colonnes manquent à la fois (schéma pas migré du tout).
   for(let attempt=0; attempt<12; attempt++){
-    const res = await supabaseClient.from(collection).upsert(row);
+    const res = collection==='traders'
+      ? await writeTraderRow(row, idx>=0)
+      : await supabaseClient.from(collection).upsert(row);
     error = res.error;
     if(!error) break;
     const missingColMatch = /Could not find the '([a-z0-9_]+)' column/i.exec(error.message || '');
@@ -14129,7 +14151,9 @@ async function runMigrationImport(json){
     const items = Array.isArray(json[table]) ? json[table] : [];
     if(items.length === 0) continue;
     const rows = items.map(item => toRow({ ...item, createdBy: myId }));
-    const { error } = await supabaseClient.from(table).upsert(rows, { onConflict: 'id' });
+    // traders : pas de mise à jour des fiches déjà présentes (ON CONFLICT DO NOTHING), car un
+    // upsert qui réécrit l'email exige de pouvoir le lire — voir writeTraderRow().
+    const { error } = await supabaseClient.from(table).upsert(rows, table==='traders' ? { onConflict: 'id', ignoreDuplicates: true } : { onConflict: 'id' });
     if(error){
       throw new Error(`table "${table}" (${items.length} ligne(s)) : ${error.message}`);
     }
