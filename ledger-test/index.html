@@ -1614,6 +1614,9 @@ const state = {
   // Page Profil : l'email n'est jamais affiché par défaut (voir maskedEmail()) ; ce flag,
   // volontairement non persisté (reset à chaque rechargement), autorise un affichage ponctuel.
   profileEmailRevealed: false,
+  // Page Traders : ids des fiches dont l'email est affiché ponctuellement (bouton œil). Même
+  // principe que profileEmailRevealed : en mémoire seulement, remis à zéro à chaque rechargement.
+  revealedTraderEmails: [],
   navOpenGroups: loadNavOpenGroups(),
   adminTab: 'overview',
   adminToolsMenuOpen: false,
@@ -1715,6 +1718,33 @@ async function loadAll(){
     if(error){ showToast('Erreur de chargement (' + t + ') : ' + error.message, 'danger'); state[t] = []; }
     else{ state[t] = data.map(fromRow); }
   }
+  purgeForeignTraderEmails();
+}
+/* RGPD — minimisation (26/09/2026) : l'email d'une fiche trader est une donnée personnelle.
+   Un utilisateur n'en a besoin que pour SES fiches (créées par lui, ou rattachées à son email
+   de connexion). Les fiches publiques des autres utilisateurs arrivent donc sans email en
+   mémoire : il n'est ni affiché, ni cherchable, ni exportable. Les admins (responsables du
+   traitement : assignation de propriétaire, liens profil ↔ trader) le conservent.
+   ⚠ Ceci protège l'interface ; la protection côté base (API) est traitée par
+   diagnostic_traders_email_20260926.sql — voir claude/masquage-email-traders.md. */
+function purgeForeignTraderEmails(){
+  if(isAdmin() || !Array.isArray(state.traders)) return;
+  const myId = currentUserId();
+  const myEmail = (state.session && state.session.user && state.session.user.email || '').toLowerCase();
+  state.traders.forEach(t=>{
+    if(!t || !t.email) return;
+    if(t.createdBy===myId) return;
+    if(myEmail && t.email.toLowerCase()===myEmail) return;
+    t.email = null;
+  });
+}
+function traderEmailCell(t){
+  if(!t || !t.email) return '<span class="text-faint">—</span>';
+  const shown = state.revealedTraderEmails.includes(t.id);
+  return `<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
+    <span style="font-family:monospace;">${escapeHtml(shown ? t.email : maskedEmail(t.email))}</span>
+    <button class="btn btn-ghost btn-sm" data-reveal-trader-email="${escapeHtml(t.id)}" title="${shown?'Masquer':'Afficher'} l'email" aria-label="${shown?'Masquer':'Afficher'} l'email">${icon(shown?'eyeOff':'eye')}</button>
+  </span>`;
 }
 // Tables soumises aux droits créateur/admin (lecture libre pour tous, écriture restreinte)
 const OWNED_TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
@@ -6214,8 +6244,8 @@ function viewTraders(){
               const badges = computeTraderBadges(t);
               const unlocked = badges.filter(b=>b.unlocked);
               return `<tr class="${freeBlurClass(ti,trBlurred)}">
-                <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${t.firstName} ${t.lastName}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${t.pseudo}</span></td>
-                <td class="text-dim">${t.email||'—'}</td>
+                <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${escapeHtml(t.firstName)} ${escapeHtml(t.lastName)}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${escapeHtml(t.pseudo)}</span></td>
+                <td class="text-dim">${traderEmailCell(t)}</td>
                 <td><span class="badge ${t.status==='ACTIF'?'badge-accent':'badge-slate'}">${t.status==='ACTIF'?'Actif':'Inactif'}</span></td>
                 <td>
                   <div class="badge-mini-row" data-trader-badges="${t.id}" title="${unlocked.length} badge(s) débloqué(s) — cliquer pour voir">
@@ -11380,6 +11410,12 @@ function bindViewEvents(){
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
   document.querySelectorAll('[data-trader-badges]').forEach(b=>b.onclick=()=>traderBadgesModal(getTrader(b.dataset.traderBadges)));
+  document.querySelectorAll('[data-reveal-trader-email]').forEach(b=>b.onclick=()=>{
+    const id = b.dataset.revealTraderEmail;
+    const list = state.revealedTraderEmails;
+    state.revealedTraderEmails = list.includes(id) ? list.filter(x=>x!==id) : [...list, id];
+    renderView();
+  });
   document.querySelectorAll('[data-trader-regularity]').forEach(b=>b.onclick=()=>traderRegularityModal(getTrader(b.dataset.traderRegularity)));
   document.querySelectorAll('[data-assign-owner]').forEach(b=>b.onclick=()=>{
     assignTraderOwnerModal(getTrader(b.dataset.assignOwner));
@@ -11997,7 +12033,7 @@ function traderFormModal(existing){
         <div class="field"><label>Nom</label><input id="tf-last" value="${t.lastName}"/></div>
       </div>
       <div class="field"><label>Pseudo</label><input id="tf-pseudo" value="${t.pseudo}"/><div class="field-hint">Utilisé partout dans l'app pour identifier le trader.</div></div>
-      <div class="field"><label>Email (optionnel)</label><input id="tf-email" value="${t.email||''}"/><div class="field-hint">Pré-rempli avec ton email de connexion pour rattacher ce trader à ton compte. Modifiable si besoin.</div></div>
+      <div class="field"><label>Email (optionnel)</label><input id="tf-email" value="${escapeHtml(t.email||'')}"/><div class="field-hint">Pré-rempli avec ton email de connexion pour rattacher ce trader à ton compte. Modifiable si besoin.</div></div>
       <div class="field"><label>Statut</label>
         <div class="radio-group">
           <div class="radio-chip ${t.status==='ACTIF'?'selected':''}" data-status="ACTIF">Actif</div>
@@ -13535,7 +13571,7 @@ function globalSearchModal(){
         let html = '';
         if(traderHits.length){
           html += `<div class="acc-field-label" style="margin:12px 0 6px;">Traders</div>`;
-          html += traderHits.map(t=>`<div class="alert-row" data-gs-trader="${t.id}"><div><div class="alert-label">${t.pseudo}</div><div class="alert-sub">${t.email||''}</div></div><span class="alert-goto">${icon('chevRight')}</span></div>`).join('');
+          html += traderHits.map(t=>`<div class="alert-row" data-gs-trader="${t.id}"><div><div class="alert-label">${escapeHtml(t.pseudo)}</div><div class="alert-sub">${t.email ? escapeHtml(maskedEmail(t.email)) : ''}</div></div><span class="alert-goto">${icon('chevRight')}</span></div>`).join('');
         }
         if(firmHits.length){
           html += `<div class="acc-field-label" style="margin:12px 0 6px;">PropFirms</div>`;
