@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-async function upsertSubscription({ userId, plan, status, billingCycle, stripeCustomerId, stripeSubscriptionId, expiresAt }) {
+async function upsertSubscription({ userId, plan, status, billingCycle, stripeCustomerId, stripeSubscriptionId, expiresAt, startedAt }) {
   const payload = {
     user_id: userId,
     plan,
@@ -27,6 +27,12 @@ async function upsertSubscription({ userId, plan, status, billingCycle, stripeCu
     stripe_subscription_id: stripeSubscriptionId || null,
     expires_at: expiresAt || null,
   };
+  // started_at ne doit être (ré)écrit QUE quand un abonnement démarre réellement
+  // (checkout.session.completed, seul appelant qui passe startedAt) : un renouvellement
+  // (invoice.paid) ou un changement de formule (customer.subscription.updated) ne doit
+  // jamais faire "repartir à zéro" la date de début affichée à l'utilisateur. Omis du
+  // payload ici, la clé started_at est absente du SET de l'upsert et reste donc intacte.
+  if (startedAt) payload.started_at = startedAt;
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .upsert(payload, { onConflict: 'user_id' });
@@ -78,6 +84,36 @@ function getCurrentPeriodEnd(subscription) {
   return ts ? new Date(ts * 1000).toISOString() : null;
 }
 
+// Dev et prod partagent le MÊME compte Stripe : chaque événement est donc envoyé aux
+// DEUX endpoints webhook. Un achat fait sur dev arrive aussi sur prod (et inversement)
+// avec un user_id qui n'existe pas dans la base Supabase de ce site -> l'upsert
+// échouait (clé étrangère) -> 500 -> Stripe réessayait pendant des jours puis menaçait
+// de désactiver l'endpoint. On ignore désormais proprement (200) ces événements
+// "étrangers". Une erreur Supabase autre que "utilisateur introuvable" est relancée
+// pour garder le retry Stripe en cas de panne réelle.
+async function userBelongsToThisSite(userId) {
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (data?.user) return true;
+  const notFound = error && (error.status === 404 || /not.?found|invalid.*uuid/i.test(error.message || ''));
+  if (notFound) return false;
+  throw error || new Error(`getUserById(${userId}) sans résultat`);
+}
+
+// Pour une session Checkout, success_url indique directement de quel site vient l'achat.
+function sessionFromOtherSite(session) {
+  try {
+    if (!process.env.SITE_URL || !session.success_url) return false;
+    return new URL(session.success_url).host !== new URL(process.env.SITE_URL).host;
+  } catch (_) {
+    return false;
+  }
+}
+
+function ignored(reason) {
+  console.log(`stripe-webhook: événement ignoré (${reason})`);
+  return { statusCode: 200, body: JSON.stringify({ received: true, ignored: reason }) };
+}
+
 async function findUserIdByCustomer(stripeCustomerId) {
   const { data } = await supabaseAdmin
     .from('subscriptions')
@@ -120,6 +156,8 @@ exports.handler = async (event) => {
         const billingCycle = session.metadata?.billing_cycle || 'MONTHLY';
 
         if (!userId) break;
+        if (sessionFromOtherSite(session)) return ignored(`checkout d'un autre site : ${session.success_url}`);
+        if (!(await userBelongsToThisSite(userId))) return ignored(`user ${userId} inconnu sur ce site`);
 
         if (session.mode === 'payment') {
           // Lifetime : paiement unique, pas d'abonnement récurrent Stripe
@@ -131,6 +169,7 @@ exports.handler = async (event) => {
             stripeCustomerId: session.customer,
             stripeSubscriptionId: null,
             expiresAt: null,
+            startedAt: new Date().toISOString(),
           });
         } else {
           // Mensuel / Annuel : l'objet subscription contient la date d'expiration réelle
@@ -143,6 +182,7 @@ exports.handler = async (event) => {
             stripeCustomerId: session.customer,
             stripeSubscriptionId: subscription.id,
             expiresAt: getCurrentPeriodEnd(subscription),
+            startedAt: new Date().toISOString(),
           });
         }
         break;
@@ -156,6 +196,7 @@ exports.handler = async (event) => {
         const userId = subscription.metadata?.supabase_user_id
           || (await findUserIdByCustomer(invoice.customer));
         if (!userId) break;
+        if (!(await userBelongsToThisSite(userId))) return ignored(`user ${userId} inconnu sur ce site`);
 
         await upsertSubscription({
           userId,
@@ -193,6 +234,7 @@ exports.handler = async (event) => {
         const userId = subscription.metadata?.supabase_user_id
           || (await findUserIdByCustomer(subscription.customer));
         if (!userId) break;
+        if (!(await userBelongsToThisSite(userId))) return ignored(`user ${userId} inconnu sur ce site`);
 
         await upsertSubscription({
           userId,
@@ -212,6 +254,7 @@ exports.handler = async (event) => {
         const userId = subscription.metadata?.supabase_user_id
           || (await findUserIdByCustomer(subscription.customer));
         if (!userId) break;
+        if (!(await userBelongsToThisSite(userId))) return ignored(`user ${userId} inconnu sur ce site`);
 
         const isActive = subscription.status === 'active' || subscription.status === 'trialing';
         await upsertSubscription({
