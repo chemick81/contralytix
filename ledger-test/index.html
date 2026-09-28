@@ -418,6 +418,10 @@ th.th-sort-active svg{opacity:1;}
 .size-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--radius-pill);font-size:13px;font-weight:700;white-space:nowrap;}
 .pay-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border-soft);}
 .pay-pill svg{width:11px;height:11px;flex-shrink:0;}
+.pay-pill-free{background:rgba(227,181,100,.14);color:#E3B564;border-color:rgba(227,181,100,.35);}
+.promo-free-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;margin-top:6px;}
+.promo-free-check input{width:auto;margin:0;accent-color:var(--accent);}
+.promo-free-check svg{width:13px;height:13px;color:#E3B564;}
 
 /* FILTER BAR — bulles façon comparateur (résultats, filtres, tri, réinitialiser) */
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
@@ -1746,6 +1750,7 @@ const ICONS = {
   chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4.5 4v-4H6a2 2 0 0 1-2-2v-9Z"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3 3 10.5l7.5 3M21 3l-7.5 18-3-7.5M21 3 10.5 13.5"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
+  gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
   exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>',
   userCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M5.5 19c1-3 3.5-4.5 6.5-4.5s5.5 1.5 6.5 4.5"/></svg>',
@@ -3843,6 +3848,10 @@ function sizeBadgeHtml(acc){
 // la carte, seulement dans le formulaire d'édition. Neutre (gris) volontairement : ce n'est pas un
 // statut (comme .badge) ni une catégorie colorée (comme type/taille), juste une info de facturation.
 function paymentTypeBadgeHtml(acc){
+  // Compte offert par une promo PropFirm (« 1 acheté = 1 offert ») : prix d'achat à 0 assumé.
+  if(acc.promoFree && acc.paymentType !== 'MENSUEL'){
+    return `<span class="pay-pill pay-pill-free" title="Compte offert par une promo de la PropFirm — prix d’achat 0">${icon('gift')}Offert</span>`;
+  }
   const monthly = acc.paymentType === 'MENSUEL';
   const amount = monthly ? acc.monthlyAmount : acc.purchasePrice;
   const amountHtml = amount ? ` · ${fmtMoneyDisp(amount, acc.currency, acc.fxRateToEur)}${monthly?'/mois':''}` : '';
@@ -13967,7 +13976,8 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field-row">
-        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.purchasePrice||''}"/></div>
+        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.promoFree?'0':(a.purchasePrice||'')}" ${a.promoFree?'disabled':''}/>
+          <label class="promo-free-check" title="Promo de la PropFirm type « 1 acheté = 1 offert » : ce compte est enregistré à 0, le compte payé garde son vrai prix."><input type="checkbox" id="af-promo-free" ${a.promoFree?'checked':''}/>${icon('gift')}Compte offert (promo)</label></div>
         <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
         <div class="field" id="af-purchase-date-wrap" style="display:${(a.type==='PA'||a.type==='LIVE')?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="af-date" type="date" value="${a.purchaseDate}"/></div>
       </div>
@@ -14050,6 +14060,13 @@ function accountFormModal({ existing, type, parentChallenge }){
         document.getElementById('af-price-wrap').style.display = curPay==='UNIQUE' ? 'block' : 'none';
         document.getElementById('af-monthly-wrap').style.display = curPay==='MENSUEL' ? 'block' : 'none';
       });
+      const afPromo = document.getElementById('af-promo-free');
+      if(afPromo) afPromo.onchange = ()=>{
+        const priceEl = document.getElementById('af-price');
+        priceEl.disabled = afPromo.checked;
+        if(afPromo.checked){ priceEl.dataset.prev = priceEl.value; priceEl.value = '0'; }
+        else { priceEl.value = priceEl.dataset.prev && priceEl.dataset.prev!=='0' ? priceEl.dataset.prev : ''; priceEl.focus(); }
+      };
       document.getElementById('af-size').onchange = (e)=>{
         curSize = e.target.value;
         document.getElementById('af-customsize-wrap').style.display = curSize==='AUTRE' ? 'block' : 'none';
@@ -14155,13 +14172,14 @@ function accountFormModal({ existing, type, parentChallenge }){
         }
         const size = document.getElementById('af-size').value;
         const customSize = size==='AUTRE' ? Number(document.getElementById('af-customsize').value)||0 : null;
-        const purchasePrice = curPay==='UNIQUE' ? Number(document.getElementById('af-price').value)||0 : null;
+        const promoFree = curPay==='UNIQUE' && !!(document.getElementById('af-promo-free')||{}).checked;
+        const purchasePrice = curPay==='UNIQUE' ? (promoFree ? 0 : Number(document.getElementById('af-price').value)||0) : null;
         const monthlyAmount = curPay==='MENSUEL' ? Number(document.getElementById('af-monthly').value)||0 : null;
         // Prix d'achat / montant mensuel obligatoires uniquement à la première création du compte
         // (pas ré-imposé en modification, pour ne pas bloquer la correction d'anciens comptes
         // saisis avant cette règle ou dont le montant n'est simplement pas encore connu).
         if(!isEdit && !parentChallenge){
-          if(curPay==='UNIQUE' && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire à la création du compte.'; return; }
+          if(curPay==='UNIQUE' && !promoFree && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire à la création du compte (ou coche « Compte offert » si c’est une promo).'; return; }
           if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire à la création du compte.'; return; }
         }
         let activationDate = a.activationDate, activationFee = a.activationFee, purchaseDate;
@@ -14196,7 +14214,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         const fxRateToEur = currency==='EUR' ? 1 : Number(fxRateInputVal);
         const record = {
           ...a, traderId, propFirmId, type:curType, size, customSize,
-          accountNumber, paymentType:curPay, purchasePrice, monthlyAmount,
+          accountNumber, paymentType:curPay, purchasePrice, monthlyAmount, promoFree,
           purchaseDate, activationDate: (curType==='PA'||curType==='LIVE')?activationDate:null, activationFee: (curType==='PA'||curType==='LIVE')?activationFee:null,
           status, endDate, parentChallengeId,
           currency, fxRateToEur,
@@ -14248,11 +14266,12 @@ function bulkAccountFormModal(){
   };
   let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = 2;
 
-  function numberFieldsHtml(prevValues){
+  function numberFieldsHtml(prevValues, prevFree){
     return Array.from({length:qty}).map((_,i)=>`
       <div class="field" style="margin-bottom:8px;">
         <label style="font-size:12px;">Compte ${i+1} — Numéro de compte <span style="color:var(--danger)">*</span></label>
         <input class="baf-number" data-idx="${i}" value="${escapeHtml((prevValues&&prevValues[i])||'')}"/>
+        <label class="promo-free-check baf-promo-wrap" style="display:${curPay==='UNIQUE'?'flex':'none'};"><input type="checkbox" class="baf-promo-free" data-idx="${i}" ${(prevFree&&prevFree[i])?'checked':''}/>${icon('gift')}Compte offert (promo) — enregistré à 0</label>
         <div class="baf-number-error error-text" data-idx="${i}"></div>
       </div>`).join('');
   }
@@ -14301,7 +14320,7 @@ function bulkAccountFormModal(){
         <div class="field-hint">Le montant saisi est appliqué à l’identique sur chacun des comptes du lot.</div>
       </div>
       <div class="field-row">
-        <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/></div>
+        <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte payé) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/><div class="field-hint">Promo « 1 acheté = 1 offert » : coche « Compte offert » sur le ou les comptes gratuits plus bas.</div></div>
         <div class="field" id="baf-monthly-wrap" style="display:${curPay==='MENSUEL'?'block':'none'};"><label>Montant mensuel (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-monthly" type="number"/></div>
         <div class="field" id="baf-purchase-date-wrap"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
       </div>
@@ -14338,7 +14357,8 @@ function bulkAccountFormModal(){
       }
       function regenerateNumberFields(){
         const prev = currentNumberValues();
-        document.getElementById('baf-numbers').innerHTML = numberFieldsHtml(prev);
+        const prevFree = Array.from(document.querySelectorAll('.baf-promo-free')).map(c=>c.checked);
+        document.getElementById('baf-numbers').innerHTML = numberFieldsHtml(prev, prevFree);
       }
       document.getElementById('baf-qty').addEventListener('input', (e)=>{
         let v = Math.round(Number(e.target.value)||0);
@@ -14358,6 +14378,7 @@ function bulkAccountFormModal(){
         document.querySelectorAll('[data-pay]').forEach(c=>c.classList.toggle('selected', c.dataset.pay===curPay));
         document.getElementById('baf-price-wrap').style.display = curPay==='UNIQUE' ? 'block' : 'none';
         document.getElementById('baf-monthly-wrap').style.display = curPay==='MENSUEL' ? 'block' : 'none';
+        document.querySelectorAll('.baf-promo-wrap').forEach(w=>w.style.display = curPay==='UNIQUE' ? 'flex' : 'none');
       });
       document.getElementById('baf-size').onchange = (e)=>{
         curSize = e.target.value;
@@ -14422,7 +14443,10 @@ function bulkAccountFormModal(){
         const customSize = size==='AUTRE' ? Number(document.getElementById('baf-customsize').value)||0 : null;
         const purchasePrice = curPay==='UNIQUE' ? Number(document.getElementById('baf-price').value)||0 : null;
         const monthlyAmount = curPay==='MENSUEL' ? Number(document.getElementById('baf-monthly').value)||0 : null;
-        if(curPay==='UNIQUE' && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire.'; return; }
+        // Promo « 1 acheté = 1 offert » : cases cochées ligne par ligne (paiement unique uniquement).
+        const freeFlags = Array.from(document.querySelectorAll('.baf-promo-free')).map(c=>curPay==='UNIQUE' && c.checked);
+        const allFree = freeFlags.length>0 && freeFlags.every(Boolean);
+        if(curPay==='UNIQUE' && !allFree && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire (il s’applique aux comptes non cochés « offert »).'; return; }
         if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire.'; return; }
 
         let activationDate = null, activationFee = null, purchaseDate;
@@ -14486,21 +14510,23 @@ function bulkAccountFormModal(){
           }
         }
 
-        for(const accountNumber of rawNumbers){
+        for(const [numIdx, accountNumber] of rawNumbers.entries()){
+          const promoFree = !!freeFlags[numIdx];
           const record = {
             id: uid('acc'), traderId, propFirmId, type:curType,
             parentChallengeId: null,
             size, customSize, accountNumber,
-            paymentType:curPay, purchasePrice, monthlyAmount,
+            paymentType:curPay, purchasePrice: promoFree ? 0 : purchasePrice, monthlyAmount, promoFree,
             purchaseDate, activationDate, activationFee,
             status: 'ACTIF', endDate: null,
             currency, fxRateToEur,
             createdAt: new Date().toISOString(), createdBy: currentUserId(),
           };
           await upsert('accounts', record);
-          await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]} (ajout en masse)`);
+          await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]} (ajout en masse${promoFree?', offert promo':''})`);
         }
-        showToast(`${rawNumbers.length} comptes créés.`);
+        const nbFree = freeFlags.filter(Boolean).length;
+        showToast(`${rawNumbers.length} comptes créés${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}.`);
         closeModal(); render();
       };
     }
