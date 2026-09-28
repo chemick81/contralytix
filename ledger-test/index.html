@@ -419,9 +419,25 @@ th.th-sort-active svg{opacity:1;}
 .pay-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border-soft);}
 .pay-pill svg{width:11px;height:11px;flex-shrink:0;}
 .pay-pill-free{background:rgba(227,181,100,.14);color:#E3B564;border-color:rgba(227,181,100,.35);}
-.promo-free-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;margin-top:6px;}
-.promo-free-check input{width:auto;margin:0;accent-color:var(--accent);}
-.promo-free-check svg{width:13px;height:13px;color:#E3B564;}
+.promo-row{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:0 0 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);cursor:pointer;user-select:none;transition:border-color .15s,background .15s;}
+.promo-row:hover{border-color:rgba(227,181,100,.45);}
+.promo-row:has(input:checked){border-color:rgba(227,181,100,.55);background:rgba(227,181,100,.08);}
+.promo-row-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;background:rgba(227,181,100,.14);color:#E3B564;}
+.promo-row-icon svg{width:16px;height:16px;}
+.promo-row-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.promo-row-title{font-size:13px;font-weight:600;color:var(--text);}
+.promo-row-sub{font-size:11.5px;color:var(--text-faint);}
+.baf-line{display:flex;align-items:center;gap:10px;}
+.baf-line .baf-number{flex:1;min-width:0;}
+.promo-chip{display:inline-flex !important;align-items:center;gap:8px;margin:0 !important;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-2);font-size:12px !important;font-weight:600;color:var(--text-dim) !important;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s,background .15s,color .15s;}
+.promo-chip svg{width:13px;height:13px;color:#E3B564;}
+.promo-chip:has(input:checked){border-color:rgba(227,181,100,.55);background:rgba(227,181,100,.10);color:#E3B564 !important;}
+.field .switch input,.promo-row .switch input,.promo-chip .switch input{opacity:0;width:0;height:0;padding:0;border:0;position:absolute;}
+.promo-chip .switch{width:30px;height:18px;}
+.promo-chip .switch-track::before{width:12px;height:12px;}
+.promo-chip .switch input:checked + .switch-track::before{transform:translateX(12px);}
+.promo-row .switch input:checked + .switch-track,.promo-chip .switch input:checked + .switch-track{background:rgba(227,181,100,.18);border-color:#E3B564;}
+.promo-row .switch input:checked + .switch-track::before,.promo-chip .switch input:checked + .switch-track::before{background:#E3B564;}
 
 /* FILTER BAR — bulles façon comparateur (résultats, filtres, tri, réinitialiser) */
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
@@ -13976,11 +13992,15 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field-row">
-        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.promoFree?'0':(a.purchasePrice||'')}" ${a.promoFree?'disabled':''}/>
-          <label class="promo-free-check" title="Promo de la PropFirm type « 1 acheté = 1 offert » : ce compte est enregistré à 0, le compte payé garde son vrai prix."><input type="checkbox" id="af-promo-free" ${a.promoFree?'checked':''}/>${icon('gift')}Compte offert (promo)</label></div>
+        <div class="field" id="af-price-wrap" style="display:${a.paymentType==='UNIQUE'?'block':'none'};"><label>Prix d'achat${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-price" type="number" value="${a.promoFree?'0':(a.purchasePrice||'')}" ${a.promoFree?'disabled':''}/></div>
         <div class="field" id="af-monthly-wrap" style="display:${a.paymentType==='MENSUEL'?'block':'none'};"><label>Montant mensuel${(!isEdit && !parentChallenge)?' <span style="color:var(--danger)">*</span>':''}</label><input id="af-monthly" type="number" value="${a.monthlyAmount||''}"/></div>
         <div class="field" id="af-purchase-date-wrap" style="display:${(a.type==='PA'||a.type==='LIVE')?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="af-date" type="date" value="${a.purchaseDate}"/></div>
       </div>
+      <label class="promo-row" id="af-promo-row" style="display:${a.paymentType==='UNIQUE'?'flex':'none'};">
+        <span class="promo-row-icon">${icon('gift')}</span>
+        <span class="promo-row-text"><span class="promo-row-title">Compte offert</span><span class="promo-row-sub">Promo « 1 acheté = 1 offert » : enregistré à 0, le compte payé garde son vrai prix.</span></span>
+        <span class="switch"><input type="checkbox" id="af-promo-free" ${a.promoFree?'checked':''}/><span class="switch-track"></span></span>
+      </label>
       <div class="field-row">
         <div class="field"><label>Devise</label>
           <select id="af-currency">
@@ -14058,6 +14078,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         curPay = chip.dataset.pay;
         document.querySelectorAll('[data-pay]').forEach(c=>c.classList.toggle('selected', c.dataset.pay===curPay));
         document.getElementById('af-price-wrap').style.display = curPay==='UNIQUE' ? 'block' : 'none';
+        document.getElementById('af-promo-row').style.display = curPay==='UNIQUE' ? 'flex' : 'none';
         document.getElementById('af-monthly-wrap').style.display = curPay==='MENSUEL' ? 'block' : 'none';
       });
       const afPromo = document.getElementById('af-promo-free');
@@ -14270,8 +14291,10 @@ function bulkAccountFormModal(){
     return Array.from({length:qty}).map((_,i)=>`
       <div class="field" style="margin-bottom:8px;">
         <label style="font-size:12px;">Compte ${i+1} — Numéro de compte <span style="color:var(--danger)">*</span></label>
-        <input class="baf-number" data-idx="${i}" value="${escapeHtml((prevValues&&prevValues[i])||'')}"/>
-        <label class="promo-free-check baf-promo-wrap" style="display:${curPay==='UNIQUE'?'flex':'none'};"><input type="checkbox" class="baf-promo-free" data-idx="${i}" ${(prevFree&&prevFree[i])?'checked':''}/>${icon('gift')}Compte offert (promo) — enregistré à 0</label>
+        <div class="baf-line">
+          <input class="baf-number" data-idx="${i}" value="${escapeHtml((prevValues&&prevValues[i])||'')}"/>
+          <label class="promo-chip baf-promo-wrap" title="Compte offert par une promo « 1 acheté = 1 offert » — enregistré à 0" style="${curPay==='UNIQUE'?'':'display:none !important;'}">${icon('gift')}Offert<span class="switch"><input type="checkbox" class="baf-promo-free" data-idx="${i}" ${(prevFree&&prevFree[i])?'checked':''}/><span class="switch-track"></span></span></label>
+        </div>
         <div class="baf-number-error error-text" data-idx="${i}"></div>
       </div>`).join('');
   }
@@ -14320,7 +14343,7 @@ function bulkAccountFormModal(){
         <div class="field-hint">Le montant saisi est appliqué à l’identique sur chacun des comptes du lot.</div>
       </div>
       <div class="field-row">
-        <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte payé) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/><div class="field-hint">Promo « 1 acheté = 1 offert » : coche « Compte offert » sur le ou les comptes gratuits plus bas.</div></div>
+        <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte payé) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/><div class="field-hint">Promo « 1 acheté = 1 offert » : active « Offert » sur le ou les comptes gratuits plus bas.</div></div>
         <div class="field" id="baf-monthly-wrap" style="display:${curPay==='MENSUEL'?'block':'none'};"><label>Montant mensuel (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-monthly" type="number"/></div>
         <div class="field" id="baf-purchase-date-wrap"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
       </div>
@@ -14378,7 +14401,7 @@ function bulkAccountFormModal(){
         document.querySelectorAll('[data-pay]').forEach(c=>c.classList.toggle('selected', c.dataset.pay===curPay));
         document.getElementById('baf-price-wrap').style.display = curPay==='UNIQUE' ? 'block' : 'none';
         document.getElementById('baf-monthly-wrap').style.display = curPay==='MENSUEL' ? 'block' : 'none';
-        document.querySelectorAll('.baf-promo-wrap').forEach(w=>w.style.display = curPay==='UNIQUE' ? 'flex' : 'none');
+        document.querySelectorAll('.baf-promo-wrap').forEach(w=>w.style.setProperty('display', curPay==='UNIQUE' ? 'inline-flex' : 'none', 'important'));
       });
       document.getElementById('baf-size').onchange = (e)=>{
         curSize = e.target.value;
