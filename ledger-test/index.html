@@ -518,6 +518,10 @@ th.th-sort-active svg{opacity:1;}
 .search-wrap{position:relative;}
 .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-faint);}
 .search-wrap input{padding-left:30px !important;}
+.search-hidden-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border-radius:var(--radius-md);background:var(--accent-dim);border:1px solid var(--border);font-size:12.5px;color:var(--text);}
+.search-hidden-note>svg{width:15px;height:15px;flex-shrink:0;color:var(--accent);}
+.search-hidden-note>span{flex:1;min-width:200px;}
+.search-hidden-note .btn{margin-left:auto;}
 .month-filter{position:relative;display:flex;align-items:center;}
 .month-filter svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-faint);pointer-events:none;}
 .month-filter input{padding-left:32px !important;}
@@ -9449,15 +9453,55 @@ function viewAccounts(){
     const q = f.q.toLowerCase();
     list = list.filter(a=>{
       const t = getTrader(a.traderId), pf = getFirm(a.propFirmId);
-      return (t&&t.pseudo.toLowerCase().includes(q)) || a.accountNumber.toLowerCase().includes(q) || (pf&&pf.name.toLowerCase().includes(q));
+      return (t&&t.pseudo.toLowerCase().includes(q)) || (a.accountNumber||'').toLowerCase().includes(q) || (pf&&pf.name.toLowerCase().includes(q));
     });
   }
+  // Résultats de recherche masqués par les autres filtres (01/10/2026, retour bêta-testeur) :
+  // un compte trouvé par la recherche mais caché par le statut (« Actif » par défaut), le type,
+  // la taille, la PropFirm ou le trader faisait croire à un bug (« le compte 07 n'apparaît pas »).
+  // On garde les filtres, mais on annonce ces comptes avec un bouton pour les afficher.
+  // Le filtre trader est partagé entre toutes les pages (setTraderFilterEverywhere) : il reste un
+  // contexte assumé, appliqué AVANT, donc non compté comme « masquant » et jamais levé ici.
   if(f.trader.length) list = list.filter(a=>f.trader.includes(a.traderId));
+  const searchMatches = f.q ? list : null;
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
   if(f.type) list = list.filter(a=>a.type===f.type);
   if(f.size) list = list.filter(a=>a.size===f.size);
   if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status));
+  const hiddenSearchHtml = (()=>{
+    if(!searchMatches) return '';
+    const shown = new Set(list.map(a=>a.id));
+    const hidden = searchMatches.filter(a=>!shown.has(a.id));
+    if(!hidden.length) return '';
+    const reasons = [];
+    if(f.status && f.status.length && hidden.some(a=>!f.status.includes(a.status))){
+      const st = [...new Set(hidden.filter(a=>!f.status.includes(a.status)).map(a=>STATUS_LABELS[a.status]||a.status))];
+      reasons.push('statut ' + st.join(', ').toLowerCase());
+    }
+    if(f.type && hidden.some(a=>a.type!==f.type)) reasons.push('type ' + [...new Set(hidden.filter(a=>a.type!==f.type).map(a=>TYPE_LABELS[a.type]||a.type))].join(', '));
+    if(f.size && hidden.some(a=>a.size!==f.size)) reasons.push('taille');
+    if(f.propfirm && hidden.some(a=>a.propFirmId!==f.propfirm)) reasons.push('PropFirm');
+    const n = hidden.length;
+    return `<div class="search-hidden-note">${icon('info')}<span><strong>${n} compte${n>1?'s':''} correspondant${n>1?'s':''} à « ${escapeHtml(f.q)} » ${n>1?'sont masqués':'est masqué'}</strong> par tes filtres${reasons.length?` (${reasons.join(' · ')})`:''}.</span><button type="button" class="btn btn-outline btn-sm" id="f-show-hidden-search">Afficher</button></div>`;
+  })();
   list.sort((a,b)=>(b.purchaseDate||'').localeCompare(a.purchaseDate||''));
+  // Recherche : tri par pertinence (01/10/2026). Des numéros comme « PA-APEX-607161-07 » contiennent
+  // souvent la recherche ailleurs que dans le suffixe (« 07 » est dans « 607161 ») : sans tri, le
+  // compte visé se perdait au milieu de tous les autres. Ordre : un bloc du n° (séparé par - _ . /
+  // espace) égal à la recherche > n° qui finit par la recherche > bloc qui commence par la recherche
+  // > le reste (ordre par date conservé à pertinence égale, tri stable).
+  if(f.q){
+    const q = f.q.trim().toLowerCase();
+    const score = a=>{
+      const num = (a.accountNumber||'').toLowerCase();
+      const parts = num.split(/[-_.\/\s]+/);
+      if(num===q || parts.includes(q)) return 0;
+      if(num.endsWith(q)) return 1;
+      if(parts.some(x=>x.startsWith(q))) return 2;
+      return 3;
+    };
+    list.sort((a,b)=>score(a)-score(b));
+  }
 
   const statusOpts = [
     { v:'REUSSI', l:'Réussi' }, { v:'ACTIF', l:'Actif' },
@@ -9504,6 +9548,7 @@ function viewAccounts(){
   if(list.length===0){
     // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
     const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size;
+    if(hiddenSearchHtml) return filterBar + hiddenSearchHtml;
     return filterBar + (onlyStatusHides
       ? `<div class="empty">${icon('search')}<div class="empty-title">Aucun compte ${f.status.length===1 ? (STATUS_LABELS[f.status[0]]||'').toLowerCase() : 'pour ces statuts'}</div><div class="empty-sub">Tes autres comptes (réussis, breached, fermés) sont masqués par le filtre de statut.</div><button type="button" class="btn btn-outline btn-sm" id="f-show-all-status" style="margin-top:12px;">Voir tous les statuts</button></div>`
       : emptyState('search','Aucun résultat','Essaie d\u2019élargir tes filtres.'));
@@ -9511,7 +9556,7 @@ function viewAccounts(){
 
   if(f.groupBy.length){
     const activeGroups = [...f.groupBy].sort((a,b)=>GROUP_ORDER[a]-GROUP_ORDER[b]);
-    return filterBar + renderGroupedAccounts(list, activeGroups);
+    return filterBar + hiddenSearchHtml + renderGroupedAccounts(list, activeGroups);
   }
 
   // Teaser flou Free : au-delà du quota d'un compte Free (déjà limité en création à
@@ -9519,7 +9564,7 @@ function viewAccounts(){
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
   // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
   const accBlurred = freeBlurIndexSet(list, isMineAccount);
-  return filterBar + `<div>
+  return filterBar + hiddenSearchHtml + `<div>
     ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
   </div>
   ${freeBlurBannerHtml(accBlurred.size, 'comptes')}`;
@@ -13642,6 +13687,13 @@ function bindViewEvents(){
     if(statusMenu) statusMenu.onclick = (e)=>e.stopPropagation();
     const showAllStatus = document.getElementById('f-show-all-status');
     if(showAllStatus) showAllStatus.onclick = ()=>{ state.filters.accounts.status = []; renderView(); };
+    // « Afficher » sur la note de résultats masqués : on garde la recherche, on lève les filtres qui cachent
+    const showHiddenSearch = document.getElementById('f-show-hidden-search');
+    if(showHiddenSearch) showHiddenSearch.onclick = ()=>{
+      const fa = state.filters.accounts;
+      fa.status = []; fa.type = ''; fa.size = ''; fa.propfirm = '';
+      renderView();
+    };
     const statusClear = document.getElementById('f-status-clear');
     if(statusClear) statusClear.onclick = (e)=>{
       e.stopPropagation();
@@ -15771,8 +15823,14 @@ function globalSearchModal(){
         const firmHits = state.propfirms.filter(f=>f.name.toLowerCase().includes(q));
         const accHits = state.accounts.filter(a=>{
           const t = getTrader(a.traderId), f = getFirm(a.propFirmId);
-          return a.accountNumber.toLowerCase().includes(q) || (t&&t.pseudo.toLowerCase().includes(q)) || (f&&f.name.toLowerCase().includes(q));
-        }).slice(0,20);
+          return (a.accountNumber||'').toLowerCase().includes(q) || (t&&t.pseudo.toLowerCase().includes(q)) || (f&&f.name.toLowerCase().includes(q));
+        }).map(a=>{
+          // Même tri par pertinence que la page Comptes (voir viewAccounts) AVANT la coupe à 20,
+          // sinon « 07 » pouvait remplir la liste avec les comptes contenant « 607… » et exclure le bon.
+          const num = (a.accountNumber||'').toLowerCase(), parts = num.split(/[-_.\/\s]+/);
+          const sc = (num===q || parts.includes(q)) ? 0 : num.endsWith(q) ? 1 : parts.some(x=>x.startsWith(q)) ? 2 : 3;
+          return { a, sc };
+        }).sort((x,y)=>x.sc-y.sc).map(x=>x.a).slice(0,20);
         if(traderHits.length===0 && firmHits.length===0 && accHits.length===0){
           resultsEl.innerHTML = `<div class="empty-sub" style="padding:10px 0;">Aucun résultat.</div>`;
           return;
