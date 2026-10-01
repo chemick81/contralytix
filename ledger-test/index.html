@@ -1061,14 +1061,17 @@ th.th-sort-active svg{opacity:1;}
 .acc-field-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;}
 .acc-field-value{font-size:13px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
 .link-parent{font-size:11px;color:var(--text-dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
-.link-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;border:1px solid currentColor;cursor:pointer;background:transparent;}
+.link-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;background:transparent;transition:color .15s,border-color .15s,background .15s;white-space:nowrap;}
 .link-tag svg{width:11px;height:11px;flex-shrink:0;}
-.link-tag:hover{filter:brightness(1.15);}
+.link-tag .mono{font-size:10.5px;font-weight:500;letter-spacing:.2px;}
+.link-tag:hover,.link-tag:focus-visible{color:var(--accent);border-color:var(--accent);background:var(--accent-dim);outline:none;}
+/* Survol d'une vignette de lien : la carte jumelle s'éclaire pour montrer la paire sans cliquer */
+.acc-card.pair-hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
 .acc-card{transition:box-shadow .3s ease, border-color .3s ease;}
 /* Fond teinté selon le statut (23/09/2026) — color-mix sur --surface pour rester très léger dans les 3 thèmes */
 .acc-card-breached{background:color-mix(in srgb, var(--danger) 7%, var(--surface));}
 .acc-card-reussi{background:color-mix(in srgb, var(--slate) 9%, var(--surface));}
-.acc-card.flash-highlight{box-shadow:0 0 0 2px var(--flash-color,var(--gold));border-color:var(--flash-color,var(--gold));}
+.acc-card.flash-highlight{box-shadow:0 0 0 2px var(--accent);border-color:var(--accent);}
 .alert-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);cursor:pointer;}
 .alert-row:last-child{border-bottom:none;}
 .alert-row:hover{background:var(--surface-2);margin:0 -18px;padding:9px 18px;}
@@ -4110,12 +4113,21 @@ function paymentTypeBadgeHtml(acc){
   return `<span class="pay-pill" title="${monthly?'Facturation mensuelle':'Payé en une fois à l’achat'}">${icon(monthly?'calendar':'check')}${monthly?'Mensuel':'Unique'}${amountHtml}</span>`;
 }
 
-// Palette dédiée aux vignettes de lien Challenge -> PA (distincte des couleurs de statut de l'app)
-const LINK_PALETTE = ['#6C5CE7','#00B4D8','#E84393','#F9A826','#2EC4B6','#EE6C4D','#5B8DEF','#B8860B'];
-function linkColor(id){
-  let h = 0;
-  for(let i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) | 0; }
-  return LINK_PALETTE[Math.abs(h) % LINK_PALETTE.length];
+// Lien Challenge <-> PA (01/10/2026) : la vignette nomme le compte lié par son n° (même masquage
+// que l'en-tête de carte, voir maskAccountNumber) au lieu d'une couleur aléatoire. Retour bêta-testeur :
+// les couleurs (orange, marron, vert…) n'avaient pas de sens lisible, se répétaient au-delà de 8 paires
+// et se confondaient avec des statuts. Le texte identifie la paire sans ambiguïté (et sans dépendre
+// de la perception des couleurs) ; la correspondance visuelle est assurée au survol (pair-hover).
+function linkedAccountRef(acc){
+  const num = acc && acc.accountNumber ? String(acc.accountNumber) : '';
+  if(!num) return '';
+  return state.numbersVisible ? num : '••' + num.slice(-4);
+}
+function linkTagHtml(target, kind){
+  const ref = linkedAccountRef(target);
+  const label = kind === 'PA' ? 'PA' : 'Challenge';
+  const tip = (kind === 'PA' ? 'Voir le PA lié' : 'Voir le Challenge d’origine') + (ref ? ` (n° ${ref})` : '');
+  return `<button type="button" class="link-tag" data-jump-to="${target.id}" title="${tip}" aria-label="${tip}">${icon('link')}${label}${ref ? ` <span class="mono">${ref}</span>` : ' lié'}</button>`;
 }
 
 function getTrader(id){ return state.traders.find(t=>t.id===id); }
@@ -9561,14 +9573,12 @@ function accountCard(a){
   const pay = accMoney.totalPay;
   const child = state.accounts.find(x=>x.parentChallengeId===a.id);
 
-  // Lien visuel Challenge <-> PA : les deux comptes d'une même paire partagent une couleur/vignette
+  // Lien Challenge <-> PA : vignette neutre qui nomme le compte lié (voir linkTagHtml)
   let linkTag = '';
   if(a.type==='CHALLENGE' && child){
-    const c = linkColor(a.id);
-    linkTag = `<button class="link-tag" data-jump-to="${child.id}" style="color:${c};" title="Voir le PA lié">${icon('link')}PA lié</button>`;
+    linkTag = linkTagHtml(child, 'PA');
   } else if(a.type==='PA' && a.parentChallengeId && getAccount(a.parentChallengeId)){
-    const c = linkColor(a.parentChallengeId);
-    linkTag = `<button class="link-tag" data-jump-to="${a.parentChallengeId}" style="color:${c};" title="Voir le Challenge d'origine">${icon('link')}Challenge lié</button>`;
+    linkTag = linkTagHtml(getAccount(a.parentChallengeId), 'CHALLENGE');
   }
 
   let actions = '';
@@ -13869,7 +13879,6 @@ function bindViewEvents(){
   document.querySelectorAll('[data-jump-to]').forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
     const targetId = b.dataset.jumpTo;
-    const flashColor = b.style.color;
     let el = document.getElementById('acc-'+targetId);
     // Compte lié masqué uniquement par le filtre de statut (ex: Challenge « Réussi » alors que la page
     // est filtrée par défaut sur « Actif ») : on ajoute son statut au filtre plutôt que d'échouer.
@@ -13881,10 +13890,17 @@ function bindViewEvents(){
       el = document.getElementById('acc-'+targetId);
     }
     if(!el){ showToast('Le compte lié n\u2019est pas visible avec les filtres actuels.', 'danger'); return; }
-    el.style.setProperty('--flash-color', flashColor);
     el.scrollIntoView({ behavior:'smooth', block:'center' });
     el.classList.add('flash-highlight');
     setTimeout(()=>el.classList.remove('flash-highlight'), 1600);
+  });
+  // Survol / focus clavier d'une vignette de lien : surligne la carte jumelle (si elle est affichée)
+  document.querySelectorAll('[data-jump-to]').forEach(b=>{
+    const on = ()=>{ const t = document.getElementById('acc-'+b.dataset.jumpTo); if(t) t.classList.add('pair-hover'); };
+    const off = ()=>{ const t = document.getElementById('acc-'+b.dataset.jumpTo); if(t) t.classList.remove('pair-hover'); };
+    b.addEventListener('mouseenter', on); b.addEventListener('mouseleave', off);
+    b.addEventListener('focus', on); b.addEventListener('blur', off);
+    b.addEventListener('click', off);
   });
 
   // Bilan Visuel filters
