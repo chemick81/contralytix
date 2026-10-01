@@ -465,6 +465,53 @@ th.th-sort-active svg{opacity:1;}
 .acc-group-count{font-size:11.5px;color:var(--text-faint);background:var(--surface-2);border-radius:var(--radius-pill);padding:2px 9px;}
 .stat-tile-clickable{cursor:pointer;transition:transform .1s ease,border-color .1s ease;}
 .stat-tile-clickable:hover{border-color:var(--rail,var(--accent));transform:translateY(-1px);}
+/* Délais & tendances (01/10/2026) */
+.delay-tile-main{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
+.delay-tile-main .stat-value{white-space:nowrap;}
+.delay-spark{flex:0 1 132px;min-width:48px;width:100%;height:auto;margin-bottom:2px;overflow:visible;}
+.delay-trend-line{font-size:11.5px;color:var(--text-dim);margin-top:6px;}
+.delay-trend{display:inline-block;font-weight:700;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:var(--radius-pill);margin-right:2px;}
+.delay-trend.good{color:var(--accent);background:var(--accent-dim);}
+.delay-trend.bad{color:var(--danger);background:var(--danger-dim);}
+.delay-trend.flat{color:var(--text-dim);background:var(--slate-dim);}
+.delay-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+@media (max-width:640px){.delay-stats{grid-template-columns:repeat(3,1fr);}}
+.delay-stat{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:10px 12px;}
+.delay-stat-l{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;}
+.delay-stat-v{font-size:17px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);margin-top:2px;}
+.delay-chart{position:relative;border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:8px 6px 0;background:var(--surface);}
+.delay-chart svg{display:block;}
+.delay-axis{font-size:11px;fill:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.delay-hit{cursor:pointer;}
+.delay-tip{position:absolute;transform:translate(-50%,-100%);pointer-events:none;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-dim);white-space:nowrap;box-shadow:var(--shadow);z-index:2;}
+.delay-tip b{color:var(--text);font-family:'JetBrains Mono',monospace;}
+.delay-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11.5px;color:var(--text-dim);margin:8px 2px 0;}
+.delay-legend>span{display:inline-flex;align-items:center;gap:6px;}
+.delay-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.delay-legend-line{width:16px;height:2px;border-radius:2px;background:var(--text-dim);display:inline-block;}
+.delay-quarters{display:flex;gap:8px;overflow-x:auto;margin-top:12px;padding-bottom:2px;}
+.delay-quarter{flex:1 0 84px;border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:8px 10px;background:var(--surface-2);}
+.delay-quarter.is-thin{opacity:.55;border-style:dashed;}
+.delay-quarter-l{font-size:11px;color:var(--text-faint);}
+.delay-quarter-v{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);}
+.delay-quarter-n{font-size:11px;color:var(--text-dim);}
+.delay-firms{margin-top:18px;padding-top:16px;border-top:1px solid var(--border-soft);}
+.delay-firms-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.delay-firms-head .recap-granularity{margin:0;max-width:100%;overflow-x:auto;flex-wrap:nowrap;}
+.delay-firms-title{font-weight:700;font-size:13px;color:var(--text);}
+.delay-firms-title span{font-weight:400;color:var(--text-faint);}
+.delay-firms-empty{font-size:12.5px;color:var(--text-dim);padding:6px 0;}
+.delay-firm-list{display:flex;flex-direction:column;gap:8px;}
+.delay-firm-row{display:grid;grid-template-columns:minmax(110px,180px) 1fr 54px 52px;align-items:center;gap:12px;}
+.delay-firm-row.is-thin{opacity:.5;}
+.delay-firm-name{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text);min-width:0;}
+.delay-firm-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.delay-firm-track{height:10px;border-radius:var(--radius-pill);background:var(--surface-2);overflow:hidden;}
+.delay-firm-bar{height:100%;border-radius:var(--radius-pill);}
+.delay-firm-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--text);text-align:right;}
+.delay-firm-n{font-size:11.5px;color:var(--text-faint);text-align:right;}
+.delay-firms-foot{font-size:11.5px;color:var(--text-faint);margin-top:10px;}
+@media (max-width:640px){.delay-firm-row{grid-template-columns:minmax(90px,1fr) 1fr 46px;}.delay-firm-n{display:none;}}
 .clickable-row{cursor:pointer;}
 .clickable-row:hover{background:var(--surface-2);}
 .filter-result-count{font-size:12px;color:var(--text-faint);white-space:nowrap;margin-left:2px;}
@@ -1859,7 +1906,7 @@ const DASHBOARD_WIDGETS = [
   { id:'accountsByType', label:'Mes comptes (par type)' },
   { id:'performance',    label:'Performance & rendement' },
   { id:'burnVsFund',     label:'Burn vs fund' },
-  { id:'delays',         label:'Délais moyens' },
+  { id:'delays',         label:'Délais & tendances' },
   { id:'chart',          label:'Cash flow (barres + courbe)' },
   { id:'propfirmSplit',  label:'Répartition par PropFirm' },
   { id:'calendar',       label:'Calendrier' },
@@ -1946,7 +1993,7 @@ const state = {
     // breached/réussi/fermé reste toujours trouvable.
     accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
-    dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all' },
+    dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all', delayFirmMetric:'firstPayout' },
     // Admin > Utilisateurs (26/09/2026) : filtres + tri du tableau.
     adminUsers: { q:'', plan:'', cycle:'', trader:'', login:'', signup:'', sort:'createdAt', dir:'desc' },
     rentabilite: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, includeGeneral:true, proofTab:'payouts', proofShowAll:false },
@@ -6952,36 +6999,19 @@ function viewDashboard(){
       payoutIntervalDetails.push({ account:a, from:payDates[i-1], to:payDates[i], days, anomaly:days<0 });
     }
   });
-  const avgDaysMetric = (items)=>{
-    const valid = items.filter(it=>!it.anomaly);
-    return valid.length ? Math.round(valid.reduce((s,it)=>s+it.days,0)/valid.length) : null;
-  };
-  const avgFirstPayoutDays = avgDaysMetric(firstPayoutDetails);
-  const avgPayoutIntervalDays = avgDaysMetric(payoutIntervalDetails);
   const breachDetails = challenges.filter(a=>a.status==='BREACHED' && a.purchaseDate && a.endDate).map(a=>{
     const days = daysBetween(a.purchaseDate, a.endDate);
     return { account:a, from:a.purchaseDate, to:a.endDate, days, anomaly:days<0 };
   });
-  const avgBreachDays = avgDaysMetric(breachDetails);
   const passToPaDetails = challenges.filter(a=>a.status==='REUSSI' && a.purchaseDate && a.endDate).map(a=>{
     const days = daysBetween(a.purchaseDate, a.endDate);
     return { account:a, from:a.purchaseDate, to:a.endDate, days, anomaly:days<0 };
   });
-  const avgPassToPaDays = avgDaysMetric(passToPaDetails);
-  const validCount = (items)=>items.filter(it=>!it.anomaly).length;
   dashboardDelayDetails = {
     firstPayout: { label:'1er payout après ouverture', fromLabel:'Ouverture', toLabel:'1er payout', items:firstPayoutDetails },
     payoutInterval: { label:'Entre 2 payouts (même compte)', fromLabel:'Payout précédent', toLabel:'Payout suivant', items:payoutIntervalDetails },
     breach: { label:'Challenge → breach', fromLabel:'Achat challenge', toLabel:'Breach', items:breachDetails },
     passToPa: { label:'Challenge → PA', fromLabel:'Achat challenge', toLabel:'Réussite / PA', items:passToPaDetails },
-  };
-  const delaySubLabel = (items, unit)=>{
-    const valid = items.filter(it=>!it.anomaly).length;
-    const anomalies = items.length - valid;
-    let txt = `${valid} ${unit}${valid>1?'s':''}`;
-    if(anomalies>0) txt += ` · ${anomalies} exclu${anomalies>1?'s':''} (date incohérente)`;
-    if(items.length) txt += ' · voir le détail';
-    return txt;
   };
 
   // --- Widget "Performance & rendement" -----------------------------------------------------
@@ -7205,14 +7235,15 @@ function viewDashboard(){
       </div>`,
     delays: `
       <div class="panel">
-        <div class="panel-head"><div class="section-title">Délais moyens <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— clique une case pour voir le détail par compte</span></div></div>
+        <div class="panel-head"><div class="section-title">Délais &amp; tendances <span style="font-weight:400;font-size:11.5px;color:var(--text-faint);">— médianes · clique une case pour voir l'évolution et le détail</span></div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile ${firstPayoutDetails.length?'stat-tile-clickable':''}" ${firstPayoutDetails.length?'data-delay-detail="firstPayout"':''} style="--rail:var(--accent)"><div class="stat-label">1er payout après ouverture${infoTip("Nombre moyen de jours entre la date d'ouverture d'un compte et son tout premier payout, moyenné sur tous les comptes ayant reçu au moins un payout.")}</div><div class="stat-value">${avgFirstPayoutDays!==null?avgFirstPayoutDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(firstPayoutDetails,'compte')}</div></div>
-            <div class="stat-tile ${payoutIntervalDetails.length?'stat-tile-clickable':''}" ${payoutIntervalDetails.length?'data-delay-detail="payoutInterval"':''} style="--rail:var(--accent)"><div class="stat-label">Entre 2 payouts (même compte)${infoTip("Nombre moyen de jours entre deux payouts consécutifs sur un même compte — indique le rythme de versement habituel de tes propfirms.")}</div><div class="stat-value">${avgPayoutIntervalDays!==null?avgPayoutIntervalDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(payoutIntervalDetails,'intervalle')}</div></div>
-            <div class="stat-tile ${breachDetails.length?'stat-tile-clickable':''}" ${breachDetails.length?'data-delay-detail="breach"':''} style="--rail:var(--danger)"><div class="stat-label">Challenge → breach${infoTip("Nombre moyen de jours entre l'ouverture d'un challenge et son passage en statut Breached, sur les challenges qui ont breach.")}</div><div class="stat-value">${avgBreachDays!==null?avgBreachDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(breachDetails,'challenge')}</div></div>
-            <div class="stat-tile ${passToPaDetails.length?'stat-tile-clickable':''}" ${passToPaDetails.length?'data-delay-detail="passToPa"':''} style="--rail:var(--gold)"><div class="stat-label">Challenge → PA${infoTip("Nombre moyen de jours entre l'ouverture d'un challenge et sa réussite (passage en PA), sur les challenges réussis.")}</div><div class="stat-value">${avgPassToPaDays!==null?avgPassToPaDays+' j':'—'}</div><div class="stat-sub">${delaySubLabel(passToPaDetails,'challenge')}</div></div>
+            ${delayTileHtml('firstPayout', '1er payout après ouverture', "Nombre de jours entre l'ouverture d'un compte financé et son tout premier payout. Valeur médiane : la moitié de tes comptes ont été plus rapides, l'autre moitié plus lents — un cas extrême ne fausse pas le chiffre. Plus court = mieux.", firstPayoutDetails)}
+            ${delayTileHtml('payoutInterval', 'Entre 2 payouts (même compte)', "Nombre de jours entre deux payouts consécutifs sur un même compte — ton rythme de versement habituel. Valeur médiane. Plus court = mieux.", payoutIntervalDetails)}
+            ${delayTileHtml('breach', 'Challenge → breach', "Nombre de jours entre l'ouverture d'un challenge et son breach, sur les challenges qui ont breach. Valeur médiane. Ici, plus long = mieux : tu tiens plus longtemps avant de perdre le compte.", breachDetails)}
+            ${delayTileHtml('passToPa', 'Challenge → PA', "Nombre de jours entre l'ouverture d'un challenge et sa réussite (passage en PA), sur les challenges réussis. Valeur médiane. Plus court = mieux.", passToPaDetails)}
           </div>
+          ${delayFirmCompareHtml(dashboardDelayDetails, f.delayFirmMetric || 'firstPayout', !!f.propfirm)}
         </div>
       </div>`,
     chart: (()=>{
@@ -7294,6 +7325,204 @@ function viewDashboard(){
     ${widgetsOut}
   `;
 }
+/* ============================================================
+   DÉLAIS & TENDANCES (01/10/2026) — voir claude/delais-tendances.md
+   Le module "Délais moyens" passe à la MÉDIANE (un challenge oublié 4 mois ne
+   fausse plus tout le chiffre) et ajoute une lecture dans le temps :
+     1. sur chaque case : écart vs trimestre précédent + mini-courbe trimestrielle ;
+     2. dans le détail : nuage de points daté + médiane glissante, récap par trimestre ;
+     3. sous les cases : comparaison des délais par PropFirm.
+   Garde-fou petits échantillons : une tendance n'est affichée que si les DEUX
+   trimestres comparés ont au moins DELAY_MIN_CASES cas ; en dessous, la donnée
+   reste visible mais marquée "à confirmer" (point creux / barre grisée).
+   Sens favorable propre à chaque délai (DELAY_META.better) : plus court = mieux,
+   sauf Challenge → breach où tenir plus longtemps est le bon signe.
+   Les trimestres sont ceux de la date d'ARRIVÉE (payout, breach, réussite).
+============================================================ */
+const DELAY_MIN_CASES = 3;
+const DELAY_META = {
+  firstPayout:    { better:'lower',  rail:'var(--accent)', unit:['compte','comptes'],         short:'1er payout' },
+  payoutInterval: { better:'lower',  rail:'var(--accent)', unit:['intervalle','intervalles'], short:'Entre payouts' },
+  breach:         { better:'higher', rail:'var(--danger)', unit:['challenge','challenges'],   short:'Jusqu’au breach' },
+  passToPa:       { better:'lower',  rail:'var(--gold)',   unit:['challenge','challenges'],   short:'Jusqu’au PA' },
+};
+function delayValid(items){ return items.filter(it=>!it.anomaly && it.to); }
+function delayMedian(nums){
+  if(!nums.length) return null;
+  const s = [...nums].sort((a,b)=>a-b), m = Math.floor(s.length/2);
+  return Math.round(s.length%2 ? s[m] : (s[m-1]+s[m])/2);
+}
+function delayQuarterKey(iso){ const y = Number(iso.slice(0,4)), q = Math.floor((Number(iso.slice(5,7))-1)/3)+1; return { y, q, key:`${y}-${q}`, label:`T${q} ${y}`, short:`T${q} ${String(y).slice(2)}` }; }
+// Trimestres de la 1re donnée jusqu'au trimestre en cours (trous inclus), 6 derniers max.
+function delayQuarterSeries(items, maxQuarters){
+  const valid = delayValid(items);
+  if(!valid.length) return [];
+  const byKey = {};
+  valid.forEach(it=>{ const k = delayQuarterKey(it.to).key; (byKey[k] = byKey[k] || []).push(it.days); });
+  const first = delayQuarterKey(valid.map(it=>it.to).sort()[0]);
+  const now = delayQuarterKey(todayISO());
+  const out = [];
+  let y = first.y, q = first.q;
+  while(y < now.y || (y===now.y && q<=now.q)){
+    const k = `${y}-${q}`, days = byKey[k] || [];
+    out.push({ key:k, label:`T${q} ${y}`, short:`T${q} ${String(y).slice(2)}`, n:days.length, median:delayMedian(days) });
+    q++; if(q>4){ q=1; y++; }
+  }
+  return out.slice(-(maxQuarters||6));
+}
+// Écart entre le dernier trimestre "solide" (>= DELAY_MIN_CASES cas) et le trimestre juste avant,
+// lui aussi solide. null si les données ne le permettent pas encore.
+function delayTrend(items, better){
+  const series = delayQuarterSeries(items, 40);
+  for(let i=series.length-1; i>=1; i--){
+    if(series[i].n < DELAY_MIN_CASES) continue;
+    const prev = series[i-1];
+    if(prev.n < DELAY_MIN_CASES) return null;
+    const diff = series[i].median - prev.median;
+    return { diff, cur:series[i], prev, good: diff===0 ? null : (better==='lower' ? diff<0 : diff>0) };
+  }
+  return null;
+}
+function delayTrendHtml(items, better){
+  const t = delayTrend(items, better);
+  if(!t){
+    return delayValid(items).length ? `<div class="delay-trend-line text-faint">Tendance dès ${DELAY_MIN_CASES} cas sur 2 trimestres</div>` : '';
+  }
+  const cls = t.good===null ? 'flat' : (t.good ? 'good' : 'bad');
+  const arrow = t.diff===0 ? '=' : (t.diff<0 ? '▼' : '▲');
+  const txt = t.diff===0 ? 'stable' : `${Math.abs(t.diff)} j`;
+  const verdict = t.good===null ? 'stable' : (t.good ? 'en progrès' : 'en recul');
+  return `<div class="delay-trend-line"><span class="delay-trend ${cls}" title="${verdict} : médiane ${t.cur.label} = ${t.cur.median} j, contre ${t.prev.median} j au ${t.prev.label}">${arrow} ${txt}</span> vs ${t.prev.label}</div>`;
+}
+// Mini-courbe trimestrielle (sans axe : c'est une tendance, les valeurs sont dans le détail).
+// Point plein = trimestre solide, point creux = moins de DELAY_MIN_CASES cas.
+function delaySparklineSvg(items, rail){
+  const s = delayQuarterSeries(items, 6);
+  const pts = s.map((x,i)=>({ ...x, i })).filter(x=>x.median!==null);
+  if(pts.length < 2) return '';
+  const W = 132, H = 34, pad = 5;
+  const vals = pts.map(p=>p.median), lo = Math.min(...vals), hi = Math.max(...vals);
+  const X = i => s.length===1 ? W/2 : pad + i*(W-2*pad)/(s.length-1);
+  const Y = v => hi===lo ? H/2 : H-pad - (v-lo)*(H-2*pad)/(hi-lo);
+  let d = '', prevI = null;
+  pts.forEach(p=>{ d += (prevI!==null && p.i===prevI+1 ? 'L' : 'M') + X(p.i).toFixed(1) + ' ' + Y(p.median).toFixed(1); prevI = p.i; });
+  return `<svg class="delay-spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <path d="${d}" fill="none" stroke="${rail}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+    ${pts.map(p=>`<circle cx="${X(p.i).toFixed(1)}" cy="${Y(p.median).toFixed(1)}" r="3" fill="${p.n>=DELAY_MIN_CASES?rail:'var(--surface)'}" stroke="${rail}" stroke-width="1.5"><title>${p.label} : ${p.median} j (${p.n} cas)</title></circle>`).join('')}
+  </svg>`;
+}
+function delayTileHtml(key, label, tip, items){
+  const meta = DELAY_META[key];
+  const valid = delayValid(items);
+  const med = delayMedian(valid.map(it=>it.days));
+  const anomalies = items.length - items.filter(it=>!it.anomaly).length;
+  const nValid = items.length - anomalies;
+  let sub = `${nValid} ${nValid>1?meta.unit[1]:meta.unit[0]}`;
+  if(anomalies>0) sub += ` · ${anomalies} exclu${anomalies>1?'s':''} (date incohérente)`;
+  if(items.length) sub += ' · voir le détail';
+  return `<div class="stat-tile delay-tile ${items.length?'stat-tile-clickable':''}" ${items.length?`data-delay-detail="${key}"`:''} style="--rail:${meta.rail}">
+    <div class="stat-label">${label}${infoTip(tip)}</div>
+    <div class="delay-tile-main">
+      <div class="stat-value">${med!==null?med+' j':'—'}</div>
+      ${delaySparklineSvg(items, meta.rail)}
+    </div>
+    ${delayTrendHtml(items, meta.better)}
+    <div class="stat-sub">${sub}</div>
+  </div>`;
+}
+// Nuage de points daté (1 point = 1 cas réel) + médiane glissante sur les 5 derniers cas.
+// Un seul axe (jours), axe X = date d'arrivée. Survol = infobulle, clic = ouvre le compte.
+function delayScatterSvg(items, rail){
+  const valid = delayValid(items).sort((a,b)=>a.to.localeCompare(b.to));
+  if(valid.length < 2) return '';
+  const W = 680, H = 230, L = 40, R = 14, T = 14, B = 30;
+  const t = it => new Date(it.to+'T00:00:00').getTime();
+  let x0 = t(valid[0]), x1 = t(valid[valid.length-1]);
+  if(x1-x0 < 30*86400000){ x0 -= 15*86400000; x1 += 15*86400000; }
+  const maxD = Math.max(...valid.map(it=>it.days), 1);
+  const step = [1,2,5,10,15,20,30,50,60,90,120,180,365].find(s=>maxD/s <= 4) || Math.ceil(maxD/4);
+  const yMax = Math.ceil(maxD/step)*step;
+  const X = ms => L + (ms-x0)*(W-L-R)/(x1-x0);
+  const Y = v => H-B - v*(H-T-B)/yMax;
+  const yTicks = []; for(let v=0; v<=yMax; v+=step) yTicks.push(v);
+  const xTicks = []; for(let k=0;k<=4;k++) xTicks.push(x0 + k*(x1-x0)/4);
+  const fmtTick = ms => new Date(ms).toLocaleDateString('fr-FR',{ month:'short', year:'2-digit' });
+  // Médiane glissante : à partir du 3e cas, médiane des 5 derniers (ou moins au début).
+  const roll = [];
+  valid.forEach((it,i)=>{ if(i<2) return; const w = valid.slice(Math.max(0,i-4), i+1).map(x=>x.days); roll.push({ x:X(t(it)), y:Y(delayMedian(w)) }); });
+  const rollPath = roll.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join('');
+  return `<div class="delay-chart" data-delay-chart>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Évolution du délai, un point par cas">
+      ${yTicks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border-soft)" stroke-width="1"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" class="delay-axis">${v} j</text>`).join('')}
+      ${xTicks.map((ms,k)=>`<text x="${X(ms)}" y="${H-8}" text-anchor="${k===0?'start':k===xTicks.length-1?'end':'middle'}" class="delay-axis">${fmtTick(ms)}</text>`).join('')}
+      ${roll.length>=2 ? `<path d="${rollPath}" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+      ${valid.map(it=>{
+        const firm = getFirm(it.account.propFirmId), trader = getTrader(it.account.traderId);
+        const tipTxt = `${escapeHtml(firm?firm.name:'—')} · ${escapeHtml(trader?trader.pseudo:'—')}|${fmtDate(it.to)} · ${it.days} j`;
+        return `<circle cx="${X(t(it)).toFixed(1)}" cy="${Y(it.days).toFixed(1)}" r="5" fill="${rail}" stroke="var(--surface)" stroke-width="2"/>
+          <circle class="delay-hit" cx="${X(t(it)).toFixed(1)}" cy="${Y(it.days).toFixed(1)}" r="12" fill="transparent" data-jump-acc="${it.account.id}" data-tip="${tipTxt}"/>`;
+      }).join('')}
+    </svg>
+    <div class="delay-tip" hidden></div>
+  </div>
+  <div class="delay-legend">
+    <span><span class="delay-legend-dot" style="background:${rail}"></span>1 point = 1 cas (clique pour ouvrir le compte)</span>
+    ${roll.length>=2 ? `<span><span class="delay-legend-line"></span>Médiane glissante (5 derniers cas)</span>` : ''}
+  </div>`;
+}
+function delayQuarterRecapHtml(items){
+  const s = delayQuarterSeries(items, 6).filter(x=>x.n>0);
+  if(s.length < 2) return '';
+  return `<div class="delay-quarters">${s.map(x=>`<div class="delay-quarter ${x.n<DELAY_MIN_CASES?'is-thin':''}" title="${x.n<DELAY_MIN_CASES?'Moins de '+DELAY_MIN_CASES+' cas : à confirmer':''}">
+    <div class="delay-quarter-l">${x.label}</div><div class="delay-quarter-v">${x.median} j</div><div class="delay-quarter-n">${x.n} cas</div></div>`).join('')}</div>`;
+}
+// Survol + clic du nuage de points (appelé dans onMount de la modale de détail).
+function bindDelayChart(onJump){
+  const wrap = document.querySelector('[data-delay-chart]');
+  if(!wrap) return;
+  const tip = wrap.querySelector('.delay-tip');
+  wrap.querySelectorAll('.delay-hit').forEach(c=>{
+    c.addEventListener('mouseenter', ()=>{
+      const [l1,l2] = (c.dataset.tip||'').split('|');
+      tip.innerHTML = `<div>${l1||''}</div><b>${l2||''}</b>`;
+      tip.hidden = false;
+      const wr = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      const left = Math.min(Math.max(cr.left - wr.left + cr.width/2, 70), wr.width-70);
+      tip.style.left = left+'px'; tip.style.top = (cr.top - wr.top - 8)+'px';
+    });
+    c.addEventListener('mouseleave', ()=>{ tip.hidden = true; });
+    c.addEventListener('click', ()=>onJump(c.dataset.jumpAcc));
+  });
+}
+// Comparaison par PropFirm : médiane du délai choisi, triée du meilleur au moins bon (selon le
+// sens favorable). Barres grisées = moins de DELAY_MIN_CASES cas, classées après les autres.
+function delayFirmCompareHtml(details, metric, firmFilterActive){
+  const meta = DELAY_META[metric], d = details[metric];
+  const chips = Object.keys(DELAY_META).map(k=>`<button type="button" class="recap-gran-btn ${k===metric?'active':''}" data-delay-firm-metric="${k}">${DELAY_META[k].short}</button>`).join('');
+  const head = `<div class="delay-firms-head"><div class="delay-firms-title">Par PropFirm <span>· médiane</span></div><div class="recap-granularity">${chips}</div></div>`;
+  if(firmFilterActive) return `<div class="delay-firms">${head}<div class="delay-firms-empty">Un filtre PropFirm est actif : retire-le pour comparer tes PropFirms entre elles.</div></div>`;
+  const groups = {};
+  delayValid(d ? d.items : []).forEach(it=>{ const id = it.account.propFirmId || '_'; (groups[id] = groups[id] || []).push(it.days); });
+  const rows = Object.entries(groups).map(([id, days])=>({ firm:getFirm(id), n:days.length, median:delayMedian(days) }));
+  if(rows.length < 2){
+    return `<div class="delay-firms">${head}<div class="delay-firms-empty">${rows.length ? 'Une seule PropFirm a des données pour ce délai : la comparaison apparaîtra dès qu’une 2e en aura.' : 'Pas encore de données pour ce délai.'}</div></div>`;
+  }
+  const solid = r => r.n >= DELAY_MIN_CASES;
+  rows.sort((a,b)=> (solid(b)-solid(a)) || (meta.better==='lower' ? a.median-b.median : b.median-a.median));
+  const max = Math.max(...rows.map(r=>r.median), 1);
+  const anyThin = rows.some(r=>!solid(r));
+  return `<div class="delay-firms">${head}
+    <div class="delay-firm-list">${rows.map(r=>`
+      <div class="delay-firm-row ${solid(r)?'':'is-thin'}" title="${escapeHtml(r.firm?r.firm.name:'PropFirm inconnue')} : médiane ${r.median} j sur ${r.n} cas${solid(r)?'':' (à confirmer)'}">
+        <div class="delay-firm-name">${firmLogoHtml(r.firm,18)}<span>${escapeHtml(r.firm?r.firm.name:'Inconnue')}</span></div>
+        <div class="delay-firm-track"><div class="delay-firm-bar" style="width:${Math.max(3, r.median/max*100).toFixed(1)}%;background:${meta.rail};"></div></div>
+        <div class="delay-firm-val">${r.median} j</div>
+        <div class="delay-firm-n">${r.n} cas</div>
+      </div>`).join('')}
+    </div>
+    <div class="delay-firms-foot">${meta.better==='lower' ? 'Du plus rapide au plus lent.' : 'Du plus long (tu tiens) au plus court.'}${anyThin ? ` Grisé : moins de ${DELAY_MIN_CASES} cas, à confirmer.` : ''}</div>
+  </div>`;
+}
 function openDelayDetailModal(key){
   const d = dashboardDelayDetails[key];
   if(!d || !d.items.length) return;
@@ -7308,14 +7537,29 @@ function openDelayDetailModal(key){
       <td class="mono">${maskAccountNumber(a.accountNumber)}</td>
       <td class="mono text-dim">${fmtDate(it.from)}</td>
       <td class="mono text-dim">${fmtDate(it.to)}</td>
-      <td class="mono" style="font-weight:600;${it.anomaly?'color:var(--danger);':''}">${it.days} j${it.anomaly?` <span class="badge badge-danger" style="margin-left:4px;" title="Le délai est négatif : la date de fin précède la date de départ, probablement suite à une correction de date. Exclu de la moyenne.">⚠ exclu</span>`:''}</td>
+      <td class="mono" style="font-weight:600;${it.anomaly?'color:var(--danger);':''}">${it.days} j${it.anomaly?` <span class="badge badge-danger" style="margin-left:4px;" title="Le délai est négatif : la date de fin précède la date de départ, probablement suite à une correction de date. Exclu du calcul.">⚠ exclu</span>`:''}</td>
     </tr>`;
   }).join('');
+  const meta = DELAY_META[key] || { better:'lower', rail:'var(--accent)' };
+  const validDays = delayValid(d.items).map(it=>it.days);
+  const statCell = (l, v)=>`<div class="delay-stat"><div class="delay-stat-l">${l}</div><div class="delay-stat-v">${v}</div></div>`;
+  const statsHtml = validDays.length ? `<div class="delay-stats">
+      ${statCell('Médiane', delayMedian(validDays)+' j')}
+      ${statCell('Moyenne', Math.round(validDays.reduce((x,y)=>x+y,0)/validDays.length)+' j')}
+      ${statCell('Plus court', Math.min(...validDays)+' j')}
+      ${statCell('Plus long', Math.max(...validDays)+' j')}
+      ${statCell('Cas', validDays.length)}
+    </div>` : '';
+  const trend = delayTrend(d.items, meta.better);
   openModal({
     title: d.label,
     wide: 'wide',
     bodyHtml: `
-      <div class="field-hint" style="margin-bottom:10px;">${d.items.length - anomalyCount} compte(s) pris en compte dans la moyenne.${anomalyCount?` ${anomalyCount} en plus, avec un délai négatif (date incohérente), sont affichés ci-dessous mais exclus du calcul.`:''} Clique une ligne pour ouvrir le compte.</div>
+      ${statsHtml}
+      ${trend ? `<div class="field-hint" style="margin:0 0 10px;">${delayTrendHtml(d.items, meta.better).replace(/<\/?div[^>]*>/g,'')} — ${meta.better==='lower' ? 'plus court = mieux' : 'plus long = mieux'}.</div>` : ''}
+      ${delayScatterSvg(d.items, meta.rail)}
+      ${delayQuarterRecapHtml(d.items)}
+      <div class="field-hint" style="margin:14px 0 10px;">${d.items.length - anomalyCount} cas pris en compte dans la médiane.${anomalyCount?` ${anomalyCount} en plus, avec un délai négatif (date incohérente), sont affichés ci-dessous mais exclus du calcul.`:''} Clique une ligne pour ouvrir le compte.</div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Trader</th><th>PropFirm</th><th>Type</th><th>N° compte</th><th>${d.fromLabel}</th><th>${d.toLabel}</th><th>Délai</th></tr></thead>
@@ -7323,7 +7567,15 @@ function openDelayDetailModal(key){
         </table>
       </div>`,
     onMount(){
-      document.querySelectorAll('[data-jump-acc]').forEach(row=>row.onclick=()=>{
+      bindDelayChart(id=>{
+        const acc = getAccount(id);
+        if(!acc) return;
+        closeModal();
+        state.route = 'accounts';
+        state.filters.accounts = { q: acc.accountNumber, trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
+        render();
+      });
+      document.querySelectorAll('tr[data-jump-acc]').forEach(row=>row.onclick=()=>{
         const acc = getAccount(row.dataset.jumpAcc);
         if(!acc) return;
         closeModal();
@@ -8645,8 +8897,14 @@ const MANUAL_CHAPTERS = [
     <p>Trois cartes résument tes comptes par type — Challenge, PA et Live — avec leur capital engagé ou sous gestion (Contralytix ne suit pas de solde de compte en temps réel : pour un Challenge, c'est le total dépensé en achats et mensualités ; pour un PA ou un Live, c'est la somme des tailles de compte actuellement actives) et le détail des statuts (en cours, réussi, breached, fermé...).</p>
     <h3>Cash flow</h3>
     <p>Un graphique combine les barres Dépenses/Payouts (montants de la période) et la courbe Net cumulé (somme des (payouts − dépenses) période par période), avec un badge de variation par rapport à la période équivalente précédente. Ce widget a son propre filtre (Mois, Trimestre, Année ou Libre — une plage de dates personnalisée), indépendant des filtres du haut de page, et ton choix est mémorisé sur ton compte. Trois puces au-dessus du graphique (Dépenses, Payouts, Net cumulé) permettent d'afficher ou de masquer chaque série indépendamment — ce choix aussi est mémorisé sur ton compte.</p>
-    <h3>Délais moyens</h3>
-    <p>Une série de cases affiche des délais moyens calculés automatiquement à partir des dates enregistrées : délai avant le 1er payout après ouverture d'un compte financé, délai entre deux payouts d'un même compte, délai avant un breach à partir de l'achat d'un Challenge, et délai pour faire passer un Challenge en PA. Chaque case est cliquable et ouvre le détail compte par compte. Les dates incohérentes sont automatiquement exclues de la moyenne mais restent visibles, marquées comme anomalies.</p>` },
+    <h3>Délais &amp; tendances</h3>
+    <p>Quatre cases affichent tes délais clés, calculés automatiquement à partir des dates enregistrées : 1er payout après l'ouverture d'un compte financé, intervalle entre deux payouts d'un même compte, durée avant un breach à partir de l'achat d'un Challenge, et durée pour faire passer un Challenge en PA. Chaque valeur est une <b>médiane</b> : la moitié de tes cas ont été plus rapides, l'autre moitié plus lents, ce qui évite qu'un cas extrême fausse le chiffre.</p>
+    <ul>
+      <li><b>Tendance</b> — chaque case compare le dernier trimestre au trimestre précédent (▼/▲ en jours) et affiche une mini-courbe des derniers trimestres. Le vert signale un progrès : un délai plus court, sauf pour Challenge → breach où tenir plus longtemps est le bon signe. La tendance n'apparaît qu'à partir de 3 cas sur chacun des deux trimestres comparés, pour ne pas tirer de conclusion sur un ou deux comptes.</li>
+      <li><b>Détail</b> — un clic sur une case ouvre un graphique où chaque point est un cas réel, placé à sa date, avec une ligne de médiane glissante (5 derniers cas), un récapitulatif par trimestre et le tableau compte par compte. Un clic sur un point ou une ligne ouvre le compte.</li>
+      <li><b>Par PropFirm</b> — sous les cases, tes PropFirms sont classées selon le délai choisi (1er payout, entre payouts, jusqu'au breach, jusqu'au PA). Une PropFirm grisée a moins de 3 cas : son chiffre reste à confirmer.</li>
+    </ul>
+    <p>Les dates incohérentes (délai négatif) sont automatiquement exclues du calcul mais restent visibles dans le détail, marquées comme anomalies.</p>` },
   { n:'4', id:'m-traders', title:"Traders", html:`
     <p>La section Traders liste l'ensemble des traders suivis, avec leurs statistiques et leurs badges.</p>
     ${manualShot('04-traders.jpg', "Liste des traders, avec badges débloqués et statistiques.")}
@@ -13166,6 +13424,11 @@ function bindViewEvents(){
   });
   document.querySelectorAll('[data-pf-split-type]').forEach(b=>b.onclick=()=>{
     state.filters.dashboard.pfSplitType = b.dataset.pfSplitType;
+    renderView();
+  });
+  document.querySelectorAll('[data-delay-firm-metric]').forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    state.filters.dashboard.delayFirmMetric = b.dataset.delayFirmMetric;
     renderView();
   });
   document.querySelectorAll('[data-delay-detail]').forEach(tile=>{
