@@ -716,6 +716,30 @@ th.th-sort-active svg{opacity:1;}
 .price-check svg{width:14px;height:14px;flex-shrink:0;}
 .empty-title{font-weight:600;color:var(--text);margin-bottom:4px;font-size:14px;}
 .empty-sub{font-size:12.5px;}
+/* Module Premium verrouillé AVEC données existantes (ex: ancien bêta-testeur repassé Free) */
+.locked-data{max-width:520px;margin:40px auto;text-align:center;padding:32px 24px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);}
+.locked-data-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--accent-dim);color:var(--accent);margin-bottom:12px;}
+.locked-data-icon svg{width:20px;height:20px;}
+.locked-data-title{font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px;}
+.locked-data-sub{font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:20px;}
+.locked-data-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:22px;}
+.locked-data-stat{flex:1 1 140px;max-width:200px;padding:14px 12px;border-radius:var(--radius-md);background:var(--surface-2);border:1px solid var(--border-soft);}
+.locked-data-n{font-size:24px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.1;}
+.locked-data-l{font-size:12px;color:var(--text-dim);margin-top:4px;}
+.beta-end-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media (max-width:640px){.beta-end-grid{grid-template-columns:1fr;}}
+.beta-end-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;background:var(--surface-2);}
+.beta-end-card-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:10px;}
+.beta-end-card-head svg{width:16px;height:16px;color:var(--accent);}
+.beta-end-kept{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text-dim);margin-bottom:8px;}
+.beta-end-kept b{color:var(--text);font-variant-numeric:tabular-nums;}
+.beta-end-note{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.beta-end-list{margin:0;padding-left:18px;font-size:12.5px;color:var(--text-dim);line-height:1.7;}
+.beta-end-offer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px;border-radius:var(--radius-md);border:1px solid var(--accent);background:var(--accent-dim);}
+.beta-end-offer-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--surface);color:var(--accent);flex-shrink:0;}
+.beta-end-offer-icon svg{width:18px;height:18px;}
+.beta-end-code{font:700 14px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1px;padding:10px 14px;border-radius:var(--radius-sm);border:1px dashed var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;}
+.beta-end-code:hover{background:var(--surface-3);}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:fadeIn .12s ease;}
@@ -2557,6 +2581,97 @@ async function bulkSyncBrevoContacts(){
   });
   return res.json().catch(()=>({ sent:false, error:'Réponse invalide du serveur.' }));
 }
+/* ============================================================
+   FIN DE BETA (01/10/2026) — voir claude/fin-beta-conversion.md
+   La fin de beta est déclenchée À LA MAIN par un admin (Admin > Utilisateurs >
+   "Repasser Free" sur un compte BETA). Aucune donnée n'est supprimée : seul le
+   rôle change. En plus du passage Free classique, on enregistre sur le profil :
+     - beta_ended_at          : date de fin de beta (historique + déclencheur)
+     - beta_end_promo_code    : code promo offert (optionnel, géré dans Admin > Codes promo)
+     - beta_end_notice_seen   : false -> la modale de fin de beta s'affiche UNE fois à la
+                                prochaine connexion de l'utilisateur, puis passe à true.
+   Et on envoie (optionnel) un email Brevo via netlify/functions/notify-beta-end.js.
+   Requiert migration_fin_beta_20261001.sql (3 colonnes sur profiles).
+============================================================ */
+// Libellé lisible d'une réduction : "-30 %" / "-5 €" + durée (réutilise promoDurationLabel).
+function promoOfferLabel(discountType, discountValue, durationType, durationInMonths){
+  const v = Number(discountValue)||0;
+  const amount = discountType==='FIXED' ? `-${formatPriceFr(v)} €` : `-${v} %`;
+  return `${amount} ${promoDurationLabel(durationType, durationInMonths)}`;
+}
+function endBetaModal(target){
+  const today = todayISO();
+  const usable = state.promo_codes.filter(pc=>pc.active!==false && (!pc.validUntil || pc.validUntil>=today) && (!pc.maxUses || (pc.usesCount||0) < Number(pc.maxUses)));
+  // Propose par défaut un code dont le nom évoque la beta, sinon aucun.
+  const preferred = usable.find(pc=>/BETA/i.test(pc.code||'')) ;
+  const hasEmail = !!target.email;
+  openModal({
+    title: 'Terminer la beta',
+    bodyHtml: `
+      <p style="font-size:13.5px;color:var(--text-dim);line-height:1.55;margin:0 0 14px;">
+        <b style="color:var(--text);">${escapeHtml(target.email||target.id)}</b> repasse en <b>Free</b>. Ses données sont conservées ;
+        les modules Premium (Calendrier, Bilan, Fiscalité, Frais généraux, exports…) seront verrouillés jusqu'à son abonnement.
+        À sa prochaine connexion, une modale lui expliquera la situation, une seule fois.
+      </p>
+      <div class="field"><label>Code promo offert</label>
+        <select id="eb-promo">
+          <option value="">Aucun code</option>
+          ${usable.map(pc=>`<option value="${escapeHtml(pc.code)}" ${preferred && preferred.id===pc.id?'selected':''}>${escapeHtml(pc.code)} — ${escapeHtml(promoOfferLabel(pc.discountType, pc.discountValue, pc.durationType, pc.durationInMonths))}</option>`).join('')}
+        </select>
+        <div class="field-hint">${usable.length ? 'Codes actifs et non expirés.' : 'Aucun code actif : crée-en un dans Admin > Codes promo (ex : BETA-MERCI).'}</div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px;${hasEmail?'':'opacity:.5;'}">
+        <input type="checkbox" id="eb-email" ${hasEmail?'checked':'disabled'}/> Envoyer l'email de fin de beta${hasEmail?'':' (aucun email sur ce profil)'}
+      </label>`,
+    footHtml: `<button class="btn btn-outline" id="eb-cancel">Annuler</button><button class="btn btn-primary" id="eb-ok">Terminer la beta</button>`,
+    onMount(){
+      document.getElementById('eb-cancel').onclick = closeModal;
+      document.getElementById('eb-ok').onclick = async ()=>{
+        const btn = document.getElementById('eb-ok');
+        btn.disabled = true; btn.textContent = '…';
+        const code = document.getElementById('eb-promo').value || null;
+        const sendEmail = !!(document.getElementById('eb-email')||{}).checked;
+        const promo = code ? state.promo_codes.find(pc=>pc.code===code) : null;
+        closeModal();
+        await endBetaForUser(target.id, promo, sendEmail);
+        renderView();
+      };
+    }
+  });
+}
+async function endBetaForUser(userId, promo, sendEmail){
+  if(!isAdmin()) return;
+  const p = state.profiles.find(x=>x.id===userId);
+  await setUserPlan(userId, 'FREE');
+  if(!p || p.role!=='FREE') return; // setUserPlan a échoué (toast déjà affiché)
+  const patch = { beta_ended_at: new Date().toISOString(), beta_end_promo_code: promo ? promo.code : null, beta_end_notice_seen: false };
+  const { error } = await supabaseClient.from('profiles').update(patch).eq('id', userId);
+  if(error){
+    showToast("Passé en Free, mais l'info de fin de beta n'a pas été enregistrée (migration_fin_beta_20261001.sql jouée ?) : " + error.message, 'danger');
+    return;
+  }
+  Object.assign(p, { betaEndedAt: patch.beta_ended_at, betaEndPromoCode: patch.beta_end_promo_code, betaEndNoticeSeen: false });
+  await logActivity('ROLE_CHANGE', 'profile', userId, `Fin de beta${promo ? ' · code offert '+promo.code : ''}`);
+  if(!sendEmail || !p.email){ showToast('Beta terminée. Le message de fin de beta s\'affichera à sa prochaine connexion.'); return; }
+  try{
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/.netlify/functions/notify-beta-end', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token||''}` },
+      body: JSON.stringify({
+        userId,
+        promoCode: promo ? promo.code : null,
+        offerLabel: promo ? promoOfferLabel(promo.discountType, promo.discountValue, promo.durationType, promo.durationInMonths) : null,
+      }),
+    });
+    const r = await res.json().catch(()=>({}));
+    if(res.ok && r.sent) showToast('Beta terminée et email envoyé.');
+    else showToast("Beta terminée, mais l'email n'est pas parti : " + (r.error||`HTTP ${res.status}`), 'danger');
+  }catch(err){
+    showToast("Beta terminée, mais l'email n'est pas parti : " + err.message, 'danger');
+  }
+}
+
 // Appelle admin-delete-user.js (service_role + Stripe) plutôt que de supprimer directement la
 // ligne 'profiles' avec l'anon key : ça permet d'annuler au passage un éventuel abonnement
 // Stripe actif (Mensuel/Annuel) de l'utilisateur, pour ne jamais laisser un client continuer à
@@ -3167,6 +3282,80 @@ function maybeShowWelcomeModal(){
   if(isAdmin()) return;
   if(myLinkedTrader()) return;
   openWelcomeModal();
+}
+/* ============================================================
+   MODALE DE FIN DE BETA — côté utilisateur (01/10/2026)
+   Affichée UNE seule fois, à la première connexion après que l'admin a terminé
+   la beta (voir endBetaForUser). Marquée vue dès l'ouverture (beta_end_notice_seen)
+   pour ne jamais réapparaître, même si l'utilisateur ferme l'onglet sans cliquer.
+   Prioritaire sur la popup d'accueil : renvoie true si elle s'est affichée.
+============================================================ */
+function maybeShowBetaEndModal(){
+  const pr = state.profile;
+  if(!pr || pr.role!=='FREE' || !pr.betaEndedAt || pr.betaEndNoticeSeen) return false;
+  if(userIsBusy()) return false; // saisie en cours : on retentera au prochain contrôle (refreshMyRole)
+  pr.betaEndNoticeSeen = true;
+  supabaseClient.from('profiles').update({ beta_end_notice_seen: true }).eq('id', currentUserId()).then(()=>{});
+  openBetaEndModal(pr.betaEndPromoCode || null);
+  return true;
+}
+async function openBetaEndModal(promoCode){
+  const myAccIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  const kept = [
+    { n: state.traders.filter(isMineTrader).length, s:'trader', p:'traders' },
+    { n: myAccIds.size, s:'compte', p:'comptes' },
+    { n: state.payouts.filter(x=>myAccIds.has(x.accountId)).length, s:'payout', p:'payouts' },
+    { n: (state.general_expenses||[]).length, s:'frais général', p:'frais généraux' },
+  ].filter(x=>x.n>0);
+  const paused = ['Calendrier','Bilan visuel','Fiscalité','Frais généraux','Exports CSV, Excel & PDF','Comptes illimités'];
+  // Le code est revalidé à l'ouverture (il a pu expirer ou être épuisé depuis la fin de beta) :
+  // on ne l'affiche que s'il est encore utilisable.
+  let promo = null;
+  if(promoCode){
+    const r = await validatePromoCode(promoCode);
+    if(r && r.valid) promo = { code: promoCode.toUpperCase(), result: r };
+  }
+  openModal({
+    title: 'Merci d\'avoir testé Contralytix',
+    wide: true,
+    bodyHtml: `
+      <div style="font-size:13.5px;color:var(--text-dim);line-height:1.55;margin-bottom:16px;">
+        Ta période beta est terminée et ton compte repasse en formule <b style="color:var(--text);">Free</b>.
+        Tes retours ont façonné l'app : merci.
+      </div>
+      <div class="beta-end-grid">
+        <div class="beta-end-card">
+          <div class="beta-end-card-head">${icon('shield')}<span>Tout est conservé</span></div>
+          ${kept.length ? `<div class="beta-end-kept">${kept.map(k=>`<div><b>${k.n}</b> ${k.n>1?k.p:k.s}</div>`).join('')}</div>` : ''}
+          <div class="beta-end-note">Rien n'a été supprimé. Tes données restent consultables, et celles des modules Premium réapparaissent telles quelles dès que tu repasses Premium.</div>
+        </div>
+        <div class="beta-end-card">
+          <div class="beta-end-card-head">${icon('lock')}<span>En pause en Free</span></div>
+          <ul class="beta-end-list">${paused.map(x=>`<li>${x}</li>`).join('')}</ul>
+        </div>
+      </div>
+      ${promo ? `
+        <div class="beta-end-offer">
+          <div class="beta-end-offer-icon">${icon('gift')}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;color:var(--text);">Offre bêta-testeur : ${escapeHtml(promoOfferLabel(promo.result.discountType, promo.result.discountValue, promo.result.durationType, promo.result.durationInMonths))}</div>
+            <div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">Il est déjà pré-rempli sur ta page Abonnement.</div>
+          </div>
+          <button type="button" class="beta-end-code" id="be-copy" title="Copier le code">${escapeHtml(promo.code)}</button>
+        </div>` : ''}`,
+    footHtml: `<button class="btn btn-outline" id="be-later">Plus tard</button><button class="btn btn-primary" id="be-go">${promo ? 'Passer Premium avec mon code' : 'Voir les formules Premium'}</button>`,
+    onMount(){
+      document.getElementById('be-later').onclick = closeModal;
+      const copy = document.getElementById('be-copy');
+      if(copy) copy.onclick = ()=>{
+        navigator.clipboard && navigator.clipboard.writeText(promo.code).then(()=>showToast('Code copié.')).catch(()=>{});
+      };
+      document.getElementById('be-go').onclick = ()=>{
+        if(promo){ state.filters.tarifs.promoInput = promo.code; state.filters.tarifs.promoResult = promo.result; }
+        closeModal(); state.route = 'subscription'; render();
+      };
+    }
+  });
 }
 // Accueil admin : signale les messages de contact en attente dès la connexion (en plus du
 // badge sur l'item de nav "Admin" et du badge sur l'onglet Admin > Support), sans bloquer
@@ -5271,11 +5460,11 @@ function renderView(){
   else if(state.route==='traders') el.innerHTML = viewTraders();
   else if(state.route==='propfirms') el.innerHTML = viewPropfirms();
   else if(state.route==='accounts') el.innerHTML = viewAccounts();
-  else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier');
+  else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier', 'calendrier');
   else if(state.route==='accounting') el.innerHTML = viewAccounting();
-  else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)');
-  else if(state.route==='fiscalite') el.innerHTML = perms().canFiscalite ? viewFiscalite() : lockedFeatureView('Le module Fiscalité');
-  else if(state.route==='frais-generaux') el.innerHTML = perms().canFraisGeneraux ? viewFraisGeneraux() : lockedFeatureView('Les frais généraux');
+  else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)', 'bilan');
+  else if(state.route==='fiscalite') el.innerHTML = perms().canFiscalite ? viewFiscalite() : lockedFeatureView('Le module Fiscalité', 'fiscalite');
+  else if(state.route==='frais-generaux') el.innerHTML = perms().canFraisGeneraux ? viewFraisGeneraux() : lockedFeatureView('Les frais généraux', 'frais-generaux');
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='rentabilite') el.innerHTML = viewRentabilite();
@@ -12658,12 +12847,57 @@ function viewParametres(){
 }
 
 
-function lockedFeatureView(label){
-  return `<div class="empty">
-    ${icon('lock')}
-    <div class="empty-title">Fonctionnalité Premium</div>
-    <div class="empty-sub" style="margin-bottom:16px;">${label} est réservé aux comptes Premium.</div>
-    <button class="btn btn-primary upgrade-cta" onclick="openUpgradeModal('${label.replace(/'/g,"\\'")}')">🚀 Passer à Premium</button>
+// Données DÉJÀ enregistrées par l'utilisateur qui alimentent un module Premium verrouillé
+// (01/10/2026, voir claude/fin-beta-conversion.md). Typiquement un ancien bêta-testeur repassé
+// en Free : ses données sont intactes en base, on lui montre ce qui l'attend plutôt qu'un
+// simple cadenas. Ne compte QUE ses propres données (isMineAccount / sessionsInScope).
+function lockedFeatureStats(route){
+  const myAccIds = new Set(state.accounts.filter(isMineAccount).map(a=>a.id));
+  const myPayouts = state.payouts.filter(p=>myAccIds.has(p.accountId));
+  const year = String(Number(todayISO().slice(0,4)));
+  const plural = (n, s, p)=> n>1 ? p : s;
+  const out = [];
+  if(route==='frais-generaux'){
+    const n = (state.general_expenses||[]).length;
+    const r = (state.expense_receipts||[]).length;
+    out.push({ n, label: plural(n,'frais général enregistré','frais généraux enregistrés') });
+    if(r) out.push({ n:r, label: plural(r,'justificatif de dépense','justificatifs de dépenses') });
+  } else if(route==='fiscalite'){
+    const ny = myPayouts.filter(p=>(p.date||'').slice(0,4)===year).length;
+    const myPayIds = new Set(myPayouts.map(p=>p.id));
+    const r = (state.payout_receipts||[]).filter(x=>myPayIds.has(x.payoutId)).length;
+    out.push({ n:ny, label: `${plural(ny,'payout','payouts')} en ${year} à déclarer` });
+    if(r) out.push({ n:r, label: plural(r,'justificatif de payout','justificatifs de payout') });
+  } else if(route==='calendrier'){
+    const s = sessionsInScope().length;
+    out.push({ n: myPayouts.length, label: plural(myPayouts.length,'payout à placer','payouts à placer') });
+    if(s) out.push({ n:s, label: plural(s,'session de trading','sessions de trading') });
+  } else if(route==='bilan'){
+    out.push({ n: myAccIds.size, label: plural(myAccIds.size,'compte à analyser','comptes à analyser') });
+    out.push({ n: myPayouts.length, label: plural(myPayouts.length,'payout','payouts') });
+  }
+  return out.filter(x=>x.n>0);
+}
+function lockedFeatureView(label, route){
+  const stats = route ? lockedFeatureStats(route) : [];
+  const safeLabel = label.replace(/'/g,"\\'");
+  // Aucune donnée existante : message Premium générique, inchangé.
+  if(!stats.length){
+    return `<div class="empty">
+      ${icon('lock')}
+      <div class="empty-title">Fonctionnalité Premium</div>
+      <div class="empty-sub" style="margin-bottom:16px;">${label} est réservé aux comptes Premium.</div>
+      <button class="btn btn-primary upgrade-cta" onclick="openUpgradeModal('${safeLabel}')">🚀 Passer à Premium</button>
+    </div>`;
+  }
+  return `<div class="locked-data">
+    <div class="locked-data-icon">${icon('lock')}</div>
+    <div class="locked-data-title">Tes données sont en sécurité</div>
+    <div class="locked-data-sub">Ce module est réservé aux comptes Premium. Rien n'a été supprimé : tout réapparaît tel quel dès que tu passes Premium.</div>
+    <div class="locked-data-stats">
+      ${stats.map(s=>`<div class="locked-data-stat"><div class="locked-data-n">${s.n}</div><div class="locked-data-l">${s.label}</div></div>`).join('')}
+    </div>
+    <button class="btn btn-primary upgrade-cta" onclick="openUpgradeModal('${safeLabel}')">Débloquer mes données</button>
   </div>`;
 }
 
@@ -13253,6 +13487,9 @@ function bindViewEvents(){
     const label = plan==='PREMIUM' ? (cycle==='LIFETIME' ? 'offrir une licence Premium Lifetime' : 'passer cet utilisateur en Premium')
       : plan==='BETA' ? 'passer cet utilisateur en Beta (fonctionnalités Premium offertes, sans abonnement)'
       : 'repasser cet utilisateur en Free';
+    // Fin de beta (Beta -> Free) : modale dédiée (code promo offert + email Brevo), voir endBetaModal().
+    const target = state.profiles.find(x=>x.id===id);
+    if(plan==='FREE' && target && target.role==='BETA'){ endBetaModal(target); return; }
     confirmModal(`Confirmer : ${label} ?`, async ()=>{
       await setUserPlan(id, plan, cycle);
       renderView();
@@ -15940,8 +16177,57 @@ function applyMaintenanceLandingVisibility(){
 // plutôt que de rester sur une session ouverte pouvant continuer à écrire en base. Rafraîchit aussi
 // la bannière de la landing publique pour un visiteur pas encore connecté. Décision utilisateur du
 // 16/09/2026 : déconnexion forcée avec message, voir claude/mode-maintenance.md.
+/* ============================================================
+   CHANGEMENT DE RÔLE EN DIRECT (01/10/2026) — voir claude/fin-beta-conversion.md
+   Les permissions ne sont calculées qu'à l'entrée dans l'app : sans ce contrôle, un
+   utilisateur qui garde son onglet ouvert conservait l'accès Premium après une fin de
+   beta (ou ne voyait pas son passage Premium/Beta) jusqu'au prochain rechargement.
+   Relit sa ligne profiles toutes les 30 s (adossé au contrôle maintenance existant) et
+   au retour sur l'onglet. Si le rôle a changé : permissions recalculées, page
+   redessinée, modale de fin de beta affichée le cas échéant. Si l'utilisateur est en
+   pleine saisie / modale ouverte, l'application visuelle est reportée au contrôle
+   suivant (les permissions, elles, sont mises à jour immédiatement).
+============================================================ */
+let roleRefreshInFlight = false;
+async function refreshMyRole(){
+  if(!SUPABASE_CONFIGURED || !state.session || !state.profile || !state.permissions || roleRefreshInFlight) return;
+  roleRefreshInFlight = true;
+  try{
+    const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUserId()).maybeSingle();
+    if(error || !data) return;
+    const fresh = fromRow(data);
+    const before = state.profile.role;
+    if(fresh.role !== before){
+      Object.assign(state.profile, fresh);
+      await loadSubscription();
+      computePermissions();
+      state.roleChangePending = { from: before, to: fresh.role };
+    } else if(!state.roleChangePending){
+      // Rôle inchangé : seuls les champs de fin de beta peuvent nous intéresser.
+      Object.assign(state.profile, { betaEndedAt: fresh.betaEndedAt, betaEndPromoCode: fresh.betaEndPromoCode, betaEndNoticeSeen: fresh.betaEndNoticeSeen });
+    }
+    const pending = state.roleChangePending;
+    // Rôle déjà à jour mais infos de fin de beta arrivées après (l'admin écrit le rôle, puis
+    // beta_ended_at une fraction de seconde plus tard) : on tente la modale ici aussi.
+    if(!pending){ maybeShowBetaEndModal(); return; }
+    if(userIsBusy()) return;
+    state.roleChangePending = null;
+    if(fresh.role==='FREE' && state.profile.betaEndPromoCode && !state.filters.tarifs.promoInput){
+      state.filters.tarifs.promoInput = state.profile.betaEndPromoCode;
+    }
+    render();
+    if(maybeShowBetaEndModal()) return;
+    if(perms().isPremium && !['PREMIUM','BETA','ADMIN'].includes(pending.from)) showToast('Ton accès Premium est activé : tous les modules sont débloqués.');
+    else if(!perms().isPremium) showToast('Ton compte est repassé en formule Free. Tes données sont conservées.');
+  } finally {
+    roleRefreshInFlight = false;
+  }
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') refreshMyRole(); });
+
 function startMaintenanceWatch(){
   setInterval(async ()=>{
+    refreshMyRole(); // fire-and-forget, voir sa définition (fin de beta / changement de plan en direct)
     await loadAppSettings();
     if(appStarted && !isAdmin() && maintenanceModeActive()){
       state.maintenanceKickPending = true;
@@ -16086,7 +16372,11 @@ function applyLandingPricing(){
     render();
     renderChatWidget();
     startSessionsRealtime();
-    maybeShowWelcomeModal();
+    // Code offert en fin de beta : pré-rempli sur la page Abonnement tant qu'il n'a pas été changé.
+    if(state.profile && state.profile.role==='FREE' && state.profile.betaEndPromoCode && !state.filters.tarifs.promoInput){
+      state.filters.tarifs.promoInput = state.profile.betaEndPromoCode;
+    }
+    if(!maybeShowBetaEndModal()) maybeShowWelcomeModal();
     maybeShowNewMessagesToast();
     handleCheckoutReturn(); // fire-and-forget, voir sa définition (retour de paiement Stripe)
     maybePromptPendingCohortInvite();
