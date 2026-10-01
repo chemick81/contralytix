@@ -14458,6 +14458,19 @@ function accountFormModal({ existing, type, parentChallenge }){
   };
   const lockTrader = !!parentChallenge;
   const lockType = !!parentChallenge || (type && !isEdit);
+  // Bloc « Mode de paiement / Prix / Compte offert » (01/10/2026) : sans objet pour un PA ou un Live,
+  // dont la seule dépense possible est le frais d'activation. Masqué :
+  //  - à la création d'un PA depuis un challenge réussi (bouton « Créer le PA ») ;
+  //  - en modification d'un PA/Live, SAUF s'il porte déjà un prix ou des mensualités (ancienne saisie,
+  //    ou propfirm qui facturait le PA au mois) : on l'affiche alors avec un avertissement pour que
+  //    le montant, toujours compté dans les dépenses, reste visible et corrigeable.
+  // « Nouveau compte » et l'ajout en masse ne sont volontairement pas concernés.
+  const isPaLike = t => t==='PA' || t==='LIVE';
+  const legacyPaPayment = isEdit && isPaLike(a.type) && (
+    (a.paymentType==='MENSUEL' && Number(a.monthlyAmount)>0) ||
+    (a.paymentType!=='MENSUEL' && Number(a.purchasePrice)>0)
+  );
+  const hidePayInit = (!isEdit && !!parentChallenge) || (isEdit && isPaLike(a.type) && !legacyPaPayment);
   if(state.traders.length===0 || state.propfirms.length===0){
     showToast('Crée d\u2019abord au moins un trader et une PropFirm.', 'danger');
     return;
@@ -14501,6 +14514,8 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div class="field"><label>Numéro de compte <span style="color:var(--danger)">*</span></label><input id="af-number" value="${a.accountNumber}"/>${!isEdit?`<div class="field-hint">Obligatoire — doit être unique pour cette PropFirm (vérifié à l’enregistrement).</div>`:''}</div>
+      <div id="af-pay-block" style="display:${hidePayInit?'none':'block'};">
+      ${legacyPaPayment ? `<div class="field-hint" style="margin-bottom:10px;color:var(--gold);display:flex;gap:6px;align-items:flex-start;"><span style="width:13px;height:13px;flex-shrink:0;margin-top:1px;">${icon('info')}</span><span>Ancienne saisie : un ${a.type==='LIVE'?'Live':'PA'} ne devrait avoir qu’un frais d’activation. Ce montant est compté dans tes dépenses — mets-le à 0 s’il a été saisi par erreur.</span></div>` : ''}
       <div class="field"><label>Mode de paiement</label>
         <div class="radio-group">
           <div class="radio-chip ${a.paymentType==='UNIQUE'?'selected':''}" data-pay="UNIQUE">Paiement unique</div>
@@ -14517,6 +14532,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         <span class="promo-row-text"><span class="promo-row-title">Compte offert</span><span class="promo-row-sub">Promo « 1 acheté = 1 offert » : enregistré à 0, le compte payé garde son vrai prix.</span></span>
         <span class="switch"><input type="checkbox" id="af-promo-free" ${a.promoFree?'checked':''}/><span class="switch-track"></span></span>
       </label>
+      </div>
       <div class="field-row">
         <div class="field"><label>Devise</label>
           <select id="af-currency">
@@ -14530,6 +14546,7 @@ function accountFormModal({ existing, type, parentChallenge }){
         </div>
       </div>
       <div id="af-pa-fields" style="display:${(a.type==='PA'||a.type==='LIVE')?'block':'none'};">
+        <div class="field-hint" id="af-pa-pay-hint" style="margin-bottom:10px;display:${hidePayInit?'block':'none'};">Un ${a.type==='LIVE'?'Live':'PA'} n’a pas de prix d’achat : seul le frais d’activation éventuel est compté dans tes dépenses.</div>
         <div class="field-row">
           <div class="field"><label>Date d'activation</label><input id="af-activation-date" type="date" value="${a.activationDate||todayISO()}"/><div class="field-hint">Sert aussi de date d'achat/ouverture du PA — les deux dates sont toujours identiques.</div></div>
           <div class="field"><label id="af-activation-fee-label">Frais d'activation (${(a.currency||'USD')==='EUR'?'€':'$'}, optionnel)</label><input id="af-activation-fee" type="number" value="${a.activationFee||''}"/></div>
@@ -14579,6 +14596,12 @@ function accountFormModal({ existing, type, parentChallenge }){
         document.querySelectorAll('[data-type]').forEach(c=>c.classList.toggle('selected', c.dataset.type===curType));
         document.getElementById('af-pa-fields').style.display = (curType==='PA'||curType==='LIVE') ? 'block' : 'none';
         document.getElementById('af-purchase-date-wrap').style.display = (curType==='PA'||curType==='LIVE') ? 'none' : 'block';
+        // Correction du type en modification : le bloc paiement suit le type choisi (voir hidePayInit)
+        if(isEdit){
+          const hidePay = isPaLike(curType) && !legacyPaPayment;
+          document.getElementById('af-pay-block').style.display = hidePay ? 'none' : 'block';
+          document.getElementById('af-pa-pay-hint').style.display = hidePay ? 'block' : 'none';
+        }
         if(curType==='PA'||curType==='LIVE') refreshParentChallengeOptions();
         const statusSelectEl = document.getElementById('af-status');
         if(statusSelectEl){
