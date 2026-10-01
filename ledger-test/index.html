@@ -4103,6 +4103,18 @@ function sizeBadgeHtml(acc){
 // la carte, seulement dans le formulaire d'édition. Neutre (gris) volontairement : ce n'est pas un
 // statut (comme .badge) ni une catégorie colorée (comme type/taille), juste une info de facturation.
 function paymentTypeBadgeHtml(acc){
+  // PA / Live (01/10/2026, voir claude/pa-sans-mode-de-paiement.md) : pas de prix d'achat, la seule
+  // dépense est le frais d'activation → pastille « Activation · montant », ou rien s'il n'y en a pas.
+  // Exception : ancienne saisie avec prix/mensualités (encore comptés dans les dépenses) → on garde
+  // la pastille de paiement pour que le montant reste visible, comme dans le formulaire.
+  if(acc.type === 'PA' || acc.type === 'LIVE'){
+    const legacy = acc.paymentType === 'MENSUEL' ? Number(acc.monthlyAmount) > 0 : Number(acc.purchasePrice) > 0;
+    if(!legacy){
+      const fee = Number(acc.activationFee) || 0;
+      if(!fee) return '';
+      return `<span class="pay-pill" title="Frais d’activation payé à l’ouverture du ${acc.type==='LIVE'?'Live':'PA'}">${icon('bolt')}Activation · ${fmtMoneyDisp(fee, acc.currency, acc.fxRateToEur)}</span>`;
+    }
+  }
   // Compte offert par une promo PropFirm (« 1 acheté = 1 offert ») : prix d'achat à 0 assumé.
   if(acc.promoFree && acc.paymentType !== 'MENSUEL'){
     return `<span class="pay-pill pay-pill-free" title="Compte offert par une promo de la PropFirm — prix d’achat 0">${icon('gift')}Offert</span>`;
