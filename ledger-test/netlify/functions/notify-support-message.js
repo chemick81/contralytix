@@ -7,7 +7,8 @@
 //
 // Variables d'environnement Netlify requises (Site configuration > Environment variables) :
 //   BREVO_API_KEY       — clé API Brevo (Transactional > SMTP & API > API Keys)
-//   NOTIFY_ADMIN_EMAIL   — ton adresse e-mail, qui reçoit la notification
+//   NOTIFY_ADMIN_EMAIL   — boîte support (supportcontralytix@gmail.com) : reçoit les notifications
+//                          ET les réponses des utilisateurs (utilisée en Reply-To partout)
 //   NOTIFY_SENDER_EMAIL  — adresse d'expédition (doit être un expéditeur validé dans Brevo,
 //                          ex. contact@contralytix.fr ou l'adresse Brevo par défaut)
 //
@@ -71,6 +72,10 @@ exports.handler = async (event) => {
   const apiKey = process.env.BREVO_API_KEY;
   const adminEmail = process.env.NOTIFY_ADMIN_EMAIL;
   const senderEmail = process.env.NOTIFY_SENDER_EMAIL;
+  // Adresse de réponse unique (boîte support Gmail) : un clic sur « Répondre » arrive
+  // toujours dans une boîte lue, jamais sur l'expéditeur technique contact@ (sans boîte).
+  const replyToEmail = process.env.NOTIFY_ADMIN_EMAIL;
+  const replyTo = replyToEmail ? { replyTo: { email: replyToEmail, name: 'Support Contralytix' } } : {};
 
   if (!apiKey || !adminEmail || !senderEmail) {
     console.warn('notify-support-message : BREVO_API_KEY, NOTIFY_ADMIN_EMAIL ou NOTIFY_SENDER_EMAIL manquant(e) sur Netlify — notification ignorée.');
@@ -112,6 +117,7 @@ exports.handler = async (event) => {
     // 2. Accusé de réception à l'utilisateur
     const userRes = await sendEmail({
       sender: { email: senderEmail, name: 'Contralytix' },
+      ...replyTo,
       to: [{ email: userEmail }],
       subject: 'Contralytix — Ton message a bien été reçu',
       htmlContent: brandedEmail({

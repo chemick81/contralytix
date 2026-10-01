@@ -9,6 +9,7 @@
 // Variables d'environnement Netlify requises (mêmes que notify-support-message.js) :
 //   BREVO_API_KEY       — clé API Brevo (Transactional > SMTP & API > API Keys)
 //   NOTIFY_SENDER_EMAIL  — adresse d'expédition (expéditeur validé dans Brevo)
+//   NOTIFY_ADMIN_EMAIL   — boîte support (supportcontralytix@gmail.com) : reçoit les réponses (Reply-To)
 //
 // Contrairement à notify-support-message.js (fire-and-forget, échoue en silence),
 // cette fonction renvoie une vraie erreur au client : si l'email de réponse ne
@@ -71,6 +72,10 @@ exports.handler = async (event) => {
 
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.NOTIFY_SENDER_EMAIL;
+  // Adresse de réponse unique (boîte support Gmail) : un clic sur « Répondre » arrive
+  // toujours dans une boîte lue, jamais sur l'expéditeur technique contact@ (sans boîte).
+  const replyToEmail = process.env.NOTIFY_ADMIN_EMAIL;
+  const replyTo = replyToEmail ? { replyTo: { email: replyToEmail, name: 'Support Contralytix' } } : {};
 
   if (!apiKey || !senderEmail) {
     console.warn('reply-support-message : BREVO_API_KEY ou NOTIFY_SENDER_EMAIL manquant(e) sur Netlify.');
@@ -90,6 +95,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         sender: { email: senderEmail, name: 'Contralytix' },
+        ...replyTo,
         to: [{ email: toEmail }],
         subject: `Re : ${subject || 'ton message'} — Contralytix`,
         htmlContent: brandedEmail({

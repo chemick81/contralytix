@@ -173,6 +173,10 @@ async function runWeeklySummary(options = {}) {
 
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.NOTIFY_SENDER_EMAIL;
+  // Adresse de réponse unique (boîte support Gmail) : un clic sur « Répondre » arrive
+  // toujours dans une boîte lue, jamais sur l'expéditeur technique contact@ (sans boîte).
+  const replyToEmail = process.env.NOTIFY_ADMIN_EMAIL;
+  const replyTo = replyToEmail ? { replyTo: { email: replyToEmail, name: 'Support Contralytix' } } : {};
   if (!apiKey || !senderEmail) {
     console.warn('weekly-perf-summary : BREVO_API_KEY ou NOTIFY_SENDER_EMAIL manquant — aucun email envoyé.');
     return { skipped: 'missing brevo config' };
@@ -199,6 +203,7 @@ async function runWeeklySummary(options = {}) {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'api-key': apiKey },
         body: JSON.stringify({
           sender: { email: senderEmail, name: 'Contralytix' },
+          ...replyTo,
           to: [{ email }],
           subject: 'Contralytix — Ton résumé de performance de la semaine',
           htmlContent: html,

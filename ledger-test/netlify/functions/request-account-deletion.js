@@ -56,6 +56,10 @@ exports.handler = async (event) => {
 
     const apiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.NOTIFY_SENDER_EMAIL;
+    // Adresse de réponse unique (boîte support Gmail) : un clic sur « Répondre » arrive
+    // toujours dans une boîte lue, jamais sur l'expéditeur technique contact@ (sans boîte).
+    const replyToEmail = process.env.NOTIFY_ADMIN_EMAIL;
+    const replyTo = replyToEmail ? { replyTo: { email: replyToEmail, name: 'Support Contralytix' } } : {};
     if (!apiKey || !senderEmail) {
       console.warn('request-account-deletion : BREVO_API_KEY ou NOTIFY_SENDER_EMAIL manquant — email non envoyé.');
       return { statusCode: 200, body: JSON.stringify({ sent: false, reason: "Envoi d'email non configuré" }) };
@@ -66,6 +70,7 @@ exports.handler = async (event) => {
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'api-key': apiKey },
       body: JSON.stringify({
         sender: { email: senderEmail, name: 'Contralytix' },
+        ...replyTo,
         to: [{ email }],
         subject: 'Contralytix — Code de confirmation de suppression de compte',
         htmlContent: `
