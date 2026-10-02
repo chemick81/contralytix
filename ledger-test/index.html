@@ -457,6 +457,7 @@ th.th-sort-active svg{opacity:1;}
 .status-ms-item:hover{background:var(--surface-2);}
 .status-ms-item input{accent-color:var(--accent);cursor:pointer;}
 .status-ms-all{font-weight:600;border-bottom:1px solid var(--border-soft);border-radius:6px 6px 0 0;margin-bottom:3px;padding-bottom:8px;}
+.badge.badge-todo{display:inline-flex;align-items:center;gap:4px;background:var(--gold-dim);color:var(--gold);border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);}
 .status-ms-clear{margin-top:3px;background:none;border:none;border-top:1px solid var(--border-soft);color:var(--text-faint);font-size:11.5px;padding:7px 8px 2px;cursor:pointer;text-align:left;font-family:inherit;}
 .status-ms-clear:hover{color:var(--text);}
 .status-ms-btn-active{border-color:var(--text-faint);color:var(--bg);background:var(--text-faint);}
@@ -9490,7 +9491,7 @@ function viewAccounts(){
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
   if(f.type) list = list.filter(a=>a.type===f.type);
   if(f.size) list = list.filter(a=>a.size===f.size);
-  if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status));
+  if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status) || (f.status.includes('ACTIF') && needsPa(a)));
   const hiddenSearchHtml = (()=>{
     if(!searchMatches) return '';
     const shown = new Set(list.map(a=>a.id));
@@ -9646,6 +9647,12 @@ function renderGroupedAccounts(list, keys, depth=0){
     </div>`).join('');
 }
 
+// Challenge réussi dont le PA n'a pas encore été créé (02/10/2026) : reste visible avec le filtre
+// « Actif » (défaut de la page Comptes) et porte un badge « PA à créer » — sinon, dès qu'on le marque
+// réussi, il disparaît de la liste et on ne retrouve plus le bouton « Créer le PA ».
+function needsPa(a){
+  return a && a.type==='CHALLENGE' && a.status==='REUSSI' && !state.accounts.some(x=>x.parentChallengeId===a.id);
+}
 function accountCard(a){
   const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
   const accMoney = sumMoneyNet(computeAccountExpenses(a), state.payouts.filter(p=>p.accountId===a.id));
@@ -9705,6 +9712,7 @@ function accountCard(a){
             ${typeBadgeHtml(a.type)} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${firm?firm.name:'—'}</span>
             ${paymentTypeBadgeHtml(a)}
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
+            ${needsPa(a) ? `<span class="badge badge-todo" title="Challenge réussi : crée le PA associé pour suivre l’activation et les payouts">PA à créer</span>` : ''}
             ${linkTag}
           </div>
           <div class="acc-meta">N° ${maskAccountNumber(a.accountNumber)}</div>
@@ -14671,7 +14679,7 @@ function accountFormModal({ existing, type, parentChallenge }){
       ` : ''}
       <div id="af-error" class="error-text"></div>
     `,
-    footHtml: `<button class="btn btn-outline" id="af-cancel">Annuler</button><button class="btn btn-primary" id="af-save">Enregistrer</button>`,
+    footHtml: `<button class="btn btn-outline" id="af-cancel">${(!isEdit && parentChallenge) ? 'Plus tard' : 'Annuler'}</button><button class="btn btn-primary" id="af-save">${(!isEdit && parentChallenge) ? 'Créer le PA' : 'Enregistrer'}</button>`,
     onMount(){
       let curType = a.type, curPay = a.paymentType, curSize = a.size;
       function refreshParentChallengeOptions(){
@@ -15217,7 +15225,7 @@ function statusChangeModal(acc, newStatus){
     title: labels[newStatus] || 'Changer le statut',
     bodyHtml: `
       <div class="field"><label>Date</label><input id="sc-date" type="date" value="${todayISO()}"/></div>
-      <div class="field-hint">${newStatus==='BREACHED' ? 'Les mensualités éventuelles s\u2019arrêteront à cette date.' : (newStatus==='REUSSI' ? 'Tu pourras ensuite créer le PA associé.' : 'Le compte sera archivé comme fermé.')}</div>
+      <div class="field-hint">${newStatus==='BREACHED' ? 'Les mensualités éventuelles s\u2019arrêteront à cette date.' : (newStatus==='REUSSI' ? 'La création du PA associé s\u2019ouvrira juste après (tu pourras aussi la faire plus tard).' : 'Le compte sera archivé comme fermé.')}</div>
     `,
     footHtml: `<button class="btn btn-outline" id="sc-cancel">Annuler</button><button class="btn ${newStatus==='BREACHED'?'btn-danger':'btn-primary'}" id="sc-ok">Confirmer</button>`,
     onMount(){
@@ -15230,6 +15238,12 @@ function statusChangeModal(acc, newStatus){
         await logActivity('STATUS_CHANGE', 'account', acc.id, `${getTrader(acc.traderId)?.pseudo||'—'} : ${oldStatus} → ${newStatus}`);
         showToast('Statut mis à jour.');
         closeModal(); render();
+        // Challenge réussi → on enchaîne directement sur « Créer le PA » (02/10/2026). « Plus tard »
+        // laisse le challenge visible dans le filtre Actif avec le badge « PA à créer » (voir needsPa).
+        const updated = getAccount(acc.id);
+        if(newStatus==='REUSSI' && needsPa(updated) && canEdit(updated)){
+          accountFormModal({ type:'PA', parentChallenge: updated });
+        }
       };
     }
   });
