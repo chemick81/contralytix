@@ -456,6 +456,7 @@ th.th-sort-active svg{opacity:1;}
 .status-ms-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;}
 .status-ms-item:hover{background:var(--surface-2);}
 .status-ms-item input{accent-color:var(--accent);cursor:pointer;}
+.status-ms-all{font-weight:600;border-bottom:1px solid var(--border-soft);border-radius:6px 6px 0 0;margin-bottom:3px;padding-bottom:8px;}
 .status-ms-clear{margin-top:3px;background:none;border:none;border-top:1px solid var(--border-soft);color:var(--text-faint);font-size:11.5px;padding:7px 8px 2px;cursor:pointer;text-align:left;font-family:inherit;}
 .status-ms-clear:hover{color:var(--text);}
 .status-ms-btn-active{border-color:var(--text-faint);color:var(--bg);background:var(--text-faint);}
@@ -4526,6 +4527,10 @@ function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 // Composant générique de filtre à choix multiple (case à cocher) — dropdown à bouton.
 // options: [{v,l}], selected: array de valeurs, filterObj/openField: pour mémoriser l'état ouvert/fermé.
 function renderMultiSelect(idPrefix, options, selected, placeholder, open){
+  // Case « Tous… » en tête de menu (02/10/2026) : pour les filtres dont « rien de sélectionné » veut
+  // dire « tout » (placeholder « Tous les traders »…). Cochée quand la sélection est vide ; la cliquer
+  // vide la sélection. Pas pour « Regrouper par » (aucun regroupement ≠ tous).
+  const withAll = /^(Tous|Toutes)\b/.test(placeholder||'');
   const label = !selected.length ? placeholder
     : selected.length===1 ? ((options.find(o=>o.v===selected[0])||{}).l || placeholder)
     : `${selected.length} sélectionnés`;
@@ -4533,8 +4538,9 @@ function renderMultiSelect(idPrefix, options, selected, placeholder, open){
     <div class="status-multiselect" id="${idPrefix}-wrap">
       <button type="button" class="status-ms-btn" id="${idPrefix}-btn">${label} <span style="opacity:.6;font-size:10px;">▾</span></button>
       <div class="status-ms-menu" id="${idPrefix}-menu" style="display:${open?'flex':'none'};">
+        ${withAll ? `<label class="status-ms-item status-ms-all"><input type="checkbox" data-ms-all="${idPrefix}" ${!selected.length?'checked':''}/>${placeholder}</label>` : ''}
         ${options.map(o=>`<label class="status-ms-item"><input type="checkbox" data-ms-opt="${idPrefix}" value="${o.v}" ${selected.includes(o.v)?'checked':''}/>${o.l}</label>`).join('')}
-        ${selected.length?`<button type="button" class="status-ms-clear" id="${idPrefix}-clear">Réinitialiser</button>`:''}
+        ${!withAll && selected.length?`<button type="button" class="status-ms-clear" id="${idPrefix}-clear">Réinitialiser</button>`:''}
       </div>
     </div>`;
 }
@@ -4551,10 +4557,21 @@ function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onCha
       const idx = arr.indexOf(cb.value);
       if(cb.checked && idx===-1) arr.push(cb.value);
       else if(!cb.checked && idx!==-1) arr.splice(idx,1);
+      // Toutes les options cochées une à une = « Tous » : on normalise en sélection vide, pour que
+      // la case « Tous » se coche et que les futurs traders soient inclus d'office.
+      const total = document.querySelectorAll(`[data-ms-opt="${idPrefix}"]`).length;
+      if(document.querySelector(`[data-ms-all="${idPrefix}"]`) && total && arr.length>=total) arr.splice(0);
       if(onChange) onChange(arr.slice());
       renderView();
     };
   });
+  const allCb = document.querySelector(`[data-ms-all="${idPrefix}"]`);
+  if(allCb){
+    allCb.onclick = e=>e.stopPropagation();
+    // Cocher « Tous » vide la sélection ; la décocher alors qu'elle est la seule active ne ferait rien
+    // de sensé (aucun filtre = tout), donc on la laisse cochée.
+    allCb.onchange = ()=>{ filterObj[arrField] = []; if(onChange) onChange([]); renderView(); };
+  }
   const menu = document.getElementById(idPrefix+'-menu');
   if(menu) menu.onclick = e=>e.stopPropagation();
   const clearBtn = document.getElementById(idPrefix+'-clear');
@@ -9533,12 +9550,12 @@ function viewAccounts(){
       <div class="status-multiselect" id="f-status-wrap">
         <button type="button" class="status-ms-btn" id="f-status-btn">${statusBtnLabel} <span style="opacity:.6;font-size:10px;">▾</span></button>
         <div class="status-ms-menu" id="f-status-menu" style="display:${f.statusMenuOpen?'flex':'none'};">
+          <label class="status-ms-item status-ms-all"><input type="checkbox" id="f-status-all" ${!f.status.length?'checked':''}/>Tous les statuts</label>
           ${statusOpts.map(s=>`
             <label class="status-ms-item">
               <input type="checkbox" data-status-opt="${s.v}" ${f.status.includes(s.v)?'checked':''}/>
               ${s.l}
             </label>`).join('')}
-          ${f.status.length ? `<button type="button" class="status-ms-clear" id="f-status-clear">Tous les statuts</button>` : ''}
         </div>
       </div>
       ${renderMultiSelect('f-groupby', [
@@ -13689,9 +13706,16 @@ function bindViewEvents(){
         const idx = arr.indexOf(v);
         if(cb.checked && idx===-1) arr.push(v);
         else if(!cb.checked && idx!==-1) arr.splice(idx,1);
+        // Les 4 statuts cochés un à un = « Tous les statuts »
+        if(arr.length >= document.querySelectorAll('[data-status-opt]').length) arr.splice(0);
         renderView();
       };
     });
+    const statusAll = document.getElementById('f-status-all');
+    if(statusAll){
+      statusAll.onclick = (e)=>e.stopPropagation();
+      statusAll.onchange = ()=>{ state.filters.accounts.status = []; renderView(); };
+    }
     const statusMenu = document.getElementById('f-status-menu');
     if(statusMenu) statusMenu.onclick = (e)=>e.stopPropagation();
     const showAllStatus = document.getElementById('f-show-all-status');
