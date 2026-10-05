@@ -735,6 +735,24 @@ th.th-sort-active svg{opacity:1;}
 .ec-bucket-bar div{height:100%;border-radius:5px;}
 .ec-bucket-n{font-size:13px;font-weight:700;text-align:right;}
 .ec-step{grid-template-columns:150px minmax(0,1fr) 40px 50px;}
+.ec-dots{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;max-width:320px;}
+.ec-dots span{width:14px;height:14px;border-radius:50%;background:var(--surface-3,var(--surface-2));border:1px solid var(--border);}
+.ec-dots span.on{background:var(--accent);border-color:var(--accent);}
+.ec-gauge{height:8px;max-width:320px;margin-top:14px;background:var(--surface-2);border-radius:var(--radius-pill);overflow:hidden;}
+.ec-gauge div{height:100%;background:var(--accent);border-radius:var(--radius-pill);}
+.ec-gauge-cap{font-size:12px;color:var(--text-faint);margin-top:8px;}
+.ec-masked{display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:20px;}
+.ec-masked svg{width:18px;height:18px;}
+.ec-phases{display:flex;flex-direction:column;gap:18px;}
+.ec-phase + .ec-phase{padding-top:16px;border-top:1px solid var(--border-soft);}
+.ec-phase-title{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px;}
+.ec-phase-title svg{width:13px;height:13px;}
+.ec-phase-note{font-size:11.5px;color:var(--text-faint);margin:-4px 0 10px;}
+.ec-fstep{display:grid;grid-template-columns:140px minmax(0,1fr) 36px 128px;align-items:center;gap:12px;margin-bottom:9px;}
+.ec-fstep:last-child{margin-bottom:0;}
+.ec-fstep-label{font-size:12.5px;color:var(--text-dim);}
+.ec-fstep-rate{font-size:11px;color:var(--text-faint);line-height:1.3;}
+.ec-fstep-rate strong{color:var(--text-dim);font-weight:700;}
 .ec-method{display:flex;gap:12px;align-items:flex-start;font-size:12px;line-height:1.6;color:var(--text-faint);padding:14px 18px;border:1px dashed var(--border);border-radius:var(--radius-md);margin-top:16px;}
 .ec-method svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--text-dim);}
 .ec-method strong{color:var(--text-dim);}
@@ -764,6 +782,13 @@ th.th-sort-active svg{opacity:1;}
   .ec-hero{grid-template-columns:1fr;}
   .ec-hero-side{border-left:none;padding-left:0;border-top:1px solid var(--border-soft);padding-top:18px;}
   .ec-step{grid-template-columns:130px minmax(0,1fr) 34px;}
+  .ec-fstep{grid-template-columns:120px minmax(0,1fr) 34px;}
+  .ec-fstep-rate{grid-column:1 / -1;margin-top:-4px;}
+}
+@media (max-width:640px){
+  .ec-fstep{grid-template-columns:minmax(0,1fr) 34px;row-gap:5px;margin-bottom:12px;}
+  .ec-fstep-label{grid-column:1 / -1;}
+  .ec-fstep-rate{margin-top:0;}
 }
 @media (max-width:640px){
   .ec-intro{padding:24px 20px;}
@@ -6521,6 +6546,15 @@ function randomToken(len){
 
 /* ---------- Rendu du rapport (partagé : page École + bilan public) ---------- */
 function ecSigned(n){ const v = Number(n)||0; return (v>=0?'+':'−') + fmtEur(Math.abs(v)); }
+// Accord singulier / pluriel : ecPlural(1,'membre actif','membres actifs') → « 1 membre actif ».
+function ecPlural(n, one, many){ n = Number(n)||0; return `${n} ${n>1?many:one}`; }
+// Anonymat renforcé (05/10/2026) : avec peu de membres, la médiane et les quartiles tombent
+// EXACTEMENT sur le résultat d'un membre (5 membres → médiane = 3e membre, Q1 = 2e, Q3 = 4e).
+// On ne les affiche qu'à partir de EC_MEDIAN_MIN membres actifs, et arrondis.
+const EC_MEDIAN_MIN = 5;
+function ecRound(n, step){ return Math.round((Number(n)||0)/step)*step; }
+// Montant arrondi signé, sans centimes (« ≈ −360 € ») : afficher « ,00 » sur un arrondi serait trompeur.
+function ecSignedRound(n){ return ecSigned(Math.round(Number(n)||0)).replace(/,00(?=\s*€)/,''); }
 function ecPeriodLabel(p){ return (!p || p==='all') ? 'depuis le début' : monthLabelFull(p).toLowerCase(); }
 function cohortReportHtml(r){
   if(!r) return '';
@@ -6531,24 +6565,43 @@ function cohortReportHtml(r){
       <div class="panel ec-locked">
         <div class="ec-locked-icon">${icon('lock')}</div>
         <div class="ec-locked-title">Chiffres protégés</div>
-        <div class="ec-locked-sub">${r.active||0} membre(s) actif(s) ${period} sur les ${r.threshold||5} nécessaires. Pour garantir l'anonymat, aucun chiffre n'est affiché en dessous de ce seuil.</div>
+        <div class="ec-locked-sub">${ecPlural(r.active,'membre actif','membres actifs')} ${period} sur les ${r.threshold||5} nécessaires. Pour garantir l'anonymat, aucun chiffre n'est affiché en dessous de ce seuil.</div>
         <div class="ec-locked-bar"><div style="width:${pct}%"></div></div>
-        <div class="ec-locked-foot">${r.members||0} membre(s) dans la cohorte au total</div>
+        <div class="ec-locked-foot">${ecPlural(r.members,'membre','membres')} dans la cohorte au total</div>
       </div>`;
   }
   const positive = Number(r.net) >= 0;
   const buckets = Array.isArray(r.buckets) ? r.buckets : [];
   const maxB = Math.max(1, ...buckets.map(b=>b.count||0));
   const fn = r.funnel || {};
-  const maxStep = Math.max(1, fn.challenges||0, fn.funded||0);
+  // Entonnoir en deux phases (05/10/2026) : « Évaluation » et « Comptes financés » ont chacune leur
+  // échelle. Un seul entonnoir donnait l'impression d'un bug quand il y a plus de comptes financés
+  // que d'évaluations réussies (comptes « funded direct », achetés financés sans challenge). Chaque taux
+  // nomme son dénominateur.
   const rate = (a,b)=> b>0 ? Math.round(a/b*100)+' %' : '—';
-  const steps = [
-    { label:'Challenges achetés', n:fn.challenges||0, rate:'' },
-    { label:'Évaluations réussies', n:fn.passed||0, rate:(fn.failed!=null ? rate(fn.passed||0, (fn.passed||0)+(fn.failed||0)) : rate(fn.passed||0, fn.challenges||0)) },
-    { label:'Comptes financés', n:fn.funded||0, rate:'' },
-    { label:'Au moins 1 payout', n:fn.paid||0, rate:rate(fn.paid||0, fn.funded||0) },
-    { label:'Payouts récurrents (2+)', n:fn.recurring||0, rate:rate(fn.recurring||0, fn.paid||0) },
+  const decided = fn.failed!=null ? (fn.passed||0)+(fn.failed||0) : (fn.challenges||0);
+  const phases = [
+    { title:'Évaluation', icon:'sheet', steps:[
+      { label:'Challenges achetés', n:fn.challenges||0, rate:'', of:'' },
+      { label:'Évaluations réussies', n:fn.passed||0, rate:rate(fn.passed||0, decided), of:fn.failed!=null?'des challenges terminés':'des challenges achetés' },
+    ]},
+    { title:'Comptes financés', icon:'wallet', note:'Inclut les comptes financés en direct, sans challenge (funded direct).', steps:[
+      { label:'Comptes financés', n:fn.funded||0, rate:'', of:'' },
+      { label:'Au moins 1 payout', n:fn.paid||0, rate:rate(fn.paid||0, fn.funded||0), of:'des comptes financés' },
+      { label:'2 payouts ou plus', n:fn.recurring||0, rate:rate(fn.recurring||0, fn.paid||0), of:'des comptes payés' },
+    ]},
   ];
+  // Jauge de rentabilité : un point par membre jusqu'à 40 membres (lecture immédiate), une barre au-delà.
+  const pctVal = Math.round(Number(r.positive_pct)||0);
+  const pctColor = pctVal>=50 ? 'var(--accent)' : pctVal>=30 ? 'var(--gold)' : 'var(--danger)';
+  const act = Number(r.active)||0, pos = Math.min(act, Number(r.positive_members)||0);
+  const gauge = act>0 && act<=40
+    ? `<div class="ec-dots" role="img" aria-label="${pos} membres rentables sur ${act}">${Array.from({length:act},(_,i)=>`<span class="${i<pos?'on':''}"></span>`).join('')}</div>`
+    : `<div class="ec-gauge"><div style="width:${pctVal}%"></div></div>`;
+  // Médiane : masquée sous EC_MEDIAN_MIN membres, arrondie à 10 € (quartiles à 100 €) au-dessus.
+  const medianMin = Number(r.median_min) || EC_MEDIAN_MIN;   // seuil renvoyé par le serveur, sinon valeur locale
+  const showMedian = act >= medianMin && r.median_net!=null;
+  const medianNet = showMedian ? ecRound(r.median_net, 10) : null;
   const gen = r.generated_at ? new Date(r.generated_at) : new Date();
   const genLabel = gen.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) + ' à ' + gen.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   return `
@@ -6560,23 +6613,28 @@ function cohortReportHtml(r){
           <span><span class="rt-dot" style="background:var(--accent)"></span>Payouts reçus <strong class="mono">${fmtEur(r.received)}</strong></span>
           <span><span class="rt-dot" style="background:var(--danger)"></span>Dépenses <strong class="mono">${fmtEur(r.spent)}</strong></span>
         </div>
-        <div class="rt-hero-note"><strong>${r.active}</strong> membre(s) actif(s) sur ${r.members} · toutes dépenses comprises (challenges, mensualités, activations, resets, frais généraux).</div>
+        <div class="rt-hero-note"><strong>${ecPlural(r.active,'membre actif','membres actifs')}</strong> sur ${r.members} · toutes dépenses comprises (challenges, mensualités, activations, resets, frais généraux).</div>
       </div>
       <div class="ec-hero-side">
-        <div class="ec-big-pct" style="color:${Number(r.positive_pct)>=50?'var(--accent)':'var(--text)'}">${Math.round(Number(r.positive_pct)||0)}<span>%</span></div>
-        <div class="ec-big-pct-label">des membres actifs sont <strong>rentables</strong> ${period}<br/><span class="text-faint">${r.positive_members} sur ${r.active} · payouts &gt; dépenses</span></div>
+        <div class="ec-big-pct" style="color:${pctColor}">${pctVal}<span>%</span></div>
+        <div class="ec-big-pct-label">des membres actifs sont <strong>rentables</strong> ${period}</div>
+        ${gauge}
+        <div class="ec-gauge-cap">${r.positive_members||0} sur ${r.active} · payouts supérieurs aux dépenses</div>
       </div>
     </div>
     <div class="stats-grid">
-      <div class="stat-tile" style="--rail:var(--slate)">
-        <div class="stat-label">Net médian par membre${infoTip("La moitié des membres actifs font mieux, l'autre moitié moins bien. Contrairement à la moyenne, la médiane n'est pas gonflée par quelques très gros résultats.")}</div>
-        <div class="stat-value" style="color:${Number(r.median_net)>=0?'var(--accent)':'var(--danger)'}">${ecSigned(r.median_net)}</div>
-        <div class="stat-sub">La moitié des membres entre ${ecSigned(r.p25_net)} et ${ecSigned(r.p75_net)}</div>
+      <div class="stat-tile" style="--rail:${!showMedian?'var(--slate)':medianNet>=0?'var(--accent)':'var(--danger)'}">
+        <div class="stat-label">Net médian par membre${infoTip(`La moitié des membres actifs font mieux, l'autre moitié moins bien. Contrairement à la moyenne, la médiane n'est pas gonflée par quelques très gros résultats. Pour protéger l'anonymat, elle n'est affichée qu'à partir de ${medianMin} membres actifs, et arrondie.`)}</div>
+        ${showMedian
+          ? `<div class="stat-value" style="color:${medianNet>=0?'var(--accent)':'var(--danger)'}">≈ ${ecSignedRound(medianNet)}</div>
+        <div class="stat-sub">La moitié des membres entre ≈ ${ecSignedRound(ecRound(r.p25_net,100))} et ≈ ${ecSignedRound(ecRound(r.p75_net,100))}</div>`
+          : `<div class="stat-value ec-masked">${icon('lock')}<span>Protégé</span></div>
+        <div class="stat-sub">Affiché à partir de ${medianMin} membres actifs (${act} aujourd'hui), pour qu'aucun résultat individuel ne soit reconnaissable.</div>`}
       </div>
-      <div class="stat-tile" style="--rail:var(--slate)">
+      <div class="stat-tile" style="--rail:${act && (r.paying_members||0)/act>=0.5?'var(--accent)':'var(--gold)'}">
         <div class="stat-label">Membres avec payout${infoTip("Membres actifs ayant reçu au moins un payout sur la période.")}</div>
         <div class="stat-value">${r.paying_members}<span class="rt-of"> / ${r.active}</span></div>
-        <div class="stat-sub">${r.payout_count} payout(s) au total</div>
+        <div class="stat-sub">${ecPlural(r.payout_count,'payout reçu','payouts reçus')} au total</div>
       </div>
       <div class="stat-tile" style="--rail:var(--slate)">
         <div class="stat-label">Coût par payout${infoTip("Total des dépenses des membres ÷ nombre de payouts reçus.")}</div>
@@ -6602,21 +6660,27 @@ function cohortReportHtml(r){
         </div>
       </div>
       <div class="panel">
-        <div class="panel-head"><div class="section-title">Entonnoir de la cohorte${infoTip("Cumul des comptes de tous les membres, depuis le début (indépendant de la période choisie).")}</div></div>
-        <div class="panel-body rt-funnel">
-          ${steps.map((s,i)=>`
-            <div class="rt-step ec-step">
-              <div class="rt-step-label">${s.label}</div>
-              <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/maxStep*100)}%;opacity:${1 - i*0.13}"></div></div>
-              <div class="rt-step-n mono">${s.n}</div>
-              <div class="rt-step-rate">${s.rate}</div>
-            </div>`).join('')}
+        <div class="panel-head"><div class="section-title">Parcours des comptes${infoTip("Nombre de comptes (et non de membres), cumulé depuis le début quelle que soit la période choisie. Les comptes financés incluent les comptes financés en direct, sans challenge (funded direct) : il peut donc y en avoir plus que d'évaluations réussies, et les deux phases ont chacune leur échelle.")}</div></div>
+        <div class="panel-body ec-phases">
+          ${phases.map(ph=>{
+            const max = Math.max(1, ...ph.steps.map(s=>s.n));
+            return `<div class="ec-phase">
+              <div class="ec-phase-title">${icon(ph.icon)}${ph.title}</div>
+              ${ph.note?`<div class="ec-phase-note">${ph.note}</div>`:''}
+              ${ph.steps.map((s,i)=>`
+              <div class="ec-fstep">
+                <div class="ec-fstep-label">${s.label}</div>
+                <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/max*100)}%;opacity:${1 - i*0.22}"></div></div>
+                <div class="rt-step-n mono">${s.n}</div>
+                <div class="ec-fstep-rate">${s.rate?`<strong>${s.rate}</strong> ${s.of}`:''}</div>
+              </div>`).join('')}
+            </div>`;}).join('')}
         </div>
       </div>
     </div>
     <div class="ec-method">
       ${icon('shield')}
-      <div><strong>Méthode.</strong> Chiffres calculés par Contralytix le ${genLabel}, directement à partir des comptes, dépenses et payouts enregistrés par les membres ayant donné leur accord. Montants convertis en euros au taux BCE de chaque opération. Les payouts peuvent être appuyés par une preuve (taux affiché ci-dessus) ; les dépenses sont déclarées par les membres. Aucun chiffre individuel ni aucune identité n'est communiqué, et rien n'est affiché sous ${r.threshold} membres actifs.</div>
+      <div><strong>Méthode.</strong> Chiffres calculés par Contralytix le ${genLabel}, directement à partir des comptes, dépenses et payouts enregistrés par les membres ayant donné leur accord. Montants convertis en euros au taux BCE de chaque opération. Les payouts peuvent être appuyés par une preuve (taux affiché ci-dessus) ; les dépenses sont déclarées par les membres. Aucun chiffre individuel ni aucune identité n'est communiqué, rien n'est affiché sous ${r.threshold} membres actifs, et la médiane est arrondie.</div>
     </div>`;
 }
 function ecPeriodSelect(id, months, current){
