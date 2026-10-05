@@ -461,6 +461,19 @@ th.th-sort-active svg{opacity:1;}
 .status-ms-clear{margin-top:3px;background:none;border:none;border-top:1px solid var(--border-soft);color:var(--text-faint);font-size:11.5px;padding:7px 8px 2px;cursor:pointer;text-align:left;font-family:inherit;}
 .status-ms-clear:hover{color:var(--text);}
 .status-ms-btn-active{border-color:var(--text-faint);color:var(--bg);background:var(--text-faint);}
+/* Filtre PropFirm avec logos (renderFirmSelect) */
+.firm-select .status-ms-btn{padding-left:12px;}
+.firm-select .status-ms-btn.firm-sel-on{border-color:var(--accent);}
+.firm-sel-menu{min-width:230px;max-height:340px;overflow-y:auto;}
+.firm-sel-item{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:none;background:none;border-radius:6px;font-size:12.5px;font-family:inherit;color:var(--text);text-align:left;cursor:pointer;}
+.firm-sel-item:hover,.firm-sel-item:focus-visible{background:var(--surface-2);outline:none;}
+.firm-sel-item.is-sel{background:var(--surface-2);font-weight:600;}
+.firm-sel-item.is-sel::after{content:'✓';margin-left:auto;color:var(--accent);font-weight:700;}
+.firm-sel-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.firm-sel-all{border-bottom:1px solid var(--border-soft);border-radius:6px 6px 0 0;margin-bottom:3px;padding-bottom:8px;}
+.firm-sel-all-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:var(--surface-2);color:var(--text-dim);flex-shrink:0;}
+.status-ms-btn .firm-sel-all-ico{width:16px;height:16px;background:none;}
+.firm-sel-all-ico svg{width:13px;height:13px;}
 .acc-group-header{display:flex;align-items:center;gap:8px;margin:22px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 .acc-group-header:first-child{margin-top:4px;}
 .acc-group-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
@@ -4588,6 +4601,54 @@ function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onCha
   }
 }
 
+// Filtre PropFirm à choix unique, avec logo (05/10/2026). Remplace les <select> natifs, qui ne
+// peuvent pas afficher d'image : même habillage pilule que renderMultiSelect, logo + nom dans le
+// bouton et dans chaque ligne du menu. filterObj.propfirm = id sélectionné ('' = toutes).
+function renderFirmSelect(idPrefix, value, open){
+  const firms = sortedFirms();
+  const cur = value ? getFirm(value) : null;
+  const label = cur
+    ? `<span class="firm-name-inline">${firmLogoHtml(cur,16)}${escapeHtml(cur.name)}</span>`
+    : `<span class="firm-sel-all-ico">${icon('building')}</span>Toutes les propfirms`;
+  return `
+    <div class="status-multiselect firm-select" id="${idPrefix}-wrap">
+      <button type="button" class="status-ms-btn${cur?' firm-sel-on':''}" id="${idPrefix}-btn" aria-haspopup="listbox" aria-expanded="${open?'true':'false'}">${label} <span style="opacity:.6;font-size:10px;">▾</span></button>
+      <div class="status-ms-menu firm-sel-menu" id="${idPrefix}-menu" role="listbox" style="display:${open?'flex':'none'};">
+        <button type="button" role="option" aria-selected="${!cur}" class="firm-sel-item firm-sel-all${!cur?' is-sel':''}" data-firm-sel="${idPrefix}" data-v=""><span class="firm-sel-all-ico">${icon('building')}</span><span class="firm-sel-name">Toutes les propfirms</span></button>
+        ${firms.map(f=>`<button type="button" role="option" aria-selected="${cur&&cur.id===f.id}" class="firm-sel-item${cur&&cur.id===f.id?' is-sel':''}" data-firm-sel="${idPrefix}" data-v="${f.id}">${firmLogoHtml(f,20)}<span class="firm-sel-name">${escapeHtml(f.name)}</span></button>`).join('')}
+      </div>
+    </div>`;
+}
+function bindFirmSelect(idPrefix, filterObj, openField){
+  const btn = document.getElementById(idPrefix+'-btn');
+  if(!btn) return;
+  btn.onclick = (e)=>{ e.stopPropagation(); filterObj[openField] = !filterObj[openField]; renderView(); };
+  const menu = document.getElementById(idPrefix+'-menu');
+  if(menu) menu.onclick = e=>e.stopPropagation();
+  document.querySelectorAll(`[data-firm-sel="${idPrefix}"]`).forEach(it=>{
+    it.onclick = (e)=>{ e.stopPropagation(); filterObj.propfirm = it.dataset.v; filterObj[openField] = false; renderView(); };
+  });
+  if(filterObj[openField]){
+    const selItem = menu && menu.querySelector('.is-sel');
+    if(selItem) selItem.focus({ preventScroll:true });
+    if(selItem && menu) menu.scrollTop = selItem.offsetTop - menu.clientHeight/2;
+    // Navigation clavier : flèches haut/bas entre les options, Échap pour fermer.
+    if(menu) menu.onkeydown = (e)=>{
+      const items = [...menu.querySelectorAll('.firm-sel-item')];
+      const i = items.indexOf(document.activeElement);
+      if(e.key==='ArrowDown'){ e.preventDefault(); (items[i+1]||items[0]).focus(); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); (items[i-1]||items[items.length-1]).focus(); }
+      else if(e.key==='Escape'){ filterObj[openField] = false; renderView(); }
+    };
+    setTimeout(()=>{
+      document.addEventListener('click', function closeFs(){
+        filterObj[openField] = false;
+        renderView();
+      }, { once:true });
+    }, 0);
+  }
+}
+
 /* ============================================================
    FILTRES DE DATE (composants réutilisables)
    - dateRangeFilterHtml/bindDateRangeFilter : plage libre avec préréglages
@@ -6085,7 +6146,7 @@ function viewRentabilite(){
   const filterBar = `
     <div class="filter-bar">
       ${renderMultiSelect('rt-trader', myTraders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <select id="rt-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select>
+      ${renderFirmSelect('rt-firm', f.propfirm, f.firmMenuOpen)}
       ${dateRangeFilterHtml('rt-date', f)}
       <label class="rt-toggle" title="${f.propfirm ? 'Les frais généraux ne sont rattachés à aucune propfirm : ils sont exclus quand une propfirm est sélectionnée.' : ''}">
         <input type="checkbox" id="rt-general" ${f.includeGeneral?'checked':''} ${f.propfirm?'disabled':''}/> Inclure les frais généraux
@@ -6328,8 +6389,7 @@ function bindRentabiliteEvents(){
   const f = state.filters.rentabilite;
   bindMultiSelectDropdown('rt-trader', f, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   bindDateRangeFilter('rt-date', f);
-  const firm = document.getElementById('rt-firm');
-  if(firm) firm.onchange = ()=>{ f.propfirm = firm.value; renderView(); };
+  bindFirmSelect('rt-firm', f, 'firmMenuOpen');
   const gen = document.getElementById('rt-general');
   if(gen) gen.onchange = ()=>{ f.includeGeneral = gen.checked; renderView(); };
   const clr = document.getElementById('rt-clear');
@@ -7223,7 +7283,7 @@ function viewDashboard(){
   const filterBar = `
     <div class="filter-bar">
       ${renderMultiSelect('fd-trader', myTraders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <select id="fd-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
+      ${renderFirmSelect('fd-firm', f.propfirm, f.firmMenuOpen)}
       ${dateRangeFilterHtml('fd-date', f)}
       <div class="filter-bar-spacer"></div>
       ${(f.trader.length||f.propfirm||f.dateFrom||f.dateTo) ? `<button class="pill-reset" id="fd-clear">Réinitialiser</button>` : ''}
@@ -9545,7 +9605,7 @@ function viewAccounts(){
       </div>
       <div class="search-wrap">${icon('search')}<input type="text" id="f-q" placeholder="Rechercher trader, n° compte, propfirm…" value="${f.q}"/></div>
       ${renderMultiSelect('f-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <select id="f-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
+      ${renderFirmSelect('f-firm', f.propfirm, f.firmMenuOpen)}
       <select id="f-type"><option value="">Tous types</option><option value="CHALLENGE" ${f.type==='CHALLENGE'?'selected':''}>Challenge</option><option value="PA" ${f.type==='PA'?'selected':''}>PA</option><option value="LIVE" ${f.type==='LIVE'?'selected':''}>Live</option></select>
       <select id="f-size"><option value="">Toutes tailles</option>${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${f.size===k?'selected':''}>${v}</option>`).join('')}</select>
       <div class="status-multiselect" id="f-status-wrap">
@@ -9986,7 +10046,7 @@ function viewAccounting(){
         <option value="PAYOUT" ${f.type==='PAYOUT'?'selected':''}>Payout</option>
       </select>
       ${renderMultiSelect('fa-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
-      <select id="fa-firm"><option value="">Toutes les propfirms</option>${sortedFirms().map(p=>`<option value="${p.id}" ${f.propfirm===p.id?'selected':''}>${p.name}</option>`).join('')}</select>
+      ${renderFirmSelect('fa-firm', f.propfirm, f.firmMenuOpen)}
       <div class="filter-bar-spacer"></div>
       ${(f.month||f.type||f.trader.length||f.propfirm) ? `<button class="pill-reset" id="fa-clear">Réinitialiser</button>` : ''}
     </div>`;
@@ -13338,15 +13398,7 @@ function bindViewEvents(){
     a.onclick = (e)=>{ e.preventDefault(); state.route = a.dataset.nav; render(); };
   });
   // Dashboard filters
-  ['fd-firm'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    const map = { 'fd-firm':'propfirm' };
-    el.addEventListener('change', ()=>{
-      state.filters.dashboard[map[id]] = el.value;
-      renderView();
-    });
-  });
+  bindFirmSelect('fd-firm', state.filters.dashboard, 'firmMenuOpen');
   bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindRentabiliteEvents();
   bindEcoleEvents();
@@ -13674,10 +13726,11 @@ function bindViewEvents(){
     });
   });
   // Accounts filters
-  ['f-q','f-firm','f-type','f-size'].forEach(id=>{
+  bindFirmSelect('f-firm', state.filters.accounts, 'firmMenuOpen');
+  ['f-q','f-type','f-size'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'f-q':'q', 'f-firm':'propfirm', 'f-type':'type', 'f-size':'size' };
+    const map = { 'f-q':'q', 'f-type':'type', 'f-size':'size' };
     el.addEventListener(id==='f-q'?'input':'change', ()=>{
       state.filters.accounts[map[id]] = el.value;
       if(id==='f-q'){
@@ -13753,10 +13806,11 @@ function bindViewEvents(){
     }
   }
   // Accounting filters
-  ['fa-type','fa-firm'].forEach(id=>{
+  bindFirmSelect('fa-firm', state.filters.accounting, 'firmMenuOpen');
+  ['fa-type'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'fa-type':'type', 'fa-firm':'propfirm' };
+    const map = { 'fa-type':'type' };
     el.addEventListener('change', ()=>{
       state.filters.accounting[map[id]] = el.value;
       renderView();
