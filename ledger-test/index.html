@@ -984,6 +984,12 @@ th.th-sort-active svg{opacity:1;}
 .firm-pick:hover{border-color:var(--accent);}
 .firm-pick.selected{border-color:var(--accent);background:var(--accent-dim);font-weight:600;}
 .firm-name-inline{display:inline-flex;align-items:center;gap:6px;}
+.trader-star{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:-4px;padding:0;border:none;background:none;border-radius:6px;color:var(--text-faint);cursor:pointer;flex-shrink:0;transition:color .12s,background .12s;}
+.trader-star svg{width:15px;height:15px;}
+.trader-star:hover{color:var(--gold);background:var(--gold-dim);}
+.trader-star.is-default{color:var(--gold);}
+.trader-default-badge{font-size:10px;padding:2px 7px;}
+.trader-star-spacer{display:inline-block;width:20px;flex-shrink:0;}
 .firm-row-link{cursor:pointer;}
 .firm-row-link:hover{color:var(--accent);}
 
@@ -1892,6 +1898,7 @@ const ICONS = {
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
   gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
+  starOutline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.7l2.95 6.2 6.75.75-5.05 4.75 1.35 6.9L12 17.9l-6 3.4 1.35-6.9-5.05-4.75 6.75-.75L12 2.7Z"/></svg>',
   exchange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>',
   userCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M5.5 19c1-3 3.5-4.5 6.5-4.5s5.5 1.5 6.5 4.5"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.8a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V2.8a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
@@ -2105,10 +2112,49 @@ function tradersForProfile(p){
   const email = (p.email||'').toLowerCase();
   return state.traders.filter(t => t.createdBy===p.id || (email && t.email && t.email.toLowerCase()===email));
 }
+// TRADER PAR DÉFAUT (06/10/2026) — choisi par l'utilisateur (étoile page Traders, ou Paramètres)
+// et mémorisé sur son compte (profiles.default_trader_id, voir migration_trader_defaut_20261006.sql).
+// Sans choix (ou si le trader choisi a été supprimé / n'est plus à lui) : repli sur le trader lié
+// à son email (myLinkedTrader), comportement historique. Utilisé pour les filtres à la connexion et
+// la présélection dans les formulaires (compte, ajout en masse, session).
+function defaultTrader(){
+  const id = state.profile && state.profile.defaultTraderId;
+  if(id){
+    const t = state.traders.find(x=>x.id===id);
+    if(t && isMineTrader(t)) return t;
+  }
+  return myLinkedTrader();
+}
+function isDefaultTrader(t){ const d = defaultTrader(); return !!(t && d && d.id===t.id); }
+// Enregistre le choix (id, ou null = « automatique ») — optimiste avec rollback, comme saveCashSettings.
+// Le nouveau trader par défaut est appliqué tout de suite à tous les filtres trader.
+async function saveDefaultTrader(traderId){
+  const uidv = currentUserId();
+  if(!uidv || !state.profile) return;
+  const prev = state.profile.defaultTraderId ?? null;
+  state.profile.defaultTraderId = traderId || null;
+  const d = defaultTrader();
+  setTraderFilterEverywhere(d ? [d.id] : []);
+  render();
+  const { error } = await supabaseClient.from('profiles').update({ default_trader_id: traderId || null }).eq('id', uidv);
+  if(error){
+    state.profile.defaultTraderId = prev;
+    const back = defaultTrader();
+    setTraderFilterEverywhere(back ? [back.id] : []);
+    showToast("Impossible d'enregistrer le trader par défaut (colonne absente ? voir migration_trader_defaut_20261006.sql) : " + error.message, 'danger');
+    render();
+    return;
+  }
+  showToast(traderId
+    ? `${d ? traderDisplayName(d) : 'Ce trader'} est maintenant ton trader par défaut.`
+    : (d ? `Trader par défaut : automatique (${traderDisplayName(d)}, lié à ton email).` : 'Trader par défaut retiré.'));
+}
+function traderDisplayName(t){ return t ? (t.pseudo || `${t.firstName||''} ${t.lastName||''}`.trim()) : ''; }
+
 // Applique ce trader par défaut sur tous les filtres "trader" existants, une seule fois
 // à la connexion (sans écraser un filtre déjà modifié manuellement par l'utilisateur).
 function applyMyTraderDefaultFilters(){
-  const t = myLinkedTrader();
+  const t = defaultTrader();
   if(!t) return;
   if(!state.filters.dashboard.trader.length) state.filters.dashboard.trader = [t.id];
   if(!state.filters.accounts.trader.length) state.filters.accounts.trader = [t.id];
@@ -8314,7 +8360,7 @@ function viewTraders(){
               const badges = computeTraderBadges(t);
               const unlocked = badges.filter(b=>b.unlocked);
               return `<tr class="${freeBlurClass(ti,trBlurred)}">
-                <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${escapeHtml(t.firstName)} ${escapeHtml(t.lastName)}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${escapeHtml(t.pseudo)}</span></td>
+                <td><div style="font-weight:600;display:flex;align-items:center;gap:6px;">${isMineTrader(t) ? `<button type="button" class="trader-star${isDefaultTrader(t)?' is-default':''}" data-default-trader="${t.id}" title="${isDefaultTrader(t)?(state.profile&&state.profile.defaultTraderId===t.id?'Trader par défaut. Cliquer pour revenir en automatique (trader lié à ton email).':'Trader par défaut (automatique : lié à ton email).'):'Définir comme trader par défaut : présélectionné dans les filtres et les formulaires.'}" aria-pressed="${isDefaultTrader(t)}" aria-label="Trader par défaut">${icon(isDefaultTrader(t)?'star':'starOutline')}</button>` : '<span class="trader-star-spacer"></span>'}${escapeHtml(t.firstName)} ${escapeHtml(t.lastName)}${isDefaultTrader(t)?'<span class="badge badge-gold trader-default-badge">Par défaut</span>':''}${t.isPublic===false?`<span class="badge badge-slate" title="Visible uniquement par toi et les admins">${icon('lock')}Privé</span>`:''}</div><span class="tag-pseudo">${escapeHtml(t.pseudo)}</span></td>
                 <td class="text-dim">${traderEmailCell(t)}</td>
                 <td><span class="badge ${t.status==='ACTIF'?'badge-accent':'badge-slate'}">${t.status==='ACTIF'?'Actif':'Inactif'}</span></td>
                 <td>
@@ -12092,7 +12138,7 @@ function prepFormModal(existing){
 }
 
 function newSessionDefaults(){
-  const myTrader = myLinkedTrader();
+  const myTrader = defaultTrader();
   return {
     id: uid('yts'), title:'', date: todayISO(), youtubeUrl:'', notes:'', traderId: myTrader ? myTrader.id : null, createdBy: currentUserId(),
     startTime:'', endTime:'', plannedDurationMin:null, performance:'',
@@ -13302,6 +13348,23 @@ function viewParametres(){
           </div>
         </div>
 
+        ${(()=>{
+          const mineAll = state.traders.filter(isMineTrader).sort((a,b)=>traderDisplayName(a).localeCompare(traderDisplayName(b),'fr',{sensitivity:'base'}));
+          const linked = myLinkedTrader();
+          const chosen = p.defaultTraderId && mineAll.some(t=>t.id===p.defaultTraderId) ? p.defaultTraderId : '';
+          return `<div class="panel" style="padding:20px;">
+          <div class="section-title" style="margin-bottom:4px;">Trader par défaut</div>
+          <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;">Présélectionné dans les filtres à la connexion et dans les formulaires (nouveau compte, ajout en masse, session). Réglable aussi avec l'étoile de la page Traders.</div>
+          ${mineAll.length===0 ? `<div class="text-faint" style="font-size:13px;">Aucun trader pour l'instant.</div>` : `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div style="min-width:0;"><div style="font-size:13px;font-weight:600;">Trader</div><div style="font-size:12px;color:var(--text-dim);">${chosen ? 'Choisi par toi.' : (linked ? 'Automatique : celui lié à ton email.' : 'Automatique : aucun trader lié à ton email.')}</div></div>
+            <div class="field" style="margin:0;width:220px;flex-shrink:0;"><select id="params-default-trader">
+              <option value="" ${!chosen?'selected':''}>Automatique${linked?` (${escapeHtml(traderDisplayName(linked))})`:''}</option>
+              ${mineAll.map(t=>`<option value="${t.id}" ${chosen===t.id?'selected':''}>${escapeHtml(traderDisplayName(t))}</option>`).join('')}
+            </select></div>
+          </div>`}
+        </div>`;})()}
+
         <div class="panel" style="padding:20px;">
           <div class="section-title" style="margin-bottom:4px;">Confidentialité de mes traders</div>
           <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;">Privé par défaut. La visibilité se règle trader par trader depuis sa fiche.</div>
@@ -13731,11 +13794,23 @@ function bindViewEvents(){
   const paramsNumbersToggle = document.getElementById('params-numbers-toggle');
   if(paramsNumbersToggle) paramsNumbersToggle.onchange = ()=>{ state.numbersVisible = paramsNumbersToggle.checked; render(); };
   document.querySelectorAll('[data-edit-trader-privacy]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTraderPrivacy)));
+  const paramsDefTrader = document.getElementById('params-default-trader');
+  if(paramsDefTrader) paramsDefTrader.onchange = ()=>saveDefaultTrader(paramsDefTrader.value || null);
   document.querySelectorAll('[data-notif-toggle]').forEach(cb=>{
     cb.onchange = ()=>saveNotifPreference(cb.dataset.notifToggle, cb.checked);
   });
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
+  // Étoile « trader par défaut » : clic sur l'étoile du trader déjà par défaut = retour en automatique.
+  document.querySelectorAll('[data-default-trader]').forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    const t = getTrader(b.dataset.defaultTrader);
+    if(!t) return;
+    const explicit = !!(state.profile && state.profile.defaultTraderId===t.id);
+    if(explicit) saveDefaultTrader(null);              // retour en automatique
+    else if(isDefaultTrader(t)) showToast(`${traderDisplayName(t)} est déjà ton trader par défaut (lié à ton email). Clique sur l'étoile d'un autre trader pour changer.`);
+    else saveDefaultTrader(t.id);
+  });
   document.querySelectorAll('[data-trader-badges]').forEach(b=>b.onclick=()=>traderBadgesModal(getTrader(b.dataset.traderBadges)));
   document.querySelectorAll('[data-reveal-trader-email]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.revealTraderEmail;
@@ -14549,7 +14624,7 @@ function firmFormModal(existing){
 ============================================================ */
 function ratingFormModal(firm, existing){
   const mine = myTraders();
-  let traderId = existing ? existing.traderId : ((myLinkedTrader() && mine.some(t=>t.id===myLinkedTrader().id)) ? myLinkedTrader().id : (mine[0] ? mine[0].id : null));
+  let traderId = existing ? existing.traderId : ((defaultTrader() && mine.some(t=>t.id===defaultTrader().id)) ? defaultTrader().id : (mine[0] ? mine[0].id : null));
   if(!traderId){
     showToast("Aucun trader n'est lié à ton compte : impossible de laisser un avis. Crée d'abord un trader, ou demande à un admin de lier ton compte à ta fiche trader.", 'danger');
     return;
@@ -14661,7 +14736,7 @@ function accountFormModal({ existing, type, parentChallenge }){
   // Voir la vérification faite dans af-save, juste avant l'enregistrement.
   const a = existing || {
     id: uid('acc'),
-    traderId: parentChallenge ? parentChallenge.traderId : (myLinkedTrader() ? myLinkedTrader().id : ''),
+    traderId: parentChallenge ? parentChallenge.traderId : (defaultTrader() ? defaultTrader().id : ''),
     propFirmId: parentChallenge ? parentChallenge.propFirmId : '',
     type: type || 'CHALLENGE',
     parentChallengeId: parentChallenge ? parentChallenge.id : null,
@@ -15038,7 +15113,7 @@ function bulkAccountFormModal(){
     return;
   }
   const base = {
-    traderId: myLinkedTrader() ? myLinkedTrader().id : '',
+    traderId: defaultTrader() ? defaultTrader().id : '',
     propFirmId: '',
     type: 'CHALLENGE',
     size: 'S25K',
