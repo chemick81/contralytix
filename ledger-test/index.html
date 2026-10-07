@@ -137,6 +137,7 @@
   --danger:#E85C4A; --danger-dim:rgba(232,92,74,0.14);
   --gold:#D9A65A; --gold-dim:rgba(217,166,90,0.14);
   --slate:#7C8B9A; --slate-dim:rgba(124,139,154,0.14);
+  --type-challenge:#6FA8FF; --type-pa:#B6A6FF; --type-live:#FF6FA6;
   --shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 :root[data-theme="light"]{
@@ -147,6 +148,7 @@
   --danger:#C6402E; --danger-dim:rgba(198,64,46,0.10);
   --gold:#B9803C; --gold-dim:rgba(185,128,60,0.10);
   --slate:#5B6673; --slate-dim:rgba(91,102,115,0.08);
+  --type-challenge:#2563D9; --type-pa:#6D4FD8; --type-live:#C42A6B;
   --shadow: 0 8px 24px rgba(20,30,40,0.08);
 }
 /* 3e thème visuel : "Premium doré" — ambiance chaude/sombre distincte de Sombre et Clair,
@@ -160,6 +162,7 @@
   --danger:#E8664A; --danger-dim:rgba(232,102,74,0.16);
   --gold:#F2C879; --gold-dim:rgba(242,200,121,0.20);
   --slate:#8C7D62; --slate-dim:rgba(140,125,98,0.14);
+  --type-challenge:#7FB0FF; --type-pa:#BFB0FF; --type-live:#FF7DAE;
   --shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 /* ============================================================
@@ -415,6 +418,26 @@ th.th-sort-active svg{opacity:1;}
 .badge-gold{background:var(--gold-dim);color:var(--gold);}
 .badge-slate{background:var(--slate-dim);color:var(--slate);}
 .type-pill{display:inline-flex;align-items:center;padding:3px 11px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+/* Types de compte (07/10/2026, maquette « A · Rail + étiquette forte ») : une couleur par thème
+   (--type-*), une icône par type (cible / bouclier / pulsation) pour ne pas dépendre de la couleur seule. */
+.type-chip{--tc:var(--slate);display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:7px;font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;color:var(--tc);background:color-mix(in srgb, var(--tc) 14%, transparent);border:1px solid color-mix(in srgb, var(--tc) 45%, transparent);}
+.type-chip svg{width:14px;height:14px;flex-shrink:0;}
+.type-chip--challenge{--tc:var(--type-challenge);}
+.type-chip--pa{--tc:var(--type-pa);}
+.type-chip--live{--tc:var(--type-live);}
+.type-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px;}
+.type-tab{--tc:var(--text);display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--tc);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,border-color .12s;}
+.type-tab svg{width:15px;height:15px;}
+.type-tab:hover{border-color:color-mix(in srgb, var(--tc) 55%, var(--border));}
+.type-tab:focus-visible{outline:2px solid var(--tc);outline-offset:2px;}
+.type-tab.is-on{background:color-mix(in srgb, var(--tc) 16%, var(--surface));border-color:color-mix(in srgb, var(--tc) 60%, transparent);}
+.type-tab--all.is-on{background:var(--text);border-color:var(--text);color:var(--bg);}
+.type-tab-n{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:color-mix(in srgb, var(--tc) 18%, transparent);}
+.type-tab--all .type-tab-n{background:var(--surface-2);color:var(--text-dim);}
+.type-tab--all.is-on .type-tab-n{background:color-mix(in srgb, var(--bg) 14%, transparent);color:var(--bg);}
+.type-tab--challenge{--tc:var(--type-challenge);}
+.type-tab--pa{--tc:var(--type-pa);}
+.type-tab--live{--tc:var(--type-live);}
 .size-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--radius-pill);font-size:13px;font-weight:700;white-space:nowrap;}
 .pay-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border-soft);}
 .pay-pill svg{width:11px;height:11px;flex-shrink:0;}
@@ -1102,7 +1125,12 @@ th.th-sort-active svg{opacity:1;}
 .error-text{color:var(--danger);font-size:11.5px;margin-top:5px;}
 
 /* ACCOUNT ROW CARD */
-.acc-card{border:1px solid var(--border);border-left:3px solid var(--rail,var(--slate));border-radius:var(--radius-md);padding:14px 16px;margin-bottom:10px;background:var(--surface);}
+.acc-card{border:1px solid var(--border);border-left:4px solid var(--rail,var(--slate));border-radius:var(--radius-md);padding:14px 16px;margin-bottom:10px;background:linear-gradient(90deg, color-mix(in srgb, var(--rail,var(--slate)) 7%, var(--surface)), var(--surface) 34%);}
+/* Comptes clos (breached, réussi, fermé) : rail du type atténué, pour que les comptes actifs ressortent. */
+.acc-card--closed{border-left-color:color-mix(in srgb, var(--rail,var(--slate)) 45%, var(--border));}
+.acc-size{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text);}
+.acc-grid .acc-num{font-size:13px;font-weight:600;letter-spacing:.3px;color:var(--gold);}
+:root[data-theme="light"] .acc-grid .acc-num{color:var(--text);}
 .acc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
 .acc-title{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;}
 .acc-meta{font-size:11.5px;color:var(--text-faint);margin-top:3px;}
@@ -4186,9 +4214,17 @@ function hexToRgba(hex, alpha){
   const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+// Étiquette de type (07/10/2026) : icône + libellé, couleur par thème (--type-*), voir .type-chip.
+const TYPE_ICONS = {
+  CHALLENGE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.6"/></svg>',
+  PA: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>',
+  LIVE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>',
+};
+const TYPE_TITLES = { CHALLENGE:'Challenge : compte d’évaluation', PA:'PA : compte financé après réussite du challenge', LIVE:'Live : compte en argent réel' };
+function typeColorVar(type){ return type==='CHALLENGE' ? 'var(--type-challenge)' : type==='PA' ? 'var(--type-pa)' : type==='LIVE' ? 'var(--type-live)' : 'var(--slate)'; }
 function typeBadgeHtml(type){
-  const c = TYPE_COLORS[type] || '#7C8B9A';
-  return `<span class="type-pill" style="background:${hexToRgba(c,0.16)};color:${c};">${TYPE_LABELS[type]||type}</span>`;
+  const k = (type||'').toLowerCase();
+  return `<span class="type-chip type-chip--${k}" title="${TYPE_TITLES[type]||''}">${TYPE_ICONS[type]||''}${TYPE_LABELS[type]||type}</span>`;
 }
 function sizeBadgeHtml(acc){
   const c = SIZE_COLORS[acc.size] || '#7C8B9A';
@@ -9659,9 +9695,12 @@ function viewAccounts(){
   if(f.trader.length) list = list.filter(a=>f.trader.includes(a.traderId));
   const searchMatches = f.q ? list : null;
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
-  if(f.type) list = list.filter(a=>a.type===f.type);
   if(f.size) list = list.filter(a=>a.size===f.size);
   if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status) || (f.status.includes('ACTIF') && needsPa(a)));
+  // Compteurs des onglets de type (07/10/2026) : calculés avec tous les autres filtres, avant celui du type.
+  const typeCounts = { ALL:list.length, CHALLENGE:0, PA:0, LIVE:0 };
+  list.forEach(a=>{ if(typeCounts[a.type]!=null) typeCounts[a.type]++; });
+  if(f.type) list = list.filter(a=>a.type===f.type);
   const hiddenSearchHtml = (()=>{
     if(!searchMatches) return '';
     const shown = new Set(list.map(a=>a.id));
@@ -9716,7 +9755,6 @@ function viewAccounts(){
       <div class="search-wrap">${icon('search')}<input type="text" id="f-q" placeholder="Rechercher trader, n° compte, propfirm…" value="${f.q}"/></div>
       ${renderMultiSelect('f-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       ${renderFirmSelect('f-firm', f.propfirm, f.firmMenuOpen)}
-      <select id="f-type"><option value="">Tous types</option><option value="CHALLENGE" ${f.type==='CHALLENGE'?'selected':''}>Challenge</option><option value="PA" ${f.type==='PA'?'selected':''}>PA</option><option value="LIVE" ${f.type==='LIVE'?'selected':''}>Live</option></select>
       <select id="f-size"><option value="">Toutes tailles</option>${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${f.size===k?'selected':''}>${v}</option>`).join('')}</select>
       <div class="status-multiselect" id="f-status-wrap">
         <button type="button" class="status-ms-btn" id="f-status-btn">${statusBtnLabel} <span style="opacity:.6;font-size:10px;">▾</span></button>
@@ -9734,6 +9772,12 @@ function viewAccounts(){
       ], f.groupBy, 'Regrouper par…', f.groupByMenuOpen)}
       <div class="filter-bar-spacer"></div>
       ${(anyFilterActive || f.groupBy.length) ? `<button type="button" class="pill-reset" id="f-reset-all">Réinitialiser</button>` : ''}
+    </div>
+    <div class="type-tabs" role="tablist" aria-label="Filtrer par type de compte">
+      ${[['','Tous','all'],['CHALLENGE','Challenge','challenge'],['PA','PA · financé','pa'],['LIVE','Live','live']].map(([v,l,k])=>{
+        const on = (f.type||'')===v;
+        return `<button type="button" role="tab" aria-selected="${on}" class="type-tab type-tab--${k}${on?' is-on':''}" data-type-tab="${v}" title="${v?TYPE_TITLES[v]:'Tous les types de compte'}">${v?TYPE_ICONS[v]:''}<span>${l}</span><span class="type-tab-n">${typeCounts[v||'ALL']}</span></button>`;
+      }).join('')}
     </div>`;
 
   if(state.accounts.length===0){
@@ -9874,23 +9918,25 @@ function accountCard(a){
   }
 
   return `
-    <div class="acc-card${a.status==='BREACHED'?' acc-card-breached':a.status==='REUSSI'?' acc-card-reussi':''}" id="acc-${a.id}" style="--rail:${railColor(a)}">
+    <div class="acc-card${a.status==='BREACHED'?' acc-card-breached':a.status==='REUSSI'?' acc-card-reussi':''}${['BREACHED','REUSSI','FERME'].includes(a.status)?' acc-card--closed':''}" id="acc-${a.id}" style="--rail:${typeColorVar(a.type)}">
       <div class="acc-top">
         <div>
           <div class="acc-title">
+            ${typeBadgeHtml(a.type)}
+            <span class="firm-name-inline">${firmLogoHtml(firm,18)}${firm?firm.name:'—'}</span>
+            <span class="acc-size">${sizeLabel(a)}</span>
+            <span class="text-faint">·</span>
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
-            ${typeBadgeHtml(a.type)} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${firm?firm.name:'—'}</span>
             ${paymentTypeBadgeHtml(a)}
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
             ${needsPa(a) ? `<span class="badge badge-todo" title="Challenge réussi : crée le PA associé pour suivre l’activation et les payouts">PA à créer</span>` : ''}
             ${linkTag}
           </div>
-          <div class="acc-meta">N° ${maskAccountNumber(a.accountNumber)}</div>
         </div>
         <div class="acc-actions">${actions}</div>
       </div>
       <div class="acc-grid">
-        <div><div class="acc-field-label">Taille</div><div class="acc-field-value">${sizeBadgeHtml(a)}</div></div>
+        <div><div class="acc-field-label">N° de compte</div><div class="acc-field-value">${maskAccountNumber(a.accountNumber)}</div></div>
         <div><div class="acc-field-label">Achat</div><div class="acc-field-value">${fmtDate(a.purchaseDate)}</div></div>
         <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div></div>
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
@@ -13866,6 +13912,7 @@ function bindViewEvents(){
   });
   // Accounts filters
   bindFirmSelect('f-firm', state.filters.accounts, 'firmMenuOpen');
+  document.querySelectorAll('[data-type-tab]').forEach(b=>b.onclick=()=>{ state.filters.accounts.type = b.dataset.typeTab; renderView(); });
   ['f-q','f-type','f-size'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
