@@ -9720,6 +9720,28 @@ function viewCGV(){
 /* ============================================================
    VIEW: ACCOUNTS
 ============================================================ */
+// Net profit (08/10/2026, précisé par Mickael) : calculé UNIQUEMENT sur les PA et les Live, en
+// incluant les dépenses du Challenge d'origine (parentChallengeId — un Live garde celui de son PA,
+// « Passer en Live » ne change que le type). Un Challenge n'a pas de Net propre : son coût est porté
+// par le PA/Live issu de lui. Toutes les lignes passent par UNE seule résolution de devise
+// (resolveDisplayCurrency) pour que Dépenses, « dont challenge » et Net restent cohérents.
+function isFundedType(a){ return a && (a.type==='PA' || a.type==='LIVE'); }
+function parentChallengeOf(a){
+  if(!isFundedType(a) || !a.parentChallengeId) return null;
+  const c = getAccount(a.parentChallengeId);
+  return c && c.type==='CHALLENGE' ? c : null;
+}
+function accountMoneyWithChallenge(a){
+  const own = computeAccountExpenses(a);
+  const parent = parentChallengeOf(a);
+  const chal = parent ? computeAccountExpenses(parent) : [];
+  const pays = state.payouts.filter(p=>p.accountId===a.id);
+  const { useEur, currency } = resolveDisplayCurrency([...own, ...chal, ...pays]);
+  const val = it=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const ownExp = own.reduce((t,it)=>t+val(it),0), chalExp = chal.reduce((t,it)=>t+val(it),0);
+  const pay = pays.reduce((t,it)=>t+val(it),0);
+  return { exp: ownExp+chalExp, chalExp, pay, net: pay-ownExp-chalExp, currency, parent };
+}
 // ---- Totaux de la page Comptes (08/10/2026, retour bêta-testeur) ----
 // Montant signé avec le vrai signe moins typographique (U+2212), pour les Net profit.
 function fmtSignedMoney(v, currency){
@@ -9738,23 +9760,38 @@ function fmtSignedMoney(v, currency){
 function accountsTotalsHtml(list, f, anyFilterActive){
   const blurred = freeBlurIndexSet(list, isMineAccount);
   const counted = list.filter((a,i)=>!blurred.has(i));
-  const ids = new Set(counted.map(a=>a.id));
-  const expLines = counted.flatMap(a=>computeAccountExpenses(a));
-  const payLines = state.payouts.filter(p=>ids.has(p.accountId));
-  const m = sumMoneyNet(expLines, payLines);
-  const cur = m.currency || 'USD';
+  const countedIds = new Set(counted.map(a=>a.id));
+  const funded = counted.filter(isFundedType);
+  // Challenges d'origine des PA/Live affichés : leur coût fait partie du Net du PA/Live, donc aussi
+  // des Dépenses, même s'ils sont masqués par un filtre (statut « Actif », onglet PA…). Dédoublonnés.
+  const parentIds = new Set(funded.map(a=>parentChallengeOf(a)).filter(Boolean).map(c=>c.id));
+  const extraParents = [...parentIds].filter(id=>!countedIds.has(id)).map(getAccount);
+  const netScopeIds = new Set([...funded.map(a=>a.id), ...parentIds]);
+  const expAll = [...counted, ...extraParents].flatMap(a=>computeAccountExpenses(a));
+  const payLines = state.payouts.filter(p=>countedIds.has(p.accountId));
+  const { useEur, currency, mixed } = resolveDisplayCurrency([...expAll, ...payLines]);
+  const cur = currency || 'USD';
+  const val = it=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
+  const totalExp = expAll.reduce((t,it)=>t+val(it),0);
+  const netExp = expAll.filter(it=>netScopeIds.has(it.accountId)).reduce((t,it)=>t+val(it),0);
+  const outsideNet = totalExp - netExp; // challenges sans PA/Live affiché (en cours, breached…)
+  const fundedIds = new Set(funded.map(a=>a.id));
+  const fundedPay = payLines.filter(p=>fundedIds.has(p.accountId)).reduce((t,it)=>t+val(it),0);
+  const totalPay = payLines.reduce((t,it)=>t+val(it),0);
+  const net = fundedPay - netExp;
   const sym = ({USD:'$',EUR:'€',GBP:'£'})[cur] || '$';
-  const hasData = m.totalExp>0 || m.totalPay>0;
-  const tone = !hasData ? 'is-zero' : (m.net>=0 ? 'is-pos' : 'is-neg');
-  const tot = m.totalExp + m.totalPay;
-  const barDep = tot ? (m.totalExp/tot*100).toFixed(1) : 0;
-  const barPay = tot ? (m.totalPay/tot*100).toFixed(1) : 0;
-  const roi = m.totalExp>0 ? m.net/m.totalExp*100 : null;
+  const hasNet = funded.length>0;
+  const tone = !hasNet ? 'is-zero' : (net>=0 ? 'is-pos' : 'is-neg');
+  const tot = netExp + fundedPay;
+  const barDep = tot ? (netExp/tot*100).toFixed(1) : 0;
+  const barPay = tot ? (fundedPay/tot*100).toFixed(1) : 0;
+  const roi = hasNet && netExp>0 ? net/netExp*100 : null;
   const roiTxt = roi===null ? '—' : `${roi>=0?'+':'−'}${Math.abs(Math.round(roi)).toLocaleString('fr-FR')} %`;
-  const roiSub = m.totalExp>0
-    ? `1 ${sym} dépensé → ${(m.totalPay/m.totalExp).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${sym} encaissés`
-    : 'Aucune dépense';
+  const roiSub = roi===null
+    ? (hasNet ? 'Aucune dépense' : 'Aucun PA ou Live affiché')
+    : `1 ${sym} dépensé → ${(fundedPay/netExp).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${sym} encaissés`;
   const nPay = payLines.length;
+  const nFunded = funded.length;
 
   // Contexte lisible des filtres appliqués, pour savoir sur quoi portent les chiffres.
   const scope = [];
@@ -9768,10 +9805,14 @@ function accountsTotalsHtml(list, f, anyFilterActive){
   }
   if(f.q) scope.push('« ' + escapeHtml(f.q) + ' »');
   const n = counted.length;
-  const fxHtml = m.converted
-    ? `<span class="acc-totals-fx">Converti en EUR · taux BCE${m.mixed?' · devises mixtes':''} ${infoTip("Les montants qui ne sont pas en euros sont convertis au taux BCE du jour de chaque opération (achat, mensualité, activation, reset, payout).")}</span>`
+  const fxHtml = useEur
+    ? `<span class="acc-totals-fx">Converti en EUR · taux BCE${mixed?' · devises mixtes':''} ${infoTip("Les montants qui ne sont pas en euros sont convertis au taux BCE du jour de chaque opération (achat, mensualité, activation, reset, payout).")}</span>`
     : '';
   const blurNote = blurred.size ? ` · hors ${blurred.size} compte${blurred.size>1?'s':''} en aperçu` : '';
+  const nExtra = extraParents.length;
+  const depSub = hasNet && outsideNet>0.005
+    ? `dont ${fmtMoneyCur(outsideNet, cur)} de challenges hors Net`
+    : (nExtra ? `dont ${nExtra} challenge${nExtra>1?'s':''} d'origine masqué${nExtra>1?'s':''} par les filtres` : 'Achats, mensualités, activations, resets');
 
   return `
     <section class="acc-totals" aria-label="Totaux des comptes affichés">
@@ -9782,20 +9823,20 @@ function accountsTotalsHtml(list, f, anyFilterActive){
       </div>
       <div class="acc-totals-grid">
         <div class="acc-kpi">
-          <div class="acc-kpi-label">Dépenses ${infoTip("Achats de challenges, mensualités, frais d'activation et resets des comptes affichés. Les frais généraux (abonnements, VPS…) ne sont pas comptés ici.")}</div>
-          <div class="acc-kpi-value ${m.totalExp>0?'is-neg':'is-zero'}">${m.totalExp>0?'−':''}${fmtMoneyCur(m.totalExp, cur)}</div>
-          <div class="acc-kpi-sub">Achats, mensualités, activations, resets</div>
+          <div class="acc-kpi-label">Dépenses ${infoTip("Achats de challenges, mensualités, frais d'activation et resets des comptes affichés, plus le challenge d'origine de chaque PA/Live affiché. Les frais généraux (abonnements, VPS…) ne sont pas comptés ici. Les challenges sans PA/Live affiché (en cours, breached…) sont comptés ici mais pas dans le Net profit.")}</div>
+          <div class="acc-kpi-value ${totalExp>0?'is-neg':'is-zero'}">${totalExp>0?'−':''}${fmtMoneyCur(totalExp, cur)}</div>
+          <div class="acc-kpi-sub">${depSub}</div>
         </div>
         <div class="acc-kpi">
           <div class="acc-kpi-label">Payouts</div>
-          <div class="acc-kpi-value ${m.totalPay>0?'is-pos':'is-zero'}">${m.totalPay>0?'+':''}${fmtMoneyCur(m.totalPay, cur)}</div>
+          <div class="acc-kpi-value ${totalPay>0?'is-pos':'is-zero'}">${totalPay>0?'+':''}${fmtMoneyCur(totalPay, cur)}</div>
           <div class="acc-kpi-sub">${nPay} payout${nPay>1?'s':''} reçu${nPay>1?'s':''}</div>
         </div>
         <div class="acc-kpi acc-kpi--net ${tone}">
-          <div class="acc-kpi-label">Net profit <span class="acc-kpi-badge">${!hasData?'—':(m.net>=0?'Rentable':'Pas encore rentable')}</span></div>
-          <div class="acc-kpi-value ${tone}">${fmtSignedMoney(m.net, cur)}</div>
+          <div class="acc-kpi-label"><span>Net profit ${infoTip("Somme des Net profit des PA et Live affichés : leurs payouts moins leurs dépenses ET celles de leur challenge d'origine. Les challenges seuls n'ont pas de Net profit.")}</span><span class="acc-kpi-badge">${!hasNet?'—':(net>=0?'Rentable':'Pas encore rentable')}</span></div>
+          <div class="acc-kpi-value ${tone}">${hasNet ? fmtSignedMoney(net, cur) : '—'}</div>
           <div class="acc-kpi-bar" aria-hidden="true"><span class="bar-dep" style="width:${barDep}%"></span><span class="bar-pay" style="width:${barPay}%"></span></div>
-          <div class="acc-kpi-sub">Payouts − dépenses</div>
+          <div class="acc-kpi-sub">${hasNet ? `${nFunded} PA/Live · challenges d'origine inclus` : 'Aucun PA ou Live affiché'}</div>
         </div>
         <div class="acc-kpi acc-kpi--roi">
           <div class="acc-kpi-label">ROI</div>
@@ -9998,10 +10039,17 @@ function renderGroupedAccounts(list, keys, depth=0){
 function needsPa(a){
   return a && a.type==='CHALLENGE' && a.status==='REUSSI' && !state.accounts.some(x=>x.parentChallengeId===a.id);
 }
-// Cellule Net profit de la carte compte (08/10/2026) : payouts − dépenses du compte, avec une ligne
-// qui dit où en est le compte sans calcul mental.
-function accNetCellHtml(exp, pay, currency){
-  const net = pay - exp;
+// Cellule Net profit de la carte compte (08/10/2026) : PA/Live uniquement (challenge d'origine inclus),
+// avec une ligne qui dit où en est le compte sans calcul mental ; renvoi vers le PA/Live sur un Challenge.
+function accNetCellHtml(a, m, child){
+  if(!isFundedType(a)){
+    // Challenge : pas de Net propre, renvoi vers le PA/Live qui en porte le coût.
+    const sub = child
+      ? `Compté dans le ${TYPE_LABELS[child.type]||child.type} ··${escapeHtml(String(child.accountNumber||'').slice(-4))}`
+      : 'Calculé sur le PA / Live';
+    return `<div class="acc-net is-zero"><div class="acc-field-label">Net profit</div><div class="acc-field-value">—</div><div class="acc-net-sub">${sub}</div></div>`;
+  }
+  const { exp, pay, net, currency } = m;
   if(!exp && !pay){
     return `<div class="acc-net is-zero"><div class="acc-field-label">Net profit</div><div class="acc-field-value">—</div><div class="acc-net-sub">Aucun mouvement</div></div>`;
   }
@@ -10013,9 +10061,10 @@ function accNetCellHtml(exp, pay, currency){
 }
 function accountCard(a){
   const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
-  const accMoney = sumMoneyNet(computeAccountExpenses(a), state.payouts.filter(p=>p.accountId===a.id));
-  const exp = accMoney.totalExp;
-  const pay = accMoney.totalPay;
+  // PA/Live : dépenses = les siennes + celles du Challenge d'origine (voir accountMoneyWithChallenge).
+  const accMoney = accountMoneyWithChallenge(a);
+  const exp = accMoney.exp;
+  const pay = accMoney.pay;
   const child = state.accounts.find(x=>x.parentChallengeId===a.id);
 
   // Lien Challenge <-> PA : vignette neutre qui nomme le compte lié (voir linkTagHtml)
@@ -10082,9 +10131,9 @@ function accountCard(a){
       <div class="acc-grid">
         <div><div class="acc-field-label">N° de compte</div><div class="acc-field-value">${maskAccountNumber(a.accountNumber)}</div></div>
         <div><div class="acc-field-label">Achat</div><div class="acc-field-value">${fmtDate(a.purchaseDate)}</div></div>
-        <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div></div>
+        <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div>${accMoney.chalExp>0?`<div class="acc-net-sub">dont challenge ${fmtMoneyCur(accMoney.chalExp, accMoney.currency)}</div>`:''}</div>
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
-        ${accNetCellHtml(exp, pay, accMoney.currency)}
+        ${accNetCellHtml(a, accMoney, child)}
       </div>
 
     </div>
