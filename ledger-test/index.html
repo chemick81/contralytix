@@ -5795,7 +5795,7 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
-  else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()">${icon('check')}Pointer une journée</button>` : '';
+  else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
   else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
@@ -14247,10 +14247,10 @@ function dmOpenDetail(accountId){
           <a href="#" id="dm-report">Signaler une règle obsolète</a>
         </div>
       </div>`,
-    footHtml: `<button class="btn btn-outline" id="dm-edit-start">Modifier le dernier trade connu</button><button class="btn btn-primary" id="dm-detail-pointer">Pointer une journée</button>`,
+    footHtml: `<button class="btn btn-outline" id="dm-edit-start">Modifier le dernier trade connu</button><button class="btn btn-primary" id="dm-detail-pointer">Pointer ce compte</button>`,
     onMount(){
       document.getElementById('dm-edit-start').onclick = ()=>dmOpenActivation([a.id]);
-      document.getElementById('dm-detail-pointer').onclick = ()=>dmOpenPointage();
+      document.getElementById('dm-detail-pointer').onclick = ()=>dmOpenPointage(null, a.id);
       document.getElementById('dm-report').onclick = (e)=>{
         e.preventDefault();
         const firm = getFirm(a.propFirmId);
@@ -14261,15 +14261,17 @@ function dmOpenDetail(accountId){
 }
 
 /* ---------- Pointage d'une journée ---------- */
-function dmOpenPointage(dayArg){
+// accountId fourni = pointage unitaire de ce seul compte (depuis son détail) ; sinon tous les comptes.
+function dmOpenPointage(dayArg, accountId){
   if(!dmEnabled()){ openUpgradeModal('Le radar inactivité'); return; }
-  const accounts = dmFundedAccounts();
+  const single = !!accountId;
+  const accounts = single ? dmFundedAccounts().filter(a=>String(a.id)===String(accountId)) : dmFundedAccounts();
   if(!accounts.length){ showToast('Aucun compte funded actif à pointer.', 'danger'); return; }
   const today = todayISO();
   const day = dayArg || today;
   // Raccourcis : aujourd'hui, hier, et les jours ouvrés non pointés récents
   const chips = [today, dmAdd(today,-1)];
-  const pointedDays = new Set((state.dormancyLogs||[]).map(l=>l.day));
+  const pointedDays = new Set((state.dormancyLogs||[]).filter(l=>!single || String(l.accountId)===String(accountId)).map(l=>l.day));
   for(let i=2;i<=10 && chips.length<6;i++){
     const d = dmAdd(today,-i); const w = dmDow(d);
     if(w!==0 && w!==6 && !pointedDays.has(d)) chips.push(d);
@@ -14301,7 +14303,7 @@ function dmOpenPointage(dayArg){
       </div>`;
   }).join('');
   openModal({
-    title: 'Pointer une journée',
+    title: single ? `Pointer une journée · ${dmAccountName(accounts[0])}` : 'Pointer une journée · tous mes comptes',
     wide: true,
     bodyHtml: `
       <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Le P&amp;L n’est demandé que pour les prop firms qui en ont besoin. Un jour non pointé compte comme non tradé.</p>
@@ -14310,12 +14312,12 @@ function dmOpenPointage(dayArg){
         <label class="dm-pill" style="cursor:default;">Autre date <input type="date" id="dm-day-input" max="${today}" value="${day}"/></label>
       </div>
       <div class="dm-section-title" style="margin-top:14px;">Journée du ${fmtDate(day)}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+      ${single ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-no">Rien tradé ce jour-là</button>
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-yes">Tous tradés (copier)</button>
-      </div>
+      </div>`}
       <div class="dm-pt-list">${rows}</div>`,
-    footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}</button>`,
+    footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">${single ? 'Enregistrer' : `Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}`}</button>`,
     onMount(){
       const root = document.getElementById('modal-root');
       const setRow = (row, on)=>{
@@ -14325,10 +14327,12 @@ function dmOpenPointage(dayArg){
       root.querySelectorAll('.dm-pt-row').forEach(row=>{
         row.querySelectorAll('[data-dm-traded]').forEach(b=>b.onclick=()=>setRow(row, b.dataset.dmTraded==='1'));
       });
-      document.getElementById('dm-all-no').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,false));
-      document.getElementById('dm-all-yes').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,true));
-      root.querySelectorAll('[data-dm-day]').forEach(b=>b.onclick=()=>dmOpenPointage(b.dataset.dmDay));
-      document.getElementById('dm-day-input').onchange = (e)=>{ const v = e.target.value; if(v && v<=today) dmOpenPointage(v); };
+      if(!single){
+        document.getElementById('dm-all-no').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,false));
+        document.getElementById('dm-all-yes').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,true));
+      }
+      root.querySelectorAll('[data-dm-day]').forEach(b=>b.onclick=()=>dmOpenPointage(b.dataset.dmDay, accountId));
+      document.getElementById('dm-day-input').onchange = (e)=>{ const v = e.target.value; if(v && v<=today) dmOpenPointage(v, accountId); };
       document.getElementById('dm-pt-cancel').onclick = closeModal;
       document.getElementById('dm-pt-save').onclick = async ()=>{
         const btn = document.getElementById('dm-pt-save');
@@ -14352,8 +14356,9 @@ function dmOpenPointage(dayArg){
         if(error){ showToast('Pointage non enregistré : ' + error.message, 'danger'); return; }
         await loadDormancy();
         closeModal();
-        showToast(`Journée du ${fmtDate(day)} pointée.`);
+        showToast(single ? `Journée du ${fmtDate(day)} pointée pour ${dmAccountName(accounts[0])}.` : `Journée du ${fmtDate(day)} pointée.`);
         render();
+        if(single) dmOpenDetail(accountId); // retour sur le détail du compte, mis à jour
       };
     }
   });
