@@ -726,6 +726,103 @@ th.th-sort-active svg{opacity:1;}
 .link-tag:hover{filter:brightness(1.15);}
 .acc-card{transition:box-shadow .3s ease, border-color .3s ease;}
 .acc-card.flash-highlight{box-shadow:0 0 0 2px var(--flash-color,var(--gold));border-color:var(--flash-color,var(--gold));}
+/* ============================================================
+   RADAR DORMANCE (voir dmCompute / viewRadar)
+============================================================ */
+.dm-dot{display:inline-block;width:8px;height:8px;border-radius:var(--radius-pill);flex-shrink:0;}
+.dm-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+.dm-tile{padding:16px 18px;display:flex;flex-direction:column;gap:4px;}
+.dm-tile-label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);}
+.dm-tile-value{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;line-height:1.15;}
+.dm-tile-sub{font-size:12px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dm-start-cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:14px;border-color:var(--accent);background:var(--accent-dim);font-size:13px;}
+.dm-start-cta svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;}
+.dm-filterbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+.dm-pill{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:13px;font-weight:500;}
+.dm-pill .mono{font-size:11.5px;opacity:.8;}
+.dm-pill:hover{color:var(--text);border-color:var(--text-faint);}
+.dm-pill.active{background:var(--text);border-color:var(--text);color:var(--bg);}
+.dm-pill input[type=date]{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.dm-chip-tag{font-size:10.5px;color:var(--gold);font-weight:600;}
+.dm-pill.active .dm-chip-tag{color:var(--danger);}
+.dm-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.dm-list{display:flex;flex-direction:column;gap:8px;}
+.dm-row{display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(240px,1.5fr) auto;align-items:center;gap:14px 28px;padding:14px 18px;cursor:pointer;transition:border-color .15s, background .15s;}
+.dm-row:hover,.dm-row:focus-visible{border-color:var(--text-faint);background:var(--surface-2);outline:none;}
+.dm-row-id{display:flex;align-items:center;gap:12px;min-width:0;}
+.dm-row-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dm-row-sub{font-size:12px;color:var(--text-dim);margin-top:2px;}
+.dm-row-bar{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.dm-row-counter{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;}
+.dm-row-end{display:grid;grid-template-columns:180px 180px;align-items:center;gap:16px;justify-items:end;}
+.dm-row-end .badge{white-space:normal;text-align:right;line-height:1.3;}
+.dm-row-remain{font-size:21px;font-weight:700;line-height:1.1;}
+.dm-row-action{font-size:12px;color:var(--text-dim);line-height:1.35;}
+.dm-segs{display:flex;gap:3px;height:8px;}
+.dm-segs span{flex:1 1 0;border-radius:2px;min-width:2px;}
+.dm-segs-thin{gap:2px;}
+.dm-legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12px;color:var(--text-faint);margin-top:14px;align-items:center;}
+.dm-legend > span{display:inline-flex;align-items:center;gap:6px;}
+.dm-sw{display:inline-block;width:10px;height:10px;border-radius:3px;}
+/* Bande en pied de carte compte (page Comptes) */
+.dm-band{display:flex;flex-direction:column;gap:7px;width:100%;margin-top:12px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);text-align:left;font-size:12.5px;}
+.dm-band:hover{border-color:var(--text-faint);}
+.dm-band-crit,.dm-band-over{border-color:var(--danger);background:var(--danger-dim);}
+.dm-band-warn{border-color:var(--gold);}
+.dm-band-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.dm-band-head svg{width:14px;height:14px;}
+.dm-band-hint{font-size:11.5px;color:var(--text-dim);}
+/* Bandeau global */
+.dm-banner{align-items:center;flex-wrap:wrap;}
+.dm-banner-btn{margin-left:auto;background:transparent;border:1px solid currentColor;color:inherit;}
+/* Modales */
+.dm-alert-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-md);border:1px solid var(--danger);background:var(--danger-dim);}
+.dm-alert-note{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--border);font-size:12.5px;color:var(--text-dim);}
+.dm-detail-head{display:flex;align-items:center;gap:16px;padding:14px 16px;border:1px solid;border-radius:var(--radius-md);margin-bottom:16px;}
+.dm-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin:0 0 8px;}
+.dm-cal{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;}
+.dm-cal-cell{height:42px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+.dm-cal-cell span{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text-faint);}
+.dm-cal-cell strong{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-dim);}
+.dm-cal-cell.q{background:var(--accent-dim);border-color:var(--accent);}
+.dm-cal-cell.q strong{color:var(--accent);}
+.dm-cal-cell.t{background:var(--surface-3);border-color:var(--text-faint);}
+.dm-week{display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:6px;}
+.dm-week-day{border-radius:8px;border:1px solid var(--border);background:var(--surface-2);padding:8px 4px;display:flex;flex-direction:column;align-items:center;font-size:11.5px;color:var(--text-dim);}
+.dm-week-day strong{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);}
+.dm-week-day.q{background:var(--accent-dim);border-color:var(--accent);}
+.dm-week-day.past{opacity:.55;}
+.dm-pt-list{display:flex;flex-direction:column;}
+.dm-pt-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto 190px;align-items:center;gap:10px 14px;padding:12px 0;border-bottom:1px solid var(--border-soft);}
+.dm-pt-row.dm-start-row{grid-template-columns:auto minmax(200px,1fr) auto;}
+.dm-start-row .dm-start-fields{justify-content:flex-end;}
+@media (max-width:700px){
+  .dm-pt-row,.dm-pt-row.dm-start-row{grid-template-columns:auto minmax(0,1fr);}
+  .dm-pt-row > .dm-seg-toggle,.dm-pt-row > .dm-pt-extra,.dm-pt-row > .dm-start-fields{grid-column:1 / -1;justify-content:flex-start;}
+}
+.dm-pt-row:last-child{border-bottom:0;}
+.dm-seg-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+.dm-seg-toggle button{min-height:38px;padding:0 12px;border:0;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;}
+.dm-seg-toggle button + button{border-left:1px solid var(--border);}
+.dm-seg-toggle button.active{background:var(--surface-3);color:var(--text);}
+.dm-seg-toggle button.active.on{background:var(--accent-dim);color:var(--accent);}
+.dm-pt-extra{display:flex;align-items:center;gap:10px;min-width:150px;}
+.dm-pnl{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text-faint);}
+.dm-pnl input,.dm-start-field input{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:7px 9px;font-family:'JetBrains Mono',monospace;font-size:13px;width:140px;}
+.dm-login{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-dim);cursor:pointer;}
+.dm-login input{width:16px;height:16px;accent-color:var(--accent);}
+.dm-start-fields{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;}
+.dm-start-field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text-faint);}
+.dm-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;}
+@media (max-width:1100px){
+  .dm-row{grid-template-columns:1fr;}
+  .dm-row-end{grid-template-columns:1fr auto;justify-items:stretch;}
+  .dm-row-end > div:first-child{text-align:left !important;}
+  .dm-row-end > div:last-child{align-items:flex-end;}
+}
+@media (max-width:640px){
+  .dm-cal{grid-template-columns:repeat(6,minmax(0,1fr));}
+}
 .alert-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-soft);cursor:pointer;}
 .alert-row:last-child{border-bottom:none;}
 .alert-row:hover{background:var(--surface-2);margin:0 -18px;padding:9px 18px;}
@@ -1400,6 +1497,7 @@ th.th-sort-active svg{opacity:1;}
 ============================================================ */
 const ICONS = {
   grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  hourglass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 4.5 5 6 5 9s-5 4.5-5 9"/><path d="M17 3c0 4.5-5 6-5 9s5 4.5 5 9"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c2.8.3 4.9 2.5 4.9 5.8"/></svg>',
   building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"/></svg>',
   card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h5"/></svg>',
@@ -1484,8 +1582,8 @@ document.getElementById('favicon').href = LOGO_DATA_URI;
 
 // ⚠️ CONFIGURATION OBLIGATOIRE ⚠️
 // Dashboard Supabase > Project Settings > API > "Project URL" et "anon public" key
-const SUPABASE_URL = 'https://cnqrcirxprzxxutojklm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucXJjaXJ4cHJ6eHh1dG9qa2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjUzMzcsImV4cCI6MjA5OTc0MTMzN30.oHq13DxXsh0xY2HApsL7dwsV8OjR-NWGp_1EhE-zDSw';
+const SUPABASE_URL = 'https://ijjagnowplglbcpzyfax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqamFnbm93cGxnbGJjcHp5ZmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzcxNTIsImV4cCI6MjEwMjkxMzE1Mn0.wF9MTreYLudRQbyO0Gn2Dtqju5m1G8BUizeayWyYV64';
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes('TON-PROJET') && !SUPABASE_ANON_KEY.includes('TA_CLE');
 const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -1749,7 +1847,7 @@ async function saveAppSettings(successMessage){
 }
 // Pages qu'un admin peut masquer pour les autres utilisateurs (Dashboard et Admin restent
 // toujours accessibles, pour ne jamais se retrouver bloqué hors de l'application).
-const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','calendrier','accounting','bilan','fiscalite','frais-generaux','sessions','meteo','comparatif','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
+const HIDEABLE_PAGE_IDS = ['traders','propfirms','accounts','radar','calendrier','accounting','bilan','fiscalite','frais-generaux','sessions','meteo','comparatif','changelog','subscription','aide-centre','manuel','confidentialite','mentions-legales','cgv'];
 // Coupe-circuit spécifique au module Fiscalité (ex: migration prod pas encore terminée/validée
 // sur la vraie base — voir claude/migration-prod.md et claude/module-fiscalite.md) : réutilise le
 // même mécanisme que "Gestion des pages" (Admin > Gestion des pages > Fiscalité), mais un admin
@@ -4169,6 +4267,7 @@ const BASE_NAV = [
   { id:'traders', label:'Traders', icon:'users' },
   { id:'propfirms', label:'PropFirms', icon:'building' },
   { id:'accounts', label:'Comptes', icon:'card' },
+  { id:'radar', label:'Radar inactivité', icon:'hourglass' },
   { id:'calendrier', label:'Calendrier', icon:'calendar' },
   { id:'accounting', label:'Comptabilité', icon:'book' },
   { id:'bilan', label:'Bilan Visuel', icon:'camera' },
@@ -4207,7 +4306,7 @@ function getNav(){
 // (qui ne contenait en réalité que des pages de gestion/configuration), et les noms de groupes
 // décrivent directement leur contenu plutôt que d'utiliser un vocabulaire vague.
 const NAV_GROUPS = [
-  { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts'] },
+  { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts','radar'] },
   { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
   { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite','frais-generaux'] },
   { id:'perf',     label:'Performance',         items:['comparatif'] },
@@ -4462,8 +4561,10 @@ function navItemHtml(n){
   // visible sans avoir à ouvrir Admin > Support (voir aussi maybeShowNewMessagesToast()).
   const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
     ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
+  const dmUrgentN = n.id==='radar' ? dmUrgent().length : 0;
+  const dmBadge = dmUrgentN ? ` <span class="badge badge-danger nav-hidden-badge" title="Comptes en danger de fermeture pour inactivité">${dmUrgentN}</span>` : '';
   return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
-    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}
+    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}
   </div>`;
 }
 function renderNavGroups(){
@@ -4552,6 +4653,7 @@ function render(){
         <div class="announce-banner announce-danger">
           ${icon('shield')}<span><strong>Mode maintenance actif</strong> — tous les utilisateurs non-admin sont bloqués et déconnectés${state.appSettings.maintenance.message ? ` (« ${escapeHtml(state.appSettings.maintenance.message)} »)` : ''}. Pense à le désactiver depuis Admin &gt; Réglages une fois la mise à jour terminée.</span>
         </div>` : ''}
+      ${dmBannerHtml()}
       <div class="topbar">
         <div>
           ${(state.route==='sessions' && state.sessionDetailId && state.yt_sessions.find(x=>x.id===state.sessionDetailId)) ? `
@@ -4624,6 +4726,7 @@ function topbarSub(){
     traders: state.traders.length + ' trader(s) enregistré(s)',
     propfirms: state.propfirms.length + ' propfirm(s) enregistrée(s)',
     accounts: state.accounts.length + ' compte(s) au total',
+    radar: 'Comptes funded à risque de clôture pour inactivité, triés par urgence',
     accounting: 'Dépenses, mensualités et payouts',
     bilan: 'Cartes visuelles mensuelles, par trader et par propfirm',
     sessions: 'Journal de trading — replay, notes et performance de chaque session',
@@ -4651,6 +4754,7 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
+  else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()">${icon('check')}Pointer une journée</button>` : '';
   else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
@@ -4730,6 +4834,7 @@ function renderView(){
   else if(state.route==='traders') el.innerHTML = viewTraders();
   else if(state.route==='propfirms') el.innerHTML = viewPropfirms();
   else if(state.route==='accounts') el.innerHTML = viewAccounts();
+  else if(state.route==='radar') el.innerHTML = perms().isPremium ? viewRadar() : lockedFeatureView('Le radar inactivité');
   else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier');
   else if(state.route==='accounting') el.innerHTML = viewAccounting();
   else if(state.route==='bilan') el.innerHTML = perms().canStatistics ? viewBilanVisuel() : lockedFeatureView('Le bilan visuel (statistiques avancées)');
@@ -7397,6 +7502,7 @@ function accountCard(a){
         <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div></div>
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
       </div>
+      ${dmCardBandHtml(a)}
 
     </div>
   `;
@@ -9975,6 +10081,7 @@ const ADMIN_TABS = [
   { id:'support',     label:'Support',         icon:'mail' },
   { id:'settings',    label:'Paramètres',      icon:'layout' },
   { id:'log',         label:'Journal',         icon:'clock' },
+  { id:'dormancy',    label:'Règles d’inactivité', icon:'hourglass' },
 ];
 function viewAdmin(){
   const subs = state.allSubscriptions || [];
@@ -10309,6 +10416,7 @@ function viewAdmin(){
     support: messagesPanel,
     settings: settingsPanel,
     log: logPanel,
+    dormancy: viewAdminDormancy(),
   }[state.adminTab] || dashboard;
 
   return tabBar + tabContent;
@@ -10791,6 +10899,770 @@ function lockedFeatureView(label){
 }
 
 /* ============================================================
+   RADAR DORMANCE — moteur de calcul (fonctions pures, sans DOM)
+   Règles d'inactivité des comptes funded par prop firm (voir table
+   dormancy_rules). 4 moteurs + compteur de connexion plateforme optionnel.
+   Convention : un jour non pointé compte comme NON tradé (prudence).
+   Dates = chaînes "YYYY-MM-DD", arithmétique calendaire locale (jamais UTC).
+============================================================ */
+const DM_DEFAULT_RULE = {
+  engine:'CALENDAR', maxDays:21, isDefault:true, verifiedAt:null,
+  consequence:'Inconnue',
+  ruleText:"Aucune règle d'inactivité officielle trouvée pour cette prop firm. Par prudence, Contralytix applique un délai de 21 jours calendaires sans trade.",
+};
+const DM_ENGINE_LABELS = {
+  CALENDAR:'Délai depuis le dernier trade · jours calendaires',
+  TRADING_DAYS:'Délai depuis le dernier trade · jours de trading',
+  QUALIFYING:'Jours qualifiants sur fenêtre glissante',
+  WEEKLY:'Quota hebdomadaire',
+};
+const DM_DOW_FR = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+
+function dmIso(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+function dmAdd(iso, n){ const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return dmIso(d); }
+function dmDiff(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); } // b - a, en jours
+function dmDow(iso){ return new Date(iso+'T00:00:00').getDay(); }
+function dmMax(list){ return list.filter(Boolean).sort().slice(-1)[0] || null; }
+
+// Jours de fermeture complète du CME (indices actions), avec report week-end → vendredi/lundi.
+const _dmCmeCache = {};
+function dmEaster(y){ // algorithme de Meeus/Jones/Butcher
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+        h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return `${y}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+}
+function dmNthDow(y, month, dow, n){ // n>0 : n-ième ; n=-1 : dernier
+  if(n>0){ let d = new Date(y, month-1, 1); while(d.getDay()!==dow) d.setDate(d.getDate()+1); d.setDate(d.getDate()+7*(n-1)); return dmIso(d); }
+  let d = new Date(y, month, 0); while(d.getDay()!==dow) d.setDate(d.getDate()-1); return dmIso(d);
+}
+function dmObserved(iso){ const w = dmDow(iso); return w===6 ? dmAdd(iso,-1) : w===0 ? dmAdd(iso,1) : iso; }
+function dmCmeClosures(y){
+  if(_dmCmeCache[y]) return _dmCmeCache[y];
+  const s = new Set([
+    dmObserved(`${y}-01-01`), dmNthDow(y,1,1,3), dmNthDow(y,2,1,3), dmAdd(dmEaster(y),-2),
+    dmNthDow(y,5,1,-1), dmObserved(`${y}-06-19`), dmObserved(`${y}-07-04`), dmNthDow(y,9,1,1),
+    dmNthDow(y,11,4,4), dmObserved(`${y}-12-25`),
+  ]);
+  _dmCmeCache[y] = s; return s;
+}
+function dmIsTradingDay(iso){ const w = dmDow(iso); if(w===0||w===6) return false; return !dmCmeClosures(Number(iso.slice(0,4))).has(iso); }
+// Nombre de jours de trading d tels que after < d <= to
+function dmTradingDaysBetween(after, to){ let n=0, d=dmAdd(after,1); while(d<=to){ if(dmIsTradingDay(d)) n++; d=dmAdd(d,1); } return n; }
+// Date du n-ième jour de trading après `from`
+function dmAddTradingDays(from, n){ let d=from, k=0; while(k<n){ d=dmAdd(d,1); if(dmIsTradingDay(d)) k++; } return d; }
+
+function dmQualifies(rule, pnl){
+  if(pnl===null || pnl===undefined || pnl==='' || isNaN(Number(pnl))) return false;
+  const v = Number(pnl), t = Number(rule.pnlThreshold||0);
+  return rule.pnlMode==='ABS' ? Math.abs(v) >= t : v >= t;
+}
+function dmLevel(remaining, windowDays){
+  if(remaining===null) return 'unknown';
+  if(remaining < 0) return 'over';
+  if(remaining <= 1) return 'crit';
+  if(remaining <= Math.max(2, Math.round(windowDays/3))) return 'warn';
+  return 'ok';
+}
+function dmFmt(iso){ if(!iso) return '—'; return `${DM_DOW_FR[dmDow(iso)]} ${iso.slice(8,10)}/${iso.slice(5,7)}`; }
+
+// account : { purchaseDate, activationDate, createdAt } ; rule : règle (ou DM_DEFAULT_RULE)
+// logs : [{ day, traded, pnl, platformLogin }] du compte ; st : point de départ (ou null)
+function dmCompute(account, rule, logs, st, today){
+  rule = rule || DM_DEFAULT_RULE;
+  logs = (logs||[]).filter(l=>l.day && l.day<=today);
+  st = st || null;
+  const createdDay = account.createdAt ? String(account.createdAt).slice(0,10) : null;
+  const start = account.activationDate || account.purchaseDate || createdDay || today;
+  const tradedDays = logs.filter(l=>l.traded).map(l=>l.day);
+  const baseLast = st && !st.unknownStart && st.lastTrade ? st.lastTrade : (st && st.unknownStart ? (createdDay||start) : start);
+  const lastTrade = dmMax([baseLast, ...tradedDays]);
+  const lastPointed = dmMax(logs.map(l=>l.day)) || (st && st.activatedAt ? String(st.activatedAt).slice(0,10) : null);
+  let unpointed = 0;
+  if(lastPointed){ let d = dmAdd(lastPointed,1); while(d<today){ const w=dmDow(d); if(w!==0&&w!==6) unpointed++; d=dmAdd(d,1); } }
+
+  const r = { engine: rule.engine, isDefault: !!rule.isDefault, verified: !!rule.verifiedAt, lastTrade, unpointed, segs: [], dormant:false };
+  let remaining = null, windowDays = 30;
+
+  if(rule.engine==='CALENDAR'){
+    const max = Number(rule.maxDays)||21; windowDays = max;
+    const since = Math.max(0, dmDiff(lastTrade, today));
+    remaining = max - since;
+    r.counter = `${Math.min(since,max)} / ${max}`; r.counterLabel = 'jours sans trade';
+    r.deadline = dmAdd(lastTrade, max);
+    r.segs = Array.from({length:max}, (_,i)=>({ k: i<since ? 'used' : 'empty' }));
+    r.action = remaining>=0 ? `Trader avant le ${dmFmt(r.deadline)}` : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`;
+  }
+  else if(rule.engine==='TRADING_DAYS'){
+    const max = Number(rule.maxDays)||5; windowDays = max;
+    const inactive = dmTradingDaysBetween(lastTrade, today);
+    remaining = max - inactive;
+    r.counter = `${Math.min(inactive,max)} / ${max}`; r.counterLabel = 'jours de trading sans trade';
+    r.deadline = dmAddTradingDays(lastTrade, max);
+    r.segs = Array.from({length:max}, (_,i)=>({ k: i<inactive ? 'used' : 'empty' }));
+    r.action = remaining>=0 ? `Trader au plus tard le ${dmFmt(r.deadline)}` : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`;
+  }
+  else if(rule.engine==='QUALIFYING'){
+    const W = Number(rule.maxDays)||30, need = Number(rule.qualifyingCount)||1; windowDays = W;
+    const q = new Set((st && st.qualifyingDays) ? st.qualifyingDays.filter(Boolean) : []);
+    logs.forEach(l=>{ if(l.traded && dmQualifies(rule, l.pnl)) q.add(l.day); });
+    const qs = [...q].filter(d=>d<=today).sort().reverse();
+    const anchor = qs.length>=need ? qs[need-1] : start;
+    const since = Math.max(0, dmDiff(anchor, today));
+    remaining = W - since;
+    const inWindow = qs.filter(d=>dmDiff(d, today) < W).length;
+    r.counter = `${Math.min(inWindow,need)} / ${need}`;
+    r.counterLabel = `jour${need>1?'s':''} qualifiant${need>1?'s':''} (${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $) sur ${W} j`;
+    r.deadline = dmAdd(anchor, W);
+    r.anchor = anchor; r.qualifying = qs;
+    r.segs = Array.from({length:need}, (_,i)=>({ k: i<inWindow ? 'q' : 'empty' }));
+    r.dormant = !!(rule.dormantAfter && since >= Number(rule.dormantAfter));
+    r.action = remaining>=0 ? `1 jour à ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $ ou plus avant le ${dmFmt(r.deadline)}` : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`;
+  }
+  else if(rule.engine==='WEEKLY'){
+    const ws = Number(rule.weekStart ?? 1), we = Number(rule.weekEnd ?? 5);
+    const span = (we - ws + 7) % 7; windowDays = span+1;
+    let wStart = today; while(dmDow(wStart)!==ws) wStart = dmAdd(wStart,-1);
+    const wEnd = dmAdd(wStart, span);
+    const tradedSet = new Set([...tradedDays, baseLast]);
+    const tradedIn = (a,b)=>[...tradedSet].some(d=>d>=a && d<=b);
+    if(today > wEnd){ // hors fenêtre (ex. samedi) : on juge la semaine qui vient de se terminer
+      const ok = tradedIn(wStart, wEnd);
+      const nextEnd = dmAdd(wEnd, 7);
+      remaining = ok ? dmDiff(today, nextEnd) : -1;
+      r.counter = ok ? '1 / 1' : '0 / 1'; r.counterLabel = 'jour tradé la semaine passée';
+      r.deadline = ok ? nextEnd : wEnd;
+      r.action = ok ? `Semaine validée · prochaine échéance ${dmFmt(nextEnd)}` : 'Semaine manquée : contacte la prop firm';
+    } else {
+      const ok = tradedIn(wStart, today);
+      remaining = ok ? dmDiff(today, dmAdd(wEnd,7)) : dmDiff(today, wEnd);
+      r.counter = ok ? '1 / 1' : '0 / 1'; r.counterLabel = 'jour tradé cette semaine';
+      r.deadline = ok ? dmAdd(wEnd,7) : wEnd;
+      r.action = ok ? `Semaine validée · prochaine échéance ${dmFmt(r.deadline)}` : `Trader avant la fin du ${dmFmt(wEnd)}`;    }
+    r.segs = Array.from({length:span+1}, (_,i)=>{ const d = dmAdd(wStart,i); return { k: tradedSet.has(d) ? 'q' : (d<today ? 'past' : 'empty'), day:d }; });
+    if(today > wEnd && remaining>=0) windowDays = 7;
+  }
+
+  // Compteur de connexion plateforme (ex. TradeDay / Tradovate)
+  if(rule.loginDays){
+    const lastLogin = dmMax([(st && st.lastLogin) || start, ...logs.filter(l=>l.platformLogin).map(l=>l.day)]);
+    const lr = Number(rule.loginDays) - Math.max(0, dmDiff(lastLogin, today));
+    r.login = { lastLogin, remaining: lr, deadline: dmAdd(lastLogin, Number(rule.loginDays)) };
+    if(lr < remaining){ remaining = lr; r.action = `Se connecter à la plateforme avant le ${dmFmt(r.login.deadline)}`; r.deadline = r.login.deadline; }
+  }
+
+  r.remaining = remaining;
+  r.level = dmLevel(remaining, windowDays);
+  if(r.dormant && r.level==='ok') r.level = 'warn';
+  return r;
+}
+
+
+/* ============================================================
+   RADAR DORMANCE — données, vues et modales (Premium)
+   Tables Supabase : dormancy_rules (catalogue admin), dormancy_logs
+   (pointages du trader), dormancy_account_state (point de départ).
+   Voir migration_dormance_dev_20261008.sql.
+============================================================ */
+const DM_ALERT_STORAGE_PREFIX = 'ledger_dm_alert_';
+const DM_LEVEL_META = {
+  over:    { label:'Délai dépassé', color:'var(--danger)', dim:'var(--danger-dim)', order:0 },
+  crit:    { label:'Critique',      color:'var(--danger)', dim:'var(--danger-dim)', order:1 },
+  warn:    { label:'À surveiller',  color:'var(--gold)',   dim:'var(--gold-dim)',   order:2 },
+  ok:      { label:'En règle',      color:'var(--accent)', dim:'var(--accent-dim)', order:3 },
+  unknown: { label:'Inconnu',       color:'var(--slate)',  dim:'var(--slate-dim)',  order:4 },
+};
+
+async function loadDormancy(){
+  state.dormancyReady = false;
+  if(!SUPABASE_CONFIGURED || !state.session) return;
+  const uidv = currentUserId();
+  const [rules, logs, states] = await Promise.all([
+    supabaseClient.from('dormancy_rules').select('*'),
+    supabaseClient.from('dormancy_logs').select('*').eq('user_id', uidv).order('day', { ascending:false }).limit(5000),
+    supabaseClient.from('dormancy_account_state').select('*').eq('user_id', uidv),
+  ]);
+  if(rules.error || logs.error || states.error){
+    // Tables absentes (migration pas encore jouée) : le module reste silencieusement inactif.
+    if(isAdmin()) console.warn('Radar dormance indisponible :', (rules.error||logs.error||states.error).message);
+    state.dormancyRules = []; state.dormancyLogs = []; state.dormancyStates = [];
+    return;
+  }
+  state.dormancyRules = rules.data.map(fromRow);
+  state.dormancyLogs = logs.data.map(fromRow);
+  state.dormancyStates = states.data.map(fromRow);
+  state.dormancyReady = true;
+}
+function dmEnabled(){ return !!(state.dormancyReady && perms().isPremium); }
+function dmFundedAccounts(){
+  return (state.accounts||[]).filter(a=>isMine(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF');
+}
+function dmRuleFor(a){ return (state.dormancyRules||[]).find(r=>String(r.propfirmId)===String(a.propFirmId)) || null; }
+function dmStateFor(a){ return (state.dormancyStates||[]).find(s=>String(s.accountId)===String(a.id)) || null; }
+function dmLogsFor(a){ return (state.dormancyLogs||[]).filter(l=>String(l.accountId)===String(a.id)); }
+function dmResult(a){
+  const rule = dmRuleFor(a);
+  const res = dmCompute(a, rule || DM_DEFAULT_RULE, dmLogsFor(a), dmStateFor(a), todayISO());
+  res.rule = rule || DM_DEFAULT_RULE;
+  res.hasStart = !!dmStateFor(a);
+  return res;
+}
+function dmAllResults(){
+  return dmFundedAccounts().map(a=>({ a, r: dmResult(a) }))
+    .sort((x,y)=> (DM_LEVEL_META[x.r.level].order - DM_LEVEL_META[y.r.level].order) || ((x.r.remaining??999) - (y.r.remaining??999)));
+}
+// Jours ouvrés non pointés depuis le dernier pointage, tous comptes confondus (un pointage couvre
+// tous les comptes d'un coup) — au minimum parmi les comptes, pour ne pas exagérer le retard.
+function dmGlobalUnpointed(all){
+  const vals = (all||dmAllResults()).map(x=>x.r.unpointed||0);
+  return vals.length ? Math.min(...vals) : 0;
+}
+function dmUrgent(){ return dmEnabled() ? dmAllResults().filter(x=>x.r.level==='crit'||x.r.level==='over') : []; }
+function dmRemainingText(r){
+  if(r.remaining===null || r.remaining===undefined) return '—';
+  if(r.remaining < 0) return 'Dépassé';
+  if(r.remaining === 0) return 'Aujourd’hui';
+  return `${r.remaining} j`;
+}
+function dmAccountName(a){
+  const firm = getFirm(a.propFirmId);
+  return `${firm ? escapeHtml(firm.name) : '—'} · ${escapeHtml(TYPE_LABELS[a.type]||a.type)}${a.size ? ' ' + escapeHtml(String(sizeLabelRaw(a))) : ''}`;
+}
+function dmSegsHtml(r){
+  const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
+  const usedColor = (r.level==='ok') ? 'var(--slate)' : m.color;
+  const thin = r.segs.length > 12;
+  return `<div class="dm-segs ${thin?'dm-segs-thin':''}">${r.segs.map(s=>{
+    const bg = s.k==='used' ? usedColor : s.k==='q' ? 'var(--accent)' : s.k==='past' ? 'var(--border)' : 'var(--surface-3)';
+    return `<span style="background:${bg}"></span>`;
+  }).join('')}</div>`;
+}
+function dmVerifiedHtml(r){
+  if(r.isDefault) return `<span class="badge badge-slate" title="${escapeHtml(DM_DEFAULT_RULE.ruleText)}">Règle non confirmée · défaut 21 j</span>`;
+  if(!r.verified) return `<span class="badge badge-slate" title="Règle appliquée mais non vérifiée sur une source officielle">À vérifier</span>`;
+  return `<span class="text-faint" style="font-size:11.5px;">Vérifiée le ${fmtDate(String(r.rule.verifiedAt).slice(0,10))}</span>`;
+}
+
+/* ---------- Bandeau d'alerte (toutes les pages) ---------- */
+function dmBannerHtml(){
+  const urgent = dmUrgent();
+  if(!urgent.length) return '';
+  const names = urgent.slice(0,3).map(x=>dmAccountName(x.a)).join(', ') + (urgent.length>3 ? '…' : '');
+  return `<div class="announce-banner announce-danger dm-banner">
+    ${icon('alertTriangle')}<span><strong>${urgent.length} compte${urgent.length>1?'s':''}</strong> ${urgent.length>1?'peuvent':'peut'} être fermé${urgent.length>1?'s':''} pour inactivité d’ici demain · ${names}</span>
+    <button type="button" class="btn btn-sm dm-banner-btn" onclick="state.route='radar';render();">Voir le radar</button>
+  </div>`;
+}
+
+/* ---------- Alerte quotidienne (connexion / ouverture de page) ---------- */
+function dmMaybeShowDailyAlert(){
+  if(!dmEnabled()) return;
+  if(document.getElementById('modal-root').innerHTML.trim()) return; // une autre modale est déjà ouverte
+  const key = DM_ALERT_STORAGE_PREFIX + currentUserId();
+  const today = todayISO();
+  try{ if(localStorage.getItem(key)===today) return; }catch(e){}
+  const all = dmAllResults();
+  const urgent = all.filter(x=>x.r.level==='crit'||x.r.level==='over');
+  if(!urgent.length) return;
+  try{ localStorage.setItem(key, today); }catch(e){}
+  const warn = all.filter(x=>x.r.level==='warn');
+  const unpointed = dmGlobalUnpointed(all);
+  openModal({
+    title: `${urgent.length} compte${urgent.length>1?'s':''} ${urgent.length>1?'peuvent':'peut'} être fermé${urgent.length>1?'s':''} pour inactivité`,
+    bodyHtml: `
+      <p class="text-dim" style="margin:0 0 14px;font-size:13.5px;line-height:1.5;">Une fermeture pour inactivité est en général définitive : solde et éligibilité aux payouts perdus.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${urgent.map(({a,r})=>`
+          <div class="dm-alert-row">
+            ${firmLogoHtml(getFirm(a.propFirmId), 28)}
+            <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div><div class="text-dim" style="font-size:12.5px;">${escapeHtml(r.action||'')}</div></div>
+            <span class="mono" style="font-weight:700;color:var(--danger);">${dmRemainingText(r)}</span>
+          </div>`).join('')}
+        ${warn.length ? `<div class="dm-alert-note"><span class="dm-dot" style="background:var(--gold)"></span>+ ${warn.length} compte${warn.length>1?'s':''} à surveiller</div>` : ''}
+        ${unpointed ? `<div class="dm-alert-note" style="border-style:dashed;">Jusqu’à ${unpointed} jour${unpointed>1?'s':''} non pointé${unpointed>1?'s':''}, comptés comme non tradés. <a href="#" id="dm-alert-pointer" style="margin-left:auto;font-weight:600;">Pointer</a></div>` : ''}
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="dm-alert-later">Plus tard</button><button class="btn btn-primary" id="dm-alert-open">Ouvrir le radar</button>`,
+    onMount(){
+      document.getElementById('dm-alert-later').onclick = closeModal;
+      document.getElementById('dm-alert-open').onclick = ()=>{ closeModal(); state.route='radar'; render(); };
+      const p = document.getElementById('dm-alert-pointer');
+      if(p) p.onclick = (e)=>{ e.preventDefault(); dmOpenPointage(); };
+    }
+  });
+}
+// Onglet laissé ouvert d'un jour sur l'autre : l'alerte du jour s'affiche au retour sur l'onglet.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && state.session && state.permissions) dmMaybeShowDailyAlert();
+});
+
+/* ---------- Page Radar dormance ---------- */
+function viewRadar(){
+  if(!state.dormancyReady){
+    return emptyState('clock', 'Radar inactivité indisponible', isAdmin() ? 'Les tables dormancy_* sont introuvables : exécute migration_dormance_dev_20261008.sql sur Supabase.' : 'Le module est en cours d’activation, réessaie un peu plus tard.');
+  }
+  const all = dmAllResults();
+  if(!all.length){
+    return emptyState('clock', 'Aucun compte funded actif', 'Le radar suit tes PA et comptes Live actifs. Ajoute-les depuis la page Comptes.');
+  }
+  const f = state.dmFilter || 'all';
+  const counts = { crit:0, warn:0, ok:0, unconfirmed:0 };
+  all.forEach(({r})=>{
+    if(r.level==='crit'||r.level==='over') counts.crit++;
+    else if(r.level==='warn') counts.warn++;
+    else counts.ok++;
+    if(r.isDefault || !r.verified) counts.unconfirmed++;
+  });
+  const missingStart = all.filter(x=>!x.r.hasStart).length;
+  const unpointed = dmGlobalUnpointed(all);
+  const list = all.filter(({r})=>{
+    if(f==='crit') return r.level==='crit'||r.level==='over';
+    if(f==='warn') return r.level==='warn';
+    if(f==='ok') return r.level==='ok';
+    if(f==='unconfirmed') return r.isDefault || !r.verified;
+    return true;
+  });
+  const firmsOf = lvl => [...new Set(all.filter(({r})=>lvl(r)).map(({a})=>(getFirm(a.propFirmId)||{}).name).filter(Boolean))].slice(0,3).join(', ');
+  const tile = (label, n, color, sub, dashed) => `
+    <div class="panel dm-tile" style="${dashed?'border-style:dashed;':''}">
+      <div class="dm-tile-label"><span class="dm-dot" style="background:${color}"></span>${label}</div>
+      <div class="dm-tile-value" style="color:${color}">${n}</div>
+      <div class="dm-tile-sub">${sub||'&nbsp;'}</div>
+    </div>`;
+  const pill = (id, label, n) => `<button type="button" class="dm-pill ${f===id?'active':''}" data-dm-filter="${id}">${label}<span class="mono">${n}</span></button>`;
+  return `
+    ${missingStart ? `<div class="panel dm-start-cta">
+      ${icon('info')}<div style="flex:1;min-width:200px;"><strong>${missingStart} compte${missingStart>1?'s':''} sans dernier trade connu.</strong> <span class="text-dim">Indique une fois la date de ton dernier trade sur ces comptes : sans elle, le compteur part prudemment de la date d’activation du compte.</span></div>
+      <button class="btn btn-primary btn-sm" data-dm-activate="all">Indiquer mon dernier trade</button>
+    </div>` : ''}
+    <div class="dm-tiles">
+      ${tile('Critique · ≤ 1 jour', counts.crit, 'var(--danger)', escapeHtml(firmsOf(r=>r.level==='crit'||r.level==='over')))}
+      ${tile('À surveiller', counts.warn, 'var(--gold)', escapeHtml(firmsOf(r=>r.level==='warn')))}
+      ${tile('En règle', counts.ok, 'var(--accent)', 'Aucune action requise')}
+      ${tile('Règle non confirmée', counts.unconfirmed, 'var(--slate)', counts.unconfirmed ? 'Défaut prudent ou source à vérifier' : 'Toutes les règles sont vérifiées', true)}
+    </div>
+    <div class="dm-filterbar">
+      ${pill('all','Tous',all.length)}${pill('crit','Critique',counts.crit)}${pill('warn','À surveiller',counts.warn)}${pill('ok','En règle',counts.ok)}${pill('unconfirmed','Non confirmée',counts.unconfirmed)}
+      <div style="flex:1"></div>
+      <div class="text-dim" style="font-size:12.5px;">${unpointed ? `<a href="#" data-dm-pointage="1">${unpointed} jour${unpointed>1?'s':''} non pointé${unpointed>1?'s':''}</a>, compté${unpointed>1?'s':''} comme non tradé${unpointed>1?'s':''}` : 'Pointage à jour'}</div>
+    </div>
+    <div class="dm-list">
+      ${list.length ? list.map(({a,r})=>dmRowHtml(a,r)).join('') : `<div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun compte dans ce filtre.</div>`}
+    </div>
+    <div class="dm-legend">
+      <span><span class="dm-sw" style="background:var(--danger)"></span>jour écoulé sans activité</span>
+      <span><span class="dm-sw" style="background:var(--accent)"></span>jour tradé / qualifiant</span>
+      <span><span class="dm-sw" style="background:var(--surface-3)"></span>jour restant</span>
+      <span>Un jour non pointé compte comme non tradé. Les règles sont vérifiées sur les pages officielles des prop firms.</span>
+    </div>`;
+}
+function dmRowHtml(a, r){
+  const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
+  const firm = getFirm(a.propFirmId);
+  const trader = getTrader(a.traderId);
+  return `
+    <div class="panel dm-row" data-dm-detail="${a.id}" role="button" tabindex="0" title="Voir le détail">
+      <div class="dm-row-id">
+        ${firmLogoHtml(firm, 32)}
+        <div style="min-width:0;">
+          <div class="dm-row-title">${dmAccountName(a)} <span class="text-faint mono" style="font-weight:500;">${maskAccountNumber(a.accountNumber||'')}</span></div>
+          <div class="dm-row-sub">${trader ? escapeHtml(trader.pseudo)+' · ' : ''}${escapeHtml(r.isDefault ? 'Défaut prudent · 21 jours calendaires' : DM_ENGINE_LABELS[r.engine])}${r.dormant ? ' · <strong style="color:var(--gold)">phase dormante</strong>' : ''}</div>
+        </div>
+      </div>
+      <div class="dm-row-bar">
+        ${dmSegsHtml(r)}
+        <div class="dm-row-counter"><span><span class="mono" style="font-weight:700;color:${m.color}">${r.counter}</span> ${escapeHtml(r.counterLabel||'')}</span>${r.login ? `<span class="text-dim">Connexion plateforme : ${r.login.remaining<0?'dépassée':r.login.remaining+' j restants'}</span>` : ''}</div>
+      </div>
+      <div class="dm-row-end">
+        <div style="text-align:right;">
+          <div class="mono dm-row-remain" style="color:${m.color}">${dmRemainingText(r)}</div>
+          <div class="dm-row-action">${escapeHtml(r.action||'')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+          <span class="badge" style="background:${m.dim};color:${m.color}">${m.label}</span>
+          ${!r.hasStart ? `<span class="badge badge-slate">Dernier trade à indiquer</span>` : dmVerifiedHtml(r)}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- Bande en pied de carte compte (page Comptes) ---------- */
+function dmCardBandHtml(a){
+  if(!dmEnabled()) return '';
+  if(!(isMine(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF')) return '';
+  const r = dmResult(a);
+  const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
+  const headline = r.level==='ok' ? 'Inactivité : en règle' : r.dormant ? 'Phase dormante (Apex)' : `Inactivité : ${m.label.toLowerCase()}`;
+  return `<button type="button" class="dm-band dm-band-${r.level}" data-dm-detail="${a.id}" title="Voir le détail de la règle d’inactivité">
+    <span class="dm-band-head"><span style="display:inline-flex;align-items:center;gap:6px;color:${m.color};font-weight:600;">${icon('clock')}${headline}</span><span class="mono" style="color:${m.color};font-weight:700;">${dmRemainingText(r)}</span></span>
+    ${dmSegsHtml(r)}
+    <span class="dm-band-hint">${r.counter} ${escapeHtml(r.counterLabel||'')} · ${escapeHtml(r.action||'')}</span>
+  </button>`;
+}
+
+/* ---------- Détail d'un compte ---------- */
+function dmOpenDetail(accountId){
+  const a = (state.accounts||[]).find(x=>String(x.id)===String(accountId)); if(!a) return;
+  const r = dmResult(a);
+  const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
+  const rule = r.rule;
+  const today = todayISO();
+  let grid = '';
+  if(r.engine==='QUALIFYING' || r.engine==='CALENDAR' || r.engine==='TRADING_DAYS'){
+    const W = r.engine==='QUALIFYING' ? Number(rule.maxDays)||30 : Math.min(30, Math.max(14, Number(rule.maxDays)||21));
+    const logs = new Map(dmLogsFor(a).map(l=>[l.day,l]));
+    const qset = new Set(r.qualifying||[]);
+    const cells = [];
+    for(let i=W-1;i>=0;i--){
+      const d = dmAdd(today, -i); const l = logs.get(d);
+      const q = qset.has(d);
+      const traded = (l && l.traded) || d===r.lastTrade;
+      const cls = r.engine==='QUALIFYING' ? (q ? 'q' : traded ? 't' : '') : (traded ? 'q' : '');
+      const pnl = l && l.pnl!==null && l.pnl!==undefined && l.pnl!=='' ? (Number(l.pnl)>0?'+':'') + Math.round(Number(l.pnl)) : '';
+      cells.push(`<div class="dm-cal-cell ${cls}" title="${fmtDate(d)}${l ? (l.traded?' · tradé':' · non tradé') : ' · non pointé'}"><span>${d.slice(8,10)}/${d.slice(5,7)}</span><strong>${pnl}</strong></div>`);
+    }
+    grid = `<div class="dm-section-title">Les ${W} derniers jours</div><div class="dm-cal">${cells.join('')}</div>
+      <div class="dm-legend" style="margin-top:8px;"><span><span class="dm-sw" style="background:var(--accent)"></span>${r.engine==='QUALIFYING'?'Qualifiant':'Tradé'}</span>${r.engine==='QUALIFYING'?`<span><span class="dm-sw" style="background:var(--surface-3);border:1px solid var(--text-faint)"></span>Tradé, non qualifiant</span>`:''}<span><span class="dm-sw" style="background:var(--surface-2);border:1px solid var(--border)"></span>Sans trade ou non pointé</span></div>`;
+  } else if(r.engine==='WEEKLY'){
+    grid = `<div class="dm-section-title">Semaine en cours</div><div class="dm-week">${r.segs.map(s=>`<div class="dm-week-day ${s.k}"><span>${DM_DOW_FR[dmDow(s.day)]}</span><strong>${s.day.slice(8,10)}</strong></div>`).join('')}</div>`;
+  }
+  openModal({
+    title: `${dmAccountName(a)}`,
+    wide: true,
+    bodyHtml: `
+      <div class="dm-detail-head" style="border-color:${m.color};background:${m.dim};">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:${m.color};font-size:13px;">${m.label}${r.dormant?' · phase dormante':''}</div>
+          <div style="font-size:13.5px;margin-top:4px;">${escapeHtml(r.action||'')}</div>
+          <div class="text-dim" style="font-size:12.5px;margin-top:4px;">${r.counter} ${escapeHtml(r.counterLabel||'')}${r.lastTrade ? ` · dernier trade connu : ${fmtDate(r.lastTrade)}` : ''}</div>
+        </div>
+        <div style="text-align:right;"><div class="mono" style="font-size:30px;font-weight:700;color:${m.color};line-height:1;">${r.remaining!==null && r.remaining>=0 ? r.remaining : '!'}</div><div class="text-dim" style="font-size:11.5px;">${r.remaining!==null && r.remaining>=0 ? 'jour'+(r.remaining>1?'s':'')+' restant'+(r.remaining>1?'s':'') : 'délai dépassé'}</div></div>
+      </div>
+      ${grid}
+      ${r.login ? `<div class="dm-alert-note" style="margin-top:12px;">Connexion à la plateforme : dernière le ${fmtDate(r.login.lastLogin)} · ${r.login.remaining<0?'délai dépassé':r.login.remaining+' jour'+(r.login.remaining>1?'s':'')+' restant'+(r.login.remaining>1?'s':'')}</div>` : ''}
+      <div class="panel" style="padding:14px 16px;margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;">
+          <div class="dm-section-title" style="margin:0;">Règle appliquée</div>${dmVerifiedHtml(r)}
+        </div>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--text-dim);">${escapeHtml(rule.ruleText||'')}</p>
+        ${rule.consequence ? `<p style="margin:8px 0 0;font-size:12.5px;"><strong>Conséquence :</strong> <span class="text-dim">${escapeHtml(rule.consequence)}</span></p>` : ''}
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;">
+          ${rule.sourceUrl ? `<a href="${escapeHtml(rule.sourceUrl)}" target="_blank" rel="noopener">Source officielle ↗</a>` : ''}
+          <a href="#" id="dm-report">Signaler une règle obsolète</a>
+        </div>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="dm-edit-start">Modifier le dernier trade connu</button><button class="btn btn-primary" id="dm-detail-pointer">Pointer une journée</button>`,
+    onMount(){
+      document.getElementById('dm-edit-start').onclick = ()=>dmOpenActivation([a.id]);
+      document.getElementById('dm-detail-pointer').onclick = ()=>dmOpenPointage();
+      document.getElementById('dm-report').onclick = (e)=>{
+        e.preventDefault();
+        const firm = getFirm(a.propFirmId);
+        openContactModal({ subject:'QUESTION', message:`Règle d'inactivité obsolète pour ${firm?firm.name:'cette prop firm'} : ` });
+      };
+    }
+  });
+}
+
+/* ---------- Pointage d'une journée ---------- */
+function dmOpenPointage(dayArg){
+  if(!dmEnabled()){ openUpgradeModal('Le radar inactivité'); return; }
+  const accounts = dmFundedAccounts();
+  if(!accounts.length){ showToast('Aucun compte funded actif à pointer.', 'danger'); return; }
+  const today = todayISO();
+  const day = dayArg || today;
+  // Raccourcis : aujourd'hui, hier, et les jours ouvrés non pointés récents
+  const chips = [today, dmAdd(today,-1)];
+  const pointedDays = new Set((state.dormancyLogs||[]).map(l=>l.day));
+  for(let i=2;i<=10 && chips.length<6;i++){
+    const d = dmAdd(today,-i); const w = dmDow(d);
+    if(w!==0 && w!==6 && !pointedDays.has(d)) chips.push(d);
+  }
+  const chipLabel = d => d===today ? 'Aujourd’hui' : d===dmAdd(today,-1) ? 'Hier' : dmFmt(d);
+  const rows = accounts.map(a=>{
+    const rule = dmRuleFor(a) || DM_DEFAULT_RULE;
+    const log = dmLogsFor(a).find(l=>l.day===day);
+    const traded = log ? !!log.traded : false;
+    const needPnl = rule.engine==='QUALIFYING';
+    const r = dmResult(a);
+    const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
+    return `
+      <div class="dm-pt-row" data-acc="${a.id}">
+        ${firmLogoHtml(getFirm(a.propFirmId), 30)}
+        <div style="flex:1 1 200px;min-width:0;">
+          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div>
+          <div style="font-size:12px;color:${m.color};">${m.label} · ${dmRemainingText(r)}${needPnl ? ` · qualifiant si ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : ''}</div>
+        </div>
+        <div class="dm-seg-toggle" role="group" aria-label="Tradé ce jour-là ?">
+          <button type="button" class="${traded?'':'active'}" data-dm-traded="0">Non tradé</button>
+          <button type="button" class="${traded?'active on':''}" data-dm-traded="1">Tradé</button>
+        </div>
+        <div class="dm-pt-extra">
+          ${needPnl ? `<label class="dm-pnl" style="${traded?'':'display:none;'}">P&amp;L net du jour<input type="number" step="0.01" inputmode="decimal" placeholder="ex. 120" value="${log && log.pnl!==null && log.pnl!==undefined ? escapeHtml(String(log.pnl)) : ''}"/></label>` : ''}
+          ${rule.loginDays ? `<label class="dm-login"><input type="checkbox" ${log && log.platformLogin ? 'checked':''}/>Connecté à la plateforme</label>` : ''}
+          ${!needPnl && !rule.loginDays ? `<span class="text-faint" style="font-size:12px;">P&amp;L non requis</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  openModal({
+    title: 'Pointer une journée',
+    wide: true,
+    bodyHtml: `
+      <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Le P&amp;L n’est demandé que pour les prop firms qui en ont besoin. Un jour non pointé compte comme non tradé.</p>
+      <div class="dm-chips">
+        ${chips.map(d=>`<button type="button" class="dm-pill ${d===day?'active':''}" data-dm-day="${d}">${chipLabel(d)}${!pointedDays.has(d) && d!==today ? '<span class="dm-chip-tag">non pointé</span>' : ''}</button>`).join('')}
+        <label class="dm-pill" style="cursor:default;">Autre date <input type="date" id="dm-day-input" max="${today}" value="${day}"/></label>
+      </div>
+      <div class="dm-section-title" style="margin-top:14px;">Journée du ${fmtDate(day)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="dm-all-no">Rien tradé ce jour-là</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="dm-all-yes">Tous tradés (copier)</button>
+      </div>
+      <div class="dm-pt-list">${rows}</div>`,
+    footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}</button>`,
+    onMount(){
+      const root = document.getElementById('modal-root');
+      const setRow = (row, on)=>{
+        row.querySelectorAll('[data-dm-traded]').forEach(b=>{ const v = b.dataset.dmTraded==='1'; b.classList.toggle('active', v===on); b.classList.toggle('on', v && on); });
+        const p = row.querySelector('.dm-pnl'); if(p) p.style.display = on ? '' : 'none';
+      };
+      root.querySelectorAll('.dm-pt-row').forEach(row=>{
+        row.querySelectorAll('[data-dm-traded]').forEach(b=>b.onclick=()=>setRow(row, b.dataset.dmTraded==='1'));
+      });
+      document.getElementById('dm-all-no').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,false));
+      document.getElementById('dm-all-yes').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,true));
+      root.querySelectorAll('[data-dm-day]').forEach(b=>b.onclick=()=>dmOpenPointage(b.dataset.dmDay));
+      document.getElementById('dm-day-input').onchange = (e)=>{ const v = e.target.value; if(v && v<=today) dmOpenPointage(v); };
+      document.getElementById('dm-pt-cancel').onclick = closeModal;
+      document.getElementById('dm-pt-save').onclick = async ()=>{
+        const btn = document.getElementById('dm-pt-save');
+        const payload = [];
+        let bad = false;
+        root.querySelectorAll('.dm-pt-row').forEach(row=>{
+          const traded = !!row.querySelector('[data-dm-traded="1"].active');
+          const pnlEl = row.querySelector('.dm-pnl input');
+          let pnl = null;
+          if(traded && pnlEl && pnlEl.value.trim()!==''){
+            pnl = Number(pnlEl.value.replace(',','.'));
+            if(isNaN(pnl)){ bad = true; pnlEl.focus(); }
+          }
+          const loginEl = row.querySelector('.dm-login input');
+          payload.push({ user_id: currentUserId(), account_id: row.dataset.acc, day, traded, pnl, platform_login: !!(loginEl && loginEl.checked), updated_at: new Date().toISOString() });
+        });
+        if(bad){ showToast('P&L invalide : saisis un nombre (ex. 120 ou -45).', 'danger'); return; }
+        btn.disabled = true;
+        const { error } = await supabaseClient.from('dormancy_logs').upsert(payload, { onConflict:'account_id,day' });
+        btn.disabled = false;
+        if(error){ showToast('Pointage non enregistré : ' + error.message, 'danger'); return; }
+        await loadDormancy();
+        closeModal();
+        showToast(`Journée du ${fmtDate(day)} pointée.`);
+        render();
+      };
+    }
+  });
+}
+
+/* ---------- Point de départ (activation, une seule fois par compte) ---------- */
+function dmOpenActivation(accountIds){
+  if(!dmEnabled()){ openUpgradeModal('Le radar inactivité'); return; }
+  let accounts = dmFundedAccounts();
+  if(accountIds && accountIds[0]!=='all') accounts = accounts.filter(a=>accountIds.includes(a.id));
+  else accounts = accounts.filter(a=>!dmStateFor(a)).concat(accounts.filter(a=>dmStateFor(a)));
+  if(!accounts.length) return;
+  const today = todayISO();
+  const dateInput = (cls, val, label) => `<label class="dm-start-field">${label}<input type="date" class="${cls}" max="${today}" value="${val||''}"/></label>`;
+  const rows = accounts.map(a=>{
+    const rule = dmRuleFor(a) || DM_DEFAULT_RULE;
+    const st = dmStateFor(a) || {};
+    const q = (st.qualifyingDays||[]).slice().sort().reverse();
+    let fields = dateInput('dm-st-last', st.lastTrade, 'Dernier trade');
+    if(rule.engine==='QUALIFYING'){
+      const need = Math.min(3, Number(rule.qualifyingCount)||1);
+      const sign = rule.pnlMode==='ABS' ? '±' : '+';
+      for(let i=0;i<need;i++) fields += dateInput('dm-st-q', q[i], `${i===0?'Dernier':i===1?'2e':'3e'} jour ≥ ${sign}${Number(rule.pnlThreshold)} $`);
+    }
+    if(rule.loginDays) fields += dateInput('dm-st-login', st.lastLogin, 'Dernière connexion plateforme');
+    return `
+      <div class="dm-pt-row dm-start-row" data-acc="${a.id}">
+        ${firmLogoHtml(getFirm(a.propFirmId), 30)}
+        <div style="flex:1 1 200px;min-width:0;">
+          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div>
+          <div class="text-faint" style="font-size:12px;">${escapeHtml(rule.isDefault ? 'Défaut prudent : 21 jours sans trade' : (rule.ruleText||'').slice(0,90) + ((rule.ruleText||'').length>90?'…':''))}</div>
+        </div>
+        <div class="dm-start-fields">${fields}<label class="dm-login"><input type="checkbox" class="dm-st-unknown" ${st.unknownStart?'checked':''}/>Je ne sais plus</label></div>
+      </div>`;
+  }).join('');
+  openModal({
+    title: 'Dernier trade connu sur tes comptes',
+    wide: 'xwide',
+    bodyHtml: `
+      <p class="text-dim" style="margin:0 0 12px;font-size:13px;line-height:1.5;">Uniquement pour les comptes que tu avais déjà avant d’activer le radar : indique ton dernier trade (et, pour Apex, FFN et Lucid, tes derniers jours qualifiants). Ensuite, tes pointages prennent le relais. « Je ne sais plus » : par prudence, le compteur part de la date de création du compte dans Contralytix.</p>
+      <div class="dm-pt-list">${rows}</div>`,
+    footHtml: `<button class="btn btn-outline" id="dm-st-cancel">Annuler</button><button class="btn btn-primary" id="dm-st-save">Enregistrer</button>`,
+    onMount(){
+      const root = document.getElementById('modal-root');
+      document.getElementById('dm-st-cancel').onclick = closeModal;
+      document.getElementById('dm-st-save').onclick = async ()=>{
+        const payload = [];
+        root.querySelectorAll('.dm-start-row').forEach(row=>{
+          const last = row.querySelector('.dm-st-last').value || null;
+          const qs = [...row.querySelectorAll('.dm-st-q')].map(i=>i.value).filter(Boolean);
+          const login = row.querySelector('.dm-st-login');
+          const unknown = row.querySelector('.dm-st-unknown').checked;
+          if(!last && !qs.length && !unknown && !(login && login.value)) return; // rien saisi : on n'enregistre pas ce compte
+          payload.push({ user_id: currentUserId(), account_id: row.dataset.acc, last_trade: last, qualifying_days: qs, last_login: login && login.value ? login.value : null, unknown_start: unknown, updated_at: new Date().toISOString() });
+        });
+        if(!payload.length){ showToast('Renseigne au moins un compte (ou coche « Je ne sais plus »).', 'danger'); return; }
+        const btn = document.getElementById('dm-st-save'); btn.disabled = true;
+        const { error } = await supabaseClient.from('dormancy_account_state').upsert(payload, { onConflict:'account_id' });
+        btn.disabled = false;
+        if(error){ showToast('Dernier trade non enregistré : ' + error.message, 'danger'); return; }
+        await loadDormancy();
+        closeModal();
+        showToast(`Dernier trade connu enregistré pour ${payload.length} compte${payload.length>1?'s':''}.`);
+        render();
+      };
+    }
+  });
+}
+
+/* ---------- Admin : catalogue des règles ---------- */
+function viewAdminDormancy(){
+  if(!state.dormancyReady){
+    return `<div class="panel" style="padding:18px;">${emptyState('clock','Tables du radar inactivité introuvables','Exécute migration_dormance_dev_20261008.sql sur Supabase, puis recharge la page.')}</div>`;
+  }
+  const rules = state.dormancyRules||[];
+  const firms = sortedFirms();
+  const accCount = id => (state.accounts||[]).filter(a=>String(a.propFirmId)===String(id) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF').length;
+  const params = r => {
+    if(!r) return 'Défaut prudent · 21 j cal.';
+    if(r.engine==='CALENDAR') return `${r.maxDays} j cal.${r.loginDays?` · connexion ${r.loginDays} j`:''}`;
+    if(r.engine==='TRADING_DAYS') return `${r.maxDays} j de trading · CME`;
+    if(r.engine==='QUALIFYING') return `${r.qualifyingCount} × ${r.pnlMode==='ABS'?'±':'+'}${Number(r.pnlThreshold)} $ · ${r.maxDays} j${r.dormantAfter?` · dormant J${r.dormantAfter}`:''}`;
+    if(r.engine==='WEEKLY') return `1 jour · ${DM_DOW_FR[r.weekStart]} → ${DM_DOW_FR[r.weekEnd]}`;
+    return '—';
+  };
+  const stale = rules.filter(r=>r.verifiedAt && dmDiff(String(r.verifiedAt).slice(0,10), todayISO())>30).length;
+  return `
+    <div class="panel" style="padding:16px 18px;margin-bottom:14px;">
+      <div class="section-title" style="margin-bottom:6px;">Catalogue des règles d’inactivité</div>
+      <div class="text-dim" style="font-size:13px;line-height:1.5;">Une règle par prop firm. Tous les comptes funded actifs de la firm en héritent automatiquement et sont recalculés à l’enregistrement. Sans règle, l’application applique un défaut prudent de 21 jours calendaires, affiché « non confirmé » au trader.${stale?` <strong style="color:var(--gold)">${stale} règle${stale>1?'s':''} vérifiée${stale>1?'s':''} il y a plus de 30 jours.</strong>`:''}</div>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Prop firm</th><th>Moteur</th><th>Paramètres</th><th>Vérification</th><th style="text-align:right">PA/Live actifs</th><th></th></tr></thead>
+          <tbody>
+            ${firms.map(p=>{
+              const r = rules.find(x=>String(x.propfirmId)===String(p.id));
+              const v = !r ? '<span class="badge badge-slate">Non confirmée</span>'
+                : !r.verifiedAt ? '<span class="badge badge-gold">À vérifier</span>'
+                : `<span class="mono text-dim">${fmtDate(String(r.verifiedAt).slice(0,10))}</span>`;
+              return `<tr>
+                <td><span class="firm-name-inline">${firmLogoHtml(p,16)}${escapeHtml(p.name)}</span></td>
+                <td class="text-dim">${r ? escapeHtml(DM_ENGINE_LABELS[r.engine]) : '—'}</td>
+                <td class="mono" style="font-size:12px;">${escapeHtml(params(r))}</td>
+                <td>${v}</td>
+                <td class="mono" style="text-align:right;">${accCount(p.id)}</td>
+                <td style="text-align:right;white-space:nowrap;"><button class="btn btn-outline btn-sm" data-dm-rule-edit="${p.id}">${icon('edit')}${r?'Modifier':'Créer'}</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function dmOpenRuleEditor(propfirmId){
+  if(!isAdmin()) return;
+  const firm = getFirm(propfirmId);
+  const r = (state.dormancyRules||[]).find(x=>String(x.propfirmId)===String(propfirmId)) || { engine:'CALENDAR', maxDays:30 };
+  const v = (k, d='') => (r[k]===null || r[k]===undefined) ? d : escapeHtml(String(r[k]));
+  const dowOpts = sel => DM_DOW_FR.map((l,i)=>`<option value="${i}" ${Number(sel)===i?'selected':''}>${l}</option>`).join('');
+  openModal({
+    title: `Règle d’inactivité · ${firm?escapeHtml(firm.name):''}`,
+    wide: true,
+    bodyHtml: `
+      <div class="field"><label>Moteur de calcul</label>
+        <select id="dmr-engine">${Object.entries(DM_ENGINE_LABELS).map(([k,l])=>`<option value="${k}" ${r.engine===k?'selected':''}>${l}</option>`).join('')}</select>
+      </div>
+      <div class="dm-form-grid">
+        <div class="field" data-dmr-for="CALENDAR TRADING_DAYS QUALIFYING"><label id="dmr-max-label">Délai max (jours)</label><input id="dmr-max" type="number" min="1" value="${v('maxDays')}"/></div>
+        <div class="field" data-dmr-for="QUALIFYING"><label>Jours qualifiants requis</label><input id="dmr-count" type="number" min="1" value="${v('qualifyingCount','1')}"/></div>
+        <div class="field" data-dmr-for="QUALIFYING"><label>Seuil de P&amp;L ($)</label><input id="dmr-threshold" type="number" step="0.01" value="${v('pnlThreshold','50')}"/></div>
+        <div class="field" data-dmr-for="QUALIFYING"><label>Mode du seuil</label><select id="dmr-mode"><option value="PROFIT" ${r.pnlMode!=='ABS'?'selected':''}>Gain ≥ seuil</option><option value="ABS" ${r.pnlMode==='ABS'?'selected':''}>Gain ou perte ≥ seuil</option></select></div>
+        <div class="field" data-dmr-for="QUALIFYING"><label>Phase dormante à partir de (j, optionnel)</label><input id="dmr-dormant" type="number" min="1" value="${v('dormantAfter')}"/></div>
+        <div class="field" data-dmr-for="WEEKLY"><label>Début de semaine</label><select id="dmr-ws">${dowOpts(r.weekStart ?? 1)}</select></div>
+        <div class="field" data-dmr-for="WEEKLY"><label>Fin de semaine</label><select id="dmr-we">${dowOpts(r.weekEnd ?? 5)}</select></div>
+        <div class="field" data-dmr-for="CALENDAR TRADING_DAYS QUALIFYING WEEKLY"><label>Connexion plateforme max (j, optionnel)</label><input id="dmr-login" type="number" min="1" value="${v('loginDays')}" placeholder="ex. 30 pour Tradovate"/></div>
+      </div>
+      <div class="field"><label>Conséquence</label><input id="dmr-consequence" value="${v('consequence')}" placeholder="ex. Suspension sans préavis"/></div>
+      <div class="field"><label>Texte affiché au trader</label><textarea id="dmr-text" rows="3">${v('ruleText')}</textarea></div>
+      <div class="dm-form-grid">
+        <div class="field"><label>Source officielle (URL)</label><input id="dmr-source" value="${v('sourceUrl')}" placeholder="https://…"/></div>
+        <div class="field"><label>Vérifiée le (vide = à vérifier)</label><input id="dmr-verified" type="date" value="${r.verifiedAt?String(r.verifiedAt).slice(0,10):''}"/></div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="dmr-today">${icon('check')}Je l’ai revérifiée aujourd’hui</button>`,
+    footHtml: `${(state.dormancyRules||[]).some(x=>String(x.propfirmId)===String(propfirmId)) ? `<button class="btn btn-danger" id="dmr-del" style="margin-right:auto;">Supprimer (revenir au défaut)</button>` : ''}<button class="btn btn-outline" id="dmr-cancel">Annuler</button><button class="btn btn-primary" id="dmr-save">Enregistrer</button>`,
+    onMount(){
+      const sync = ()=>{
+        const e = document.getElementById('dmr-engine').value;
+        document.querySelectorAll('[data-dmr-for]').forEach(el=>{ el.style.display = el.dataset.dmrFor.split(' ').includes(e) ? '' : 'none'; });
+        document.getElementById('dmr-max-label').textContent = e==='QUALIFYING' ? 'Taille de la fenêtre (jours)' : e==='TRADING_DAYS' ? 'Délai max (jours de trading)' : 'Délai max (jours calendaires)';
+      };
+      document.getElementById('dmr-engine').onchange = sync; sync();
+      document.getElementById('dmr-today').onclick = ()=>{ document.getElementById('dmr-verified').value = todayISO(); };
+      document.getElementById('dmr-cancel').onclick = closeModal;
+      const del = document.getElementById('dmr-del');
+      if(del) del.onclick = async ()=>{
+        const { error } = await supabaseClient.from('dormancy_rules').delete().eq('propfirm_id', String(propfirmId));
+        if(error){ showToast('Suppression impossible : ' + error.message, 'danger'); return; }
+        await logActivity('SETTINGS', 'dormancy_rules', String(propfirmId), `Règle d'inactivité supprimée (${firm?firm.name:propfirmId}) — défaut prudent appliqué`);
+        await loadDormancy(); closeModal(); showToast('Règle supprimée : défaut prudent appliqué.'); renderView();
+      };
+      document.getElementById('dmr-save').onclick = async ()=>{
+        const num = id => { const x = document.getElementById(id).value; return x==='' ? null : Number(x); };
+        const engine = document.getElementById('dmr-engine').value;
+        const row = {
+          propfirm_id: String(propfirmId), engine,
+          max_days: engine==='WEEKLY' ? null : num('dmr-max'),
+          qualifying_count: engine==='QUALIFYING' ? num('dmr-count') : null,
+          pnl_threshold: engine==='QUALIFYING' ? num('dmr-threshold') : null,
+          pnl_mode: engine==='QUALIFYING' ? document.getElementById('dmr-mode').value : null,
+          dormant_after: engine==='QUALIFYING' ? num('dmr-dormant') : null,
+          week_start: engine==='WEEKLY' ? num('dmr-ws') : null,
+          week_end: engine==='WEEKLY' ? num('dmr-we') : null,
+          login_days: num('dmr-login'),
+          consequence: document.getElementById('dmr-consequence').value.trim() || null,
+          rule_text: document.getElementById('dmr-text').value.trim() || null,
+          source_url: document.getElementById('dmr-source').value.trim() || null,
+          verified_at: document.getElementById('dmr-verified').value || null,
+          updated_at: new Date().toISOString(), updated_by: currentUserId(),
+        };
+        if(engine!=='WEEKLY' && !(row.max_days>0)){ showToast('Indique un délai / une fenêtre en jours.', 'danger'); return; }
+        if(engine==='QUALIFYING' && !(row.qualifying_count>0 && row.pnl_threshold!==null)){ showToast('Indique le nombre de jours qualifiants et le seuil de P&L.', 'danger'); return; }
+        const { error } = await supabaseClient.from('dormancy_rules').upsert(row, { onConflict:'propfirm_id' });
+        if(error){ showToast('Règle non enregistrée : ' + error.message, 'danger'); return; }
+        await logActivity('SETTINGS', 'dormancy_rules', String(propfirmId), `Règle d'inactivité mise à jour (${firm?firm.name:propfirmId}) : ${DM_ENGINE_LABELS[engine]}`);
+        await loadDormancy(); closeModal(); showToast('Règle enregistrée. Les comptes concernés sont recalculés.'); renderView();
+      };
+    }
+  });
+}
+
+/* ---------- Liaison des événements (appelée depuis bindViewEvents) ---------- */
+function dmBindEvents(){
+  document.querySelectorAll('[data-dm-detail]').forEach(el=>{
+    const open = (e)=>{ if(e.target.closest('a,input,select,textarea')) return; dmOpenDetail(el.dataset.dmDetail); };
+    el.onclick = open;
+    el.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); dmOpenDetail(el.dataset.dmDetail); } };
+  });
+  document.querySelectorAll('[data-dm-filter]').forEach(b=>b.onclick=()=>{ state.dmFilter = b.dataset.dmFilter; renderView(); });
+  document.querySelectorAll('[data-dm-pointage]').forEach(b=>b.onclick=(e)=>{ e.preventDefault(); dmOpenPointage(); });
+  document.querySelectorAll('[data-dm-activate]').forEach(b=>b.onclick=()=>dmOpenActivation([b.dataset.dmActivate]));
+  document.querySelectorAll('[data-dm-rule-edit]').forEach(b=>b.onclick=()=>dmOpenRuleEditor(b.dataset.dmRuleEdit));
+}
+
+/* ============================================================
    EMPTY STATE
 ============================================================ */
 function emptyState(iconName, title, sub){
@@ -10801,6 +11673,7 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
+  dmBindEvents(); // Radar dormance (page Radar, bande des cartes compte, admin)
   // Module Frais généraux : édition/suppression directement depuis la page (pas de modale de
   // liste comme les resets — un frais général n'est pas rattaché à un compte, donc il n'y a pas
   // de "fiche" naturelle depuis laquelle l'ouvrir, la page EST déjà la liste).
@@ -14094,6 +14967,7 @@ function applyLandingPricing(){
     // d'entrée unique côté serveur — idempotent côté Brevo (updateEnabled).
     syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
+    await loadDormancy();
     await loadPricingSettings();
     await loadFiscalThresholds();
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
@@ -14112,6 +14986,7 @@ function applyLandingPricing(){
     renderChatWidget();
     maybeShowWelcomeModal();
     maybeShowNewMessagesToast();
+    dmMaybeShowDailyAlert(); // une fois par jour, seulement si un compte est en danger (voir radar dormance)
     handleCheckoutReturn(); // fire-and-forget, voir sa définition (retour de paiement Stripe)
   }
 
@@ -14127,6 +15002,7 @@ function applyLandingPricing(){
       state.changelog_entries = [];
       state.support_messages = [];
       state.payout_receipts = [];
+      state.dormancyRules = []; state.dormancyLogs = []; state.dormancyStates = []; state.dormancyReady = false;
       state.fiscalChecklist = {};
       state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' } };
       document.getElementById('app-root').style.display = 'none';
