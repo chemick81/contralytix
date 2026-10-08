@@ -14072,7 +14072,7 @@ function dmMaybeShowDailyAlert(){
         ${urgent.map(({a,r})=>`
           <div class="dm-alert-row">
             ${firmLogoHtml(getFirm(a.propFirmId), 28)}
-            <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div><div class="text-dim" style="font-size:12.5px;">${escapeHtml(r.action||'')}</div></div>
+            <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div><div class="text-dim" style="font-size:12.5px;">${escapeHtml(r.action||'')}</div></div>
             <span class="mono" style="font-weight:700;color:var(--danger);">${dmRemainingText(r)}</span>
           </div>`).join('')}
         ${warn.length ? `<div class="dm-alert-note"><span class="dm-dot" style="background:var(--gold)"></span>+ ${warn.length} compte${warn.length>1?'s':''} à surveiller</div>` : ''}
@@ -14223,7 +14223,7 @@ function dmOpenDetail(accountId){
     grid = `<div class="dm-section-title">Semaine en cours</div><div class="dm-week">${r.segs.map(s=>`<div class="dm-week-day ${s.k}"><span>${DM_DOW_FR[dmDow(s.day)]}</span><strong>${s.day.slice(8,10)}</strong></div>`).join('')}</div>`;
   }
   openModal({
-    title: `${dmAccountName(a)}`,
+    title: `${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span>`,
     wide: true,
     bodyHtml: `
       <div class="dm-detail-head" style="border-color:${m.color};background:${m.dim};">
@@ -14288,7 +14288,7 @@ function dmOpenPointage(dayArg, accountId){
       <div class="dm-pt-row" data-acc="${a.id}">
         ${firmLogoHtml(getFirm(a.propFirmId), 30)}
         <div style="flex:1 1 200px;min-width:0;">
-          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div>
+          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div>
           <div style="font-size:12px;color:${m.color};">${m.label} · ${dmRemainingText(r)}${needPnl ? ` · qualifiant si ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : ''}</div>
         </div>
         <div class="dm-seg-toggle" role="group" aria-label="Tradé ce jour-là ?">
@@ -14303,7 +14303,7 @@ function dmOpenPointage(dayArg, accountId){
       </div>`;
   }).join('');
   openModal({
-    title: single ? `Pointer une journée · ${dmAccountName(accounts[0])}` : 'Pointer une journée · tous mes comptes',
+    title: single ? `Pointer une journée · ${dmAccountName(accounts[0])} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(accounts[0].accountNumber||'')}</span>` : 'Pointer une journée · tous mes comptes',
     wide: true,
     bodyHtml: `
       <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Le P&amp;L n’est demandé que pour les prop firms qui en ont besoin. Un jour non pointé compte comme non tradé.</p>
@@ -14358,7 +14358,7 @@ function dmOpenPointage(dayArg, accountId){
         closeModal();
         showToast(single ? `Journée du ${fmtDate(day)} pointée pour ${dmAccountName(accounts[0])}.` : `Journée du ${fmtDate(day)} pointée.`);
         render();
-        if(single) dmOpenDetail(accountId); // retour sur le détail du compte, mis à jour
+
       };
     }
   });
@@ -14388,7 +14388,7 @@ function dmOpenActivation(accountIds){
       <div class="dm-pt-row dm-start-row" data-acc="${a.id}">
         ${firmLogoHtml(getFirm(a.propFirmId), 30)}
         <div style="flex:1 1 200px;min-width:0;">
-          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)}</div>
+          <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div>
           <div class="text-faint" style="font-size:12px;">${escapeHtml(rule.isDefault ? 'Défaut prudent : 21 jours sans trade' : (rule.ruleText||'').slice(0,90) + ((rule.ruleText||'').length>90?'…':''))}</div>
         </div>
         <div class="dm-start-fields">${fields}<label class="dm-login"><input type="checkbox" class="dm-st-unknown" ${st.unknownStart?'checked':''}/>Je ne sais plus</label></div>
