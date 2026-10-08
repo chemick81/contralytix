@@ -1141,7 +1141,42 @@ th.th-sort-active svg{opacity:1;}
 :root[data-theme="light"] .acc-meta .acc-num{color:var(--text);}
 .acc-num-mask{color:var(--text-faint);font-weight:400;letter-spacing:0;}
 .acc-actions{display:flex;gap:6px;flex-wrap:wrap;}
-.acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:12px;}
+.acc-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:12px;align-items:start;}
+/* Net profit sur la carte compte (08/10/2026, retour bêta-testeur) : 5e colonne, fond teinté selon le
+   signe, avec une ligne de contexte (ROI / « Rentabilisé à X % » / « Aucun payout pour l'instant »). */
+.acc-net{padding:6px 10px;margin:-6px -10px;border-radius:8px;}
+.acc-net.is-pos{background:color-mix(in srgb, var(--accent) 8%, transparent);}
+.acc-net.is-neg{background:color-mix(in srgb, var(--danger) 8%, transparent);}
+.acc-net .acc-field-label{color:var(--text-dim);font-weight:600;}
+.acc-net .acc-field-value{font-size:14px;font-weight:700;}
+.acc-net.is-pos .acc-field-value{color:var(--accent);}
+.acc-net.is-neg .acc-field-value{color:var(--danger);}
+.acc-net.is-zero .acc-field-value{color:var(--text-dim);}
+.acc-net-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+/* Bandeau de totaux de la page Comptes (08/10/2026, retour bêta-testeur) : Dépenses / Payouts /
+   Net profit / ROI des comptes affichés, recalculés à chaque changement de filtre. Hors frais
+   généraux (non rattachés à un compte) et sans filtre de période : depuis l'ouverture de chaque compte. */
+.acc-totals{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.acc-totals-scope{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:12.5px;color:var(--text-dim);}
+.acc-totals-scope strong{color:var(--text);font-weight:600;}
+.acc-totals-chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;background:var(--surface-2);color:var(--text-dim);white-space:nowrap;}
+.acc-totals-chip.is-filtered{background:var(--accent-dim);color:var(--accent);}
+.acc-totals-fx{display:inline-flex;align-items:center;gap:4px;color:var(--text-faint);white-space:nowrap;}
+.acc-totals-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.acc-kpi{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0;}
+.acc-kpi-label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;font-weight:600;}
+.acc-kpi-value{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;letter-spacing:-.5px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acc-kpi-sub{font-size:12px;color:var(--text-dim);}
+.acc-kpi .is-pos{color:var(--accent);} .acc-kpi .is-neg{color:var(--danger);} .acc-kpi .is-zero{color:var(--text-dim);}
+.acc-kpi--net .acc-kpi-label{color:var(--text);}
+.acc-kpi--net .acc-kpi-value{font-size:26px;font-weight:700;letter-spacing:-.8px;}
+.acc-kpi--net.is-pos{border-color:color-mix(in srgb, var(--accent) 45%, var(--border));background:color-mix(in srgb, var(--accent) 6%, var(--surface));}
+.acc-kpi--net.is-neg{border-color:color-mix(in srgb, var(--danger) 45%, var(--border));background:color-mix(in srgb, var(--danger) 6%, var(--surface));}
+.acc-kpi-badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:700;letter-spacing:.2px;text-transform:none;white-space:nowrap;background:var(--surface-2);color:var(--text-dim);}
+.acc-kpi--net.is-pos .acc-kpi-badge{background:var(--accent-dim);color:var(--accent);}
+.acc-kpi--net.is-neg .acc-kpi-badge{background:var(--danger-dim);color:var(--danger);}
+.acc-kpi-bar{display:flex;height:6px;border-radius:var(--radius-pill);overflow:hidden;background:var(--surface-3);}
+.acc-kpi-bar .bar-dep{background:var(--danger);} .acc-kpi-bar .bar-pay{background:var(--accent);}
 .acc-field-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;}
 .acc-field-value{font-size:13px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
 .link-parent{font-size:11px;color:var(--text-dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
@@ -1511,6 +1546,8 @@ th.th-sort-active svg{opacity:1;}
   .nav-group-items{display:flex !important;}
   .stats-grid{grid-template-columns:repeat(2,1fr);}
   .acc-grid{grid-template-columns:repeat(2,1fr);}
+  .acc-grid .acc-net{grid-column:1/-1;}
+  .acc-totals-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .grid-2{grid-template-columns:1fr;}
   .field-row{grid-template-columns:1fr;}
 }
@@ -1524,6 +1561,13 @@ th.th-sort-active svg{opacity:1;}
      trop étroite pour des montants/dates qui peuvent être longs (ex: montant converti) — on repasse
      en 1 colonne pour que chaque valeur reste lisible sans se couper. Audit design 29/08/2026, étape 5. */
   .acc-grid{grid-template-columns:1fr;gap:10px;}
+  /* Mobile : le Net profit passe en premier, sur toute la largeur ; Dépenses/Payouts côte à côte. */
+  .acc-totals-grid{gap:10px;}
+  .acc-kpi--net{grid-column:1/-1;order:-1;}
+  .acc-kpi--roi{grid-column:1/-1;}
+  .acc-kpi{padding:12px 14px;}
+  .acc-kpi-value{font-size:17px;}
+  .acc-kpi--net .acc-kpi-value{font-size:24px;}
   .filter-bar{gap:8px;}
   .filter-bar input[type=text]{min-width:0;flex:1 1 100%;}
 }
@@ -9676,6 +9720,91 @@ function viewCGV(){
 /* ============================================================
    VIEW: ACCOUNTS
 ============================================================ */
+// ---- Totaux de la page Comptes (08/10/2026, retour bêta-testeur) ----
+// Montant signé avec le vrai signe moins typographique (U+2212), pour les Net profit.
+function fmtSignedMoney(v, currency){
+  if(!v) return fmtMoneyCur(0, currency);
+  return (v>0?'+':'−') + fmtMoneyCur(Math.abs(v), currency);
+}
+// Bandeau Dépenses / Payouts / Net profit / ROI calculé sur les comptes AFFICHÉS (donc tous les
+// filtres appliqués : recherche, trader, PropFirm, taille, statut, type). Volontairement :
+//  - pas de filtre de période : tout l'historique de chaque compte, depuis son ouverture ;
+//  - pas de frais généraux : ils ne sont rattachés à aucun compte et ne réagiraient pas aux filtres
+//    (ils restent dans Rentabilité réelle) ;
+//  - mêmes lignes et même règle de devise que la carte compte (computeAccountExpenses + sumMoneyNet) :
+//    total exact dans la devise commune, converti en EUR au taux BCE de chaque opération si les
+//    comptes sont dans plusieurs devises ou si le switch €/$ est sur €.
+//  - comptes floutés (aperçu Free) exclus, pour ne pas révéler leurs montants via le total.
+function accountsTotalsHtml(list, f, anyFilterActive){
+  const blurred = freeBlurIndexSet(list, isMineAccount);
+  const counted = list.filter((a,i)=>!blurred.has(i));
+  const ids = new Set(counted.map(a=>a.id));
+  const expLines = counted.flatMap(a=>computeAccountExpenses(a));
+  const payLines = state.payouts.filter(p=>ids.has(p.accountId));
+  const m = sumMoneyNet(expLines, payLines);
+  const cur = m.currency || 'USD';
+  const sym = ({USD:'$',EUR:'€',GBP:'£'})[cur] || '$';
+  const hasData = m.totalExp>0 || m.totalPay>0;
+  const tone = !hasData ? 'is-zero' : (m.net>=0 ? 'is-pos' : 'is-neg');
+  const tot = m.totalExp + m.totalPay;
+  const barDep = tot ? (m.totalExp/tot*100).toFixed(1) : 0;
+  const barPay = tot ? (m.totalPay/tot*100).toFixed(1) : 0;
+  const roi = m.totalExp>0 ? m.net/m.totalExp*100 : null;
+  const roiTxt = roi===null ? '—' : `${roi>=0?'+':'−'}${Math.abs(Math.round(roi)).toLocaleString('fr-FR')} %`;
+  const roiSub = m.totalExp>0
+    ? `1 ${sym} dépensé → ${(m.totalPay/m.totalExp).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${sym} encaissés`
+    : 'Aucune dépense';
+  const nPay = payLines.length;
+
+  // Contexte lisible des filtres appliqués, pour savoir sur quoi portent les chiffres.
+  const scope = [];
+  scope.push(f.status && f.status.length ? 'statut ' + f.status.map(s=>STATUS_LABELS[s]||s).join(' + ') : 'tous statuts');
+  if(f.type) scope.push('type ' + (TYPE_LABELS[f.type]||f.type));
+  if(f.propfirm){ const pf = getFirm(f.propfirm); if(pf) scope.push(escapeHtml(pf.name)); }
+  if(f.size) scope.push('taille ' + (SIZE_LABELS[f.size]||f.size));
+  if(f.trader.length){
+    const names = f.trader.map(id=>{ const t=getTrader(id); return t?t.pseudo:''; }).filter(Boolean);
+    scope.push(names.length<=2 ? 'trader ' + escapeHtml(names.join(', ')) : names.length + ' traders');
+  }
+  if(f.q) scope.push('« ' + escapeHtml(f.q) + ' »');
+  const n = counted.length;
+  const fxHtml = m.converted
+    ? `<span class="acc-totals-fx">Converti en EUR · taux BCE${m.mixed?' · devises mixtes':''} ${infoTip("Les montants qui ne sont pas en euros sont convertis au taux BCE du jour de chaque opération (achat, mensualité, activation, reset, payout).")}</span>`
+    : '';
+  const blurNote = blurred.size ? ` · hors ${blurred.size} compte${blurred.size>1?'s':''} en aperçu` : '';
+
+  return `
+    <section class="acc-totals" aria-label="Totaux des comptes affichés">
+      <div class="acc-totals-scope">
+        <span class="acc-totals-chip${anyFilterActive?' is-filtered':''}">${anyFilterActive?'Filtré':'Vue par défaut'}</span>
+        <span>Totaux des <strong>${n} compte${n>1?'s':''}</strong> affiché${n>1?'s':''} · ${scope.join(' · ')} · depuis l'ouverture de chaque compte${blurNote}</span>
+        ${fxHtml}
+      </div>
+      <div class="acc-totals-grid">
+        <div class="acc-kpi">
+          <div class="acc-kpi-label">Dépenses ${infoTip("Achats de challenges, mensualités, frais d'activation et resets des comptes affichés. Les frais généraux (abonnements, VPS…) ne sont pas comptés ici.")}</div>
+          <div class="acc-kpi-value ${m.totalExp>0?'is-neg':'is-zero'}">${m.totalExp>0?'−':''}${fmtMoneyCur(m.totalExp, cur)}</div>
+          <div class="acc-kpi-sub">Achats, mensualités, activations, resets</div>
+        </div>
+        <div class="acc-kpi">
+          <div class="acc-kpi-label">Payouts</div>
+          <div class="acc-kpi-value ${m.totalPay>0?'is-pos':'is-zero'}">${m.totalPay>0?'+':''}${fmtMoneyCur(m.totalPay, cur)}</div>
+          <div class="acc-kpi-sub">${nPay} payout${nPay>1?'s':''} reçu${nPay>1?'s':''}</div>
+        </div>
+        <div class="acc-kpi acc-kpi--net ${tone}">
+          <div class="acc-kpi-label">Net profit <span class="acc-kpi-badge">${!hasData?'—':(m.net>=0?'Rentable':'Pas encore rentable')}</span></div>
+          <div class="acc-kpi-value ${tone}">${fmtSignedMoney(m.net, cur)}</div>
+          <div class="acc-kpi-bar" aria-hidden="true"><span class="bar-dep" style="width:${barDep}%"></span><span class="bar-pay" style="width:${barPay}%"></span></div>
+          <div class="acc-kpi-sub">Payouts − dépenses</div>
+        </div>
+        <div class="acc-kpi acc-kpi--roi">
+          <div class="acc-kpi-label">ROI</div>
+          <div class="acc-kpi-value ${roi===null?'is-zero':(roi>=0?'is-pos':'is-neg')}">${roiTxt}</div>
+          <div class="acc-kpi-sub">${roiSub}</div>
+        </div>
+      </div>
+    </section>`;
+}
 function viewAccounts(){
   const f = state.filters.accounts;
   let list = [...state.accounts];
@@ -9780,21 +9909,23 @@ function viewAccounts(){
       }).join('')}
     </div>`;
 
+  const totalsBar = accountsTotalsHtml(list, f, anyFilterActive);
+
   if(state.accounts.length===0){
     return emptyState('card','Aucun compte','Crée un compte Challenge ou PA pour un trader.');
   }
   if(list.length===0){
     // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
     const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size;
-    if(hiddenSearchHtml) return filterBar + hiddenSearchHtml;
-    return filterBar + (onlyStatusHides
+    if(hiddenSearchHtml) return totalsBar + filterBar + hiddenSearchHtml;
+    return totalsBar + filterBar + (onlyStatusHides
       ? `<div class="empty">${icon('search')}<div class="empty-title">Aucun compte ${f.status.length===1 ? (STATUS_LABELS[f.status[0]]||'').toLowerCase() : 'pour ces statuts'}</div><div class="empty-sub">Tes autres comptes (réussis, breached, fermés) sont masqués par le filtre de statut.</div><button type="button" class="btn btn-outline btn-sm" id="f-show-all-status" style="margin-top:12px;">Voir tous les statuts</button></div>`
       : emptyState('search','Aucun résultat','Essaie d\u2019élargir tes filtres.'));
   }
 
   if(f.groupBy.length){
     const activeGroups = [...f.groupBy].sort((a,b)=>GROUP_ORDER[a]-GROUP_ORDER[b]);
-    return filterBar + hiddenSearchHtml + renderGroupedAccounts(list, activeGroups);
+    return totalsBar + filterBar + hiddenSearchHtml + renderGroupedAccounts(list, activeGroups);
   }
 
   // Teaser flou Free : au-delà du quota d'un compte Free (déjà limité en création à
@@ -9802,7 +9933,7 @@ function viewAccounts(){
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
   // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
   const accBlurred = freeBlurIndexSet(list, isMineAccount);
-  return filterBar + hiddenSearchHtml + `<div>
+  return totalsBar + filterBar + hiddenSearchHtml + `<div>
     ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
   </div>
   ${freeBlurBannerHtml(accBlurred.size, 'comptes')}`;
@@ -9866,6 +9997,19 @@ function renderGroupedAccounts(list, keys, depth=0){
 // réussi, il disparaît de la liste et on ne retrouve plus le bouton « Créer le PA ».
 function needsPa(a){
   return a && a.type==='CHALLENGE' && a.status==='REUSSI' && !state.accounts.some(x=>x.parentChallengeId===a.id);
+}
+// Cellule Net profit de la carte compte (08/10/2026) : payouts − dépenses du compte, avec une ligne
+// qui dit où en est le compte sans calcul mental.
+function accNetCellHtml(exp, pay, currency){
+  const net = pay - exp;
+  if(!exp && !pay){
+    return `<div class="acc-net is-zero"><div class="acc-field-label">Net profit</div><div class="acc-field-value">—</div><div class="acc-net-sub">Aucun mouvement</div></div>`;
+  }
+  let sub;
+  if(!pay) sub = 'Aucun payout pour l’instant';
+  else if(net<0) sub = 'Rentabilisé à ' + Math.floor(pay/exp*100) + ' %';
+  else sub = exp>0 ? 'ROI +' + Math.round(net/exp*100).toLocaleString('fr-FR') + ' %' : 'Aucune dépense';
+  return `<div class="acc-net ${net>=0?'is-pos':'is-neg'}"><div class="acc-field-label">Net profit</div><div class="acc-field-value">${fmtSignedMoney(net, currency)}</div><div class="acc-net-sub">${sub}</div></div>`;
 }
 function accountCard(a){
   const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
@@ -9940,6 +10084,7 @@ function accountCard(a){
         <div><div class="acc-field-label">Achat</div><div class="acc-field-value">${fmtDate(a.purchaseDate)}</div></div>
         <div><div class="acc-field-label">Dépenses cumulées</div><div class="acc-field-value" style="color:var(--danger)">${fmtMoneyCur(exp, accMoney.currency)}</div></div>
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
+        ${accNetCellHtml(exp, pay, accMoney.currency)}
       </div>
 
     </div>
