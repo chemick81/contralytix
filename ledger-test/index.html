@@ -1258,7 +1258,7 @@ th.th-sort-active svg{opacity:1;}
 .dm-week-day.q{background:var(--accent-dim);border-color:var(--accent);}
 .dm-week-day.past{opacity:.55;}
 .dm-pt-list{display:flex;flex-direction:column;}
-.dm-pt-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto 190px;align-items:center;gap:10px 14px;padding:12px 0;border-bottom:1px solid var(--border-soft);}
+.dm-pt-row{display:grid;grid-template-columns:auto minmax(200px,1fr) auto auto;align-items:center;gap:10px 14px;padding:12px 0;border-bottom:1px solid var(--border-soft);}
 .dm-pt-row.dm-start-row{grid-template-columns:auto minmax(200px,1fr) auto;}
 .dm-start-row .dm-start-fields{justify-content:flex-end;}
 @media (max-width:700px){
@@ -1267,11 +1267,12 @@ th.th-sort-active svg{opacity:1;}
 }
 .dm-pt-row:last-child{border-bottom:0;}
 .dm-seg-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
-.dm-seg-toggle button{min-height:38px;padding:0 12px;border:0;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;}
+.dm-seg-toggle button{min-height:38px;padding:0 12px;white-space:nowrap;border:0;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;}
 .dm-seg-toggle button + button{border-left:1px solid var(--border);}
 .dm-seg-toggle button.active{background:var(--surface-3);color:var(--text);}
 .dm-seg-toggle button.active.on{background:var(--accent-dim);color:var(--accent);}
-.dm-pt-extra{display:flex;align-items:center;gap:10px;min-width:150px;}
+.dm-pt-extra{display:flex;align-items:center;gap:10px;}
+.dm-pt-extra:empty{display:none;}
 .dm-pnl{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text-faint);}
 .dm-pnl input,.dm-start-field input{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:7px 9px;font-family:'JetBrains Mono',monospace;font-size:13px;width:140px;}
 .dm-login{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-dim);cursor:pointer;}
@@ -13902,7 +13903,7 @@ function dmCompute(account, rule, logs, st, today){
   else if(rule.engine==='QUALIFYING'){
     const W = Number(rule.maxDays)||30, need = Number(rule.qualifyingCount)||1; windowDays = W;
     const q = new Set((st && st.qualifyingDays) ? st.qualifyingDays.filter(Boolean) : []);
-    logs.forEach(l=>{ if(l.traded && dmQualifies(rule, l.pnl)) q.add(l.day); });
+    logs.forEach(l=>{ if(l.traded && (l.qualifying || dmQualifies(rule, l.pnl))) q.add(l.day); });
     const qs = [...q].filter(d=>d<=today).sort().reverse();
     const anchor = qs.length>=need ? qs[need-1] : start;
     const since = Math.max(0, dmDiff(anchor, today));
@@ -14214,7 +14215,7 @@ function dmOpenDetail(accountId){
       const q = qset.has(d);
       const traded = (l && l.traded) || d===r.lastTrade;
       const cls = r.engine==='QUALIFYING' ? (q ? 'q' : traded ? 't' : '') : (traded ? 'q' : '');
-      const pnl = l && l.pnl!==null && l.pnl!==undefined && l.pnl!=='' ? (Number(l.pnl)>0?'+':'') + Math.round(Number(l.pnl)) : '';
+      const pnl = r.engine==='QUALIFYING' ? (q ? '✓' : (traded ? '·' : '')) : (traded ? '✓' : '');
       cells.push(`<div class="dm-cal-cell ${cls}" title="${fmtDate(d)}${l ? (l.traded?' · tradé':' · non tradé') : ' · non pointé'}"><span>${d.slice(8,10)}/${d.slice(5,7)}</span><strong>${pnl}</strong></div>`);
     }
     grid = `<div class="dm-section-title">Les ${W} derniers jours</div><div class="dm-cal">${cells.join('')}</div>
@@ -14280,33 +14281,34 @@ function dmOpenPointage(dayArg, accountId){
   const rows = accounts.map(a=>{
     const rule = dmRuleFor(a) || DM_DEFAULT_RULE;
     const log = dmLogsFor(a).find(l=>l.day===day);
-    const traded = log ? !!log.traded : false;
-    const needPnl = rule.engine==='QUALIFYING';
+    const needPnl = rule.engine==='QUALIFYING'; // firms à jour qualifiant : 3e choix « Tradé ≥ seuil »
+    const qualifiesLog = !!(log && log.traded && (log.qualifying || dmQualifies(rule, log.pnl)));
+    const val = !log || !log.traded ? 0 : (needPnl && qualifiesLog ? 2 : 1);
+    const qLabel = needPnl ? `Tradé ≥ ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : '';
+    // Gain OU perte ≥ seuil (FFN, Lucid) : presque toujours vrai dès qu'on trade → « Tradé » coche directement le 3e choix
+    const autoQ = needPnl && rule.pnlMode==='ABS';
     const r = dmResult(a);
     const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
     return `
-      <div class="dm-pt-row" data-acc="${a.id}">
+      <div class="dm-pt-row" data-acc="${a.id}" data-autoq="${autoQ?1:0}">
         ${firmLogoHtml(getFirm(a.propFirmId), 30)}
         <div style="flex:1 1 200px;min-width:0;">
           <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div>
-          <div style="font-size:12px;color:${m.color};">${m.label} · ${dmRemainingText(r)}${needPnl ? ` · qualifiant si ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : ''}</div>
+          <div style="font-size:12px;color:${m.color};">${m.label} · ${dmRemainingText(r)}</div>
         </div>
         <div class="dm-seg-toggle" role="group" aria-label="Tradé ce jour-là ?">
-          <button type="button" class="${traded?'':'active'}" data-dm-traded="0">Non tradé</button>
-          <button type="button" class="${traded?'active on':''}" data-dm-traded="1">Tradé</button>
+          <button type="button" class="${val===0?'active':''}" data-dm-traded="0">Non tradé</button>
+          <button type="button" class="${val===1?'active on':''}" data-dm-traded="1">Tradé</button>
+          ${needPnl ? `<button type="button" class="${val===2?'active on':''}" data-dm-traded="2" title="Jour qualifiant au sens de la règle de la prop firm">${qLabel}</button>` : ''}
         </div>
-        <div class="dm-pt-extra">
-          ${needPnl ? `<label class="dm-pnl" style="${traded?'':'display:none;'}">P&amp;L net du jour<input type="number" step="0.01" inputmode="decimal" placeholder="ex. 120" value="${log && log.pnl!==null && log.pnl!==undefined ? escapeHtml(String(log.pnl)) : ''}"/></label>` : ''}
-          ${rule.loginDays ? `<label class="dm-login"><input type="checkbox" ${log && log.platformLogin ? 'checked':''}/>Connecté à la plateforme</label>` : ''}
-          ${!needPnl && !rule.loginDays ? `<span class="text-faint" style="font-size:12px;">P&amp;L non requis</span>` : ''}
-        </div>
+        <div class="dm-pt-extra">${rule.loginDays ? `<label class="dm-login"><input type="checkbox" ${log && log.platformLogin ? 'checked':''}/>Connecté à la plateforme</label>` : ''}</div>
       </div>`;
   }).join('');
   openModal({
     title: single ? `Pointer une journée · ${dmAccountName(accounts[0])} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(accounts[0].accountNumber||'')}</span>` : 'Pointer une journée · tous mes comptes',
     wide: true,
     bodyHtml: `
-      <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Le P&amp;L n’est demandé que pour les prop firms qui en ont besoin. Un jour non pointé compte comme non tradé.</p>
+      <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Pour Apex, FFN et Lucid, indique simplement si le jour atteint le seuil de la firm : aucun montant à saisir. Un jour non pointé compte comme non tradé.</p>
       <div class="dm-chips">
         ${chips.map(d=>`<button type="button" class="dm-pill ${d===day?'active':''}" data-dm-day="${d}">${chipLabel(d)}${!pointedDays.has(d) && d!==today ? '<span class="dm-chip-tag">non pointé</span>' : ''}</button>`).join('')}
         <label class="dm-pill" style="cursor:default;">Autre date <input type="date" id="dm-day-input" max="${today}" value="${day}"/></label>
@@ -14320,16 +14322,22 @@ function dmOpenPointage(dayArg, accountId){
     footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">${single ? 'Enregistrer' : `Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}`}</button>`,
     onMount(){
       const root = document.getElementById('modal-root');
-      const setRow = (row, on)=>{
-        row.querySelectorAll('[data-dm-traded]').forEach(b=>{ const v = b.dataset.dmTraded==='1'; b.classList.toggle('active', v===on); b.classList.toggle('on', v && on); });
-        const p = row.querySelector('.dm-pnl'); if(p) p.style.display = on ? '' : 'none';
+      const setRow = (row, val)=>{
+        row.querySelectorAll('[data-dm-traded]').forEach(b=>{ const v = Number(b.dataset.dmTraded); b.classList.toggle('active', v===val); b.classList.toggle('on', v===val && v>0); });
       };
+      const rowVal = row => { const b = row.querySelector('[data-dm-traded].active'); return b ? Number(b.dataset.dmTraded) : 0; };
+      const tradedVal = row => (row.dataset.autoq==='1' && row.querySelector('[data-dm-traded="2"]')) ? 2 : 1;
       root.querySelectorAll('.dm-pt-row').forEach(row=>{
-        row.querySelectorAll('[data-dm-traded]').forEach(b=>b.onclick=()=>setRow(row, b.dataset.dmTraded==='1'));
+        row.querySelectorAll('[data-dm-traded]').forEach(b=>b.onclick=()=>{
+          let v = Number(b.dataset.dmTraded);
+          // FFN / Lucid : un clic sur « Tradé » coche directement « Tradé ≥ seuil » ; re-cliquer « Tradé » repasse en tradé simple
+          if(v===1 && row.dataset.autoq==='1' && rowVal(row)!==2 && rowVal(row)!==1) v = 2;
+          setRow(row, v);
+        });
       });
       if(!single){
-        document.getElementById('dm-all-no').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,false));
-        document.getElementById('dm-all-yes').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,true));
+        document.getElementById('dm-all-no').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,0));
+        document.getElementById('dm-all-yes').onclick = ()=>root.querySelectorAll('.dm-pt-row').forEach(r=>setRow(r,tradedVal(r)));
       }
       root.querySelectorAll('[data-dm-day]').forEach(b=>b.onclick=()=>dmOpenPointage(b.dataset.dmDay, accountId));
       document.getElementById('dm-day-input').onchange = (e)=>{ const v = e.target.value; if(v && v<=today) dmOpenPointage(v, accountId); };
@@ -14337,19 +14345,11 @@ function dmOpenPointage(dayArg, accountId){
       document.getElementById('dm-pt-save').onclick = async ()=>{
         const btn = document.getElementById('dm-pt-save');
         const payload = [];
-        let bad = false;
         root.querySelectorAll('.dm-pt-row').forEach(row=>{
-          const traded = !!row.querySelector('[data-dm-traded="1"].active');
-          const pnlEl = row.querySelector('.dm-pnl input');
-          let pnl = null;
-          if(traded && pnlEl && pnlEl.value.trim()!==''){
-            pnl = Number(pnlEl.value.replace(',','.'));
-            if(isNaN(pnl)){ bad = true; pnlEl.focus(); }
-          }
+          const v = rowVal(row);
           const loginEl = row.querySelector('.dm-login input');
-          payload.push({ user_id: currentUserId(), account_id: row.dataset.acc, day, traded, pnl, platform_login: !!(loginEl && loginEl.checked), updated_at: new Date().toISOString() });
+          payload.push({ user_id: currentUserId(), account_id: row.dataset.acc, day, traded: v>=1, qualifying: v===2, pnl: null, platform_login: !!(loginEl && loginEl.checked), updated_at: new Date().toISOString() });
         });
-        if(bad){ showToast('P&L invalide : saisis un nombre (ex. 120 ou -45).', 'danger'); return; }
         btn.disabled = true;
         const { error } = await supabaseClient.from('dormancy_logs').upsert(payload, { onConflict:'account_id,day' });
         btn.disabled = false;
