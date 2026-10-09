@@ -16831,12 +16831,16 @@ function captureImportModal(){
     };
     try{
       const { data:{ session } } = await supabaseClient.auth.getSession();
-      const res = await fetch('/api/read-accounts-screenshot', {
+      const req = {
         method:'POST',
         headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
         // Les noms des PropFirms du catalogue : Gemini ne peut répondre que l'un d'eux.
         body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean) }),
-      });
+      };
+      // Edge Function d'abord (40 s pour répondre, pas de coupure à 10 s) ; si elle n'est pas
+      // déployée sur ce site, repli sur la fonction classique.
+      let res = await fetch('/edge/read-accounts-screenshot', req).catch(()=>null);
+      if(!res || res.status===404) res = await fetch('/api/read-accounts-screenshot', req);
       const json = await res.json().catch(()=>({}));
       if(!isOpen()) return; // modale fermée pendant la lecture
       if(!res.ok || json.error){
