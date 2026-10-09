@@ -474,7 +474,12 @@ th.th-sort-active svg{opacity:1;}
 .cim-row .cim-num:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface);}
 .cim-row .badge{flex-shrink:0;}
 .cim-row .cim-del{flex-shrink:0;}
-.cim-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 2px 2px;font-size:12px;color:var(--text-dim);}
+.cim-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 2px 4px;font-size:12px;color:var(--text-dim);}
+.cim-group-info{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;}
+.cim-group-count{font-weight:700;color:var(--text);margin-right:2px;}
+.cim-tag{display:inline-flex;align-items:baseline;gap:6px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-2);font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;}
+.cim-tag-src{font-size:10.5px;font-weight:500;color:var(--text-faint);}
+.cim-tag-todo{border-style:dashed;color:var(--gold);background:transparent;}
 .cim-group-head:first-child{margin-top:0;}
 .cim-suggest{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:12.5px;color:var(--text-dim);line-height:1.45;}
 .cim-suggest svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
@@ -16264,7 +16269,7 @@ function accountFormModal({ existing, type, parentChallenge }){
    normAccNum/findDuplicateAccount) pour ne jamais créer un lot dans un état
    incohérent avec le reste de l'appli.
 ============================================================ */
-// `prefill` (optionnel) : { numbers:[...], propFirmId, type, size } — utilisé uniquement par
+// `prefill` (optionnel) : { numbers:[...], propFirmId, type, size, customSize, note, onDone } — utilisé uniquement par
 // l'import depuis une capture (captureImportModal) pour ouvrir ce formulaire avec les numéros déjà
 // lus. Appelé sans argument (bouton « Ajout en masse »), le comportement est strictement inchangé.
 function bulkAccountFormModal(prefill){
@@ -16278,7 +16283,7 @@ function bulkAccountFormModal(prefill){
     propFirmId: (prefill && prefill.propFirmId && getFirm(prefill.propFirmId)) ? prefill.propFirmId : '',
     type: (prefill && ['CHALLENGE','PA','LIVE'].includes(prefill.type)) ? prefill.type : 'CHALLENGE',
     size: (prefill && prefill.size && SIZE_LABELS[prefill.size]) ? prefill.size : 'S25K',
-    customSize: '',
+    customSize: (prefill && Number(prefill.customSize)>0) ? Number(prefill.customSize) : '',
     paymentType: 'UNIQUE',
     purchaseDate: todayISO(),
     activationDate: todayISO(),
@@ -16302,7 +16307,7 @@ function bulkAccountFormModal(prefill){
     title: preNumbers ? 'Import depuis une capture — compléter les comptes' : 'Ajout en masse — comptes identiques',
     wide: true,
     bodyHtml: `
-      ${preNumbers ? `<div class="cim-suggest" style="margin:0 0 14px;">${icon('check')}<span><strong>${preNumbers.length} numéro${preNumbers.length>1?'s':''} de compte</strong> repris de ta capture (liste en bas). Complète les infos communes au lot ; tu peux encore corriger chaque numéro avant de créer les comptes.</span></div>` : ''}
+      ${preNumbers ? `<div class="cim-suggest" style="margin:0 0 14px;">${icon('check')}<span><strong>${preNumbers.length} numéro${preNumbers.length>1?'s':''} de compte</strong> repris de ta capture (liste en bas). ${prefill && prefill.note ? ` ${escapeHtml(prefill.note)}` : ' Complète les infos communes au lot.'} Tu peux encore corriger chaque numéro avant de créer les comptes.</span></div>` : ''}
       <div class="field-hint" style="margin-bottom:14px;${preNumbers?'display:none;':''}">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
       <div class="field-row">
         <div class="field"><label>Trader</label>
@@ -16332,7 +16337,7 @@ function bulkAccountFormModal(prefill){
           </select>
         </div>
         <div class="field" id="baf-customsize-wrap" style="display:${curSize==='AUTRE'?'block':'none'};">
-          <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number"/>
+          <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number" value="${base.customSize}"/>
         </div>
       </div>
       <div class="field"><label>Mode de paiement</label>
@@ -16607,6 +16612,37 @@ function cimSuggestion(numbers){
     size: cimMajority(sameFirm.map(a=>a.size)),
   };
 }
+// Tailles standard de l'appli (SIZE_LABELS) à partir d'un montant en dollars lu sur la capture.
+const CIM_SIZE_KEYS = { 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' };
+const CIM_SOURCE_LABELS = { screen:'lu sur la capture', number:'déduit du numéro', history:'d’après tes comptes' };
+// Ce que l'on présélectionne pour une ligne, champ par champ : d'abord ce que Gemini a lu
+// (PropFirm affichée à l'écran ou déduite du numéro, taille, type), sinon l'historique des
+// comptes du trader ayant le même préfixe, sinon rien (choix à la main à l'étape suivante).
+function cimResolve(row){
+  const d = row.det || {};
+  const out = { firmId:null, firmFrom:null, type:null, typeFrom:null, sizeKey:null, customSize:null, sizeFrom:null };
+  if(d.propfirm){
+    const f = state.propfirms.find(x=>(x.name||'').trim().toLowerCase()===String(d.propfirm).trim().toLowerCase());
+    if(f){ out.firmId = f.id; out.firmFrom = d.propfirmSource || 'number'; }
+  }
+  const hist = cimSuggestion([row.value]);
+  if(!out.firmId && hist){ out.firmId = hist.propFirmId; out.firmFrom = 'history'; }
+  const histSameFirm = hist && hist.propFirmId===out.firmId;
+  if(d.type && TYPE_LABELS[d.type]){ out.type = d.type; out.typeFrom = d.typeSource || 'number'; }
+  else if(histSameFirm && hist.type){ out.type = hist.type; out.typeFrom = 'history'; }
+  if(d.size){
+    out.sizeKey = CIM_SIZE_KEYS[d.size] || 'AUTRE';
+    out.customSize = out.sizeKey==='AUTRE' ? d.size : null;
+    out.sizeFrom = d.sizeSource || 'number';
+  } else if(histSameFirm && hist.size && hist.size!=='AUTRE'){ out.sizeKey = hist.size; out.sizeFrom = 'history'; }
+  return out;
+}
+function cimSizeLabel(res){
+  if(!res.sizeKey) return '';
+  if(res.sizeKey==='AUTRE') return res.customSize ? `${Number(res.customSize).toLocaleString('fr-FR')} $` : '';
+  return SIZE_LABELS[res.sizeKey] || '';
+}
+
 // Réduit la capture (2000 px max) avant envoi : plus rapide, sous la limite des fonctions
 // Netlify, et largement assez net pour lire des numéros de compte.
 function cimPrepareImage(file){
@@ -16636,7 +16672,7 @@ function captureImportModal(){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
   }
-  let rows = [];          // [{ value, checked }]
+  let rows = [];          // [{ value, checked, det }] — det = PropFirm/taille/type lus par Gemini
   let ignoredDemo = [];   // comptes de démo/simulation écartés par le serveur (ex: DEMO19714)
   let thumb = '';
   let busy = false;
@@ -16720,7 +16756,8 @@ function captureImportModal(){
       const res = await fetch('/api/read-accounts-screenshot', {
         method:'POST',
         headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
-        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType }),
+        // Les noms des PropFirms du catalogue : Gemini ne peut répondre que l'un d'eux.
+        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean) }),
       });
       const json = await res.json().catch(()=>({}));
       if(!isOpen()) return; // modale fermée pendant la lecture
@@ -16733,7 +16770,11 @@ function captureImportModal(){
           : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
         return;
       }
-      rows = found.map(v=>({ value:String(v), checked:false }));
+      // Rétrocompatible : l'ancienne version de la fonction renvoyait de simples chaînes.
+      rows = found.map(v=>typeof v==='string'
+        ? { value:v, checked:false, det:null }
+        : { value:String(v.number||''), checked:false, det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
+        .filter(r=>r.value);
       applyDefaultSelection();
       busy = false;
       renderReview();
@@ -16766,32 +16807,39 @@ function captureImportModal(){
       ${dup ? `<span class="badge badge-slate">${dup} déjà enregistré${dup>1?'s':''}</span>` : ''}
       ${ignoredDemo.length ? `<span class="badge badge-slate" title="Comptes de démo ou de simulation de la plateforme : jamais importés">${ignoredDemo.length} compte${ignoredDemo.length>1?'s':''} démo ignoré${ignoredDemo.length>1?'s':''} : ${escapeHtml(ignoredDemo.join(', '))}</span>` : ''}
       <span style="font-size:12px;color:var(--text-faint);">Vérifie chaque numéro : clique dessus pour corriger une lettre mal lue.</span>`;
-    const sug = cimSuggestion(selectedNumbers());
-    const sugEl = document.getElementById('cim-suggest');
-    if(sugEl){
-      if(sug){
-        const firm = getFirm(sug.propFirmId);
-        sugEl.style.display = 'flex';
-        sugEl.innerHTML = `${icon('sparkles')}<span>D’après tes comptes « ${escapeHtml(sug.prefix)}… » déjà enregistrés, on présélectionnera <strong>${escapeHtml(firm.name)}</strong>${sug.type?` · ${escapeHtml(TYPE_LABELS[sug.type]||sug.type)}`:''}${sug.size?` · ${escapeHtml(SIZE_LABELS[sug.size]||sug.size)}`:''}. Modifiable à l’étape suivante.</span>`;
-      } else {
-        sugEl.style.display = 'none';
-      }
-    }
   }
 
-  // Regroupe les lignes par famille (préfixe alphabétique : FFNX, LFF, PP…), dans l'ordre d'apparition.
+  // Regroupe les lignes par lot possible : même PropFirm + type + taille détectés. Sans PropFirm
+  // reconnue, on regroupe par famille de numéro (préfixe alphabétique : FFNX, LFF, PP…).
+  function groupKeyOf(r){
+    const res = cimResolve(r);
+    return res.firmId ? `f:${res.firmId}|${res.type||''}|${res.sizeKey||''}|${res.customSize||''}` : `p:${cimPrefix(r.value)}`;
+  }
   function computeGroups(){
     const map = new Map();
     rows.forEach((r,i)=>{
-      const key = cimPrefix(r.value);
+      const key = groupKeyOf(r);
       if(!map.has(key)) map.set(key, []);
       map.get(key).push(i);
     });
-    return Array.from(map.entries()).map(([key, idx])=>{
-      const sug = key ? cimSuggestion(idx.map(i=>rows[i].value)) : null;
-      const firm = sug ? getFirm(sug.propFirmId) : null;
-      return { key, idx, firmName: firm ? firm.name : '' };
-    });
+    return Array.from(map.entries()).map(([key, idx])=>({ key, idx, res: cimResolve(rows[idx[0]]), prefix: cimPrefix(rows[idx[0]].value) }));
+  }
+  function groupHeadHtml(g, gi, many){
+    const firm = g.res.firmId ? getFirm(g.res.firmId) : null;
+    const tag = (label, from)=> label
+      ? `<span class="cim-tag" title="${escapeHtml(CIM_SOURCE_LABELS[from]||'')}">${escapeHtml(label)}<span class="cim-tag-src">${escapeHtml(CIM_SOURCE_LABELS[from]||'')}</span></span>`
+      : '';
+    const missing = [!firm && 'PropFirm', !g.res.type && 'type', !g.res.sizeKey && 'taille'].filter(Boolean);
+    return `<div class="cim-group-head">
+      <div class="cim-group-info">
+        <span class="cim-group-count">${g.idx.length} compte${g.idx.length>1?'s':''}${!firm && g.prefix ? ` · ${escapeHtml(g.prefix)}…` : ''}</span>
+        ${firm ? tag(firm.name, g.res.firmFrom) : ''}
+        ${tag(g.res.type ? (TYPE_LABELS[g.res.type]||g.res.type) : '', g.res.typeFrom)}
+        ${tag(cimSizeLabel(g.res), g.res.sizeFrom)}
+        ${missing.length ? `<span class="cim-tag cim-tag-todo">${escapeHtml(missing.join(', '))} à choisir</span>` : ''}
+      </div>
+      ${many ? `<button class="btn btn-ghost btn-sm" data-only="${gi}">Sélectionner ce groupe</button>` : ''}
+    </div>`;
   }
   // Par défaut : seulement les nouveaux comptes du premier groupe qui en contient.
   function applyDefaultSelection(){
@@ -16804,10 +16852,10 @@ function captureImportModal(){
     const groups = computeGroups();
     root().innerHTML = `
       <div class="cim-summary" id="cim-summary"></div>
-      ${groups.length>1 ? `<div class="cim-suggest" style="margin:0 0 12px;">${icon('layers')}<span>Ta capture contient <strong>${groups.length} familles de comptes</strong>. L’étape suivante applique une seule PropFirm et un seul type par lot : importe un groupe à la fois, les autres te seront reproposés juste après.</span></div>` : ''}
+      ${groups.length>1 ? `<div class="cim-suggest" style="margin:0 0 12px;">${icon('layers')}<span>Ta capture contient <strong>${groups.length} groupes de comptes</strong>. L’étape suivante applique une seule PropFirm, un seul type et une seule taille par lot : importe un groupe à la fois, les autres te seront reproposés juste après.</span></div>` : ''}
       <div class="cim-list">
-        ${groups.map(g=>`
-          ${groups.length>1 ? `<div class="cim-group-head"><span><strong>${escapeHtml(g.key||'Autres')}${g.key?'…':''}</strong> · ${g.idx.length} compte${g.idx.length>1?'s':''}${g.firmName?` · ${escapeHtml(g.firmName)}`:''}</span><button class="btn btn-ghost btn-sm" data-only="${escapeHtml(g.key)}">Sélectionner ce groupe</button></div>` : ''}
+        ${groups.map((g,gi)=>`
+          ${groupHeadHtml(g, gi, groups.length>1)}
           ${g.idx.map(i=>{ const r = rows[i]; return `
           <div class="cim-row ${r.checked?'':'is-off'}" data-row="${i}">
             <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} aria-label="Importer ce compte"/>
@@ -16820,7 +16868,6 @@ function captureImportModal(){
         ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro oublié</button>` : ''}
         <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('camera')}Lire une autre capture</button>
       </div>
-      <div class="cim-suggest" id="cim-suggest" style="display:none;"></div>
       <div id="cim-error" class="error-text">${errorMsg ? escapeHtml(errorMsg) : ''}</div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button><button class="btn btn-primary" id="cim-continue">Continuer</button>`);
 
@@ -16843,13 +16890,14 @@ function captureImportModal(){
       renderReview();
     });
     root().querySelectorAll('[data-only]').forEach(btn=>btn.onclick = ()=>{
-      const key = btn.dataset.only;
-      rows.forEach(r=>{ r.checked = cimPrefix(r.value)===key && !!r.value.trim() && !cimExistingAccount(r.value); });
+      const g = groups[Number(btn.dataset.only)];
+      if(!g) return;
+      rows.forEach((r,i)=>{ r.checked = g.idx.includes(i) && !!r.value.trim() && !cimExistingAccount(r.value); });
       renderReview();
     });
     const add = document.getElementById('cim-add-row');
     if(add) add.onclick = ()=>{
-      rows.push({ value:'', checked:true });
+      rows.push({ value:'', checked:true, det:null });
       renderReview();
       const last = root().querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
@@ -16868,11 +16916,23 @@ function captureImportModal(){
     const dups = [];
     numbers.forEach(n=>{ const k = normAccNum(n); if(seen.has(k)) dups.push(n); seen.add(k); });
     if(dups.length){ errEl.textContent = `Numéro présent deux fois dans la liste : ${dups.join(', ')}. Retire le doublon.`; return; }
-    const sug = cimSuggestion(numbers) || {};
     const sent = rows.filter(r=>r.checked && r.value.trim());
+    // Présélection du formulaire : seulement les champs identiques pour tous les comptes cochés.
+    const resList = sent.map(cimResolve);
+    const common = (k)=>resList.every(x=>x[k] && x[k]===resList[0][k]) ? resList[0][k] : null;
+    const pre = { propFirmId: common('firmId'), type: common('type'), size: common('sizeKey') };
+    pre.customSize = pre.size==='AUTRE' ? common('customSize') : null;
+    if(pre.size==='AUTRE' && !pre.customSize) pre.size = null;
+    const preLabels = [pre.propFirmId && 'PropFirm', pre.type && 'type', pre.size && 'taille'].filter(Boolean);
+    const toChoose = [!pre.propFirmId && 'PropFirm', !pre.type && 'type', !pre.size && 'taille'].filter(Boolean);
+    const andList = (l)=>l.join(', ').replace(/, ([^,]*)$/, ' et $1');
     document.removeEventListener('paste', onPaste);
     closeModal();
-    bulkAccountFormModal({ numbers, propFirmId: sug.propFirmId, type: sug.type, size: sug.size,
+    bulkAccountFormModal({ numbers, propFirmId: pre.propFirmId, type: pre.type, size: pre.size, customSize: pre.customSize,
+      note: [
+        preLabels.length ? `Présélection d’après ta capture : ${andList(preLabels)}.` : '',
+        toChoose.length ? `À choisir toi-même : ${andList(toChoose)}.` : 'Vérifie avant de créer.',
+      ].filter(Boolean).join(' '),
       // Après création du lot : on repropose les comptes de la capture qui restent à importer.
       onDone(){
         rows = rows.filter(r=>!sent.includes(r) && r.value.trim() && !cimExistingAccount(r.value));
