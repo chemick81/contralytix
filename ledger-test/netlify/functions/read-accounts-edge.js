@@ -22,8 +22,13 @@ const DAILY_LIMIT = 20;
 const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
 const MAX_ATTEMPTS_PER_MODEL = 2;
 const BASE_RETRY_DELAY_MS = 800;
-const TIME_BUDGET_MS = 36000;          // Netlify exige un début de réponse avant 40 s
-const THINKING = { thinkingLevel: 'low' };
+// La réponse est ouverte tout de suite (en-têtes envoyés) puis le résultat est écrit quand Gemini
+// a fini : la limite Netlify de 40 s ne porte que sur le début de la réponse. On garde malgré tout
+// un plafond pour ne jamais laisser le trader attendre indéfiniment.
+const TIME_BUDGET_MS = 55000;
+// Réflexion au plus bas : lire des numéros sur une capture ne demande pas de raisonnement.
+// Si un modèle refuse un niveau, on essaie le suivant, puis sans réglage.
+const THINKING_LEVELS = ['minimal', 'low', null];
 const TYPES = ['CHALLENGE', 'PA', 'LIVE'];
 const SOURCES = ['screen', 'number'];
 
@@ -33,10 +38,8 @@ const env = (name) => {
   return undefined;
 };
 
-const json = (status, body) => new Response(JSON.stringify(body), {
-  status,
-  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-});
+// Résultat interne { status, body } : écrit dans la réponse en flux (voir le gestionnaire en bas).
+const json = (status, body) => ({ status, body });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isOverloaded = (status, message) =>
   status === 503 || status === 429 || /overload|high demand|unavailable/i.test(message || '');
@@ -151,7 +154,7 @@ async function logRead(userId) {
   } catch (e) { console.error('screenshot_reads insert error:', e); return false; }
 }
 
-export default async (request) => {
+async function handle(request) {
   if (request.method !== 'POST') return json(405, { error: 'Méthode non autorisée' });
 
   // 1. Utilisateur connecté
@@ -192,7 +195,7 @@ export default async (request) => {
   const prompt = buildPrompt(firmNames);
   const startedAt = Date.now();
   const timeLeft = () => TIME_BUDGET_MS - (Date.now() - startedAt);
-  let useThinking = true;
+  let thinkingIdx = 0;
   let timedOut = false;
   for (const model of MODELS) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
@@ -201,7 +204,7 @@ export default async (request) => {
       const timer = setTimeout(() => controller.abort(), timeLeft());
       try {
         const generationConfig = { temperature: 0, responseMimeType: 'application/json' };
-        if (useThinking) generationConfig.thinkingConfig = THINKING;
+        if (THINKING_LEVELS[thinkingIdx]) generationConfig.thinkingConfig = { thinkingLevel: THINKING_LEVELS[thinkingIdx] };
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -227,7 +230,7 @@ export default async (request) => {
         }
         const msg = data.error?.message || `HTTP ${res.status}`;
         console.error(`read-accounts-screenshot (edge) Gemini ${model} ${res.status}: ${msg}`);
-        if (useThinking && res.status === 400 && /thinking/i.test(msg)) { useThinking = false; attempt--; continue; }
+        if (THINKING_LEVELS[thinkingIdx] && res.status === 400 && /thinking/i.test(msg)) { thinkingIdx++; attempt--; continue; }
         if (isOverloaded(res.status, msg)) {
           if (attempt < MAX_ATTEMPTS_PER_MODEL && timeLeft() > BASE_RETRY_DELAY_MS * attempt + 2000) { await sleep(BASE_RETRY_DELAY_MS * attempt); continue; }
           break;
@@ -244,6 +247,32 @@ export default async (request) => {
   }
   if (timedOut) return json(504, { error: 'La lecture a pris trop de temps. Réessaie dans un instant.' });
   return json(503, { error: 'Le service de lecture est saturé pour le moment. Réessaie dans une minute.' });
+}
+
+// Réponse en flux : en-têtes envoyés immédiatement, quelques espaces toutes les 5 s pour garder la
+// connexion ouverte (ignorés par JSON.parse), puis le JSON final. Le vrai code d'erreur éventuel est
+// dans le champ `status` du JSON (le code HTTP est 200 puisqu'il part avant le résultat).
+export default (request) => {
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(enc.encode(' '));
+      const keepAlive = setInterval(() => { try { controller.enqueue(enc.encode(' ')); } catch (e) { /* fermé */ } }, 5000);
+      let result;
+      try { result = await handle(request); }
+      catch (err) {
+        console.error('read-accounts-screenshot (edge) fatal:', err);
+        result = json(500, { error: 'Erreur serveur lors de la lecture de la capture. Réessaie.' });
+      }
+      clearInterval(keepAlive);
+      controller.enqueue(enc.encode(JSON.stringify({ ...result.body, status: result.status })));
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+  });
 };
 
 export const config = { path: '/edge/read-accounts-screenshot' };

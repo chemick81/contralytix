@@ -60,7 +60,7 @@ const BASE_RETRY_DELAY_MS = 700;
 const TIME_BUDGET_MS = 9000;
 // Réflexion réduite : une capture se lit sans « raisonner », et c'est beaucoup plus rapide.
 // Si un modèle refuse ce réglage, on le retire et on réessaie (voir plus bas).
-const THINKING = { thinkingLevel: 'low' };
+const THINKING = { thinkingLevel: 'minimal' };
 
 // Consigne de lecture. `firmNames` = catalogue des PropFirms de Contralytix (envoyé par le
 // navigateur) : Gemini ne peut répondre qu'un de ces noms, jamais une PropFirm inventée.
