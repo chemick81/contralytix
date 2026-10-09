@@ -190,6 +190,7 @@ exports.handler = async (event) => {
   // 3. Lecture par Gemini, avec les mêmes reprises que gemini-synthesis.js en cas de surcharge
   let lastError = 'Erreur API Gemini';
   let timedOut = false;
+  let lastGeminiStatus = 0;
   const startedAt = Date.now();
   const timeLeft = () => TIME_BUDGET_MS - (Date.now() - startedAt);
   let useThinking = true;
@@ -230,6 +231,7 @@ exports.handler = async (event) => {
           return json(200, { ...cleanAccounts(parsed && parsed.accounts, firmNames), remaining, limit: DAILY_LIMIT });
         }
         lastError = data.error?.message || 'Erreur API Gemini';
+        lastGeminiStatus = res.status;
         console.error(`read-accounts-screenshot Gemini ${model} ${res.status}:`, lastError);
         // Réglage de réflexion refusé par ce modèle : on le retire et on réessaie aussitôt.
         if (useThinking && res.status === 400 && /thinking/i.test(lastError)) { useThinking = false; attempt--; continue; }
@@ -252,5 +254,9 @@ exports.handler = async (event) => {
     console.error('read-accounts-screenshot: budget de temps dépassé');
     return json(504, { error: 'La lecture a pris trop de temps. Réessaie : si ça se répète, recadre la capture sur la seule liste des comptes.' });
   }
-  return json(503, { error: 'Le service de lecture est saturé pour le moment. Réessaie dans une minute.' });
+  // Message précis selon la dernière réponse de Google (visible aussi dans les logs Netlify).
+  if (lastGeminiStatus === 429) return json(503, { error: 'Quota Gemini atteint sur la clé du site (erreur Google 429). Réessaie plus tard ; si ça se répète, vérifie la facturation et les quotas de la clé dans Google AI Studio.', gemini: 429 });
+  if (lastGeminiStatus === 404) return json(503, { error: 'Aucun modèle Gemini disponible pour la clé du site (erreur Google 404).', gemini: 404 });
+  if (lastGeminiStatus === 503) return json(503, { error: 'Gemini est saturé côté Google (erreur 503). Réessaie dans une minute.', gemini: 503 });
+  return json(503, { error: `Le service de lecture n'a pas pu joindre Gemini${lastGeminiStatus ? ` (dernière erreur Google ${lastGeminiStatus})` : ''}. Réessaie dans une minute.`, gemini: lastGeminiStatus || null });
 };

@@ -197,6 +197,7 @@ async function handle(request) {
   const timeLeft = () => TIME_BUDGET_MS - (Date.now() - startedAt);
   let thinkingIdx = 0;
   let timedOut = false;
+  let lastGeminiStatus = 0;
   for (const model of MODELS) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
       if (timeLeft() < 2000) { timedOut = true; break; }
@@ -229,6 +230,7 @@ async function handle(request) {
           return json(200, { ...cleanAccounts(parsed && parsed.accounts, firmNames), remaining, limit: DAILY_LIMIT, model });
         }
         const msg = data.error?.message || `HTTP ${res.status}`;
+        lastGeminiStatus = res.status;
         console.error(`read-accounts-screenshot (edge) Gemini ${model} ${res.status}: ${msg}`);
         if (THINKING_LEVELS[thinkingIdx] && res.status === 400 && /thinking/i.test(msg)) { thinkingIdx++; attempt--; continue; }
         if (isOverloaded(res.status, msg)) {
@@ -246,7 +248,11 @@ async function handle(request) {
     if (timedOut) break;
   }
   if (timedOut) return json(504, { error: 'La lecture a pris trop de temps. Réessaie dans un instant.' });
-  return json(503, { error: 'Le service de lecture est saturé pour le moment. Réessaie dans une minute.' });
+  // Message précis selon la dernière réponse de Google (visible aussi dans les logs Netlify).
+  if (lastGeminiStatus === 429) return json(503, { error: 'Quota Gemini atteint sur la clé du site (erreur Google 429). Réessaie plus tard ; si ça se répète, vérifie la facturation et les quotas de la clé dans Google AI Studio.', gemini: 429 });
+  if (lastGeminiStatus === 404) return json(503, { error: 'Aucun modèle Gemini disponible pour la clé du site (erreur Google 404).', gemini: 404 });
+  if (lastGeminiStatus === 503) return json(503, { error: 'Gemini est saturé côté Google (erreur 503). Réessaie dans une minute.', gemini: 503 });
+  return json(503, { error: `Le service de lecture n'a pas pu joindre Gemini${lastGeminiStatus ? ` (dernière erreur Google ${lastGeminiStatus})` : ''}. Réessaie dans une minute.`, gemini: lastGeminiStatus || null });
 }
 
 // Réponse en flux : en-têtes envoyés immédiatement, quelques espaces toutes les 5 s pour garder la
