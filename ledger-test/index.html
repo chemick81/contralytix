@@ -16839,16 +16839,19 @@ function captureImportModal(){
       };
       // Edge Function d'abord (40 s pour répondre, pas de coupure à 10 s) ; si elle n'est pas
       // déployée sur ce site, repli sur la fonction classique.
+      const t0 = Date.now();
+      let via = 'edge';
       let res = await fetch('/edge/read-accounts-screenshot', req).catch(()=>null);
-      if(!res || res.status===404) res = await fetch('/api/read-accounts-screenshot', req);
+      if(!res || res.status===404){ via = 'api'; res = await fetch('/api/read-accounts-screenshot', req); }
       const json = await res.json().catch(()=>({}));
+      const diag = ` [${via}, ${Math.round((Date.now()-t0)/1000)} s]`;
       if(!isOpen()) return; // modale fermée pendant la lecture
       if(!res.ok || json.error){
         // Sans message du serveur : Netlify a coupé la fonction (délai) ou elle n'est pas déployée.
         fail(json.error
           || (res.status===404 ? 'Service de lecture introuvable (erreur 404) : la fonction read-accounts-screenshot n’est pas déployée sur ce site.'
-          : (res.status===502 || res.status===504) ? `Le serveur n’a pas répondu à temps (erreur ${res.status}). Réessaie dans un instant.`
-          : `La lecture de la capture a échoué (erreur ${res.status}). Réessaie.`));
+          : (res.status===502 || res.status===504) ? `Le serveur n’a pas répondu à temps (erreur ${res.status}). Réessaie dans un instant.${diag}`
+          : `La lecture de la capture a échoué (erreur ${res.status}). Réessaie.${diag}`));
         return;
       }
       if(typeof json.remaining==='number') remainingReads = json.remaining;
