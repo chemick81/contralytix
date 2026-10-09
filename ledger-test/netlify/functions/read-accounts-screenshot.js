@@ -53,8 +53,14 @@ async function countReadsToday(userId) {
 }
 
 const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
-const MAX_ATTEMPTS_PER_MODEL = 3;
-const BASE_RETRY_DELAY_MS = 900;
+const MAX_ATTEMPTS_PER_MODEL = 2;
+const BASE_RETRY_DELAY_MS = 700;
+// Netlify coupe une fonction synchrone vers 10 s et renvoie alors une page d'erreur sans
+// explication. On s'arrête nous-mêmes avant (budget total), pour toujours répondre un message clair.
+const TIME_BUDGET_MS = 9000;
+// Réflexion réduite : une capture se lit sans « raisonner », et c'est beaucoup plus rapide.
+// Si un modèle refuse ce réglage, on le retire et on réessaie (voir plus bas).
+const THINKING = { thinkingLevel: 'low' };
 
 // Consigne de lecture. `firmNames` = catalogue des PropFirms de Contralytix (envoyé par le
 // navigateur) : Gemini ne peut répondre qu'un de ces noms, jamais une PropFirm inventée.
@@ -183,18 +189,29 @@ exports.handler = async (event) => {
 
   // 3. Lecture par Gemini, avec les mêmes reprises que gemini-synthesis.js en cas de surcharge
   let lastError = 'Erreur API Gemini';
+  let timedOut = false;
+  const startedAt = Date.now();
+  const timeLeft = () => TIME_BUDGET_MS - (Date.now() - startedAt);
+  let useThinking = true;
   for (const model of MODELS) {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
+      if (timeLeft() < 1500) { timedOut = true; break; }
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeLeft());
       try {
+        const generationConfig = { temperature: 0, responseMimeType: 'application/json' };
+        if (useThinking) generationConfig.thinkingConfig = THINKING;
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: buildPrompt(firmNames) }, { inline_data: { mime_type: mimeType, data: image } }] }],
-            generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+            generationConfig,
           }),
         });
         const data = await res.json();
+        clearTimeout(timer);
         if (res.ok) {
           const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
           let parsed = null;
@@ -213,17 +230,27 @@ exports.handler = async (event) => {
           return json(200, { ...cleanAccounts(parsed && parsed.accounts, firmNames), remaining, limit: DAILY_LIMIT });
         }
         lastError = data.error?.message || 'Erreur API Gemini';
+        console.error(`read-accounts-screenshot Gemini ${model} ${res.status}:`, lastError);
+        // Réglage de réflexion refusé par ce modèle : on le retire et on réessaie aussitôt.
+        if (useThinking && res.status === 400 && /thinking/i.test(lastError)) { useThinking = false; attempt--; continue; }
         if (isOverloaded(res.status, lastError)) {
-          if (attempt < MAX_ATTEMPTS_PER_MODEL) { await sleep(BASE_RETRY_DELAY_MS * attempt); continue; }
+          if (attempt < MAX_ATTEMPTS_PER_MODEL && timeLeft() > BASE_RETRY_DELAY_MS * attempt + 1500) { await sleep(BASE_RETRY_DELAY_MS * attempt); continue; }
           break; // modèle de repli
         }
-        console.error('read-accounts-screenshot Gemini error:', lastError);
-        return json(502, { error: 'La lecture de la capture a échoué. Réessaie dans un instant.' });
+        if (res.status === 404) break; // modèle indisponible : modèle de repli
+        return json(502, { error: `La lecture de la capture a échoué (Gemini ${res.status}). Réessaie dans un instant.` });
       } catch (err) {
+        clearTimeout(timer);
+        if (err && err.name === 'AbortError') { timedOut = true; break; }
         console.error('read-accounts-screenshot error:', err);
         lastError = 'Erreur serveur lors de la lecture de la capture';
       }
     }
+    if (timedOut) break;
+  }
+  if (timedOut) {
+    console.error('read-accounts-screenshot: budget de temps dépassé');
+    return json(504, { error: 'La lecture a pris trop de temps. Réessaie : si ça se répète, recadre la capture sur la seule liste des comptes.' });
   }
   return json(503, { error: 'Le service de lecture est saturé pour le moment. Réessaie dans une minute.' });
 };
