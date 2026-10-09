@@ -474,6 +474,43 @@ th.th-sort-active svg{opacity:1;}
 .cim-row .cim-num:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface);}
 .cim-row .badge{flex-shrink:0;}
 .cim-row .cim-del{flex-shrink:0;}
+.cim-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
+.cim-field{display:flex;flex-direction:column;min-width:0;}
+.cim-field label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;font-weight:600;color:var(--text-dim);margin-bottom:5px;}
+.cim-field select,.cim-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;}
+.cim-field select:focus,.cim-field input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+.cim-field .cim-need,.cim-top .cim-need{border:1px dashed var(--gold);background:color-mix(in srgb, var(--gold) 7%, var(--surface));}
+.cim-src{font-size:10.5px;font-weight:500;color:var(--accent);margin-top:4px;}
+.cim-reads{font-size:11.5px;color:var(--text-faint);margin-left:auto;}
+.cim-hint{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;font-size:12.5px;color:var(--text-dim);line-height:1.45;}
+.cim-hint svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;margin-top:2px;}
+.cim-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;margin:0 0 12px;background:color-mix(in srgb, var(--surface-2) 45%, transparent);}
+.cim-card.is-done{opacity:.7;}
+.cim-card.has-error{border-color:var(--danger);}
+.cim-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.cim-card-sub{font-size:11.5px;color:var(--text-faint);}
+.cim-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px;}
+.cim-field-hint{grid-column:span 2;align-self:end;font-size:11.5px;color:var(--text-faint);line-height:1.45;}
+.cim-row.has-error{border-color:var(--danger);}
+.cim-row-err{margin:-2px 0 4px 36px;}
+.cim-row-tags{display:flex;gap:6px;flex-shrink:0;}
+.cim-row-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.cim-row-actions .promo-chip{padding:4px 8px;}
+.cim-custom{margin:-2px 0 6px 26px;padding:10px 12px;border:1px dashed var(--border);border-radius:var(--radius-md);}
+.cim-custom-title{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;}
+.cim-custom .cim-fields{margin-bottom:0;}
+@media (max-width:760px){
+  .cim-top,.cim-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cim-hide-sm{display:none;}
+}
+@media (max-width:560px){
+  .cim-row{grid-template-columns:auto minmax(0,1fr) !important;}
+  .cim-row .cim-num{grid-column:2;grid-row:1;}
+  .cim-row .cim-row-tags{grid-column:2;grid-row:2;padding:0 8px 2px;flex-wrap:wrap;}
+  .cim-row .cim-row-actions{grid-column:2;grid-row:3;justify-content:flex-end;padding-bottom:2px;}
+  .cim-custom{margin-left:0;}
+  .cim-row-err{margin-left:0;}
+}
 .cim-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 2px 4px;font-size:12px;color:var(--text-dim);}
 .cim-group-info{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;}
 .cim-group-count{font-weight:700;color:var(--text);margin-right:2px;}
@@ -16269,27 +16306,22 @@ function accountFormModal({ existing, type, parentChallenge }){
    normAccNum/findDuplicateAccount) pour ne jamais créer un lot dans un état
    incohérent avec le reste de l'appli.
 ============================================================ */
-// `prefill` (optionnel) : { numbers:[...], propFirmId, type, size, customSize, note, onDone } — utilisé uniquement par
-// l'import depuis une capture (captureImportModal) pour ouvrir ce formulaire avec les numéros déjà
-// lus. Appelé sans argument (bouton « Ajout en masse »), le comportement est strictement inchangé.
-function bulkAccountFormModal(prefill){
+function bulkAccountFormModal(){
   if(state.traders.length===0 || state.propfirms.length===0){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
   }
-  const preNumbers = (prefill && Array.isArray(prefill.numbers) && prefill.numbers.length) ? prefill.numbers.slice(0,50) : null;
   const base = {
     traderId: defaultTrader() ? defaultTrader().id : '',
-    propFirmId: (prefill && prefill.propFirmId && getFirm(prefill.propFirmId)) ? prefill.propFirmId : '',
-    type: (prefill && ['CHALLENGE','PA','LIVE'].includes(prefill.type)) ? prefill.type : 'CHALLENGE',
-    size: (prefill && prefill.size && SIZE_LABELS[prefill.size]) ? prefill.size : 'S25K',
-    customSize: (prefill && Number(prefill.customSize)>0) ? Number(prefill.customSize) : '',
+    propFirmId: '',
+    type: 'CHALLENGE',
+    size: 'S25K',
+    customSize: '',
     paymentType: 'UNIQUE',
     purchaseDate: todayISO(),
     activationDate: todayISO(),
   };
-  let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = preNumbers ? preNumbers.length : 2;
-  const isPaType = (curType==='PA'||curType==='LIVE');
+  let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = 2;
 
   function numberFieldsHtml(prevValues, prevFree){
     return Array.from({length:qty}).map((_,i)=>`
@@ -16304,11 +16336,10 @@ function bulkAccountFormModal(prefill){
   }
 
   openModal({
-    title: preNumbers ? 'Import depuis une capture — compléter les comptes' : 'Ajout en masse — comptes identiques',
+    title: 'Ajout en masse — comptes identiques',
     wide: true,
     bodyHtml: `
-      ${preNumbers ? `<div class="cim-suggest" style="margin:0 0 14px;">${icon('check')}<span><strong>${preNumbers.length} numéro${preNumbers.length>1?'s':''} de compte</strong> repris de ta capture (liste en bas). ${prefill && prefill.note ? ` ${escapeHtml(prefill.note)}` : ' Complète les infos communes au lot.'} Tu peux encore corriger chaque numéro avant de créer les comptes.</span></div>` : ''}
-      <div class="field-hint" style="margin-bottom:14px;${preNumbers?'display:none;':''}">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
+      <div class="field-hint" style="margin-bottom:14px;">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
       <div class="field-row">
         <div class="field"><label>Trader</label>
           <select id="baf-trader">
@@ -16318,9 +16349,9 @@ function bulkAccountFormModal(prefill){
         </div>
         <div class="field"><label>PropFirm</label>
           <div class="firm-picker" id="baf-firm-picker">
-            ${sortedFirms().map(f=>`<div class="firm-pick ${base.propFirmId===f.id?'selected':''}" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
+            ${sortedFirms().map(f=>`<div class="firm-pick" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
           </div>
-          <input type="hidden" id="baf-firm" value="${base.propFirmId}"/>
+          <input type="hidden" id="baf-firm" value=""/>
         </div>
       </div>
       <div class="field"><label>Type de compte</label>
@@ -16336,8 +16367,8 @@ function bulkAccountFormModal(prefill){
             ${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${curSize===k?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
-        <div class="field" id="baf-customsize-wrap" style="display:${curSize==='AUTRE'?'block':'none'};">
-          <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number" value="${base.customSize}"/>
+        <div class="field" id="baf-customsize-wrap" style="display:none;">
+          <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number"/>
         </div>
       </div>
       <div class="field"><label>Mode de paiement</label>
@@ -16350,7 +16381,7 @@ function bulkAccountFormModal(prefill){
       <div class="field-row">
         <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte payé) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/><div class="field-hint">Promo « 1 acheté = 1 offert » : active « Offert » sur le ou les comptes gratuits plus bas.</div></div>
         <div class="field" id="baf-monthly-wrap" style="display:${curPay==='MENSUEL'?'block':'none'};"><label>Montant mensuel (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-monthly" type="number"/></div>
-        <div class="field" id="baf-purchase-date-wrap" style="display:${isPaType?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
+        <div class="field" id="baf-purchase-date-wrap"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Devise</label>
@@ -16364,7 +16395,7 @@ function bulkAccountFormModal(prefill){
           <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
         </div>
       </div>
-      <div id="baf-pa-fields" style="display:${isPaType?'block':'none'};">
+      <div id="baf-pa-fields" style="display:none;">
         <div class="field-row">
           <div class="field"><label>Date d'activation</label><input id="baf-activation-date" type="date" value="${base.activationDate}"/><div class="field-hint">Sert aussi de date d'achat/ouverture — appliquée à chaque compte du lot.</div></div>
           <div class="field"><label id="baf-activation-fee-label">Frais d'activation ($, optionnel)</label><input id="baf-activation-fee" type="number"/></div>
@@ -16375,7 +16406,7 @@ function bulkAccountFormModal(prefill){
         <input id="baf-qty" type="number" min="2" max="50" value="${qty}"/>
         <div class="field-hint">Génère automatiquement un champ « Numéro de compte » par exemplaire.</div>
       </div>
-      <div id="baf-numbers">${numberFieldsHtml(preNumbers)}</div>
+      <div id="baf-numbers">${numberFieldsHtml()}</div>
       <div id="baf-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="baf-cancel">Annuler</button><button class="btn btn-primary" id="baf-save">Créer les comptes</button>`,
@@ -16556,7 +16587,6 @@ function bulkAccountFormModal(prefill){
         const nbFree = freeFlags.filter(Boolean).length;
         showToast(`${rawNumbers.length} comptes créés${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}.`);
         closeModal(); render();
-        if(prefill && typeof prefill.onDone==='function') prefill.onDone();
       };
     }
   });
@@ -16672,14 +16702,27 @@ function captureImportModal(){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
   }
-  let rows = [];          // [{ value, checked, det }] — det = PropFirm/taille/type lus par Gemini
-  let ignoredDemo = [];   // comptes de démo/simulation écartés par le serveur (ex: DEMO19714)
+  // ---- État de l'import ----
+  // rows   : [{ value, checked, det, gid, free, custom, open }]
+  //          det    = PropFirm/taille/type lus par Gemini
+  //          custom = null (réglages du groupe) ou { firmId, type, sizeKey, customSize, price, monthly, fee }
+  // groups : [{ id, firmId, firmFrom, type, typeFrom, sizeKey, customSize, sizeFrom, pay, price, monthly, fee, prefix }]
+  // top    : trader, devise, date (achat pour un Challenge, activation pour un PA/Live), taux BCE
+  let rows = [];
+  let groups = [];
+  let ignoredDemo = [];
+  let remainingReads = null;
   let thumb = '';
   let busy = false;
+  let errors = null;   // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
+  const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD', date: todayISO(), fx:'' };
+  let fxPromise = null;
+  let gidSeq = 0;
 
   const root = ()=>document.getElementById('cim-root');
   const foot = ()=>document.getElementById('cim-foot');
   const isOpen = ()=>!!root();
+  const isPaLike = t => t==='PA' || t==='LIVE';
 
   // Coller une image (Ctrl+V / Cmd+V) tant que la modale est ouverte, à l'étape de dépôt.
   function onPaste(e){
@@ -16691,8 +16734,13 @@ function captureImportModal(){
     handleFile(item.getAsFile());
   }
 
-  function setFoot(html){ const f = foot(); if(f) f.innerHTML = html; const c = document.getElementById('cim-cancel'); if(c) c.onclick = ()=>{ document.removeEventListener('paste', onPaste); closeModal(); }; }
+  function setFoot(html){
+    const f = foot(); if(f) f.innerHTML = html;
+    const c = document.getElementById('cim-cancel');
+    if(c) c.onclick = ()=>{ document.removeEventListener('paste', onPaste); closeModal(); };
+  }
 
+  // ---------- Étape 1 : déposer / coller la capture ----------
   function renderDrop(errorMsg){
     busy = false;
     const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
@@ -16703,11 +16751,11 @@ function captureImportModal(){
         <div class="cim-drop-sub">${isTouch
           ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme.'
           : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse l’image ici, ou clique pour choisir un fichier.`}</div>
-        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Cadre la liste des numéros de compte.</div>
+        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Cadre la liste des comptes : si le nom de la PropFirm, la taille ou le type sont visibles, ils seront repris.</div>
       </div>
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="cim-privacy">${icon('shield')}<span>La capture est lue automatiquement par Gemini (Google) pour en extraire les numéros, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé.</span></div>`;
+      <div class="cim-privacy">${icon('shield')}<span>La capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé. 20 lectures par jour.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
     const drop = document.getElementById('cim-drop');
     const input = document.getElementById('cim-file');
@@ -16732,7 +16780,7 @@ function captureImportModal(){
           <div class="spinner"></div>
           <div>
             <div class="cim-drop-title" style="font-size:var(--fs-base);">Lecture de la capture…</div>
-            <div class="cim-drop-sub">Quelques secondes : on repère les numéros de compte.</div>
+            <div class="cim-drop-sub">Quelques secondes : on repère les comptes, et si possible leur PropFirm, taille et type.</div>
           </div>
         </div>
       </div>`;
@@ -16762,6 +16810,7 @@ function captureImportModal(){
       const json = await res.json().catch(()=>({}));
       if(!isOpen()) return; // modale fermée pendant la lecture
       if(!res.ok || json.error){ renderDrop(json.error || 'La lecture de la capture a échoué. Réessaie.'); return; }
+      remainingReads = (typeof json.remaining==='number') ? json.remaining : null;
       const found = Array.isArray(json.accounts) ? json.accounts : [];
       ignoredDemo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
       if(!found.length){
@@ -16770,17 +16819,123 @@ function captureImportModal(){
           : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
         return;
       }
-      // Rétrocompatible : l'ancienne version de la fonction renvoyait de simples chaînes.
+      // Rétrocompatible : une ancienne version de la fonction renvoyait de simples chaînes.
       rows = found.map(v=>typeof v==='string'
-        ? { value:v, checked:false, det:null }
-        : { value:String(v.number||''), checked:false, det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
-        .filter(r=>r.value);
-      applyDefaultSelection();
+        ? { value:v, det:null }
+        : { value:String(v.number||''), det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
+        .filter(r=>r.value)
+        .map(r=>({ ...r, checked: !cimExistingAccount(r.value), gid:null, free:false, custom:null, open:false }));
+      buildGroups();
       busy = false;
+      fxPromise = autofillFx();
       renderReview();
     }catch(e){
       if(isOpen()) renderDrop('Impossible de contacter le service de lecture. Vérifie ta connexion et réessaie.');
     }
+  }
+
+  // ---------- Groupes : même PropFirm + type + taille détectés (sinon même préfixe) ----------
+  function newGroup(res, prefix){
+    return {
+      id: 'g' + (++gidSeq),
+      firmId: res.firmId || '', firmFrom: res.firmFrom || null,
+      type: res.type || '', typeFrom: res.typeFrom || null,
+      sizeKey: res.sizeKey || '', customSize: res.customSize || '', sizeFrom: res.sizeFrom || null,
+      pay: 'UNIQUE', price: '', monthly: '', fee: '',
+      prefix: prefix || '',
+    };
+  }
+  function buildGroups(){
+    groups = [];
+    const byKey = new Map();
+    rows.forEach(r=>{
+      const res = cimResolve(r);
+      const prefix = cimPrefix(r.value);
+      const key = res.firmId ? `f:${res.firmId}|${res.type||''}|${res.sizeKey||''}|${res.customSize||''}` : `p:${prefix}`;
+      if(!byKey.has(key)){ const g = newGroup(res, prefix); byKey.set(key, g); groups.push(g); }
+      r.gid = byKey.get(key).id;
+    });
+  }
+  const groupById = (id)=>groups.find(g=>g.id===id);
+  const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id);
+
+  // Réglages effectifs d'une ligne : ceux du groupe, sauf personnalisation.
+  function effective(r){
+    const g = groupById(r.gid) || newGroup({}, '');
+    const c = r.custom;
+    const type = (c && c.type) || g.type;
+    return {
+      firmId: (c && c.firmId) || g.firmId,
+      type,
+      sizeKey: (c && c.sizeKey) || g.sizeKey,
+      customSize: (c && c.sizeKey) ? c.customSize : g.customSize,
+      pay: isPaLike(type) ? 'UNIQUE' : g.pay,
+      price: (c && c.price!=='' && c.price!=null) ? c.price : g.price,
+      monthly: (c && c.monthly!=='' && c.monthly!=null) ? c.monthly : g.monthly,
+      fee: (c && c.fee!=='' && c.fee!=null) ? c.fee : g.fee,
+    };
+  }
+
+  // ---------- Taux BCE (même service que les autres formulaires) ----------
+  async function autofillFx(force){
+    if(top.currency==='EUR'){ top.fx=''; return; }
+    if(!force && top.fx) return;
+    try{
+      const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${top.date||todayISO()}&currency=${top.currency}`);
+      const data = await res.json();
+      if(res.ok && data.rateToEur){ top.fx = String(data.rateToEur); }
+    }catch(e){ /* le trader saisira le taux lui-même */ }
+    const inp = document.getElementById('cim-fx');
+    if(inp && document.activeElement!==inp) inp.value = top.fx;
+  }
+
+  // ---------- Rendu ----------
+  const opt = (v, label, sel)=>`<option value="${escapeHtml(v)}" ${sel?'selected':''}>${escapeHtml(label)}</option>`;
+  const srcHint = (from)=> from ? `<span class="cim-src">${escapeHtml(CIM_SOURCE_LABELS[from]||'')}</span>` : '';
+  function firmSelect(attr, val, need){
+    return `<select ${attr} class="${need&&!val?'cim-need':''}">${opt('', '— À choisir —', !val)}${sortedFirms().map(f=>opt(f.id, f.name, f.id===val)).join('')}</select>`;
+  }
+  function typeSelect(attr, val, need){
+    return `<select ${attr} class="${need&&!val?'cim-need':''}">${opt('', '— À choisir —', !val)}${Object.entries(TYPE_LABELS).map(([k,v])=>opt(k, v, k===val)).join('')}</select>`;
+  }
+  function sizeSelect(attr, val, need){
+    return `<select ${attr} class="${need&&!val?'cim-need':''}">${opt('', '— À choisir —', !val)}${Object.entries(SIZE_LABELS).map(([k,v])=>opt(k, v, k===val)).join('')}</select>`;
+  }
+
+  function groupCardHtml(g){
+    const items = rowsOf(g);
+    const active = items.filter(x=>x.r.checked);
+    const allExisting = items.every(x=>cimExistingAccount(x.r.value));
+    const need = active.length>0;
+    const cur = top.currency==='EUR' ? '€' : '$';
+    const paLike = isPaLike(g.type);
+    const gErr = errors && errors.groups[g.id];
+    return `
+    <div class="cim-card ${allExisting?'is-done':''} ${gErr?'has-error':''}" data-gid="${g.id}">
+      <div class="cim-card-head">
+        <span class="cim-group-count">${items.length} compte${items.length>1?'s':''}${g.prefix?` · ${escapeHtml(g.prefix)}…`:''}</span>
+        ${allExisting ? `<span class="badge badge-slate">Déjà enregistrés</span>` : `<span class="cim-card-sub">${active.length} à créer</span>`}
+      </div>
+      ${allExisting ? '' : `
+      <div class="cim-fields">
+        <div class="cim-field"><label>PropFirm</label>${firmSelect(`data-g-firm="${g.id}"`, g.firmId, need)}${srcHint(g.firmFrom)}</div>
+        <div class="cim-field"><label>Type</label>${typeSelect(`data-g-type="${g.id}"`, g.type, need)}${srcHint(g.typeFrom)}</div>
+        <div class="cim-field"><label>Taille</label>${sizeSelect(`data-g-size="${g.id}"`, g.sizeKey, need)}${srcHint(g.sizeFrom)}
+          ${g.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-g-custom="${g.id}" value="${escapeHtml(g.customSize)}" class="${need&&!(Number(g.customSize)>0)?'cim-need':''}" style="margin-top:6px;"/>` : ''}
+        </div>
+        ${paLike ? `
+        <div class="cim-field"><label>Frais d’activation (${cur}, optionnel)</label><input type="number" min="0" step="0.01" data-g-fee="${g.id}" value="${escapeHtml(g.fee)}"/></div>
+        <div class="cim-field-hint">Un ${g.type==='LIVE'?'Live':'PA'} n’a pas de prix d’achat : seul le frais d’activation éventuel compte dans tes dépenses. La date ci-dessus sert de date d’activation.</div>` : `
+        <div class="cim-field"><label>Paiement</label><select data-g-pay="${g.id}">${opt('UNIQUE','Paiement unique', g.pay==='UNIQUE')}${opt('MENSUEL','Mensualités', g.pay==='MENSUEL')}</select></div>
+        ${g.pay==='MENSUEL'
+          ? `<div class="cim-field"><label>Mensualité (${cur}, par compte)</label><input type="number" min="0" step="0.01" data-g-monthly="${g.id}" value="${escapeHtml(g.monthly)}" class="${need&&!(Number(g.monthly)>0)?'cim-need':''}"/></div>`
+          : `<div class="cim-field"><label>Prix d’achat (${cur}, par compte)</label><input type="number" min="0" step="0.01" data-g-price="${g.id}" value="${escapeHtml(g.price)}" class="${need&&!(Number(g.price)>0)&&active.some(x=>!x.r.free && !(x.r.custom && Number(x.r.custom.price)>0))?'cim-need':''}"/></div>`}`}
+      </div>`}
+      ${gErr ? `<div class="error-text" style="margin:0 0 8px;">${escapeHtml(gErr)}</div>` : ''}
+      <div class="cim-list">
+        ${items.map(({r,i})=>rowHtml(r,i,g)).join('')}
+      </div>
+    </div>`;
   }
 
   function rowBadgeHtml(value){
@@ -16793,173 +16948,252 @@ function captureImportModal(){
     return `<span class="badge badge-accent">Nouveau</span>`;
   }
 
-  function selectedNumbers(){ return rows.filter(r=>r.checked && r.value.trim()).map(r=>r.value.trim()); }
+  function rowHtml(r, i, g){
+    const eff = effective(r);
+    const showFree = !isPaLike(eff.type) && eff.pay==='UNIQUE';
+    const rErr = errors && errors.rows[i];
+    const c = r.custom;
+    const cur = top.currency==='EUR' ? '€' : '$';
+    return `
+      <div class="cim-row ${r.checked?'':'is-off'} ${rErr?'has-error':''}" data-row="${i}">
+        <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} aria-label="Importer ce compte"/>
+        <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" aria-label="Numéro de compte ${i+1}"/>
+        <span class="cim-row-tags" data-badge="${i}">${c ? `<span class="badge badge-gold" title="Ce compte a ses propres réglages">Personnalisé</span>` : ''}${rowBadgeHtml(r.value)}</span>
+        <span class="cim-row-actions">
+          ${showFree ? `<label class="promo-chip" title="Compte offert par une promo — enregistré à 0">${icon('gift')}Offert<span class="switch"><input type="checkbox" data-free="${i}" ${r.free?'checked':''}/><span class="switch-track"></span></span></label>` : ''}
+          <button class="btn btn-ghost btn-sm" data-custom="${i}" title="Donner à ce compte une PropFirm, un type, une taille ou un prix différents de son groupe">${icon('edit')}<span class="cim-hide-sm">${r.open?'Fermer':'Personnaliser'}</span></button>
+          <button class="btn btn-ghost btn-sm cim-del" data-del="${i}" title="Retirer cette ligne" aria-label="Retirer cette ligne">${icon('x')}</button>
+        </span>
+      </div>
+      ${rErr ? `<div class="error-text cim-row-err">${escapeHtml(rErr)}</div>` : ''}
+      ${r.open ? `
+      <div class="cim-custom" data-custom-panel="${i}">
+        <div class="cim-custom-title">Réglages propres à ${escapeHtml(r.value||'ce compte')} <button class="btn btn-ghost btn-sm" data-reset="${i}">Revenir aux réglages du groupe</button></div>
+        <div class="cim-fields">
+          <div class="cim-field"><label>PropFirm</label>${firmSelect(`data-c-firm="${i}"`, eff.firmId, true)}</div>
+          <div class="cim-field"><label>Type</label>${typeSelect(`data-c-type="${i}"`, eff.type, true)}</div>
+          <div class="cim-field"><label>Taille</label>${sizeSelect(`data-c-size="${i}"`, eff.sizeKey, true)}
+            ${eff.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-c-custom="${i}" value="${escapeHtml(eff.customSize||'')}" style="margin-top:6px;"/>` : ''}
+          </div>
+          ${isPaLike(eff.type)
+            ? `<div class="cim-field"><label>Frais d’activation (${cur})</label><input type="number" min="0" step="0.01" data-c-fee="${i}" value="${escapeHtml(eff.fee||'')}"/></div>`
+            : (eff.pay==='MENSUEL'
+              ? `<div class="cim-field"><label>Mensualité (${cur})</label><input type="number" min="0" step="0.01" data-c-monthly="${i}" value="${escapeHtml(eff.monthly||'')}"/></div>`
+              : `<div class="cim-field"><label>Prix d’achat (${cur})</label><input type="number" min="0" step="0.01" data-c-price="${i}" value="${escapeHtml(eff.price||'')}"/></div>`)}
+        </div>
+      </div>` : ''}`;
+  }
 
-  function refreshCounters(){
-    const n = selectedNumbers().length;
-    const btn = document.getElementById('cim-continue');
-    if(btn){ btn.disabled = n===0; btn.innerHTML = `Continuer${n?` (${n})`:''}${icon('chevRight')}`; }
+  function summaryHtml(){
     const total = rows.filter(r=>r.value.trim()).length;
     const dup = rows.filter(r=>r.value.trim() && cimExistingAccount(r.value)).length;
-    const sum = document.getElementById('cim-summary');
-    if(sum) sum.innerHTML = `
-      <span class="badge badge-accent">${total} numéro${total>1?'s':''} lu${total>1?'s':''}</span>
+    return `
+      <span class="badge badge-accent">${total} compte${total>1?'s':''} lu${total>1?'s':''}</span>
       ${dup ? `<span class="badge badge-slate">${dup} déjà enregistré${dup>1?'s':''}</span>` : ''}
-      ${ignoredDemo.length ? `<span class="badge badge-slate" title="Comptes de démo ou de simulation de la plateforme : jamais importés">${ignoredDemo.length} compte${ignoredDemo.length>1?'s':''} démo ignoré${ignoredDemo.length>1?'s':''} : ${escapeHtml(ignoredDemo.join(', '))}</span>` : ''}
-      <span style="font-size:12px;color:var(--text-faint);">Vérifie chaque numéro : clique dessus pour corriger une lettre mal lue.</span>`;
+      ${ignoredDemo.length ? `<span class="badge badge-slate" title="Comptes de démo ou de simulation de la plateforme : jamais importés">${ignoredDemo.length} démo ignoré${ignoredDemo.length>1?'s':''} : ${escapeHtml(ignoredDemo.join(', '))}</span>` : ''}
+      ${remainingReads!==null ? `<span class="cim-reads">${remainingReads} lecture${remainingReads>1?'s':''} restante${remainingReads>1?'s':''} aujourd’hui</span>` : ''}`;
   }
 
-  // Regroupe les lignes par lot possible : même PropFirm + type + taille détectés. Sans PropFirm
-  // reconnue, on regroupe par famille de numéro (préfixe alphabétique : FFNX, LFF, PP…).
-  function groupKeyOf(r){
-    const res = cimResolve(r);
-    return res.firmId ? `f:${res.firmId}|${res.type||''}|${res.sizeKey||''}|${res.customSize||''}` : `p:${cimPrefix(r.value)}`;
-  }
-  function computeGroups(){
-    const map = new Map();
-    rows.forEach((r,i)=>{
-      const key = groupKeyOf(r);
-      if(!map.has(key)) map.set(key, []);
-      map.get(key).push(i);
-    });
-    return Array.from(map.entries()).map(([key, idx])=>({ key, idx, res: cimResolve(rows[idx[0]]), prefix: cimPrefix(rows[idx[0]].value) }));
-  }
-  function groupHeadHtml(g, gi, many){
-    const firm = g.res.firmId ? getFirm(g.res.firmId) : null;
-    const tag = (label, from)=> label
-      ? `<span class="cim-tag" title="${escapeHtml(CIM_SOURCE_LABELS[from]||'')}">${escapeHtml(label)}<span class="cim-tag-src">${escapeHtml(CIM_SOURCE_LABELS[from]||'')}</span></span>`
-      : '';
-    const missing = [!firm && 'PropFirm', !g.res.type && 'type', !g.res.sizeKey && 'taille'].filter(Boolean);
-    return `<div class="cim-group-head">
-      <div class="cim-group-info">
-        <span class="cim-group-count">${g.idx.length} compte${g.idx.length>1?'s':''}${!firm && g.prefix ? ` · ${escapeHtml(g.prefix)}…` : ''}</span>
-        ${firm ? tag(firm.name, g.res.firmFrom) : ''}
-        ${tag(g.res.type ? (TYPE_LABELS[g.res.type]||g.res.type) : '', g.res.typeFrom)}
-        ${tag(cimSizeLabel(g.res), g.res.sizeFrom)}
-        ${missing.length ? `<span class="cim-tag cim-tag-todo">${escapeHtml(missing.join(', '))} à choisir</span>` : ''}
-      </div>
-      ${many ? `<button class="btn btn-ghost btn-sm" data-only="${gi}">Sélectionner ce groupe</button>` : ''}
-    </div>`;
-  }
-  // Par défaut : seulement les nouveaux comptes du premier groupe qui en contient.
-  function applyDefaultSelection(){
-    const groups = computeGroups();
-    const first = groups.find(g=>g.idx.some(i=>!cimExistingAccount(rows[i].value)));
-    rows.forEach((r,i)=>{ r.checked = !!first && first.idx.includes(i) && !cimExistingAccount(r.value); });
-  }
-
-  function renderReview(errorMsg){
-    const groups = computeGroups();
+  function renderReview(){
+    const body = document.querySelector('#modal-root .modal-body');
+    const scroll = body ? body.scrollTop : 0;
+    const anyChallenge = rows.some(r=>r.checked && effective(r).type==='CHALLENGE');
     root().innerHTML = `
-      <div class="cim-summary" id="cim-summary"></div>
-      ${groups.length>1 ? `<div class="cim-suggest" style="margin:0 0 12px;">${icon('layers')}<span>Ta capture contient <strong>${groups.length} groupes de comptes</strong>. L’étape suivante applique une seule PropFirm, un seul type et une seule taille par lot : importe un groupe à la fois, les autres te seront reproposés juste après.</span></div>` : ''}
-      <div class="cim-list">
-        ${groups.map((g,gi)=>`
-          ${groupHeadHtml(g, gi, groups.length>1)}
-          ${g.idx.map(i=>{ const r = rows[i]; return `
-          <div class="cim-row ${r.checked?'':'is-off'}" data-row="${i}">
-            <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} aria-label="Importer ce compte"/>
-            <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" aria-label="Numéro de compte ${i+1}"/>
-            <span data-badge="${i}">${rowBadgeHtml(r.value)}</span>
-            <button class="btn btn-ghost btn-sm cim-del" data-del="${i}" title="Retirer cette ligne" aria-label="Retirer cette ligne">${icon('x')}</button>
-          </div>`; }).join('')}`).join('')}
+      <div class="cim-summary">${summaryHtml()}</div>
+      <div class="cim-top">
+        <div class="cim-field"><label>Trader</label>
+          <select id="cim-trader" class="${!top.traderId?'cim-need':''}">${opt('', '— Sélectionner —', !top.traderId)}${state.traders.map(t=>opt(t.id, t.pseudo + (t.status==='INACTIF'?' (inactif)':''), t.id===top.traderId)).join('')}</select>
+        </div>
+        <div class="cim-field"><label>Date d’achat / d’activation</label><input type="date" id="cim-date" value="${escapeHtml(top.date)}"/></div>
+        <div class="cim-field"><label>Devise</label><select id="cim-currency">${['USD','EUR'].map(c=>opt(c,c,c===top.currency)).join('')}</select></div>
+        ${top.currency!=='EUR' ? `<div class="cim-field"><label>Taux EUR/${escapeHtml(top.currency)}</label><input type="number" step="0.0001" id="cim-fx" placeholder="Taux BCE…" value="${escapeHtml(top.fx)}" class="${!top.fx?'cim-need':''}"/></div>` : ''}
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+      ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; utilise « Personnaliser » pour un compte différent de son groupe (prix promo, autre taille…).</span></div>` : ''}
+      ${groups.map(groupCardHtml).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
         ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro oublié</button>` : ''}
         <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('camera')}Lire une autre capture</button>
       </div>
-      <div id="cim-error" class="error-text">${errorMsg ? escapeHtml(errorMsg) : ''}</div>`;
-    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button><button class="btn btn-primary" id="cim-continue">Continuer</button>`);
+      <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>`;
+    const n = rows.filter(r=>r.checked && r.value.trim()).length;
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button><button class="btn btn-primary" id="cim-create" ${n?'':'disabled'}>${icon('check')}Créer ${n||''} compte${n>1?'s':''}</button>`);
+    bindReview();
+    const body2 = document.querySelector('#modal-root .modal-body');
+    if(body2) body2.scrollTop = scroll;
+  }
 
-    root().querySelectorAll('[data-check]').forEach(cb=>cb.onchange = ()=>{
-      const i = Number(cb.dataset.check);
-      rows[i].checked = cb.checked;
-      cb.closest('.cim-row').classList.toggle('is-off', !cb.checked);
-      refreshCounters();
+  // ---------- Interactions ----------
+  function bindReview(){
+    const R = root();
+    const rerender = ()=>{ errors = null; renderReview(); };
+    // En-tête
+    document.getElementById('cim-trader').onchange = (e)=>{ top.traderId = e.target.value; rerender(); };
+    document.getElementById('cim-date').onchange = (e)=>{ top.date = e.target.value || todayISO(); fxPromise = autofillFx(true); };
+    document.getElementById('cim-currency').onchange = (e)=>{ top.currency = e.target.value; top.fx=''; fxPromise = autofillFx(true); rerender(); };
+    const fx = document.getElementById('cim-fx');
+    if(fx) fx.oninput = ()=>{ top.fx = fx.value; fx.classList.toggle('cim-need', !fx.value); };
+    // Groupes
+    const gSel = (attr, apply, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
+      const handler = ()=>{ const g = groupById(el.getAttribute(attr)); if(!g) return; apply(g, el.value); if(redraw) rerender(); else el.classList.toggle('cim-need', false); };
+      if(el.tagName==='SELECT') el.onchange = handler; else el.oninput = handler;
     });
-    root().querySelectorAll('[data-num]').forEach(inp=>inp.oninput = ()=>{
+    gSel('data-g-firm', (g,v)=>{ g.firmId=v; g.firmFrom=null; });
+    gSel('data-g-type', (g,v)=>{ g.type=v; g.typeFrom=null; });
+    gSel('data-g-size', (g,v)=>{ g.sizeKey=v; g.sizeFrom=null; if(v!=='AUTRE') g.customSize=''; });
+    gSel('data-g-pay', (g,v)=>{ g.pay=v; });
+    gSel('data-g-custom', (g,v)=>{ g.customSize=v; }, false);
+    gSel('data-g-price', (g,v)=>{ g.price=v; }, false);
+    gSel('data-g-monthly', (g,v)=>{ g.monthly=v; }, false);
+    gSel('data-g-fee', (g,v)=>{ g.fee=v; }, false);
+    // Lignes
+    R.querySelectorAll('[data-check]').forEach(cb=>cb.onchange = ()=>{ rows[Number(cb.dataset.check)].checked = cb.checked; rerender(); });
+    R.querySelectorAll('[data-num]').forEach(inp=>inp.oninput = ()=>{
       const i = Number(inp.dataset.num);
       rows[i].value = inp.value;
-      const b = root().querySelector(`[data-badge="${i}"]`);
-      if(b) b.innerHTML = rowBadgeHtml(inp.value);
-      refreshCounters();
+      const b = R.querySelector(`[data-badge="${i}"]`);
+      if(b) b.innerHTML = (rows[i].custom ? `<span class="badge badge-gold">Personnalisé</span>` : '') + rowBadgeHtml(inp.value);
     });
-    root().querySelectorAll('[data-del]').forEach(btn=>btn.onclick = ()=>{
+    R.querySelectorAll('[data-free]').forEach(cb=>cb.onchange = ()=>{ rows[Number(cb.dataset.free)].free = cb.checked; rerender(); });
+    R.querySelectorAll('[data-del]').forEach(btn=>btn.onclick = ()=>{
       rows.splice(Number(btn.dataset.del), 1);
+      groups = groups.filter(g=>rows.some(r=>r.gid===g.id));
       if(!rows.length){ renderDrop(); return; }
-      renderReview();
+      rerender();
     });
-    root().querySelectorAll('[data-only]').forEach(btn=>btn.onclick = ()=>{
-      const g = groups[Number(btn.dataset.only)];
-      if(!g) return;
-      rows.forEach((r,i)=>{ r.checked = g.idx.includes(i) && !!r.value.trim() && !cimExistingAccount(r.value); });
-      renderReview();
+    R.querySelectorAll('[data-custom]').forEach(btn=>btn.onclick = ()=>{
+      const r = rows[Number(btn.dataset.custom)];
+      r.open = !r.open;
+      if(r.open && !r.custom){
+        const e = effective(r);
+        r.custom = { firmId:e.firmId, type:e.type, sizeKey:e.sizeKey, customSize:e.customSize, price:e.price, monthly:e.monthly, fee:e.fee };
+      }
+      rerender();
     });
+    R.querySelectorAll('[data-reset]').forEach(btn=>btn.onclick = ()=>{ const r = rows[Number(btn.dataset.reset)]; r.custom = null; r.open = false; rerender(); });
+    const cSel = (attr, key, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
+      const handler = ()=>{ const r = rows[Number(el.getAttribute(attr))]; if(!r.custom) r.custom = {}; r.custom[key] = el.value; if(key==='sizeKey' && el.value!=='AUTRE') r.custom.customSize=''; if(redraw) rerender(); };
+      if(el.tagName==='SELECT') el.onchange = handler; else el.oninput = handler;
+    });
+    cSel('data-c-firm','firmId'); cSel('data-c-type','type'); cSel('data-c-size','sizeKey');
+    cSel('data-c-custom','customSize',false); cSel('data-c-price','price',false); cSel('data-c-monthly','monthly',false); cSel('data-c-fee','fee',false);
+    // Divers
     const add = document.getElementById('cim-add-row');
     if(add) add.onclick = ()=>{
-      rows.push({ value:'', checked:true, det:null });
-      renderReview();
-      const last = root().querySelector(`[data-num="${rows.length-1}"]`);
+      let g = groups.find(x=>x.manual);
+      if(!g){ g = newGroup({}, ''); g.manual = true; groups.push(g); }
+      rows.push({ value:'', checked:true, det:null, gid:g.id, free:false, custom:null, open:false });
+      rerender();
+      const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; ignoredDemo = []; thumb = ''; renderDrop(); };
-    document.getElementById('cim-continue').onclick = goNext;
-    refreshCounters();
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; ignoredDemo = []; thumb = ''; errors = null; renderDrop(); };
+    document.getElementById('cim-create').onclick = createAll;
   }
 
-  function goNext(){
-    const numbers = selectedNumbers();
-    const errEl = document.getElementById('cim-error');
-    if(!numbers.length){ errEl.textContent = 'Coche au moins un compte à importer.'; return; }
-    if(numbers.length > CIM_MAX_ACCOUNTS){ errEl.textContent = `${CIM_MAX_ACCOUNTS} comptes maximum par import : décoche les autres et refais un import pour la suite.`; return; }
-    const seen = new Set();
-    const dups = [];
-    numbers.forEach(n=>{ const k = normAccNum(n); if(seen.has(k)) dups.push(n); seen.add(k); });
-    if(dups.length){ errEl.textContent = `Numéro présent deux fois dans la liste : ${dups.join(', ')}. Retire le doublon.`; return; }
-    const sent = rows.filter(r=>r.checked && r.value.trim());
-    // Présélection du formulaire : seulement les champs identiques pour tous les comptes cochés.
-    const resList = sent.map(cimResolve);
-    const common = (k)=>resList.every(x=>x[k] && x[k]===resList[0][k]) ? resList[0][k] : null;
-    const pre = { propFirmId: common('firmId'), type: common('type'), size: common('sizeKey') };
-    pre.customSize = pre.size==='AUTRE' ? common('customSize') : null;
-    if(pre.size==='AUTRE' && !pre.customSize) pre.size = null;
-    const preLabels = [pre.propFirmId && 'PropFirm', pre.type && 'type', pre.size && 'taille'].filter(Boolean);
-    const toChoose = [!pre.propFirmId && 'PropFirm', !pre.type && 'type', !pre.size && 'taille'].filter(Boolean);
-    const andList = (l)=>l.join(', ').replace(/, ([^,]*)$/, ' et $1');
-    document.removeEventListener('paste', onPaste);
-    closeModal();
-    bulkAccountFormModal({ numbers, propFirmId: pre.propFirmId, type: pre.type, size: pre.size, customSize: pre.customSize,
-      note: [
-        preLabels.length ? `Présélection d’après ta capture : ${andList(preLabels)}.` : '',
-        toChoose.length ? `À choisir toi-même : ${andList(toChoose)}.` : 'Vérifie avant de créer.',
-      ].filter(Boolean).join(' '),
-      // Après création du lot : on repropose les comptes de la capture qui restent à importer.
-      onDone(){
-        rows = rows.filter(r=>!sent.includes(r) && r.value.trim() && !cimExistingAccount(r.value));
-        if(!rows.length) return;
-        applyDefaultSelection();
-        openShell(()=>renderReview());
-        showToast(`Lot créé. Il reste ${rows.length} compte${rows.length>1?'s':''} de ta capture à importer.`);
+  // ---------- Création : mêmes contrôles que la saisie manuelle ----------
+  async function createAll(){
+    const btn = document.getElementById('cim-create');
+    if(btn){ btn.disabled = true; }
+    if(fxPromise) await fxPromise;
+    const fxInput = document.getElementById('cim-fx');
+    if(fxInput) top.fx = fxInput.value;
+    const err = { global:'', groups:{}, rows:{} };
+    const selected = rows.map((r,i)=>({ r, i })).filter(x=>x.r.checked && x.r.value.trim());
+    rows.forEach((r,i)=>{ if(r.checked && !r.value.trim()) err.rows[i] = 'Numéro vide : complète-le ou retire la ligne.'; });
+
+    const trader = top.traderId ? getTrader(top.traderId) : null;
+    if(!trader) err.global = 'Choisis le trader à qui appartiennent ces comptes.';
+    if(top.currency!=='EUR' && !(Number(top.fx)>0)) err.global = err.global || 'Taux de change introuvable automatiquement : saisis-le en haut avant de créer.';
+
+    const records = [];
+    const seen = new Map(); // firmId|numéro normalisé -> index de ligne
+    selected.forEach(({r,i})=>{
+      const e = effective(r);
+      const g = groupById(r.gid);
+      const missing = [!e.firmId && 'PropFirm', !e.type && 'type', !e.sizeKey && 'taille'].filter(Boolean);
+      if(e.sizeKey==='AUTRE' && !(Number(e.customSize)>0)) missing.push('montant de la taille');
+      const paLike = isPaLike(e.type);
+      const free = !paLike && e.pay==='UNIQUE' && r.free;
+      if(!paLike){
+        if(e.pay==='UNIQUE' && !free && !(Number(e.price)>0)) missing.push('prix d’achat');
+        if(e.pay==='MENSUEL' && !(Number(e.monthly)>0)) missing.push('mensualité');
       }
+      if(missing.length){
+        const msg = `À compléter : ${missing.join(', ')}.`;
+        if(r.custom) err.rows[i] = msg; else if(g) err.groups[g.id] = msg;
+        return;
+      }
+      if(trader && e.type==='CHALLENGE' && trader.status==='INACTIF'){
+        err.global = err.global || `Impossible : ${trader.pseudo} est inactif. Réactive-le pour créer de nouveaux challenges.`;
+      }
+      const num = r.value.trim();
+      const key = `${e.firmId}|${normAccNum(num)}`;
+      if(seen.has(key)){ err.rows[i] = `Doublon avec ${rows[seen.get(key)].value.trim()} dans cet import.`; return; }
+      seen.set(key, i);
+      const dupAccount = findDuplicateAccount(e.firmId, num, null);
+      if(dupAccount){
+        const dupTrader = getTrader(dupAccount.traderId);
+        err.rows[i] = `Déjà utilisé chez ${getFirm(e.firmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}).`;
+        return;
+      }
+      records.push({ i, free, record: {
+        id: uid('acc'), traderId: top.traderId, propFirmId: e.firmId, type: e.type,
+        parentChallengeId: null,
+        size: e.sizeKey, customSize: e.sizeKey==='AUTRE' ? Number(e.customSize)||0 : null, accountNumber: num,
+        paymentType: paLike ? 'UNIQUE' : e.pay,
+        purchasePrice: paLike ? 0 : (e.pay==='UNIQUE' ? (free ? 0 : Number(e.price)||0) : null),
+        monthlyAmount: (!paLike && e.pay==='MENSUEL') ? Number(e.monthly)||0 : null,
+        promoFree: free,
+        purchaseDate: top.date || todayISO(),
+        activationDate: paLike ? (top.date || todayISO()) : null,
+        activationFee: paLike ? (Number(e.fee)||0) : null,
+        status: 'ACTIF', endDate: null,
+        currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(top.fx),
+        createdAt: new Date().toISOString(), createdBy: currentUserId(),
+      }});
     });
+
+    const hasErrors = err.global || Object.keys(err.groups).length || Object.keys(err.rows).length;
+    if(hasErrors){
+      if(!err.global) err.global = 'Rien n’a été créé : corrige les points signalés en rouge.';
+      errors = err;
+      renderReview();
+      const first = document.querySelector('#cim-root .has-error, #cim-error');
+      if(first && first.scrollIntoView) first.scrollIntoView({ block:'center', behavior:'smooth' });
+      return;
+    }
+    if(!perms().canUnlimitedAccounts){
+      const own = state.accounts.filter(x=>x.traderId===top.traderId && x.createdBy===currentUserId()).length;
+      if(own + records.length > perms().maxFreeAccounts){
+        document.removeEventListener('paste', onPaste);
+        closeModal();
+        openUpgradeModal(`La création de plus de ${perms().maxFreeAccounts} comptes pour ce trader`);
+        return;
+      }
+    }
+    for(const { record, free } of records){
+      await upsert('accounts', record);
+      await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(record.propFirmId)?.name||''} · ${TYPE_LABELS[record.type]} (import capture${free?', offert promo':''})`);
+    }
+    const nbFree = records.filter(x=>x.free).length;
+    showToast(`${records.length} compte${records.length>1?'s':''} créé${records.length>1?'s':''}${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}.`);
+    document.removeEventListener('paste', onPaste);
+    closeModal(); render();
   }
 
-  function openShell(firstRender){
-    document.removeEventListener('paste', onPaste);
-    document.addEventListener('paste', onPaste);
-    openModal({
-      title: 'Importer des comptes depuis une capture',
-      wide: true,
-      bodyHtml: `<div id="cim-root"></div>`,
-      footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
-      onMount(){
-        firstRender();
-        const x = document.getElementById('modal-close-btn');
-        if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
-      }
-    });
-  }
-  openShell(()=>renderDrop());
+  // ---------- Ouverture ----------
+  document.addEventListener('paste', onPaste);
+  openModal({
+    title: 'Importer des comptes depuis une capture',
+    wide: 'xwide',
+    bodyHtml: `<div id="cim-root"></div>`,
+    footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
+    onMount(){
+      renderDrop();
+      const x = document.getElementById('modal-close-btn');
+      if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
+    }
+  });
 }
 
 /* ============================================================
