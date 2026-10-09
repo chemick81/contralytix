@@ -482,6 +482,8 @@ th.th-sort-active svg{opacity:1;}
 .cim-notice svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 .cim-notice.is-danger{border-color:color-mix(in srgb, var(--danger) 40%, transparent);background:var(--danger-dim);}
 .cim-notice.is-danger svg{color:var(--danger);}
+.cim-notice.is-warn{border-color:color-mix(in srgb, var(--gold) 45%, transparent);background:var(--gold-dim);}
+.cim-notice.is-warn svg{color:var(--gold);}
 .cim-field{display:flex;flex-direction:column;min-width:0;}
 .cim-field label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;font-weight:600;color:var(--text-dim);margin-bottom:5px;}
 .cim-field select,.cim-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;}
@@ -9721,6 +9723,7 @@ function viewConfidentialite(){
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
+            <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
           <p>Ces prestataires sont soumis à leurs propres conditions et politiques de confidentialité, et n'utilisent vos données que pour exécuter la prestation demandée.</p>
@@ -16704,6 +16707,114 @@ function cimPrepareImage(file){
   });
 }
 
+// ---------- Secours gratuit : lecture de la capture dans le navigateur (Tesseract.js) ----------
+// Utilisé automatiquement quand Gemini est indisponible (quota, saturation, délai, limite du jour).
+// Tout se passe sur l'appareil du trader : la capture n'est envoyée à personne. Le moteur (~3 Mo)
+// n'est téléchargé qu'au premier besoin, depuis jsDelivr comme les autres bibliothèques du site.
+// Moins fiable que Gemini (confusions 0/O, 5/S, 1/I, 2/Z) et ne lit que les numéros : les lignes
+// douteuses sont marquées « À vérifier », PropFirm/type/taille viennent des mots-clés et de l'historique.
+const CIM_TESS = {
+  script: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+  langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+};
+let cimTessLoading = null;
+function cimLoadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(!cimTessLoading){
+    cimTessLoading = new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = CIM_TESS.script; s.async = true;
+      s.onload = ()=> window.Tesseract ? resolve(window.Tesseract) : reject(new Error('Tesseract absent'));
+      s.onerror = ()=>{ cimTessLoading = null; reject(new Error('Tesseract non chargé')); };
+      document.head.appendChild(s);
+    });
+  }
+  return cimTessLoading;
+}
+// Prétraitement réglé sur de vraies captures de plateformes : niveaux de gris, inversion si fond
+// sombre (texte noir sur blanc), agrandissement x3 (au plus 4000 px). Pas de seuillage : il dégradait la lecture.
+function cimOcrCanvas(dataUrl){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const scale = Math.max(1, Math.min(3, 4000/Math.max(img.naturalWidth, img.naturalHeight)));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth*scale); c.height = Math.round(img.naturalHeight*scale);
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const d = ctx.getImageData(0, 0, c.width, c.height);
+        const px = d.data;
+        let sum = 0;
+        for(let i=0;i<px.length;i+=4){ const g = 0.299*px[i]+0.587*px[i+1]+0.114*px[i+2]; px[i]=px[i+1]=px[i+2]=g; sum+=g; }
+        if(sum/(px.length/4) < 128){ for(let i=0;i<px.length;i+=4){ px[i]=px[i+1]=px[i+2]=255-px[i]; } }
+        ctx.putImageData(d, 0, 0);
+        resolve(c);
+      }catch(e){ reject(e); }
+    };
+    img.onerror = ()=>reject(new Error('image illisible'));
+    img.src = dataUrl;
+  });
+}
+function cimIsDemoAccount(id){
+  const k = id.toLowerCase().replace(/[._-]+/g, '');
+  return /demo|practice|paper/.test(k) || /^sim\d/.test(k);
+}
+// Indices tirés du numéro lui-même (comme la consigne donnée à Gemini) : taille « 150K », mots-clés de type.
+function cimKeywordDetection(num){
+  const u = String(num).toUpperCase();
+  const det = { propfirm:null, propfirmSource:null, size:null, sizeSource:null, type:null, typeSource:null };
+  const k = u.match(/(\d{2,3})K(?![A-Z])/);
+  if(k){ const n = Number(k[1])*1000; if(n>=10000 && n<=500000){ det.size = n; det.sizeSource = 'number'; } }
+  if(/EVAL|TEST|COMBINE|CHALLENGE|QUALIF/.test(u)) det.type = 'CHALLENGE';
+  else if(/LIVE/.test(u)) det.type = 'LIVE';
+  else if(/FUNDED|XFA|EXPRESS|PERF|PRO\d|(^|[-_])PA([-_]|\d)/.test(u)) det.type = 'PA';
+  if(det.type) det.typeSource = 'number';
+  return det;
+}
+// Transforme la sortie de Tesseract en numéros de compte plausibles.
+function cimParseOcr(data){
+  const words = (data && Array.isArray(data.words) && data.words.length)
+    ? data.words.map(w=>({ text:w.text, conf:w.confidence }))
+    : String((data && data.text) || '').split(/\s+/).map(t=>({ text:t, conf:0 }));
+  const seen = new Set();
+  const accounts = [], ignored = [];
+  words.forEach(w=>{
+    let t = String(w.text||'').trim().replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
+    if(t.length<5 || t.length>40 || t.includes('..')) return;
+    if(!/^[A-Za-z0-9._-]+$/.test(t) || !/\d/.test(t)) return;
+    const lower = (t.match(/[a-z]/g)||[]).length, upper = (t.match(/[A-Z]/g)||[]).length;
+    if(lower > upper) return;                        // du texte d'interface, pas un numéro de compte
+    t = t.replace(/(\d)[OoQ](?=\d)/g, '$10');        // seule correction sûre : O entre deux chiffres → 0
+    const key = normAccNum(t);
+    if(seen.has(key)) return;
+    seen.add(key);
+    if(cimIsDemoAccount(t)){ ignored.push(t); return; }
+    // Douteux : confiance faible, ou lettre facile à confondre collée à un chiffre.
+    const ocrFlag = (Number(w.conf)||0) < 90 || /\d[OQSIZBl]|[OQSIZBl]\d/.test(t);
+    accounts.push({ value:t, det: cimKeywordDetection(t), ocrFlag });
+  });
+  return { accounts: accounts.slice(0, CIM_MAX_ACCOUNTS), ignored };
+}
+async function cimLocalRead(dataUrl){
+  const T = await cimLoadTesseract();
+  const canvas = await cimOcrCanvas(dataUrl);
+  const worker = await T.createWorker('eng', 1, { workerPath: CIM_TESS.workerPath, corePath: CIM_TESS.corePath, langPath: CIM_TESS.langPath });
+  try{
+    await worker.setParameters({
+      tessedit_pageseg_mode: '11',  // texte épars : listes et tableaux
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.',
+    });
+    const { data } = await worker.recognize(canvas);
+    return cimParseOcr(data);
+  } finally {
+    try{ await worker.terminate(); }catch(e){ /* */ }
+  }
+}
+
 function captureImportModal(){
   if(state.traders.length===0 || state.propfirms.length===0){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
@@ -16768,7 +16879,7 @@ function captureImportModal(){
       </div>
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé. 20 lectures par jour.</span></div>`;
+      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si Gemini est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 20 lectures Gemini par jour.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
     const drop = document.getElementById('cim-drop');
     const input = document.getElementById('cim-file');
@@ -16785,15 +16896,18 @@ function captureImportModal(){
     if(!isTouch) drop.focus();
   }
 
-  function renderReading(){
+  function renderLocalReading(){
+    renderReading('Lecture simplifiée dans ton navigateur…', 'Gemini est indisponible : on lit la capture ici même, gratuitement. Le premier usage télécharge le moteur de lecture (quelques secondes).');
+  }
+  function renderReading(title, sub){
     root().innerHTML = `
       <div class="cim-reading">
         ${thumb ? `<img class="cim-thumb" src="${thumb}" alt="Aperçu de la capture"/>` : ''}
         <div style="display:flex;align-items:center;gap:12px;">
           <div class="spinner"></div>
           <div>
-            <div class="cim-drop-title" style="font-size:var(--fs-base);">Lecture de la capture…</div>
-            <div class="cim-drop-sub">Quelques secondes : on repère les comptes, et si possible leur PropFirm, taille et type.</div>
+            <div class="cim-drop-title" style="font-size:var(--fs-base);">${escapeHtml(title || 'Lecture de la capture…')}</div>
+            <div class="cim-drop-sub">${escapeHtml(sub || 'Quelques secondes : on repère les comptes, et si possible leur PropFirm, taille et type.')}</div>
           </div>
         </div>
       </div>`;
@@ -16829,6 +16943,8 @@ function captureImportModal(){
       if(!isOpen()) return;
       if(append){ notice = { text: msg, danger:true }; renderReview(); } else renderDrop(msg);
     };
+    // Résultat de la lecture par Gemini (serveur) ; null si on doit passer au secours local.
+    let server = null, serverError = '', fallbackReason = '';
     try{
       const { data:{ session } } = await supabaseClient.auth.getSession();
       const req = {
@@ -16837,72 +16953,102 @@ function captureImportModal(){
         // Les noms des PropFirms du catalogue : Gemini ne peut répondre que l'un d'eux.
         body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean) }),
       };
-      // Edge Function d'abord (40 s pour répondre, pas de coupure à 10 s) ; si elle n'est pas
-      // déployée sur ce site, repli sur la fonction classique.
+      // Edge Function d'abord (pas de coupure à 10 s) ; si elle n'est pas déployée, fonction classique.
       const t0 = Date.now();
       let via = 'edge';
       let res = await fetch('/edge/read-accounts-screenshot', req).catch(()=>null);
-      if(!res || res.status===404){ via = 'api'; res = await fetch('/api/read-accounts-screenshot', req); }
-      const json = await res.json().catch(()=>({}));
-      const diag = ` [${via}, ${Math.round((Date.now()-t0)/1000)} s]`;
+      if(!res || res.status===404){ via = 'api'; res = await fetch('/api/read-accounts-screenshot', req).catch(()=>null); }
       if(!isOpen()) return; // modale fermée pendant la lecture
-      if(!res.ok || json.error){
-        // Sans message du serveur : Netlify a coupé la fonction (délai) ou elle n'est pas déployée.
-        fail(json.error
-          || (res.status===404 ? 'Service de lecture introuvable (erreur 404) : la fonction read-accounts-screenshot n’est pas déployée sur ce site.'
-          : (res.status===502 || res.status===504) ? `Le serveur n’a pas répondu à temps (erreur ${res.status}). Réessaie dans un instant.${diag}`
-          : `La lecture de la capture a échoué (erreur ${res.status}). Réessaie.${diag}`));
-        return;
+      if(!res){
+        fallbackReason = 'service de lecture injoignable';
+      } else {
+        const json = await res.json().catch(()=>({}));
+        // L'Edge Function répond toujours 200 et met le vrai code dans `status`.
+        const st = (typeof json.status==='number') ? json.status : res.status;
+        const diag = ` [${via}, ${Math.round((Date.now()-t0)/1000)} s]`;
+        if(st>=200 && st<300 && !json.error){
+          server = json;
+        } else if([429,500,502,503,504].includes(st) || (!json.error && res.status===404)){
+          // Gemini indisponible (quota, saturation, délai) ou limite du jour : secours gratuit local.
+          fallbackReason = json.error || (res.status===404 ? 'service de lecture non déployé' : `erreur ${st}`);
+        } else {
+          serverError = (json.error || `La lecture de la capture a échoué (erreur ${st}). Réessaie.`) + diag;
+        }
       }
-      if(typeof json.remaining==='number') remainingReads = json.remaining;
-      const found = (Array.isArray(json.accounts) ? json.accounts : [])
+    }catch(e){
+      fallbackReason = 'service de lecture injoignable';
+    }
+    if(!isOpen()) return;
+    if(serverError){ fail(serverError); return; }
+
+    let found = [], demo = [], local = false;
+    if(server){
+      if(typeof server.remaining==='number') remainingReads = server.remaining;
+      found = (Array.isArray(server.accounts) ? server.accounts : [])
         // Rétrocompatible : une ancienne version de la fonction renvoyait de simples chaînes.
         .map(v=>typeof v==='string'
           ? { value:v, det:null }
           : { value:String(v.number||''), det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
         .filter(r=>r.value);
-      const demo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
-      demo.forEach(d=>{ if(!ignoredDemo.includes(d)) ignoredDemo.push(d); });
-      captures++;
-      busy = false;
-      if(!append){
-        if(!found.length){
-          captures = 0;
-          renderDrop(demo.length
-            ? `Seuls des comptes de démo ont été trouvés (${demo.join(', ')}) : ils ne sont pas importés. Fais une capture de tes comptes PropFirm.`
-            : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
-          return;
-        }
-        rows = [];
-        groups = [];
+      demo = Array.isArray(server.ignored) ? server.ignored.map(String) : [];
+    } else {
+      // ---- Secours gratuit : lecture dans le navigateur (rien n'est envoyé à un tiers) ----
+      notice = { text:`Lecture simplifiée en cours dans ton navigateur (Gemini indisponible : ${String(fallbackReason).replace(/[.\s]+$/, '')})… Le premier usage télécharge le moteur de lecture, quelques secondes.`, reading:true };
+      if(append) renderReview(); else renderLocalReading();
+      try{
+        const out = await cimLocalRead(prepared.dataUrl);
+        if(!isOpen()) return;
+        found = out.accounts; demo = out.ignored; local = true;
+      }catch(e){
+        console.error('Lecture locale (Tesseract) :', e);
+        fail(`Lecture impossible : Gemini est indisponible (${fallbackReason}) et la lecture simplifiée n’a pas pu démarrer. Réessaie plus tard ou ajoute tes comptes avec « Ajout en masse ».`);
+        return;
       }
-      // Fusion : on n'ajoute que les numéros pas encore dans la liste.
-      const known = new Set(rows.map(r=>normAccNum(r.value)));
-      let added = 0, alreadyListed = 0, overflow = 0;
-      found.forEach(f=>{
-        const k = normAccNum(f.value);
-        if(known.has(k)){ alreadyListed++; return; }
-        if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
-        known.add(k);
-        const row = { ...f, checked: !cimExistingAccount(f.value), gid:null, free:false, createdHere:false };
-        placeInGroup(row);
-        rows.push(row);
-        added++;
-      });
-      groups.forEach(g=>ensureFx(g.date));
-      if(append){
-        const parts = [`Capture n°${captures} : ${added} compte${added>1?'s':''} ajouté${added>1?'s':''}`];
-        if(alreadyListed) parts.push(`${alreadyListed} déjà dans la liste`);
-        if(overflow) parts.push(`${overflow} ignoré${overflow>1?'s':''} (${CIM_MAX_ACCOUNTS} comptes maximum)`);
-        if(!found.length) parts[0] = `Capture n°${captures} : aucun compte lisible`;
-        notice = { text: parts.join(' · ') + '.', danger: !added };
-      } else {
-        notice = null;
-      }
-      renderReview();
-    }catch(e){
-      fail('Impossible de contacter le service de lecture. Vérifie ta connexion et réessaie.');
     }
+
+    demo.forEach(d=>{ if(!ignoredDemo.includes(d)) ignoredDemo.push(d); });
+    captures++;
+    busy = false;
+    if(!append){
+      if(!found.length){
+        captures = 0;
+        notice = null;
+        renderDrop(demo.length
+          ? `Seuls des comptes de démo ont été trouvés (${demo.join(', ')}) : ils ne sont pas importés. Fais une capture de tes comptes PropFirm.`
+          : (local ? 'La lecture simplifiée n’a trouvé aucun numéro de compte. Recadre la capture sur la liste des comptes (texte net, sans zoom arrière) et réessaie.'
+                   : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.'));
+        return;
+      }
+      rows = [];
+      groups = [];
+    }
+    // Fusion : on n'ajoute que les numéros pas encore dans la liste.
+    const known = new Set(rows.map(r=>normAccNum(r.value)));
+    let added = 0, alreadyListed = 0, overflow = 0, toCheck = 0;
+    found.forEach(f=>{
+      const k = normAccNum(f.value);
+      if(known.has(k)){ alreadyListed++; return; }
+      if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
+      known.add(k);
+      const row = { ...f, checked: !cimExistingAccount(f.value), gid:null, free:false, createdHere:false };
+      if(row.ocrFlag && !cimExistingAccount(row.value)) toCheck++;
+      placeInGroup(row);
+      rows.push(row);
+      added++;
+    });
+    groups.forEach(g=>ensureFx(g.date));
+    const parts = [];
+    if(append){
+      parts.push(found.length ? `Capture n°${captures} : ${added} compte${added>1?'s':''} ajouté${added>1?'s':''}` : `Capture n°${captures} : aucun compte lisible`);
+      if(alreadyListed) parts.push(`${alreadyListed} déjà dans la liste`);
+      if(overflow) parts.push(`${overflow} ignoré${overflow>1?'s':''} (${CIM_MAX_ACCOUNTS} comptes maximum)`);
+    }
+    if(local){
+      const why = String(fallbackReason).replace(/[.\s]+$/, '');
+      parts.push(`Lecture simplifiée gratuite, faite dans ton navigateur (Gemini indisponible : ${why}). Vérifie chaque numéro${toCheck ? `, surtout les ${toCheck} marqués « À vérifier »` : ''} : confusions possibles 0/O, 5/S, 1/I, 2/Z. La PropFirm n’est pas reconnue ; le type et la taille seulement s’ils figurent dans le numéro.`);
+    }
+    notice = parts.length ? { text: parts.join(' · '), danger: append && !added, warn: local } : null;
+    renderReview();
   }
 
   // ---------- Groupes : même PropFirm + type + taille détectés (sinon même préfixe) ----------
@@ -17012,6 +17158,7 @@ function captureImportModal(){
       const firm = getFirm(ex.propFirmId);
       return `<span class="badge badge-slate" title="Ce numéro existe déjà dans Contralytix${firm?` (${escapeHtml(firm.name)})`:''}">Déjà enregistré${firm?` · ${escapeHtml(firm.name)}`:''}</span>`;
     }
+    if(r.ocrFlag) return `<span class="badge badge-gold" title="Lecture simplifiée : vérifie ce numéro (0/O, 5/S, 1/I, 2/Z…) et corrige-le si besoin">À vérifier</span>`;
     return `<span class="badge badge-accent">Nouveau</span>`;
   }
 
@@ -17053,7 +17200,7 @@ function captureImportModal(){
     root().innerHTML = `
       <div id="cim-review">
       <div class="cim-summary">${summaryHtml()}</div>
-      ${notice ? `<div class="cim-notice ${notice.danger?'is-danger':''}">${notice.reading?'<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>':icon(notice.danger?'alertTriangle':'check')}<span>${escapeHtml(notice.text)}</span></div>` : ''}
+      ${notice ? `<div class="cim-notice ${notice.danger?'is-danger':(notice.warn?'is-warn':'')}">${notice.reading?'<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>':icon((notice.danger||notice.warn)?'alertTriangle':'check')}<span>${escapeHtml(notice.text)}</span></div>` : ''}
       <div class="cim-top">
         <div class="cim-field"><label>Trader</label>
           <select id="cim-trader" class="${!top.traderId?'cim-need':''}">${opt('', '— Sélectionner —', !top.traderId)}${state.traders.map(t=>opt(t.id, t.pseudo + (t.status==='INACTIF'?' (inactif)':''), t.id===top.traderId)).join('')}</select>
@@ -17115,6 +17262,7 @@ function captureImportModal(){
     R.querySelectorAll('[data-num]').forEach(inp=>inp.oninput = ()=>{
       const i = Number(inp.dataset.num);
       rows[i].value = inp.value;
+      rows[i].ocrFlag = false;   // corrigé ou relu par le trader
       const b = R.querySelector(`[data-badge="${i}"]`);
       if(b) b.innerHTML = rowBadgeHtml(rows[i]);
     });
