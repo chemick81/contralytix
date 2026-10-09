@@ -16809,7 +16809,14 @@ function captureImportModal(){
       });
       const json = await res.json().catch(()=>({}));
       if(!isOpen()) return; // modale fermée pendant la lecture
-      if(!res.ok || json.error){ renderDrop(json.error || 'La lecture de la capture a échoué. Réessaie.'); return; }
+      if(!res.ok || json.error){
+        // Sans message du serveur : Netlify a coupé la fonction (délai) ou elle n'est pas déployée.
+        renderDrop(json.error
+          || (res.status===404 ? 'Service de lecture introuvable (erreur 404) : la fonction read-accounts-screenshot n’est pas déployée sur ce site.'
+          : (res.status===502 || res.status===504) ? `Le serveur n’a pas répondu à temps (erreur ${res.status}). Réessaie dans un instant.`
+          : `La lecture de la capture a échoué (erreur ${res.status}). Réessaie.`));
+        return;
+      }
       remainingReads = (typeof json.remaining==='number') ? json.remaining : null;
       const found = Array.isArray(json.accounts) ? json.accounts : [];
       ignoredDemo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
