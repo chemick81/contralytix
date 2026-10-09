@@ -474,7 +474,14 @@ th.th-sort-active svg{opacity:1;}
 .cim-row .cim-num:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface);}
 .cim-row .badge{flex-shrink:0;}
 .cim-row .cim-del{flex-shrink:0;}
-.cim-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
+.cim-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);align-items:end;gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
+.cim-top-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+.cim-top-add .btn svg{width:15px;height:15px;}
+.cim-top-hint{font-size:11.5px;color:var(--text-faint);}
+.cim-notice{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);border-radius:var(--radius-md);background:var(--accent-dim);font-size:12.5px;color:var(--text);}
+.cim-notice svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
+.cim-notice.is-danger{border-color:color-mix(in srgb, var(--danger) 40%, transparent);background:var(--danger-dim);}
+.cim-notice.is-danger svg{color:var(--danger);}
 .cim-field{display:flex;flex-direction:column;min-width:0;}
 .cim-field label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;font-weight:600;color:var(--text-dim);margin-bottom:5px;}
 .cim-field select,.cim-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;}
@@ -496,11 +503,9 @@ th.th-sort-active svg{opacity:1;}
 .cim-row-tags{display:flex;gap:6px;flex-shrink:0;}
 .cim-row-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .cim-row-actions .promo-chip{padding:4px 8px;}
-.cim-custom{margin:-2px 0 6px 26px;padding:10px 12px;border:1px dashed var(--border);border-radius:var(--radius-md);}
-.cim-custom-title{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;}
-.cim-custom .cim-fields{margin-bottom:0;}
 @media (max-width:760px){
   .cim-top,.cim-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cim-top-add{grid-column:1 / -1;justify-content:flex-start;}
   .cim-hide-sm{display:none;}
 }
 @media (max-width:560px){
@@ -508,7 +513,6 @@ th.th-sort-active svg{opacity:1;}
   .cim-row .cim-num{grid-column:2;grid-row:1;}
   .cim-row .cim-row-tags{grid-column:2;grid-row:2;padding:0 8px 2px;flex-wrap:wrap;}
   .cim-row .cim-row-actions{grid-column:2;grid-row:3;justify-content:flex-end;padding-bottom:2px;}
-  .cim-custom{margin-left:0;}
   .cim-row-err{margin-left:0;}
 }
 .cim-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 2px 4px;font-size:12px;color:var(--text-dim);}
@@ -15928,7 +15932,9 @@ function ratingFormModal(firm, existing){
 /* ============================================================
    FORM: ACCOUNT (Challenge or PA)
 ============================================================ */
-function accountFormModal({ existing, type, parentChallenge }){
+// `prefill` (optionnel, création uniquement) : valeurs de départ du formulaire, utilisé par l'import
+// depuis une capture (bouton « Personnaliser »). Sans `prefill`, le formulaire est strictement inchangé.
+function accountFormModal({ existing, type, parentChallenge, prefill }){
   const isEdit = !!existing;
   // La limite de comptes gratuits est désormais par trader (et par utilisateur créateur) :
   // on ne peut plus la vérifier ici puisque le trader n'est pas encore choisi.
@@ -15952,6 +15958,7 @@ function accountFormModal({ existing, type, parentChallenge }){
     endDate: null,
     createdAt: new Date().toISOString(),
     createdBy: currentUserId(),
+    ...((!parentChallenge && prefill) || {}),
   };
   const lockTrader = !!parentChallenge;
   const lockType = !!parentChallenge || (type && !isEdit);
@@ -16702,36 +16709,42 @@ function captureImportModal(){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
   }
-  // ---- État de l'import ----
-  // rows   : [{ value, checked, det, gid, free, custom, open }]
-  //          det    = PropFirm/taille/type lus par Gemini
-  //          custom = null (réglages du groupe) ou { firmId, type, sizeKey, customSize, price, monthly, fee }
-  // groups : [{ id, firmId, firmFrom, type, typeFrom, sizeKey, customSize, sizeFrom, pay, price, monthly, fee, prefix }]
-  // top    : trader, devise, date (achat pour un Challenge, activation pour un PA/Live), taux BCE
+  // ---- État de l'import (conservé quand on passe par « Personnaliser » puis qu'on revient) ----
+  // rows   : [{ value, checked, det, gid, free, createdHere }]
+  //          det = PropFirm/taille/type lus par Gemini ; createdHere = créé via « Personnaliser »
+  // groups : [{ id, key, firmId, firmFrom, type, typeFrom, sizeKey, customSize, sizeFrom,
+  //             pay, price, monthly, fee, date, fx, prefix }]
+  // top    : trader et devise, communs à tout l'import
   let rows = [];
   let groups = [];
   let ignoredDemo = [];
   let remainingReads = null;
+  let captures = 0;          // nombre de captures lues dans cet import
   let thumb = '';
-  let busy = false;
-  let errors = null;   // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
-  const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD', date: todayISO(), fx:'' };
-  let fxPromise = null;
+  let busy = false;          // lecture en cours
+  let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
+  let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
+  const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
+  const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
+  const fxPending = {};
   let gidSeq = 0;
 
   const root = ()=>document.getElementById('cim-root');
   const foot = ()=>document.getElementById('cim-foot');
   const isOpen = ()=>!!root();
+  const inReview = ()=>!!document.getElementById('cim-review');
   const isPaLike = t => t==='PA' || t==='LIVE';
+  const cur = ()=> top.currency==='EUR' ? '€' : '$';
 
-  // Coller une image (Ctrl+V / Cmd+V) tant que la modale est ouverte, à l'étape de dépôt.
+  // Coller une image (Ctrl+V / Cmd+V) : à l'étape de dépôt, ou dans la liste pour ajouter une capture.
   function onPaste(e){
     if(!isOpen()){ document.removeEventListener('paste', onPaste); return; }
-    if(busy || !document.getElementById('cim-drop')) return;
+    if(busy) return;
+    if(!document.getElementById('cim-drop') && !inReview()) return;
     const item = Array.from((e.clipboardData && e.clipboardData.items) || []).find(it=>it.kind==='file' && it.type.startsWith('image/'));
     if(!item) return;
     e.preventDefault();
-    handleFile(item.getAsFile());
+    handleFile(item.getAsFile(), inReview());
   }
 
   function setFoot(html){
@@ -16740,7 +16753,7 @@ function captureImportModal(){
     if(c) c.onclick = ()=>{ document.removeEventListener('paste', onPaste); closeModal(); };
   }
 
-  // ---------- Étape 1 : déposer / coller la capture ----------
+  // ---------- Étape 1 : déposer / coller la première capture ----------
   function renderDrop(errorMsg){
     busy = false;
     const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
@@ -16751,23 +16764,23 @@ function captureImportModal(){
         <div class="cim-drop-sub">${isTouch
           ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme.'
           : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse l’image ici, ou clique pour choisir un fichier.`}</div>
-        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Cadre la liste des comptes : si le nom de la PropFirm, la taille ou le type sont visibles, ils seront repris.</div>
+        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
       </div>
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="cim-privacy">${icon('shield')}<span>La capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé. 20 lectures par jour.</span></div>`;
+      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé. 20 lectures par jour.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
     const drop = document.getElementById('cim-drop');
     const input = document.getElementById('cim-file');
     drop.onclick = ()=>input.click();
     drop.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); input.click(); } };
-    input.onchange = ()=>{ if(input.files && input.files[0]) handleFile(input.files[0]); };
+    input.onchange = ()=>{ if(input.files && input.files[0]) handleFile(input.files[0], false); };
     drop.ondragover = (e)=>{ e.preventDefault(); drop.classList.add('is-over'); };
     drop.ondragleave = ()=>drop.classList.remove('is-over');
     drop.ondrop = (e)=>{
       e.preventDefault(); drop.classList.remove('is-over');
       const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find(x=>x.type.startsWith('image/'));
-      if(f) handleFile(f); else renderDrop('Dépose une image (PNG, JPG ou WEBP).');
+      if(f) handleFile(f, false); else renderDrop('Dépose une image (PNG, JPG ou WEBP).');
     };
     if(!isTouch) drop.focus();
   }
@@ -16787,18 +16800,35 @@ function captureImportModal(){
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
   }
 
-  async function handleFile(file){
+  // Lit une capture. `append` = ajoute ses comptes à la liste déjà affichée (multi-capture).
+  async function handleFile(file, append){
     if(!file || busy) return;
     if(!/^image\/(png|jpe?g|webp)$/.test(file.type)){
-      renderDrop('Format non pris en charge : utilise une capture PNG, JPG ou WEBP.');
+      if(append){ notice = { text:'Format non pris en charge : utilise une capture PNG, JPG ou WEBP.', danger:true }; renderReview(); }
+      else renderDrop('Format non pris en charge : utilise une capture PNG, JPG ou WEBP.');
       return;
+    }
+    if(append && rows.length >= CIM_MAX_ACCOUNTS){
+      notice = { text:`${CIM_MAX_ACCOUNTS} comptes maximum par import : crée d’abord ceux-ci, puis refais un import pour la suite.`, danger:true };
+      renderReview(); return;
     }
     busy = true;
     let prepared;
     try{ prepared = await cimPrepareImage(file); }
-    catch(e){ renderDrop('Impossible de lire cette image. Refais une capture au format PNG ou JPG.'); return; }
+    catch(e){
+      busy = false;
+      if(append){ notice = { text:'Impossible de lire cette image. Refais une capture au format PNG ou JPG.', danger:true }; renderReview(); }
+      else renderDrop('Impossible de lire cette image. Refais une capture au format PNG ou JPG.');
+      return;
+    }
     thumb = prepared.dataUrl;
-    renderReading();
+    if(append){ notice = { text:`Lecture de la capture n°${captures+1}…`, reading:true }; renderReview(); }
+    else renderReading();
+    const fail = (msg)=>{
+      busy = false;
+      if(!isOpen()) return;
+      if(append){ notice = { text: msg, danger:true }; renderReview(); } else renderDrop(msg);
+    };
     try{
       const { data:{ session } } = await supabaseClient.auth.getSession();
       const res = await fetch('/api/read-accounts-screenshot', {
@@ -16811,90 +16841,108 @@ function captureImportModal(){
       if(!isOpen()) return; // modale fermée pendant la lecture
       if(!res.ok || json.error){
         // Sans message du serveur : Netlify a coupé la fonction (délai) ou elle n'est pas déployée.
-        renderDrop(json.error
+        fail(json.error
           || (res.status===404 ? 'Service de lecture introuvable (erreur 404) : la fonction read-accounts-screenshot n’est pas déployée sur ce site.'
           : (res.status===502 || res.status===504) ? `Le serveur n’a pas répondu à temps (erreur ${res.status}). Réessaie dans un instant.`
           : `La lecture de la capture a échoué (erreur ${res.status}). Réessaie.`));
         return;
       }
-      remainingReads = (typeof json.remaining==='number') ? json.remaining : null;
-      const found = Array.isArray(json.accounts) ? json.accounts : [];
-      ignoredDemo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
-      if(!found.length){
-        renderDrop(ignoredDemo.length
-          ? `Seuls des comptes de démo ont été trouvés (${ignoredDemo.join(', ')}) : ils ne sont pas importés. Fais une capture de tes comptes PropFirm.`
-          : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
-        return;
-      }
-      // Rétrocompatible : une ancienne version de la fonction renvoyait de simples chaînes.
-      rows = found.map(v=>typeof v==='string'
-        ? { value:v, det:null }
-        : { value:String(v.number||''), det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
-        .filter(r=>r.value)
-        .map(r=>({ ...r, checked: !cimExistingAccount(r.value), gid:null, free:false, custom:null, open:false }));
-      buildGroups();
+      if(typeof json.remaining==='number') remainingReads = json.remaining;
+      const found = (Array.isArray(json.accounts) ? json.accounts : [])
+        // Rétrocompatible : une ancienne version de la fonction renvoyait de simples chaînes.
+        .map(v=>typeof v==='string'
+          ? { value:v, det:null }
+          : { value:String(v.number||''), det:{ propfirm:v.propfirm||null, propfirmSource:v.propfirmSource||null, size:v.size||null, sizeSource:v.sizeSource||null, type:v.type||null, typeSource:v.typeSource||null } })
+        .filter(r=>r.value);
+      const demo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
+      demo.forEach(d=>{ if(!ignoredDemo.includes(d)) ignoredDemo.push(d); });
+      captures++;
       busy = false;
-      fxPromise = autofillFx();
+      if(!append){
+        if(!found.length){
+          captures = 0;
+          renderDrop(demo.length
+            ? `Seuls des comptes de démo ont été trouvés (${demo.join(', ')}) : ils ne sont pas importés. Fais une capture de tes comptes PropFirm.`
+            : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
+          return;
+        }
+        rows = [];
+        groups = [];
+      }
+      // Fusion : on n'ajoute que les numéros pas encore dans la liste.
+      const known = new Set(rows.map(r=>normAccNum(r.value)));
+      let added = 0, alreadyListed = 0, overflow = 0;
+      found.forEach(f=>{
+        const k = normAccNum(f.value);
+        if(known.has(k)){ alreadyListed++; return; }
+        if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
+        known.add(k);
+        const row = { ...f, checked: !cimExistingAccount(f.value), gid:null, free:false, createdHere:false };
+        placeInGroup(row);
+        rows.push(row);
+        added++;
+      });
+      groups.forEach(g=>ensureFx(g.date));
+      if(append){
+        const parts = [`Capture n°${captures} : ${added} compte${added>1?'s':''} ajouté${added>1?'s':''}`];
+        if(alreadyListed) parts.push(`${alreadyListed} déjà dans la liste`);
+        if(overflow) parts.push(`${overflow} ignoré${overflow>1?'s':''} (${CIM_MAX_ACCOUNTS} comptes maximum)`);
+        if(!found.length) parts[0] = `Capture n°${captures} : aucun compte lisible`;
+        notice = { text: parts.join(' · ') + '.', danger: !added };
+      } else {
+        notice = null;
+      }
       renderReview();
     }catch(e){
-      if(isOpen()) renderDrop('Impossible de contacter le service de lecture. Vérifie ta connexion et réessaie.');
+      fail('Impossible de contacter le service de lecture. Vérifie ta connexion et réessaie.');
     }
   }
 
   // ---------- Groupes : même PropFirm + type + taille détectés (sinon même préfixe) ----------
-  function newGroup(res, prefix){
+  function newGroup(res, prefix, key){
     return {
-      id: 'g' + (++gidSeq),
+      id: 'g' + (++gidSeq), key: key || '',
       firmId: res.firmId || '', firmFrom: res.firmFrom || null,
       type: res.type || '', typeFrom: res.typeFrom || null,
       sizeKey: res.sizeKey || '', customSize: res.customSize || '', sizeFrom: res.sizeFrom || null,
       pay: 'UNIQUE', price: '', monthly: '', fee: '',
+      date: todayISO(), fx: '',
       prefix: prefix || '',
     };
   }
-  function buildGroups(){
-    groups = [];
-    const byKey = new Map();
-    rows.forEach(r=>{
-      const res = cimResolve(r);
-      const prefix = cimPrefix(r.value);
-      const key = res.firmId ? `f:${res.firmId}|${res.type||''}|${res.sizeKey||''}|${res.customSize||''}` : `p:${prefix}`;
-      if(!byKey.has(key)){ const g = newGroup(res, prefix); byKey.set(key, g); groups.push(g); }
-      r.gid = byKey.get(key).id;
-    });
+  function placeInGroup(row){
+    const res = cimResolve(row);
+    const prefix = cimPrefix(row.value);
+    const key = res.firmId ? `f:${res.firmId}|${res.type||''}|${res.sizeKey||''}|${res.customSize||''}` : `p:${prefix}`;
+    let g = groups.find(x=>x.key===key);
+    if(!g){ g = newGroup(res, prefix, key); groups.push(g); }
+    row.gid = g.id;
   }
   const groupById = (id)=>groups.find(g=>g.id===id);
   const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id);
+  const dropEmptyGroups = ()=>{ groups = groups.filter(g=>rows.some(r=>r.gid===g.id)); };
 
-  // Réglages effectifs d'une ligne : ceux du groupe, sauf personnalisation.
-  function effective(r){
-    const g = groupById(r.gid) || newGroup({}, '');
-    const c = r.custom;
-    const type = (c && c.type) || g.type;
-    return {
-      firmId: (c && c.firmId) || g.firmId,
-      type,
-      sizeKey: (c && c.sizeKey) || g.sizeKey,
-      customSize: (c && c.sizeKey) ? c.customSize : g.customSize,
-      pay: isPaLike(type) ? 'UNIQUE' : g.pay,
-      price: (c && c.price!=='' && c.price!=null) ? c.price : g.price,
-      monthly: (c && c.monthly!=='' && c.monthly!=null) ? c.monthly : g.monthly,
-      fee: (c && c.fee!=='' && c.fee!=null) ? c.fee : g.fee,
-    };
-  }
-
-  // ---------- Taux BCE (même service que les autres formulaires) ----------
-  async function autofillFx(force){
-    if(top.currency==='EUR'){ top.fx=''; return; }
-    if(!force && top.fx) return;
+  // ---------- Taux BCE par date (même service que les autres formulaires) ----------
+  async function ensureFx(date){
+    if(top.currency==='EUR' || !date || fxCache[date] || fxPending[date]) return;
+    const currency = top.currency;
+    fxPending[date] = true;
     try{
-      const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${top.date||todayISO()}&currency=${top.currency}`);
+      const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${date}&currency=${currency}`);
       const data = await res.json();
-      if(res.ok && data.rateToEur){ top.fx = String(data.rateToEur); }
+      if(res.ok && data.rateToEur && currency===top.currency) fxCache[date] = String(data.rateToEur);
     }catch(e){ /* le trader saisira le taux lui-même */ }
-    const inp = document.getElementById('cim-fx');
-    if(inp && document.activeElement!==inp) inp.value = top.fx;
+    delete fxPending[date];
+    // Met à jour les champs taux concernés sans re-dessiner (pour ne pas perdre la saisie en cours).
+    groups.filter(g=>g.date===date && !g.fx).forEach(g=>{
+      const inp = document.querySelector(`[data-g-fx="${g.id}"]`);
+      if(inp && document.activeElement!==inp){ inp.value = fxCache[date] || ''; inp.classList.toggle('cim-need', !inp.value); }
+    });
   }
+  const fxOf = (g)=> top.currency==='EUR' ? '1' : (g.fx || fxCache[g.date] || '');
+  const allFxPending = ()=>Promise.all(Object.keys(fxPending).map(d=>new Promise(res=>{
+    const t = setInterval(()=>{ if(!fxPending[d]){ clearInterval(t); res(); } }, 100);
+  })));
 
   // ---------- Rendu ----------
   const opt = (v, label, sel)=>`<option value="${escapeHtml(v)}" ${sel?'selected':''}>${escapeHtml(label)}</option>`;
@@ -16914,14 +16962,15 @@ function captureImportModal(){
     const active = items.filter(x=>x.r.checked);
     const allExisting = items.every(x=>cimExistingAccount(x.r.value));
     const need = active.length>0;
-    const cur = top.currency==='EUR' ? '€' : '$';
     const paLike = isPaLike(g.type);
     const gErr = errors && errors.groups[g.id];
+    const fx = fxOf(g);
+    const created = items.filter(x=>x.r.createdHere && cimExistingAccount(x.r.value)).length;
     return `
     <div class="cim-card ${allExisting?'is-done':''} ${gErr?'has-error':''}" data-gid="${g.id}">
       <div class="cim-card-head">
         <span class="cim-group-count">${items.length} compte${items.length>1?'s':''}${g.prefix?` · ${escapeHtml(g.prefix)}…`:''}</span>
-        ${allExisting ? `<span class="badge badge-slate">Déjà enregistrés</span>` : `<span class="cim-card-sub">${active.length} à créer</span>`}
+        ${allExisting ? `<span class="badge badge-slate">${created===items.length ? 'Créés' : 'Déjà enregistrés'}</span>` : `<span class="cim-card-sub">${active.length} à créer</span>`}
       </div>
       ${allExisting ? '' : `
       <div class="cim-fields">
@@ -16930,13 +16979,15 @@ function captureImportModal(){
         <div class="cim-field"><label>Taille</label>${sizeSelect(`data-g-size="${g.id}"`, g.sizeKey, need)}${srcHint(g.sizeFrom)}
           ${g.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-g-custom="${g.id}" value="${escapeHtml(g.customSize)}" class="${need&&!(Number(g.customSize)>0)?'cim-need':''}" style="margin-top:6px;"/>` : ''}
         </div>
+        <div class="cim-field"><label>${paLike ? 'Date d’activation' : 'Date d’achat'}</label><input type="date" data-g-date="${g.id}" value="${escapeHtml(g.date)}"/></div>
         ${paLike ? `
-        <div class="cim-field"><label>Frais d’activation (${cur}, optionnel)</label><input type="number" min="0" step="0.01" data-g-fee="${g.id}" value="${escapeHtml(g.fee)}"/></div>
-        <div class="cim-field-hint">Un ${g.type==='LIVE'?'Live':'PA'} n’a pas de prix d’achat : seul le frais d’activation éventuel compte dans tes dépenses. La date ci-dessus sert de date d’activation.</div>` : `
+        <div class="cim-field"><label>Frais d’activation (${cur()}, optionnel)</label><input type="number" min="0" step="0.01" data-g-fee="${g.id}" value="${escapeHtml(g.fee)}"/></div>` : `
         <div class="cim-field"><label>Paiement</label><select data-g-pay="${g.id}">${opt('UNIQUE','Paiement unique', g.pay==='UNIQUE')}${opt('MENSUEL','Mensualités', g.pay==='MENSUEL')}</select></div>
         ${g.pay==='MENSUEL'
-          ? `<div class="cim-field"><label>Mensualité (${cur}, par compte)</label><input type="number" min="0" step="0.01" data-g-monthly="${g.id}" value="${escapeHtml(g.monthly)}" class="${need&&!(Number(g.monthly)>0)?'cim-need':''}"/></div>`
-          : `<div class="cim-field"><label>Prix d’achat (${cur}, par compte)</label><input type="number" min="0" step="0.01" data-g-price="${g.id}" value="${escapeHtml(g.price)}" class="${need&&!(Number(g.price)>0)&&active.some(x=>!x.r.free && !(x.r.custom && Number(x.r.custom.price)>0))?'cim-need':''}"/></div>`}`}
+          ? `<div class="cim-field"><label>Mensualité (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-monthly="${g.id}" value="${escapeHtml(g.monthly)}" class="${need&&!(Number(g.monthly)>0)?'cim-need':''}"/></div>`
+          : `<div class="cim-field"><label>Prix d’achat (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-price="${g.id}" value="${escapeHtml(g.price)}" class="${need&&!(Number(g.price)>0)&&active.some(x=>!x.r.free)?'cim-need':''}"/></div>`}`}
+        ${top.currency!=='EUR' ? `<div class="cim-field"><label>Taux EUR/${escapeHtml(top.currency)}</label><input type="number" step="0.0001" data-g-fx="${g.id}" placeholder="Taux BCE…" value="${escapeHtml(fx)}" class="${need&&!fx?'cim-need':''}"/></div>` : ''}
+        ${paLike ? `<div class="cim-field-hint">Un ${g.type==='LIVE'?'Live':'PA'} n’a pas de prix d’achat : seul le frais d’activation éventuel compte dans tes dépenses.</div>` : ''}
       </div>`}
       ${gErr ? `<div class="error-text" style="margin:0 0 8px;">${escapeHtml(gErr)}</div>` : ''}
       <div class="cim-list">
@@ -16945,9 +16996,11 @@ function captureImportModal(){
     </div>`;
   }
 
-  function rowBadgeHtml(value){
+  function rowBadgeHtml(r){
+    const value = r.value;
     if(!value.trim()) return `<span class="badge badge-danger">Vide</span>`;
     const ex = cimExistingAccount(value);
+    if(ex && r.createdHere) return `<span class="badge badge-accent">Créé</span>`;
     if(ex){
       const firm = getFirm(ex.propFirmId);
       return `<span class="badge badge-slate" title="Ce numéro existe déjà dans Contralytix${firm?` (${escapeHtml(firm.name)})`:''}">Déjà enregistré${firm?` · ${escapeHtml(firm.name)}`:''}</span>`;
@@ -16956,74 +17009,65 @@ function captureImportModal(){
   }
 
   function rowHtml(r, i, g){
-    const eff = effective(r);
-    const showFree = !isPaLike(eff.type) && eff.pay==='UNIQUE';
+    const exists = !!cimExistingAccount(r.value);
+    const showFree = !exists && !isPaLike(g.type) && g.pay==='UNIQUE';
     const rErr = errors && errors.rows[i];
-    const c = r.custom;
-    const cur = top.currency==='EUR' ? '€' : '$';
     return `
       <div class="cim-row ${r.checked?'':'is-off'} ${rErr?'has-error':''}" data-row="${i}">
-        <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} aria-label="Importer ce compte"/>
-        <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" aria-label="Numéro de compte ${i+1}"/>
-        <span class="cim-row-tags" data-badge="${i}">${c ? `<span class="badge badge-gold" title="Ce compte a ses propres réglages">Personnalisé</span>` : ''}${rowBadgeHtml(r.value)}</span>
+        <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} ${exists?'disabled':''} aria-label="Importer ce compte"/>
+        <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" ${exists&&r.createdHere?'readonly':''} aria-label="Numéro de compte ${i+1}"/>
+        <span class="cim-row-tags" data-badge="${i}">${rowBadgeHtml(r)}</span>
         <span class="cim-row-actions">
           ${showFree ? `<label class="promo-chip" title="Compte offert par une promo — enregistré à 0">${icon('gift')}Offert<span class="switch"><input type="checkbox" data-free="${i}" ${r.free?'checked':''}/><span class="switch-track"></span></span></label>` : ''}
-          <button class="btn btn-ghost btn-sm" data-custom="${i}" title="Donner à ce compte une PropFirm, un type, une taille ou un prix différents de son groupe">${icon('edit')}<span class="cim-hide-sm">${r.open?'Fermer':'Personnaliser'}</span></button>
-          <button class="btn btn-ghost btn-sm cim-del" data-del="${i}" title="Retirer cette ligne" aria-label="Retirer cette ligne">${icon('x')}</button>
+          ${exists ? '' : `<button class="btn btn-ghost btn-sm" data-custom="${i}" title="Ouvrir le formulaire « Nouveau compte » prérempli pour ce compte (date, prix, type… différents)">${icon('edit')}<span class="cim-hide-sm">Personnaliser</span></button>`}
+          ${exists && r.createdHere ? '' : `<button class="btn btn-ghost btn-sm cim-del" data-del="${i}" title="Retirer cette ligne" aria-label="Retirer cette ligne">${icon('x')}</button>`}
         </span>
       </div>
-      ${rErr ? `<div class="error-text cim-row-err">${escapeHtml(rErr)}</div>` : ''}
-      ${r.open ? `
-      <div class="cim-custom" data-custom-panel="${i}">
-        <div class="cim-custom-title">Réglages propres à ${escapeHtml(r.value||'ce compte')} <button class="btn btn-ghost btn-sm" data-reset="${i}">Revenir aux réglages du groupe</button></div>
-        <div class="cim-fields">
-          <div class="cim-field"><label>PropFirm</label>${firmSelect(`data-c-firm="${i}"`, eff.firmId, true)}</div>
-          <div class="cim-field"><label>Type</label>${typeSelect(`data-c-type="${i}"`, eff.type, true)}</div>
-          <div class="cim-field"><label>Taille</label>${sizeSelect(`data-c-size="${i}"`, eff.sizeKey, true)}
-            ${eff.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-c-custom="${i}" value="${escapeHtml(eff.customSize||'')}" style="margin-top:6px;"/>` : ''}
-          </div>
-          ${isPaLike(eff.type)
-            ? `<div class="cim-field"><label>Frais d’activation (${cur})</label><input type="number" min="0" step="0.01" data-c-fee="${i}" value="${escapeHtml(eff.fee||'')}"/></div>`
-            : (eff.pay==='MENSUEL'
-              ? `<div class="cim-field"><label>Mensualité (${cur})</label><input type="number" min="0" step="0.01" data-c-monthly="${i}" value="${escapeHtml(eff.monthly||'')}"/></div>`
-              : `<div class="cim-field"><label>Prix d’achat (${cur})</label><input type="number" min="0" step="0.01" data-c-price="${i}" value="${escapeHtml(eff.price||'')}"/></div>`)}
-        </div>
-      </div>` : ''}`;
+      ${rErr ? `<div class="error-text cim-row-err">${escapeHtml(rErr)}</div>` : ''}`;
   }
 
   function summaryHtml(){
     const total = rows.filter(r=>r.value.trim()).length;
-    const dup = rows.filter(r=>r.value.trim() && cimExistingAccount(r.value)).length;
+    const dup = rows.filter(r=>r.value.trim() && cimExistingAccount(r.value) && !r.createdHere).length;
+    const made = rows.filter(r=>r.createdHere && cimExistingAccount(r.value)).length;
     return `
-      <span class="badge badge-accent">${total} compte${total>1?'s':''} lu${total>1?'s':''}</span>
+      <span class="badge badge-accent">${total} compte${total>1?'s':''}${captures>1?` · ${captures} captures`:''}</span>
+      ${made ? `<span class="badge badge-accent">${made} déjà créé${made>1?'s':''}</span>` : ''}
       ${dup ? `<span class="badge badge-slate">${dup} déjà enregistré${dup>1?'s':''}</span>` : ''}
       ${ignoredDemo.length ? `<span class="badge badge-slate" title="Comptes de démo ou de simulation de la plateforme : jamais importés">${ignoredDemo.length} démo ignoré${ignoredDemo.length>1?'s':''} : ${escapeHtml(ignoredDemo.join(', '))}</span>` : ''}
       ${remainingReads!==null ? `<span class="cim-reads">${remainingReads} lecture${remainingReads>1?'s':''} restante${remainingReads>1?'s':''} aujourd’hui</span>` : ''}`;
   }
 
   function renderReview(){
+    if(!isOpen()) return;
     const body = document.querySelector('#modal-root .modal-body');
     const scroll = body ? body.scrollTop : 0;
-    const anyChallenge = rows.some(r=>r.checked && effective(r).type==='CHALLENGE');
+    const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
     root().innerHTML = `
+      <div id="cim-review">
       <div class="cim-summary">${summaryHtml()}</div>
+      ${notice ? `<div class="cim-notice ${notice.danger?'is-danger':''}">${notice.reading?'<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>':icon(notice.danger?'alertTriangle':'check')}<span>${escapeHtml(notice.text)}</span></div>` : ''}
       <div class="cim-top">
         <div class="cim-field"><label>Trader</label>
           <select id="cim-trader" class="${!top.traderId?'cim-need':''}">${opt('', '— Sélectionner —', !top.traderId)}${state.traders.map(t=>opt(t.id, t.pseudo + (t.status==='INACTIF'?' (inactif)':''), t.id===top.traderId)).join('')}</select>
         </div>
-        <div class="cim-field"><label>Date d’achat / d’activation</label><input type="date" id="cim-date" value="${escapeHtml(top.date)}"/></div>
         <div class="cim-field"><label>Devise</label><select id="cim-currency">${['USD','EUR'].map(c=>opt(c,c,c===top.currency)).join('')}</select></div>
-        ${top.currency!=='EUR' ? `<div class="cim-field"><label>Taux EUR/${escapeHtml(top.currency)}</label><input type="number" step="0.0001" id="cim-fx" placeholder="Taux BCE…" value="${escapeHtml(top.fx)}" class="${!top.fx?'cim-need':''}"/></div>` : ''}
+        <div class="cim-top-add">
+          <button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
+          <span class="cim-top-hint">${isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Ou colle-la ici (Ctrl + V) pour compléter la liste.'}</span>
+          <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
+        </div>
       </div>
-      ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; utilise « Personnaliser » pour un compte différent de son groupe (prix promo, autre taille…).</span></div>` : ''}
+      ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; pour un compte différent de son groupe (autre date, prix promo, autre taille…), utilise « Personnaliser » : il s’ouvre dans le formulaire « Nouveau compte ».</span></div>` : ''}
       ${groups.map(groupCardHtml).join('')}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
-        ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro oublié</button>` : ''}
-        <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('camera')}Lire une autre capture</button>
+        ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro à la main</button>` : ''}
+        <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('reset')}Tout recommencer</button>
       </div>
-      <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>`;
-    const n = rows.filter(r=>r.checked && r.value.trim()).length;
-    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button><button class="btn btn-primary" id="cim-create" ${n?'':'disabled'}>${icon('check')}Créer ${n||''} compte${n>1?'s':''}</button>`);
+      <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>
+      </div>`;
+    const n = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value)).length;
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">${n ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${n&&!busy?'':'disabled'}>${icon('check')}Créer ${n||''} compte${n>1?'s':''}</button>`);
     bindReview();
     const body2 = document.querySelector('#modal-root .modal-body');
     if(body2) body2.scrollTop = scroll;
@@ -17035,127 +17079,158 @@ function captureImportModal(){
     const rerender = ()=>{ errors = null; renderReview(); };
     // En-tête
     document.getElementById('cim-trader').onchange = (e)=>{ top.traderId = e.target.value; rerender(); };
-    document.getElementById('cim-date').onchange = (e)=>{ top.date = e.target.value || todayISO(); fxPromise = autofillFx(true); };
-    document.getElementById('cim-currency').onchange = (e)=>{ top.currency = e.target.value; top.fx=''; fxPromise = autofillFx(true); rerender(); };
-    const fx = document.getElementById('cim-fx');
-    if(fx) fx.oninput = ()=>{ top.fx = fx.value; fx.classList.toggle('cim-need', !fx.value); };
+    document.getElementById('cim-currency').onchange = (e)=>{
+      top.currency = e.target.value;
+      Object.keys(fxCache).forEach(k=>delete fxCache[k]);
+      groups.forEach(g=>{ g.fx = ''; ensureFx(g.date); });
+      rerender();
+    };
+    const more = document.getElementById('cim-file-more');
+    document.getElementById('cim-add-capture').onclick = ()=>more.click();
+    more.onchange = ()=>{ if(more.files && more.files[0]) handleFile(more.files[0], true); };
     // Groupes
     const gSel = (attr, apply, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
-      const handler = ()=>{ const g = groupById(el.getAttribute(attr)); if(!g) return; apply(g, el.value); if(redraw) rerender(); else el.classList.toggle('cim-need', false); };
-      if(el.tagName==='SELECT') el.onchange = handler; else el.oninput = handler;
+      const handler = ()=>{ const g = groupById(el.getAttribute(attr)); if(!g) return; apply(g, el.value); if(redraw) rerender(); else el.classList.toggle('cim-need', !el.value); };
+      if(el.tagName==='SELECT' || el.type==='date') el.onchange = handler; else el.oninput = handler;
     });
     gSel('data-g-firm', (g,v)=>{ g.firmId=v; g.firmFrom=null; });
     gSel('data-g-type', (g,v)=>{ g.type=v; g.typeFrom=null; });
     gSel('data-g-size', (g,v)=>{ g.sizeKey=v; g.sizeFrom=null; if(v!=='AUTRE') g.customSize=''; });
     gSel('data-g-pay', (g,v)=>{ g.pay=v; });
+    gSel('data-g-date', (g,v)=>{ g.date = v || todayISO(); g.fx=''; ensureFx(g.date); });
     gSel('data-g-custom', (g,v)=>{ g.customSize=v; }, false);
     gSel('data-g-price', (g,v)=>{ g.price=v; }, false);
     gSel('data-g-monthly', (g,v)=>{ g.monthly=v; }, false);
     gSel('data-g-fee', (g,v)=>{ g.fee=v; }, false);
+    gSel('data-g-fx', (g,v)=>{ g.fx=v; }, false);
     // Lignes
     R.querySelectorAll('[data-check]').forEach(cb=>cb.onchange = ()=>{ rows[Number(cb.dataset.check)].checked = cb.checked; rerender(); });
     R.querySelectorAll('[data-num]').forEach(inp=>inp.oninput = ()=>{
       const i = Number(inp.dataset.num);
       rows[i].value = inp.value;
       const b = R.querySelector(`[data-badge="${i}"]`);
-      if(b) b.innerHTML = (rows[i].custom ? `<span class="badge badge-gold">Personnalisé</span>` : '') + rowBadgeHtml(inp.value);
+      if(b) b.innerHTML = rowBadgeHtml(rows[i]);
     });
     R.querySelectorAll('[data-free]').forEach(cb=>cb.onchange = ()=>{ rows[Number(cb.dataset.free)].free = cb.checked; rerender(); });
     R.querySelectorAll('[data-del]').forEach(btn=>btn.onclick = ()=>{
       rows.splice(Number(btn.dataset.del), 1);
-      groups = groups.filter(g=>rows.some(r=>r.gid===g.id));
-      if(!rows.length){ renderDrop(); return; }
+      dropEmptyGroups();
+      if(!rows.length){ captures = 0; renderDrop(); return; }
       rerender();
     });
-    R.querySelectorAll('[data-custom]').forEach(btn=>btn.onclick = ()=>{
-      const r = rows[Number(btn.dataset.custom)];
-      r.open = !r.open;
-      if(r.open && !r.custom){
-        const e = effective(r);
-        r.custom = { firmId:e.firmId, type:e.type, sizeKey:e.sizeKey, customSize:e.customSize, price:e.price, monthly:e.monthly, fee:e.fee };
-      }
-      rerender();
-    });
-    R.querySelectorAll('[data-reset]').forEach(btn=>btn.onclick = ()=>{ const r = rows[Number(btn.dataset.reset)]; r.custom = null; r.open = false; rerender(); });
-    const cSel = (attr, key, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
-      const handler = ()=>{ const r = rows[Number(el.getAttribute(attr))]; if(!r.custom) r.custom = {}; r.custom[key] = el.value; if(key==='sizeKey' && el.value!=='AUTRE') r.custom.customSize=''; if(redraw) rerender(); };
-      if(el.tagName==='SELECT') el.onchange = handler; else el.oninput = handler;
-    });
-    cSel('data-c-firm','firmId'); cSel('data-c-type','type'); cSel('data-c-size','sizeKey');
-    cSel('data-c-custom','customSize',false); cSel('data-c-price','price',false); cSel('data-c-monthly','monthly',false); cSel('data-c-fee','fee',false);
+    R.querySelectorAll('[data-custom]').forEach(btn=>btn.onclick = ()=>openNewAccountForm(Number(btn.dataset.custom)));
     // Divers
     const add = document.getElementById('cim-add-row');
     if(add) add.onclick = ()=>{
       let g = groups.find(x=>x.manual);
-      if(!g){ g = newGroup({}, ''); g.manual = true; groups.push(g); }
-      rows.push({ value:'', checked:true, det:null, gid:g.id, free:false, custom:null, open:false });
+      if(!g){ g = newGroup({}, '', 'manual'); g.manual = true; groups.push(g); ensureFx(g.date); }
+      rows.push({ value:'', checked:true, det:null, gid:g.id, free:false, createdHere:false });
       rerender();
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; ignoredDemo = []; thumb = ''; errors = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; ignoredDemo = []; captures = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
+  }
+
+  // ---------- « Personnaliser » : le formulaire « Nouveau compte », prérempli ----------
+  // On ferme l'import (son état reste en mémoire), on ouvre le formulaire habituel avec les
+  // réglages du groupe, et on revient à la liste dès que ce formulaire se ferme (enregistré ou annulé).
+  function openNewAccountForm(i){
+    const r = rows[i];
+    const g = groupById(r.gid) || newGroup({}, '');
+    const paLike = isPaLike(g.type);
+    const fx = fxOf(g);
+    const raw = {
+      traderId: top.traderId,
+      propFirmId: g.firmId,
+      type: g.type,
+      size: g.sizeKey,
+      customSize: g.sizeKey==='AUTRE' ? g.customSize : '',
+      accountNumber: r.value.trim(),
+      paymentType: paLike ? 'UNIQUE' : g.pay,
+      purchasePrice: (!paLike && g.pay==='UNIQUE') ? (r.free ? 0 : g.price) : '',
+      monthlyAmount: (!paLike && g.pay==='MENSUEL') ? g.monthly : '',
+      promoFree: !paLike && g.pay==='UNIQUE' && !!r.free,
+      purchaseDate: g.date,
+      activationDate: g.date,
+      activationFee: paLike ? g.fee : '',
+      currency: top.currency,
+      fxRateToEur: top.currency==='EUR' ? 1 : fx,
+    };
+    // Les champs inconnus gardent les valeurs par défaut du formulaire.
+    const prefill = {};
+    Object.entries(raw).forEach(([k,v])=>{ if(v!=='' && v!=null) prefill[k] = (k==='purchasePrice'||k==='monthlyAmount'||k==='activationFee'||k==='customSize'||k==='fxRateToEur') ? Number(v) : v; });
+    document.removeEventListener('paste', onPaste);
+    closeModal();
+    accountFormModal({ prefill });
+    const modalRoot = document.getElementById('modal-root');
+    if(!modalRoot || !document.getElementById('af-save')){ openShell(()=>renderReview()); return; }
+    const obs = new MutationObserver(()=>{
+      if(document.getElementById('af-save')) return;      // formulaire encore ouvert
+      obs.disconnect();
+      if(modalRoot.children.length) return;               // une autre fenêtre a pris la place (ex. passage Premium)
+      if(cimExistingAccount(r.value)){ r.createdHere = true; r.checked = false; }
+      setTimeout(()=>openShell(()=>renderReview()), 0);
+    });
+    obs.observe(modalRoot, { childList:true });
   }
 
   // ---------- Création : mêmes contrôles que la saisie manuelle ----------
   async function createAll(){
     const btn = document.getElementById('cim-create');
     if(btn){ btn.disabled = true; }
-    if(fxPromise) await fxPromise;
-    const fxInput = document.getElementById('cim-fx');
-    if(fxInput) top.fx = fxInput.value;
+    await allFxPending();
     const err = { global:'', groups:{}, rows:{} };
-    const selected = rows.map((r,i)=>({ r, i })).filter(x=>x.r.checked && x.r.value.trim());
+    const selected = rows.map((r,i)=>({ r, i })).filter(x=>x.r.checked && x.r.value.trim() && !cimExistingAccount(x.r.value));
     rows.forEach((r,i)=>{ if(r.checked && !r.value.trim()) err.rows[i] = 'Numéro vide : complète-le ou retire la ligne.'; });
 
     const trader = top.traderId ? getTrader(top.traderId) : null;
     if(!trader) err.global = 'Choisis le trader à qui appartiennent ces comptes.';
-    if(top.currency!=='EUR' && !(Number(top.fx)>0)) err.global = err.global || 'Taux de change introuvable automatiquement : saisis-le en haut avant de créer.';
 
     const records = [];
     const seen = new Map(); // firmId|numéro normalisé -> index de ligne
     selected.forEach(({r,i})=>{
-      const e = effective(r);
       const g = groupById(r.gid);
-      const missing = [!e.firmId && 'PropFirm', !e.type && 'type', !e.sizeKey && 'taille'].filter(Boolean);
-      if(e.sizeKey==='AUTRE' && !(Number(e.customSize)>0)) missing.push('montant de la taille');
-      const paLike = isPaLike(e.type);
-      const free = !paLike && e.pay==='UNIQUE' && r.free;
+      if(!g) return;
+      const paLike = isPaLike(g.type);
+      const missing = [!g.firmId && 'PropFirm', !g.type && 'type', !g.sizeKey && 'taille'].filter(Boolean);
+      if(g.sizeKey==='AUTRE' && !(Number(g.customSize)>0)) missing.push('montant de la taille');
+      const free = !paLike && g.pay==='UNIQUE' && r.free;
       if(!paLike){
-        if(e.pay==='UNIQUE' && !free && !(Number(e.price)>0)) missing.push('prix d’achat');
-        if(e.pay==='MENSUEL' && !(Number(e.monthly)>0)) missing.push('mensualité');
+        if(g.pay==='UNIQUE' && !free && !(Number(g.price)>0)) missing.push('prix d’achat');
+        if(g.pay==='MENSUEL' && !(Number(g.monthly)>0)) missing.push('mensualité');
       }
-      if(missing.length){
-        const msg = `À compléter : ${missing.join(', ')}.`;
-        if(r.custom) err.rows[i] = msg; else if(g) err.groups[g.id] = msg;
-        return;
-      }
-      if(trader && e.type==='CHALLENGE' && trader.status==='INACTIF'){
+      const fx = fxOf(g);
+      if(top.currency!=='EUR' && !(Number(fx)>0)) missing.push('taux de change');
+      if(missing.length){ err.groups[g.id] = `À compléter : ${[...new Set(missing)].join(', ')}.`; return; }
+      if(trader && g.type==='CHALLENGE' && trader.status==='INACTIF'){
         err.global = err.global || `Impossible : ${trader.pseudo} est inactif. Réactive-le pour créer de nouveaux challenges.`;
       }
       const num = r.value.trim();
-      const key = `${e.firmId}|${normAccNum(num)}`;
+      const key = `${g.firmId}|${normAccNum(num)}`;
       if(seen.has(key)){ err.rows[i] = `Doublon avec ${rows[seen.get(key)].value.trim()} dans cet import.`; return; }
       seen.set(key, i);
-      const dupAccount = findDuplicateAccount(e.firmId, num, null);
+      const dupAccount = findDuplicateAccount(g.firmId, num, null);
       if(dupAccount){
         const dupTrader = getTrader(dupAccount.traderId);
-        err.rows[i] = `Déjà utilisé chez ${getFirm(e.firmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}).`;
+        err.rows[i] = `Déjà utilisé chez ${getFirm(g.firmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}).`;
         return;
       }
-      records.push({ i, free, record: {
-        id: uid('acc'), traderId: top.traderId, propFirmId: e.firmId, type: e.type,
+      const date = g.date || todayISO();
+      records.push({ free, record: {
+        id: uid('acc'), traderId: top.traderId, propFirmId: g.firmId, type: g.type,
         parentChallengeId: null,
-        size: e.sizeKey, customSize: e.sizeKey==='AUTRE' ? Number(e.customSize)||0 : null, accountNumber: num,
-        paymentType: paLike ? 'UNIQUE' : e.pay,
-        purchasePrice: paLike ? 0 : (e.pay==='UNIQUE' ? (free ? 0 : Number(e.price)||0) : null),
-        monthlyAmount: (!paLike && e.pay==='MENSUEL') ? Number(e.monthly)||0 : null,
+        size: g.sizeKey, customSize: g.sizeKey==='AUTRE' ? Number(g.customSize)||0 : null, accountNumber: num,
+        paymentType: paLike ? 'UNIQUE' : g.pay,
+        purchasePrice: paLike ? 0 : (g.pay==='UNIQUE' ? (free ? 0 : Number(g.price)||0) : null),
+        monthlyAmount: (!paLike && g.pay==='MENSUEL') ? Number(g.monthly)||0 : null,
         promoFree: free,
-        purchaseDate: top.date || todayISO(),
-        activationDate: paLike ? (top.date || todayISO()) : null,
-        activationFee: paLike ? (Number(e.fee)||0) : null,
+        purchaseDate: date,
+        activationDate: paLike ? date : null,
+        activationFee: paLike ? (Number(g.fee)||0) : null,
         status: 'ACTIF', endDate: null,
-        currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(top.fx),
+        currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(fx),
         createdAt: new Date().toISOString(), createdBy: currentUserId(),
       }});
     });
@@ -17189,18 +17264,22 @@ function captureImportModal(){
   }
 
   // ---------- Ouverture ----------
-  document.addEventListener('paste', onPaste);
-  openModal({
-    title: 'Importer des comptes depuis une capture',
-    wide: 'xwide',
-    bodyHtml: `<div id="cim-root"></div>`,
-    footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
-    onMount(){
-      renderDrop();
-      const x = document.getElementById('modal-close-btn');
-      if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
-    }
-  });
+  function openShell(firstRender){
+    document.removeEventListener('paste', onPaste);
+    document.addEventListener('paste', onPaste);
+    openModal({
+      title: 'Importer des comptes depuis une capture',
+      wide: 'xwide',
+      bodyHtml: `<div id="cim-root"></div>`,
+      footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
+      onMount(){
+        firstRender();
+        const x = document.getElementById('modal-close-btn');
+        if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
+      }
+    });
+  }
+  openShell(()=>renderDrop());
 }
 
 /* ============================================================
