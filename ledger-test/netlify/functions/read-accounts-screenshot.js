@@ -2,7 +2,8 @@
 //
 // Import de comptes depuis une capture d'écran (page Comptes > « Importer depuis une capture »).
 // Reçoit une image (liste de comptes affichée dans Tradovate, Rithmic, NinjaTrader…), la fait lire
-// par Gemini (vision) et renvoie uniquement la liste des numéros de compte détectés.
+// par Gemini (vision) et renvoie les numéros de compte détectés, avec — quand c'est lisible —
+// la PropFirm (choisie dans le catalogue Contralytix envoyé par le navigateur), la taille et le type.
 // Rien n'est écrit en base ici : le navigateur affiche la liste, le trader la corrige puis la
 // valide via le formulaire « Ajout en masse » existant (mêmes règles anti-doublon que la saisie
 // manuelle).
@@ -30,15 +31,24 @@ const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
 const MAX_ATTEMPTS_PER_MODEL = 3;
 const BASE_RETRY_DELAY_MS = 900;
 
-const PROMPT = `Tu lis une capture d'écran d'une plateforme de trading (Tradovate, Rithmic, NinjaTrader, Project X, tableau de bord de prop firm…).
-Extrais UNIQUEMENT les identifiants de comptes de trading visibles (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000247-000010", "FFNX-50S233903720032", "LFF050-KE249Z1F-PRO002", "BX-M7495031764", "DEMO19714").
-Règles :
-- recopie chaque identifiant exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter ;
-- recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite) ;
-- ignore les en-têtes de colonnes, soldes, montants, dates, noms de personnes, adresses e-mail et libellés de menus ;
-- ne mets pas deux fois le même identifiant ;
-- si aucun identifiant n'est lisible, renvoie une liste vide.
-Réponds uniquement avec du JSON de la forme {"accounts":["ID1","ID2"]}.`;
+// Consigne de lecture. `firmNames` = catalogue des PropFirms de Contralytix (envoyé par le
+// navigateur) : Gemini ne peut répondre qu'un de ces noms, jamais une PropFirm inventée.
+function buildPrompt(firmNames) {
+  const firms = firmNames.length ? firmNames.map((n) => `"${n}"`).join(', ') : '(aucune)';
+  return `Tu lis une capture d'écran d'une plateforme de trading (Tradovate, Rithmic, NinjaTrader, Project X, tableau de bord de prop firm…).
+Pour CHAQUE compte de trading visible, renvoie un objet avec ces champs :
+
+- "number" : l'identifiant du compte, recopié exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000247-000010", "LFF050-KE249Z1F-PRO002", "DEMO19714"). Recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite).
+- "propfirm" : la PropFirm du compte, en choisissant UNIQUEMENT un nom de cette liste, écrit à l'identique : ${firms}. Sinon null.
+- "propfirmSource" : "screen" si le nom (ou le logo) de la PropFirm est affiché à l'écran pour ce compte (colonne, en-tête, titre de la page) ; "number" si tu le déduis d'un nom ou d'une abréviation sans ambiguïté contenu dans l'identifiant (ex : "APEX" dans "APEX-123456-03") ; null si propfirm est null. Ne devine jamais : en cas de doute, propfirm = null.
+- "size" : la taille du compte en dollars (nombre entier, ex : 50000), uniquement si elle est affichée comme taille ou plan du compte, ou écrite explicitement dans l'identifiant avec un K (ex : "150K" → 150000, "50K" → 50000). Ne JAMAIS utiliser le solde, l'équité, le P&L ou un autre montant comme taille. Sinon null.
+- "sizeSource" : "screen", "number" ou null, sur le même principe.
+- "type" : "CHALLENGE" (évaluation : mots EVAL, EVALUATION, TEST, COMBINE, CHALLENGE, QUALIF), "PA" (compte financé : mots FUNDED, PA, PRO, XFA, PERFORMANCE, EXPRESS), "LIVE" (mot LIVE), uniquement si ce mot est affiché à l'écran pour ce compte ou contenu dans l'identifiant. Sinon null.
+- "typeSource" : "screen", "number" ou null.
+
+Ignore les en-têtes de colonnes, soldes, montants, dates, noms de personnes, adresses e-mail et libellés de menus. Ne mets pas deux fois le même compte. Si aucun compte n'est lisible, renvoie une liste vide.
+Réponds uniquement avec du JSON de la forme {"accounts":[{"number":"...","propfirm":null,"propfirmSource":null,"size":null,"sizeSource":null,"type":null,"typeSource":null}]}.`;
+}
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -57,22 +67,40 @@ function isDemoAccount(id) {
   return /demo|practice|paper/.test(k) || /^sim\d/.test(k);
 }
 
-// Nettoie la réponse du modèle : garde des identifiants plausibles, sans doublon.
-// Renvoie { accounts, ignored } — `ignored` = comptes de démo écartés, affichés au trader.
-function cleanAccounts(list) {
+const TYPES = ['CHALLENGE', 'PA', 'LIVE'];
+const SOURCES = ['screen', 'number'];
+
+// Nettoie la réponse du modèle : garde des identifiants plausibles, sans doublon, et ne conserve
+// PropFirm / taille / type que s'ils sont valides (PropFirm présente dans le catalogue, taille
+// réaliste, type connu). Renvoie { accounts:[{number, propfirm, propfirmSource, size, sizeSource,
+// type, typeSource}], ignored } — `ignored` = comptes de démo écartés, affichés au trader.
+function cleanAccounts(list, firmNames) {
+  const firmByLower = new Map(firmNames.map((n) => [n.toLowerCase(), n]));
   const seen = new Set();
   const out = [];
   const ignored = [];
   for (const raw of Array.isArray(list) ? list : []) {
-    if (typeof raw !== 'string') continue;
-    const id = raw.trim().replace(/\s+/g, '');
+    const item = typeof raw === 'string' ? { number: raw } : (raw && typeof raw === 'object' ? raw : null);
+    if (!item || typeof item.number !== 'string') continue;
+    const id = item.number.trim().replace(/\s+/g, '');
     // Un identifiant de compte : 3 à 40 caractères, au moins un chiffre, alphanumérique + - _ .
     if (!/^[A-Za-z0-9._-]{3,40}$/.test(id) || !/\d/.test(id)) continue;
     const key = id.toLowerCase().replace(/[._-]+/g, '');
     if (seen.has(key)) continue;
     seen.add(key);
     if (isDemoAccount(id)) { ignored.push(id); continue; }
-    out.push(id);
+
+    const propfirm = typeof item.propfirm === 'string' ? (firmByLower.get(item.propfirm.trim().toLowerCase()) || null) : null;
+    const sizeNum = Math.round(Number(item.size));
+    const size = Number.isFinite(sizeNum) && sizeNum >= 1000 && sizeNum <= 2000000 ? sizeNum : null;
+    const type = typeof item.type === 'string' && TYPES.includes(item.type.toUpperCase()) ? item.type.toUpperCase() : null;
+    const src = (v, has) => (has && SOURCES.includes(v) ? v : (has ? 'number' : null));
+    out.push({
+      number: id,
+      propfirm, propfirmSource: src(item.propfirmSource, !!propfirm),
+      size, sizeSource: src(item.sizeSource, !!size),
+      type, typeSource: src(item.typeSource, !!type),
+    });
     if (out.length >= MAX_ACCOUNTS) break;
   }
   return { accounts: out, ignored };
@@ -93,9 +121,16 @@ exports.handler = async (event) => {
   }
 
   // 2. Image valide
-  let image, mimeType;
+  let image, mimeType, firmNames = [];
   try {
     const body = JSON.parse(event.body || '{}');
+    // Catalogue des PropFirms (noms seulement) : 100 max, noms courts et sans guillemets.
+    if (Array.isArray(body.firms)) {
+      firmNames = [...new Set(body.firms
+        .filter((n) => typeof n === 'string')
+        .map((n) => n.replace(/["\\\n\r]/g, '').trim())
+        .filter((n) => n && n.length <= 60))].slice(0, 100);
+    }
     image = typeof body.image === 'string' ? body.image.replace(/^data:[^,]*,/, '') : '';
     mimeType = typeof body.mimeType === 'string' ? body.mimeType : '';
   } catch (e) {
@@ -117,7 +152,7 @@ exports.handler = async (event) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mimeType, data: image } }] }],
+            contents: [{ parts: [{ text: buildPrompt(firmNames) }, { inline_data: { mime_type: mimeType, data: image } }] }],
             generationConfig: { temperature: 0, responseMimeType: 'application/json' },
           }),
         });
@@ -130,7 +165,7 @@ exports.handler = async (event) => {
             const m = text.match(/\{[\s\S]*\}/);
             if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) { /* ignoré */ } }
           }
-          return json(200, cleanAccounts(parsed && parsed.accounts));
+          return json(200, cleanAccounts(parsed && parsed.accounts, firmNames));
         }
         lastError = data.error?.message || 'Erreur API Gemini';
         if (isOverloaded(res.status, lastError)) {
