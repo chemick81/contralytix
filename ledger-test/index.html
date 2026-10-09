@@ -452,6 +452,42 @@ th.th-sort-active svg{opacity:1;}
 .promo-row-sub{font-size:11.5px;color:var(--text-faint);}
 .baf-line{display:flex;align-items:center;gap:10px;}
 .baf-line .baf-number{flex:1;min-width:0;}
+/* Import de comptes depuis une capture d'écran (cim = capture import modal) */
+.cim-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:190px;padding:26px 18px;border:1.5px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface-2);text-align:center;cursor:pointer;transition:border-color .15s,background .15s;outline:none;}
+.cim-drop:hover,.cim-drop:focus-visible,.cim-drop.is-over{border-color:var(--accent);background:var(--accent-dim);}
+.cim-drop-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);}
+.cim-drop-icon svg{width:22px;height:22px;}
+.cim-drop-title{font-size:var(--fs-md);font-weight:700;color:var(--text);}
+.cim-drop-sub{font-size:var(--fs-sm);color:var(--text-dim);line-height:1.5;max-width:380px;}
+.cim-kbd{display:inline-block;padding:1px 6px;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;font-size:11px;font-weight:700;color:var(--text);background:var(--surface);}
+.cim-privacy{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:11.5px;color:var(--text-faint);line-height:1.5;}
+.cim-privacy svg{width:13px;height:13px;flex-shrink:0;margin-top:2px;}
+.cim-reading{display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
+.cim-thumb{width:120px;max-height:90px;object-fit:cover;object-position:top left;border-radius:var(--radius-sm);border:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+.cim-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;}
+.cim-list{display:flex;flex-direction:column;gap:6px;}
+.cim-row{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);transition:opacity .15s,border-color .15s;}
+.cim-row.is-off{opacity:.55;}
+.cim-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;}
+.cim-row .cim-num{flex:1;min-width:0;background:transparent;border:1px solid transparent;color:var(--text);padding:7px 8px;border-radius:var(--radius-sm);font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px;}
+.cim-row .cim-num:hover{border-color:var(--border);}
+.cim-row .cim-num:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface);}
+.cim-row .badge{flex-shrink:0;}
+.cim-row .cim-del{flex-shrink:0;}
+.cim-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 2px 2px;font-size:12px;color:var(--text-dim);}
+.cim-group-head:first-child{margin-top:0;}
+.cim-suggest{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:12.5px;color:var(--text-dim);line-height:1.45;}
+.cim-suggest svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
+@media (max-width:560px){
+  .cim-reading{flex-direction:column;align-items:flex-start;}
+  .cim-row [data-badge]{min-width:0;}
+  .cim-row [data-badge] .badge{white-space:normal;line-height:1.35;}
+  .cim-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:8px;row-gap:0;align-items:center;}
+  .cim-row input[type=checkbox]{grid-column:1;grid-row:1;}
+  .cim-row .cim-num{grid-column:2;grid-row:1;}
+  .cim-row .cim-del{grid-column:3;grid-row:1;}
+  .cim-row [data-badge]{grid-column:2;grid-row:2;padding:0 8px 4px;}
+}
 .promo-chip{display:inline-flex !important;align-items:center;gap:8px;margin:0 !important;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-2);font-size:12px !important;font-weight:600;color:var(--text-dim) !important;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s,background .15s,color .15s;}
 .promo-chip svg{width:13px;height:13px;color:#E3B564;}
 .promo-chip:has(input:checked){border-color:rgba(227,181,100,.55);background:rgba(227,181,100,.10);color:#E3B564 !important;}
@@ -5797,7 +5833,7 @@ function renderTopbarActions(){
     }
   }
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes à partir d'une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('camera')}Importer une capture</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -5827,6 +5863,7 @@ function renderTopbarActions(){
   if(document.getElementById('add-firm')) document.getElementById('add-firm').onclick = ()=>firmFormModal();
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
   if(document.getElementById('bulk-add-account')) document.getElementById('bulk-add-account').onclick = ()=>bulkAccountFormModal();
+  if(document.getElementById('capture-import-account')) document.getElementById('capture-import-account').onclick = ()=>captureImportModal();
   if(document.getElementById('export-accounting')) document.getElementById('export-accounting').onclick = exportAccountingCSV;
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
@@ -9637,6 +9674,7 @@ function viewConfidentialite(){
             <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
           <p>Ces prestataires sont soumis à leurs propres conditions et politiques de confidentialité, et n'utilisent vos données que pour exécuter la prestation demandée.</p>
@@ -16226,22 +16264,27 @@ function accountFormModal({ existing, type, parentChallenge }){
    normAccNum/findDuplicateAccount) pour ne jamais créer un lot dans un état
    incohérent avec le reste de l'appli.
 ============================================================ */
-function bulkAccountFormModal(){
+// `prefill` (optionnel) : { numbers:[...], propFirmId, type, size } — utilisé uniquement par
+// l'import depuis une capture (captureImportModal) pour ouvrir ce formulaire avec les numéros déjà
+// lus. Appelé sans argument (bouton « Ajout en masse »), le comportement est strictement inchangé.
+function bulkAccountFormModal(prefill){
   if(state.traders.length===0 || state.propfirms.length===0){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
   }
+  const preNumbers = (prefill && Array.isArray(prefill.numbers) && prefill.numbers.length) ? prefill.numbers.slice(0,50) : null;
   const base = {
     traderId: defaultTrader() ? defaultTrader().id : '',
-    propFirmId: '',
-    type: 'CHALLENGE',
-    size: 'S25K',
+    propFirmId: (prefill && prefill.propFirmId && getFirm(prefill.propFirmId)) ? prefill.propFirmId : '',
+    type: (prefill && ['CHALLENGE','PA','LIVE'].includes(prefill.type)) ? prefill.type : 'CHALLENGE',
+    size: (prefill && prefill.size && SIZE_LABELS[prefill.size]) ? prefill.size : 'S25K',
     customSize: '',
     paymentType: 'UNIQUE',
     purchaseDate: todayISO(),
     activationDate: todayISO(),
   };
-  let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = 2;
+  let curType = base.type, curPay = base.paymentType, curSize = base.size, qty = preNumbers ? preNumbers.length : 2;
+  const isPaType = (curType==='PA'||curType==='LIVE');
 
   function numberFieldsHtml(prevValues, prevFree){
     return Array.from({length:qty}).map((_,i)=>`
@@ -16256,10 +16299,11 @@ function bulkAccountFormModal(){
   }
 
   openModal({
-    title: 'Ajout en masse — comptes identiques',
+    title: preNumbers ? 'Import depuis une capture — compléter les comptes' : 'Ajout en masse — comptes identiques',
     wide: true,
     bodyHtml: `
-      <div class="field-hint" style="margin-bottom:14px;">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
+      ${preNumbers ? `<div class="cim-suggest" style="margin:0 0 14px;">${icon('check')}<span><strong>${preNumbers.length} numéro${preNumbers.length>1?'s':''} de compte</strong> repris de ta capture (liste en bas). Complète les infos communes au lot ; tu peux encore corriger chaque numéro avant de créer les comptes.</span></div>` : ''}
+      <div class="field-hint" style="margin-bottom:14px;${preNumbers?'display:none;':''}">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
       <div class="field-row">
         <div class="field"><label>Trader</label>
           <select id="baf-trader">
@@ -16269,9 +16313,9 @@ function bulkAccountFormModal(){
         </div>
         <div class="field"><label>PropFirm</label>
           <div class="firm-picker" id="baf-firm-picker">
-            ${sortedFirms().map(f=>`<div class="firm-pick" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
+            ${sortedFirms().map(f=>`<div class="firm-pick ${base.propFirmId===f.id?'selected':''}" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
           </div>
-          <input type="hidden" id="baf-firm" value=""/>
+          <input type="hidden" id="baf-firm" value="${base.propFirmId}"/>
         </div>
       </div>
       <div class="field"><label>Type de compte</label>
@@ -16287,7 +16331,7 @@ function bulkAccountFormModal(){
             ${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${curSize===k?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
-        <div class="field" id="baf-customsize-wrap" style="display:none;">
+        <div class="field" id="baf-customsize-wrap" style="display:${curSize==='AUTRE'?'block':'none'};">
           <label>Montant personnalisé ($)</label><input id="baf-customsize" type="number"/>
         </div>
       </div>
@@ -16301,7 +16345,7 @@ function bulkAccountFormModal(){
       <div class="field-row">
         <div class="field" id="baf-price-wrap" style="display:${curPay==='UNIQUE'?'block':'none'};"><label>Prix d'achat (par compte payé) <span style="color:var(--danger)">*</span></label><input id="baf-price" type="number"/><div class="field-hint">Promo « 1 acheté = 1 offert » : active « Offert » sur le ou les comptes gratuits plus bas.</div></div>
         <div class="field" id="baf-monthly-wrap" style="display:${curPay==='MENSUEL'?'block':'none'};"><label>Montant mensuel (par compte) <span style="color:var(--danger)">*</span></label><input id="baf-monthly" type="number"/></div>
-        <div class="field" id="baf-purchase-date-wrap"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
+        <div class="field" id="baf-purchase-date-wrap" style="display:${isPaType?'none':'block'};"><label>Date d'achat / d'ouverture</label><input id="baf-date" type="date" value="${base.purchaseDate}"/></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Devise</label>
@@ -16315,7 +16359,7 @@ function bulkAccountFormModal(){
           <div class="field-hint">Rempli automatiquement depuis la BCE si laissé vide.</div>
         </div>
       </div>
-      <div id="baf-pa-fields" style="display:none;">
+      <div id="baf-pa-fields" style="display:${isPaType?'block':'none'};">
         <div class="field-row">
           <div class="field"><label>Date d'activation</label><input id="baf-activation-date" type="date" value="${base.activationDate}"/><div class="field-hint">Sert aussi de date d'achat/ouverture — appliquée à chaque compte du lot.</div></div>
           <div class="field"><label id="baf-activation-fee-label">Frais d'activation ($, optionnel)</label><input id="baf-activation-fee" type="number"/></div>
@@ -16326,7 +16370,7 @@ function bulkAccountFormModal(){
         <input id="baf-qty" type="number" min="2" max="50" value="${qty}"/>
         <div class="field-hint">Génère automatiquement un champ « Numéro de compte » par exemplaire.</div>
       </div>
-      <div id="baf-numbers">${numberFieldsHtml()}</div>
+      <div id="baf-numbers">${numberFieldsHtml(preNumbers)}</div>
       <div id="baf-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="baf-cancel">Annuler</button><button class="btn btn-primary" id="baf-save">Créer les comptes</button>`,
@@ -16507,9 +16551,355 @@ function bulkAccountFormModal(){
         const nbFree = freeFlags.filter(Boolean).length;
         showToast(`${rawNumbers.length} comptes créés${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}.`);
         closeModal(); render();
+        if(prefill && typeof prefill.onDone==='function') prefill.onDone();
       };
     }
   });
+}
+
+/* ============================================================
+   IMPORT DE COMPTES DEPUIS UNE CAPTURE D'ÉCRAN
+   Le trader colle (Ctrl+V), dépose ou choisit une capture de sa liste de comptes
+   (Tradovate, Rithmic, NinjaTrader…). La fonction serveur read-accounts-screenshot
+   la fait lire par Gemini et renvoie les numéros. Le trader corrige/coche la liste,
+   puis on ouvre le formulaire « Ajout en masse » prérempli : la création réelle passe
+   donc par exactement les mêmes contrôles que la saisie manuelle (anti-doublon par
+   PropFirm, limite formule Free, trader inactif, taux BCE…). Rien n'est enregistré
+   en base dans cette étape, et l'image n'est jamais stockée.
+============================================================ */
+const CIM_MAX_ACCOUNTS = 50; // même plafond que « Ajout en masse »
+
+// Préfixe alphabétique d'un numéro de compte (ex: "FFFUNDED541223" -> "fffunded"),
+// utilisé pour deviner la PropFirm / le type à partir des comptes déjà enregistrés.
+function cimPrefix(num){
+  const m = String(num||'').trim().toUpperCase().match(/^[A-Z]+/);
+  return (m && m[0].length>=2) ? m[0] : '';
+}
+function cimExistingAccount(num){
+  const key = normAccNum(num);
+  if(!key) return null;
+  return state.accounts.find(a=>normAccNum(a.accountNumber)===key) || null;
+}
+function cimMajority(values){
+  const counts = new Map();
+  values.filter(Boolean).forEach(v=>counts.set(v, (counts.get(v)||0)+1));
+  let best = null, bestN = 0;
+  counts.forEach((n,v)=>{ if(n>bestN){ best=v; bestN=n; } });
+  return best;
+}
+// Suggestion PropFirm / type / taille : d'après les comptes du même préfixe déjà
+// enregistrés (les siens d'abord, sinon tous ceux visibles). Simple présélection,
+// toujours modifiable dans le formulaire suivant.
+function cimSuggestion(numbers){
+  const prefix = cimMajority(numbers.map(cimPrefix));
+  if(!prefix) return null;
+  const me = currentUserId();
+  let matches = state.accounts.filter(a=>a.createdBy===me && cimPrefix(a.accountNumber)===prefix);
+  if(!matches.length) matches = state.accounts.filter(a=>cimPrefix(a.accountNumber)===prefix);
+  if(!matches.length) return null;
+  const propFirmId = cimMajority(matches.map(a=>a.propFirmId));
+  if(!propFirmId || !getFirm(propFirmId)) return null;
+  const sameFirm = matches.filter(a=>a.propFirmId===propFirmId);
+  return {
+    prefix,
+    propFirmId,
+    type: cimMajority(sameFirm.map(a=>a.type)),
+    size: cimMajority(sameFirm.map(a=>a.size)),
+  };
+}
+// Réduit la capture (2000 px max) avant envoi : plus rapide, sous la limite des fonctions
+// Netlify, et largement assez net pour lire des numéros de compte.
+function cimPrepareImage(file){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const scale = Math.min(1, 2000/Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth*scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight*scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        let dataUrl = canvas.toDataURL('image/png');
+        if(dataUrl.length > 4000000) dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl, mimeType: dataUrl.slice(5, dataUrl.indexOf(';')) });
+      }catch(e){ URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+    img.src = url;
+  });
+}
+
+function captureImportModal(){
+  if(state.traders.length===0 || state.propfirms.length===0){
+    showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
+    return;
+  }
+  let rows = [];          // [{ value, checked }]
+  let ignoredDemo = [];   // comptes de démo/simulation écartés par le serveur (ex: DEMO19714)
+  let thumb = '';
+  let busy = false;
+
+  const root = ()=>document.getElementById('cim-root');
+  const foot = ()=>document.getElementById('cim-foot');
+  const isOpen = ()=>!!root();
+
+  // Coller une image (Ctrl+V / Cmd+V) tant que la modale est ouverte, à l'étape de dépôt.
+  function onPaste(e){
+    if(!isOpen()){ document.removeEventListener('paste', onPaste); return; }
+    if(busy || !document.getElementById('cim-drop')) return;
+    const item = Array.from((e.clipboardData && e.clipboardData.items) || []).find(it=>it.kind==='file' && it.type.startsWith('image/'));
+    if(!item) return;
+    e.preventDefault();
+    handleFile(item.getAsFile());
+  }
+
+  function setFoot(html){ const f = foot(); if(f) f.innerHTML = html; const c = document.getElementById('cim-cancel'); if(c) c.onclick = ()=>{ document.removeEventListener('paste', onPaste); closeModal(); }; }
+
+  function renderDrop(errorMsg){
+    busy = false;
+    const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+    root().innerHTML = `
+      <div class="cim-drop" id="cim-drop" tabindex="0" role="button" aria-label="Choisir ou coller une capture d'écran">
+        <div class="cim-drop-icon">${icon('camera')}</div>
+        <div class="cim-drop-title">${isTouch ? 'Choisis ta capture d’écran' : 'Colle ta capture ici'}</div>
+        <div class="cim-drop-sub">${isTouch
+          ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme.'
+          : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse l’image ici, ou clique pour choisir un fichier.`}</div>
+        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Cadre la liste des numéros de compte.</div>
+      </div>
+      <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
+      ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
+      <div class="cim-privacy">${icon('shield')}<span>La capture est lue automatiquement par Gemini (Google) pour en extraire les numéros, puis oubliée : elle n’est jamais enregistrée. Rien n’est créé tant que tu n’as pas validé.</span></div>`;
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
+    const drop = document.getElementById('cim-drop');
+    const input = document.getElementById('cim-file');
+    drop.onclick = ()=>input.click();
+    drop.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); input.click(); } };
+    input.onchange = ()=>{ if(input.files && input.files[0]) handleFile(input.files[0]); };
+    drop.ondragover = (e)=>{ e.preventDefault(); drop.classList.add('is-over'); };
+    drop.ondragleave = ()=>drop.classList.remove('is-over');
+    drop.ondrop = (e)=>{
+      e.preventDefault(); drop.classList.remove('is-over');
+      const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find(x=>x.type.startsWith('image/'));
+      if(f) handleFile(f); else renderDrop('Dépose une image (PNG, JPG ou WEBP).');
+    };
+    if(!isTouch) drop.focus();
+  }
+
+  function renderReading(){
+    root().innerHTML = `
+      <div class="cim-reading">
+        ${thumb ? `<img class="cim-thumb" src="${thumb}" alt="Aperçu de la capture"/>` : ''}
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="spinner"></div>
+          <div>
+            <div class="cim-drop-title" style="font-size:var(--fs-base);">Lecture de la capture…</div>
+            <div class="cim-drop-sub">Quelques secondes : on repère les numéros de compte.</div>
+          </div>
+        </div>
+      </div>`;
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
+  }
+
+  async function handleFile(file){
+    if(!file || busy) return;
+    if(!/^image\/(png|jpe?g|webp)$/.test(file.type)){
+      renderDrop('Format non pris en charge : utilise une capture PNG, JPG ou WEBP.');
+      return;
+    }
+    busy = true;
+    let prepared;
+    try{ prepared = await cimPrepareImage(file); }
+    catch(e){ renderDrop('Impossible de lire cette image. Refais une capture au format PNG ou JPG.'); return; }
+    thumb = prepared.dataUrl;
+    renderReading();
+    try{
+      const { data:{ session } } = await supabaseClient.auth.getSession();
+      const res = await fetch('/api/read-accounts-screenshot', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
+        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType }),
+      });
+      const json = await res.json().catch(()=>({}));
+      if(!isOpen()) return; // modale fermée pendant la lecture
+      if(!res.ok || json.error){ renderDrop(json.error || 'La lecture de la capture a échoué. Réessaie.'); return; }
+      const found = Array.isArray(json.accounts) ? json.accounts : [];
+      ignoredDemo = Array.isArray(json.ignored) ? json.ignored.map(String) : [];
+      if(!found.length){
+        renderDrop(ignoredDemo.length
+          ? `Seuls des comptes de démo ont été trouvés (${ignoredDemo.join(', ')}) : ils ne sont pas importés. Fais une capture de tes comptes PropFirm.`
+          : 'Aucun numéro de compte lisible sur cette capture. Recadre-la sur la liste des comptes et réessaie.');
+        return;
+      }
+      rows = found.map(v=>({ value:String(v), checked:false }));
+      applyDefaultSelection();
+      busy = false;
+      renderReview();
+    }catch(e){
+      if(isOpen()) renderDrop('Impossible de contacter le service de lecture. Vérifie ta connexion et réessaie.');
+    }
+  }
+
+  function rowBadgeHtml(value){
+    if(!value.trim()) return `<span class="badge badge-danger">Vide</span>`;
+    const ex = cimExistingAccount(value);
+    if(ex){
+      const firm = getFirm(ex.propFirmId);
+      return `<span class="badge badge-slate" title="Ce numéro existe déjà dans Contralytix${firm?` (${escapeHtml(firm.name)})`:''}">Déjà enregistré${firm?` · ${escapeHtml(firm.name)}`:''}</span>`;
+    }
+    return `<span class="badge badge-accent">Nouveau</span>`;
+  }
+
+  function selectedNumbers(){ return rows.filter(r=>r.checked && r.value.trim()).map(r=>r.value.trim()); }
+
+  function refreshCounters(){
+    const n = selectedNumbers().length;
+    const btn = document.getElementById('cim-continue');
+    if(btn){ btn.disabled = n===0; btn.innerHTML = `Continuer${n?` (${n})`:''}${icon('chevRight')}`; }
+    const total = rows.filter(r=>r.value.trim()).length;
+    const dup = rows.filter(r=>r.value.trim() && cimExistingAccount(r.value)).length;
+    const sum = document.getElementById('cim-summary');
+    if(sum) sum.innerHTML = `
+      <span class="badge badge-accent">${total} numéro${total>1?'s':''} lu${total>1?'s':''}</span>
+      ${dup ? `<span class="badge badge-slate">${dup} déjà enregistré${dup>1?'s':''}</span>` : ''}
+      ${ignoredDemo.length ? `<span class="badge badge-slate" title="Comptes de démo ou de simulation de la plateforme : jamais importés">${ignoredDemo.length} compte${ignoredDemo.length>1?'s':''} démo ignoré${ignoredDemo.length>1?'s':''} : ${escapeHtml(ignoredDemo.join(', '))}</span>` : ''}
+      <span style="font-size:12px;color:var(--text-faint);">Vérifie chaque numéro : clique dessus pour corriger une lettre mal lue.</span>`;
+    const sug = cimSuggestion(selectedNumbers());
+    const sugEl = document.getElementById('cim-suggest');
+    if(sugEl){
+      if(sug){
+        const firm = getFirm(sug.propFirmId);
+        sugEl.style.display = 'flex';
+        sugEl.innerHTML = `${icon('sparkles')}<span>D’après tes comptes « ${escapeHtml(sug.prefix)}… » déjà enregistrés, on présélectionnera <strong>${escapeHtml(firm.name)}</strong>${sug.type?` · ${escapeHtml(TYPE_LABELS[sug.type]||sug.type)}`:''}${sug.size?` · ${escapeHtml(SIZE_LABELS[sug.size]||sug.size)}`:''}. Modifiable à l’étape suivante.</span>`;
+      } else {
+        sugEl.style.display = 'none';
+      }
+    }
+  }
+
+  // Regroupe les lignes par famille (préfixe alphabétique : FFNX, LFF, PP…), dans l'ordre d'apparition.
+  function computeGroups(){
+    const map = new Map();
+    rows.forEach((r,i)=>{
+      const key = cimPrefix(r.value);
+      if(!map.has(key)) map.set(key, []);
+      map.get(key).push(i);
+    });
+    return Array.from(map.entries()).map(([key, idx])=>{
+      const sug = key ? cimSuggestion(idx.map(i=>rows[i].value)) : null;
+      const firm = sug ? getFirm(sug.propFirmId) : null;
+      return { key, idx, firmName: firm ? firm.name : '' };
+    });
+  }
+  // Par défaut : seulement les nouveaux comptes du premier groupe qui en contient.
+  function applyDefaultSelection(){
+    const groups = computeGroups();
+    const first = groups.find(g=>g.idx.some(i=>!cimExistingAccount(rows[i].value)));
+    rows.forEach((r,i)=>{ r.checked = !!first && first.idx.includes(i) && !cimExistingAccount(r.value); });
+  }
+
+  function renderReview(errorMsg){
+    const groups = computeGroups();
+    root().innerHTML = `
+      <div class="cim-summary" id="cim-summary"></div>
+      ${groups.length>1 ? `<div class="cim-suggest" style="margin:0 0 12px;">${icon('layers')}<span>Ta capture contient <strong>${groups.length} familles de comptes</strong>. L’étape suivante applique une seule PropFirm et un seul type par lot : importe un groupe à la fois, les autres te seront reproposés juste après.</span></div>` : ''}
+      <div class="cim-list">
+        ${groups.map(g=>`
+          ${groups.length>1 ? `<div class="cim-group-head"><span><strong>${escapeHtml(g.key||'Autres')}${g.key?'…':''}</strong> · ${g.idx.length} compte${g.idx.length>1?'s':''}${g.firmName?` · ${escapeHtml(g.firmName)}`:''}</span><button class="btn btn-ghost btn-sm" data-only="${escapeHtml(g.key)}">Sélectionner ce groupe</button></div>` : ''}
+          ${g.idx.map(i=>{ const r = rows[i]; return `
+          <div class="cim-row ${r.checked?'':'is-off'}" data-row="${i}">
+            <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} aria-label="Importer ce compte"/>
+            <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" aria-label="Numéro de compte ${i+1}"/>
+            <span data-badge="${i}">${rowBadgeHtml(r.value)}</span>
+            <button class="btn btn-ghost btn-sm cim-del" data-del="${i}" title="Retirer cette ligne" aria-label="Retirer cette ligne">${icon('x')}</button>
+          </div>`; }).join('')}`).join('')}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+        ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro oublié</button>` : ''}
+        <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('camera')}Lire une autre capture</button>
+      </div>
+      <div class="cim-suggest" id="cim-suggest" style="display:none;"></div>
+      <div id="cim-error" class="error-text">${errorMsg ? escapeHtml(errorMsg) : ''}</div>`;
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button><button class="btn btn-primary" id="cim-continue">Continuer</button>`);
+
+    root().querySelectorAll('[data-check]').forEach(cb=>cb.onchange = ()=>{
+      const i = Number(cb.dataset.check);
+      rows[i].checked = cb.checked;
+      cb.closest('.cim-row').classList.toggle('is-off', !cb.checked);
+      refreshCounters();
+    });
+    root().querySelectorAll('[data-num]').forEach(inp=>inp.oninput = ()=>{
+      const i = Number(inp.dataset.num);
+      rows[i].value = inp.value;
+      const b = root().querySelector(`[data-badge="${i}"]`);
+      if(b) b.innerHTML = rowBadgeHtml(inp.value);
+      refreshCounters();
+    });
+    root().querySelectorAll('[data-del]').forEach(btn=>btn.onclick = ()=>{
+      rows.splice(Number(btn.dataset.del), 1);
+      if(!rows.length){ renderDrop(); return; }
+      renderReview();
+    });
+    root().querySelectorAll('[data-only]').forEach(btn=>btn.onclick = ()=>{
+      const key = btn.dataset.only;
+      rows.forEach(r=>{ r.checked = cimPrefix(r.value)===key && !!r.value.trim() && !cimExistingAccount(r.value); });
+      renderReview();
+    });
+    const add = document.getElementById('cim-add-row');
+    if(add) add.onclick = ()=>{
+      rows.push({ value:'', checked:true });
+      renderReview();
+      const last = root().querySelector(`[data-num="${rows.length-1}"]`);
+      if(last) last.focus();
+    };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; ignoredDemo = []; thumb = ''; renderDrop(); };
+    document.getElementById('cim-continue').onclick = goNext;
+    refreshCounters();
+  }
+
+  function goNext(){
+    const numbers = selectedNumbers();
+    const errEl = document.getElementById('cim-error');
+    if(!numbers.length){ errEl.textContent = 'Coche au moins un compte à importer.'; return; }
+    if(numbers.length > CIM_MAX_ACCOUNTS){ errEl.textContent = `${CIM_MAX_ACCOUNTS} comptes maximum par import : décoche les autres et refais un import pour la suite.`; return; }
+    const seen = new Set();
+    const dups = [];
+    numbers.forEach(n=>{ const k = normAccNum(n); if(seen.has(k)) dups.push(n); seen.add(k); });
+    if(dups.length){ errEl.textContent = `Numéro présent deux fois dans la liste : ${dups.join(', ')}. Retire le doublon.`; return; }
+    const sug = cimSuggestion(numbers) || {};
+    const sent = rows.filter(r=>r.checked && r.value.trim());
+    document.removeEventListener('paste', onPaste);
+    closeModal();
+    bulkAccountFormModal({ numbers, propFirmId: sug.propFirmId, type: sug.type, size: sug.size,
+      // Après création du lot : on repropose les comptes de la capture qui restent à importer.
+      onDone(){
+        rows = rows.filter(r=>!sent.includes(r) && r.value.trim() && !cimExistingAccount(r.value));
+        if(!rows.length) return;
+        applyDefaultSelection();
+        openShell(()=>renderReview());
+        showToast(`Lot créé. Il reste ${rows.length} compte${rows.length>1?'s':''} de ta capture à importer.`);
+      }
+    });
+  }
+
+  function openShell(firstRender){
+    document.removeEventListener('paste', onPaste);
+    document.addEventListener('paste', onPaste);
+    openModal({
+      title: 'Importer des comptes depuis une capture',
+      wide: true,
+      bodyHtml: `<div id="cim-root"></div>`,
+      footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
+      onMount(){
+        firstRender();
+        const x = document.getElementById('modal-close-btn');
+        if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
+      }
+    });
+  }
+  openShell(()=>renderDrop());
 }
 
 /* ============================================================
