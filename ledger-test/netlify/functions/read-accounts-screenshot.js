@@ -11,7 +11,11 @@
 // Sécurité :
 //   - réservé aux utilisateurs connectés (jeton Supabase vérifié côté serveur), pour que la clé
 //     Gemini du site ne puisse pas être consommée par n'importe qui ;
-//   - l'image n'est jamais stockée, ni ici ni en base : elle est transmise à Gemini puis oubliée.
+//   - l'image n'est jamais stockée, ni ici ni en base : elle est transmise à Gemini puis oubliée ;
+//   - 20 lectures réussies par jour (heure de Paris) et par compte, admins exemptés. Le compteur est
+//     la table screenshot_reads (migration_screenshot_reads.sql) : seuls l'utilisateur et l'heure
+//     y sont enregistrés. Si la table n'existe pas encore, la limite n'est pas appliquée (journal
+//     d'erreur côté Netlify) plutôt que de bloquer la fonctionnalité.
 //
 // Variables d'environnement Netlify requises (déjà utilisées par les autres fonctions) :
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY
@@ -26,6 +30,27 @@ const supabaseAdmin = createClient(
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024; // 6 Mo une fois décodée — largement assez pour une capture
 const MAX_ACCOUNTS = 50;                 // même plafond que le formulaire « Ajout en masse »
+const DAILY_LIMIT = 20;                  // lectures réussies par jour (heure de Paris) et par compte
+
+// Début de la journée en cours, heure de Paris, en instant UTC.
+function parisDayStart(now = new Date()) {
+  const paris = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+  const utcWall = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const offset = paris - utcWall;
+  const mid = new Date(paris); mid.setHours(0, 0, 0, 0);
+  return new Date(mid.getTime() + (now.getTime() - utcWall.getTime()) - offset);
+}
+
+// Lectures déjà faites aujourd'hui (null si le compteur est indisponible).
+async function countReadsToday(userId) {
+  const { count, error } = await supabaseAdmin
+    .from('screenshot_reads')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', parisDayStart().toISOString());
+  if (error) { console.error('screenshot_reads count error:', error.message); return null; }
+  return count || 0;
+}
 
 const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
 const MAX_ATTEMPTS_PER_MODEL = 3;
@@ -112,12 +137,25 @@ exports.handler = async (event) => {
   // 1. Utilisateur connecté obligatoire
   const authHeader = event.headers.authorization || event.headers.Authorization;
   if (!authHeader) return json(401, { error: 'Non authentifié' });
+  let userId;
   try {
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !userData?.user) return json(401, { error: 'Session invalide, reconnecte-toi.' });
+    userId = userData.user.id;
   } catch (e) {
     return json(401, { error: 'Session invalide, reconnecte-toi.' });
+  }
+
+  // 1 bis. Limite quotidienne (admins exemptés)
+  let isAdmin = false;
+  try {
+    const { data: prof } = await supabaseAdmin.from('profiles').select('role').eq('id', userId).maybeSingle();
+    isAdmin = prof?.role === 'ADMIN';
+  } catch (e) { /* profil illisible : traité comme non-admin */ }
+  const usedToday = isAdmin ? null : await countReadsToday(userId);
+  if (usedToday !== null && usedToday >= DAILY_LIMIT) {
+    return json(429, { error: `Tu as atteint la limite de ${DAILY_LIMIT} lectures de capture pour aujourd'hui. Réessaie demain, ou ajoute tes comptes avec « Ajout en masse ».`, remaining: 0, limit: DAILY_LIMIT });
   }
 
   // 2. Image valide
@@ -165,7 +203,14 @@ exports.handler = async (event) => {
             const m = text.match(/\{[\s\S]*\}/);
             if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) { /* ignoré */ } }
           }
-          return json(200, cleanAccounts(parsed && parsed.accounts, firmNames));
+          // Lecture réussie : on la compte (sans bloquer la réponse si l'écriture échoue).
+          let remaining = null;
+          if (!isAdmin) {
+            const { error: logErr } = await supabaseAdmin.from('screenshot_reads').insert({ user_id: userId });
+            if (logErr) console.error('screenshot_reads insert error:', logErr.message);
+            else if (usedToday !== null) remaining = Math.max(0, DAILY_LIMIT - usedToday - 1);
+          }
+          return json(200, { ...cleanAccounts(parsed && parsed.accounts, firmNames), remaining, limit: DAILY_LIMIT });
         }
         lastError = data.error?.message || 'Erreur API Gemini';
         if (isOverloaded(res.status, lastError)) {
