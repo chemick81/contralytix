@@ -17133,14 +17133,12 @@ function captureImportModal(){
           ${g.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-g-custom="${g.id}" value="${escapeHtml(g.customSize)}" class="${need&&!(Number(g.customSize)>0)?'cim-need':''}" style="margin-top:6px;"/>` : ''}
         </div>
         <div class="cim-field"><label>${paLike ? 'Date d’activation' : 'Date d’achat'}</label><input type="date" data-g-date="${g.id}" value="${escapeHtml(g.date)}"/></div>
-        ${paLike ? `
-        <div class="cim-field"><label>Frais d’activation (${cur()}, optionnel)</label><input type="number" min="0" step="0.01" data-g-fee="${g.id}" value="${escapeHtml(g.fee)}"/></div>` : `
         <div class="cim-field"><label>Paiement</label><select data-g-pay="${g.id}">${opt('UNIQUE','Paiement unique', g.pay==='UNIQUE')}${opt('MENSUEL','Mensualités', g.pay==='MENSUEL')}</select></div>
         ${g.pay==='MENSUEL'
           ? `<div class="cim-field"><label>Mensualité (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-monthly="${g.id}" value="${escapeHtml(g.monthly)}" class="${need&&!(Number(g.monthly)>0)?'cim-need':''}"/></div>`
-          : `<div class="cim-field"><label>Prix d’achat (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-price="${g.id}" value="${escapeHtml(g.price)}" class="${need&&!(Number(g.price)>0)&&active.some(x=>!x.r.free)?'cim-need':''}"/></div>`}`}
+          : `<div class="cim-field"><label>Prix d’achat (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-price="${g.id}" value="${escapeHtml(g.price)}" class="${need&&!(Number(g.price)>0)&&active.some(x=>!x.r.free)?'cim-need':''}"/></div>`}
+        ${paLike ? `<div class="cim-field"><label>Frais d’activation (${cur()}, optionnel)</label><input type="number" min="0" step="0.01" data-g-fee="${g.id}" value="${escapeHtml(g.fee)}"/></div>` : ''}
         ${top.currency!=='EUR' ? `<div class="cim-field"><label>Taux EUR/${escapeHtml(top.currency)}</label><input type="number" step="0.0001" data-g-fx="${g.id}" placeholder="Taux BCE…" value="${escapeHtml(fx)}" class="${need&&!fx?'cim-need':''}"/></div>` : ''}
-        ${paLike ? `<div class="cim-field-hint">Un ${g.type==='LIVE'?'Live':'PA'} n’a pas de prix d’achat : seul le frais d’activation éventuel compte dans tes dépenses.</div>` : ''}
       </div>`}
       ${gErr ? `<div class="error-text" style="margin:0 0 8px;">${escapeHtml(gErr)}</div>` : ''}
       <div class="cim-list">
@@ -17164,7 +17162,7 @@ function captureImportModal(){
 
   function rowHtml(r, i, g){
     const exists = !!cimExistingAccount(r.value);
-    const showFree = !exists && !isPaLike(g.type) && g.pay==='UNIQUE';
+    const showFree = !exists && g.pay==='UNIQUE';
     const rErr = errors && errors.rows[i];
     return `
       <div class="cim-row ${r.checked?'':'is-off'} ${rErr?'has-error':''}" data-row="${i}">
@@ -17303,10 +17301,10 @@ function captureImportModal(){
       size: g.sizeKey,
       customSize: g.sizeKey==='AUTRE' ? g.customSize : '',
       accountNumber: r.value.trim(),
-      paymentType: paLike ? 'UNIQUE' : g.pay,
-      purchasePrice: (!paLike && g.pay==='UNIQUE') ? (r.free ? 0 : g.price) : '',
-      monthlyAmount: (!paLike && g.pay==='MENSUEL') ? g.monthly : '',
-      promoFree: !paLike && g.pay==='UNIQUE' && !!r.free,
+      paymentType: g.pay,
+      purchasePrice: g.pay==='UNIQUE' ? (r.free ? 0 : g.price) : '',
+      monthlyAmount: g.pay==='MENSUEL' ? g.monthly : '',
+      promoFree: g.pay==='UNIQUE' && !!r.free,
       purchaseDate: g.date,
       activationDate: g.date,
       activationFee: paLike ? g.fee : '',
@@ -17351,11 +17349,10 @@ function captureImportModal(){
       const paLike = isPaLike(g.type);
       const missing = [!g.firmId && 'PropFirm', !g.type && 'type', !g.sizeKey && 'taille'].filter(Boolean);
       if(g.sizeKey==='AUTRE' && !(Number(g.customSize)>0)) missing.push('montant de la taille');
-      const free = !paLike && g.pay==='UNIQUE' && r.free;
-      if(!paLike){
-        if(g.pay==='UNIQUE' && !free && !(Number(g.price)>0)) missing.push('prix d’achat');
-        if(g.pay==='MENSUEL' && !(Number(g.monthly)>0)) missing.push('mensualité');
-      }
+      // Mêmes règles que « Nouveau compte » (Challenge, PA ou Live) : prix ou mensualité obligatoire, sauf compte offert.
+      const free = g.pay==='UNIQUE' && r.free;
+      if(g.pay==='UNIQUE' && !free && !(Number(g.price)>0)) missing.push('prix d’achat');
+      if(g.pay==='MENSUEL' && !(Number(g.monthly)>0)) missing.push('mensualité');
       const fx = fxOf(g);
       if(top.currency!=='EUR' && !(Number(fx)>0)) missing.push('taux de change');
       if(missing.length){ err.groups[g.id] = `À compléter : ${[...new Set(missing)].join(', ')}.`; return; }
@@ -17377,9 +17374,9 @@ function captureImportModal(){
         id: uid('acc'), traderId: top.traderId, propFirmId: g.firmId, type: g.type,
         parentChallengeId: null,
         size: g.sizeKey, customSize: g.sizeKey==='AUTRE' ? Number(g.customSize)||0 : null, accountNumber: num,
-        paymentType: paLike ? 'UNIQUE' : g.pay,
-        purchasePrice: paLike ? 0 : (g.pay==='UNIQUE' ? (free ? 0 : Number(g.price)||0) : null),
-        monthlyAmount: (!paLike && g.pay==='MENSUEL') ? Number(g.monthly)||0 : null,
+        paymentType: g.pay,
+        purchasePrice: g.pay==='UNIQUE' ? (free ? 0 : Number(g.price)||0) : null,
+        monthlyAmount: g.pay==='MENSUEL' ? Number(g.monthly)||0 : null,
         promoFree: free,
         purchaseDate: date,
         activationDate: paLike ? date : null,
