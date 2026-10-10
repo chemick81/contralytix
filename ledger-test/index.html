@@ -850,7 +850,7 @@ th.th-sort-active svg{opacity:1;}
 .ec-pill-tag{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill);background:var(--surface-3);color:var(--text-faint);}
 .ec-pill-tag.owner{background:var(--gold-dim);color:var(--gold);}
 .ec-pill-n{font-size:11px;color:var(--text-faint);font-weight:500;}
-.ec-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
+.ec-admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:22px;}
 .ec-card{padding:18px 20px;}
 .ec-code{font-size:28px;font-weight:700;letter-spacing:4px;margin-top:10px;color:var(--text);}
 .ec-card-sub{font-size:12.5px;color:var(--text-dim);margin-top:6px;line-height:1.5;}
@@ -912,6 +912,167 @@ th.th-sort-active svg{opacity:1;}
 .ec-consent ul strong{color:var(--text);}
 .ec-consent-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);cursor:pointer;}
 .ec-consent-check input{margin-top:3px;accent-color:var(--accent);}
+/* Classement mensuel au ROI (Mode École, 10/10/2026) */
+:root{--medal-1:var(--gold);--medal-2:#A9B6C3;--medal-3:#C98A5A;}
+:root[data-theme="light"]{--medal-2:#6B7785;--medal-3:#A0612F;}
+.ec-tabs{display:inline-flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-pill);margin:0 0 18px;}
+.ec-tabs button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--text-dim);font:600 13px/1 'Inter',sans-serif;padding:10px 16px;min-height:40px;border-radius:var(--radius-pill);}
+.ec-tabs button svg{width:15px;height:15px;}
+.ec-tabs button.active{background:var(--accent);color:var(--accent-text);}
+.lb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.lb-head .ec-report-sub a{color:var(--accent);font-weight:600;}
+.lb-head-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.lb-period{display:inline-flex;gap:3px;padding:3px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-pill);}
+.lb-period button{border:0;background:transparent;color:var(--text-dim);font:600 12.5px/1 'Inter',sans-serif;padding:9px 14px;min-height:36px;border-radius:var(--radius-pill);}
+.lb-period button.active{background:var(--surface-3);color:var(--text);}
+.lb-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;margin-bottom:16px;}
+.lb-clock{padding:18px 20px;}
+.lb-clock-num{margin-top:8px;font-size:15px;color:var(--text-dim);font-family:'Space Grotesk',sans-serif;font-weight:600;}
+.lb-clock-num .mono{font-size:30px;color:var(--text);font-weight:600;}
+.lb-explain{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;}
+.lb-explain-txt{flex:1 1 240px;}
+.lb-explain-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;line-height:1.3;margin-top:6px;}
+.lb-formula{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.lb-formula > div{display:flex;flex-direction:column;gap:3px;background:var(--surface-2);border-radius:var(--radius-md);padding:10px 12px;}
+.lb-formula > div.hl{background:var(--accent-dim);}
+.lb-formula span{font:500 11px/1.2 'Inter',sans-serif;color:var(--text-dim);}
+.lb-formula b{font-size:14px;font-weight:600;}
+.lb-formula i{font-style:normal;color:var(--text-faint);}
+.lb-pos{color:var(--accent);} .lb-neg{color:var(--danger);}
+.lb-join{display:flex;align-items:center;gap:16px;padding:16px 20px;margin-bottom:16px;flex-wrap:wrap;border-color:var(--accent);background:linear-gradient(0deg,var(--accent-dim),var(--accent-dim)),var(--surface);}
+.lb-join-icon svg{width:26px;height:26px;color:var(--accent);}
+.lb-join-txt{flex:1 1 300px;}
+.lb-join-title{font-weight:600;font-size:14.5px;}
+.lb-join-sub{font-size:12.5px;color:var(--text-dim);margin-top:4px;line-height:1.5;}
+.lb-join-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.lb-me{display:flex;align-items:center;gap:14px 26px;flex-wrap:wrap;padding:14px 20px;margin-bottom:16px;border-color:var(--accent);background:linear-gradient(0deg,var(--accent-dim),var(--accent-dim)),var(--surface);}
+.lb-me-main{display:flex;align-items:center;gap:14px;}
+.lb-me-rank{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--accent);min-width:40px;}
+.lb-me-rank span{font-size:15px;margin-left:1px;}
+.lb-me-title{font-weight:600;}
+.lb-me-sub{font-size:12px;color:var(--text-dim);margin-top:3px;}
+.lb-me-gap{flex:1 1 220px;display:flex;flex-direction:column;gap:6px;}
+.lb-me-gap-txt{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--text-dim);flex-wrap:wrap;}
+.lb-me-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;}
+.lb-me-as{font-size:12.5px;color:var(--text-dim);}
+.lb-me-as strong{color:var(--text);}
+.lb-bar{height:6px;border-radius:var(--radius-pill);background:var(--surface-2);overflow:hidden;}
+.lb-bar > div{height:100%;border-radius:var(--radius-pill);background:var(--accent);}
+.lb-bar > div.lb-neg{background:var(--danger);}
+.lb-bar > div.lb-pos{background:var(--accent);}
+.lb-bar.sm{width:80px;flex-shrink:0;}
+.lb-owner{display:flex;align-items:center;gap:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;color:var(--text-dim);line-height:1.5;}
+.lb-owner > svg{width:18px;height:18px;color:var(--gold);flex-shrink:0;}
+.lb-owner strong{color:var(--text);}
+.lb-stage{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;margin-bottom:16px;align-items:stretch;}
+.lb-stage.solo{grid-template-columns:minmax(0,1fr);}
+.lb-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;}
+.lb-podium-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 14px 0;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;overflow:hidden;min-width:0;}
+.lb-podium-card.empty{border-style:dashed;background:transparent;min-height:120px;justify-content:flex-end;}
+.lb-podium-card.lb-place-1{border-color:color-mix(in srgb,var(--medal-1) 45%,var(--border));box-shadow:0 12px 40px color-mix(in srgb,var(--medal-1) 12%,transparent);padding-top:22px;}
+.lb-podium-card.me{outline:2px solid var(--accent);outline-offset:-2px;}
+.lb-crown{display:flex;align-items:center;gap:6px;color:var(--medal-1);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.lb-crown svg{width:15px;height:15px;}
+.lb-avatar{width:54px;height:54px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font:700 17px/1 'Space Grotesk',sans-serif;color:var(--text-dim);flex-shrink:0;}
+.lb-avatar.sm{width:30px;height:30px;font-size:11px;border-width:1px;}
+.lb-avatar-1{width:66px;height:66px;font-size:20px;border-color:var(--medal-1);color:var(--medal-1);}
+.lb-avatar-2{border-color:var(--medal-2);color:var(--medal-2);}
+.lb-avatar-3{border-color:var(--medal-3);color:var(--medal-3);}
+.lb-avatar-prog{width:46px;height:46px;font-size:15px;border-color:var(--accent);color:var(--accent);}
+.lb-podium-name{font-weight:600;font-size:14.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-podium-roi{font-size:24px;font-weight:600;}
+.lb-place-1 .lb-podium-roi{font-size:30px;}
+.lb-podium-sub{font-size:11.5px;color:var(--text-dim);}
+.lb-podium-step{width:calc(100% + 28px);margin-top:8px;height:44px;display:flex;align-items:center;justify-content:center;font:700 22px/1 'Space Grotesk',sans-serif;background:var(--surface-2);color:var(--medal-3);}
+.lb-place-2 .lb-podium-step{height:64px;font-size:26px;color:var(--medal-2);}
+.lb-place-1 .lb-podium-step{height:92px;font-size:34px;color:var(--medal-1);background:color-mix(in srgb,var(--medal-1) 14%,var(--surface-2));}
+.lb-podium-card.empty .lb-podium-step{background:transparent;color:var(--text-faint);}
+.lb-me-tag{display:inline-block;font:700 10.5px/1 'Inter',sans-serif;padding:3px 7px;border-radius:var(--radius-pill);background:var(--accent);color:var(--accent-text);vertical-align:2px;margin-left:4px;}
+.lb-prog-tag{display:inline-block;font:600 10.5px/1 'Inter',sans-serif;padding:3px 7px;border-radius:var(--radius-pill);background:var(--accent-dim);color:var(--accent);}
+.lb-best{padding:20px;display:flex;flex-direction:column;gap:10px;border-color:color-mix(in srgb,var(--accent) 40%,var(--border));}
+.lb-best-kicker{display:flex;align-items:center;gap:7px;color:var(--accent);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.lb-best-kicker svg{width:15px;height:15px;}
+.lb-best-who{display:flex;align-items:center;gap:12px;}
+.lb-best-val{font-size:28px;font-weight:600;color:var(--accent);}
+.lb-table-panel{overflow:hidden;margin-bottom:16px;}
+.lb-table-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border-soft);}
+.lb-table-head h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;}
+.lb-table-wrap{overflow-x:auto;}
+.lb-table{width:100%;min-width:720px;border-collapse:collapse;font-size:13.5px;}
+.lb-table th{text-align:left;font-size:11.5px;font-weight:600;color:var(--text-dim);padding:11px 10px;white-space:nowrap;}
+.lb-table th:first-child,.lb-table td:first-child{padding-left:20px;width:56px;}
+.lb-table th:last-child,.lb-table td:last-child{padding-right:20px;}
+.lb-table td{padding:11px 10px;border-top:1px solid var(--border-soft);white-space:nowrap;}
+.lb-table .num{text-align:right;}
+.lb-table tr.me td{background:var(--accent-dim);}
+.lb-rank{font:700 15px/1 'Space Grotesk',sans-serif;color:var(--text-dim);}
+.lb-medal-1{color:var(--medal-1);} .lb-medal-2{color:var(--medal-2);} .lb-medal-3{color:var(--medal-3);}
+.lb-who{display:flex;align-items:center;gap:9px;font-weight:500;}
+.lb-roi-cell{display:flex;align-items:center;justify-content:flex-end;gap:10px;}
+.lb-roi-cell b{min-width:70px;text-align:right;font-weight:600;}
+.lb-list{display:none;list-style:none;margin:0;padding:0;flex-direction:column;}
+.lb-list li{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--border-soft);}
+.lb-list li:first-child{border-top:0;}
+.lb-list li.me{background:var(--accent-dim);}
+.lb-list .lb-rank{width:22px;}
+.lb-list-who{flex:1;min-width:0;}
+.lb-list-name{font-weight:500;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-list-sub{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+.lb-list b{font-weight:600;font-size:14px;}
+.lb-table-foot{padding:12px 20px;border-top:1px solid var(--border-soft);font-size:12px;color:var(--text-faint);}
+.lb-rules{padding:20px 22px;margin-bottom:8px;scroll-margin-top:90px;transition:box-shadow .3s;}
+.lb-rules.flash{box-shadow:0 0 0 2px var(--accent);}
+.lb-rules-head{display:flex;align-items:center;gap:9px;margin-bottom:14px;}
+.lb-rules-head svg{width:17px;height:17px;color:var(--accent);}
+.lb-rules-head h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;}
+.lb-rules-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px;}
+.lb-rule{display:flex;gap:12px;}
+.lb-rule-n{font-size:12px;color:var(--text-faint);padding-top:1px;}
+.lb-rule-t{font-weight:600;font-size:13px;}
+.lb-rule-d{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-top:3px;}
+.lb-rule-d strong{color:var(--text);}
+.lb-palmares{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:16px;}
+.lb-pal-card{padding:16px 18px;}
+.lb-pal-month{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;margin-bottom:10px;}
+.lb-pal-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.lb-pal-list li{display:flex;align-items:center;gap:10px;font-size:13px;}
+.lb-pal-list li.me{font-weight:600;}
+.lb-pal-rank{font:700 14px/1 'Space Grotesk',sans-serif;width:16px;}
+.lb-pal-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-pal-empty{font-size:12.5px;color:var(--text-faint);}
+.lb-optin .field{margin-bottom:12px;}
+.lb-optin .radio-chip{cursor:pointer;}
+.lb-optin .radio-chip.disabled{opacity:.45;cursor:not-allowed;}
+.lb-optin-rules{margin:0 0 14px;font-size:12.5px;color:var(--text-dim);}
+.lb-optin-rules summary{cursor:pointer;color:var(--accent);font-weight:600;margin-bottom:8px;}
+.lb-optin-rules ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;line-height:1.55;max-height:240px;overflow:auto;}
+.lb-optin-rules strong{color:var(--text);}
+@media (max-width:900px){
+  .lb-top{grid-template-columns:minmax(0,1fr);}
+  .lb-stage{grid-template-columns:minmax(0,1fr);}
+  .lb-rules-grid{grid-template-columns:minmax(0,1fr);}
+}
+@media (max-width:640px){
+  .ec-tabs{display:flex;}
+  .ec-tabs button{flex:1;justify-content:center;padding:10px 8px;}
+  .lb-head-tools{width:100%;}
+  .lb-period{flex:1;}
+  .lb-period button{flex:1;padding:9px 6px;}
+  .lb-head-tools .ec-period{width:100%;}
+  .lb-podium{gap:6px;}
+  .lb-podium-card{padding:14px 6px 0;gap:5px;}
+  .lb-podium-step{width:calc(100% + 12px);}
+  .lb-avatar{width:40px;height:40px;font-size:13px;}
+  .lb-avatar-1{width:48px;height:48px;font-size:15px;}
+  .lb-podium-name{font-size:12.5px;}
+  .lb-podium-roi,.lb-place-1 .lb-podium-roi{font-size:16px;}
+  .lb-podium-sub{display:none;}
+  .lb-crown span{display:none;}
+  .lb-formula{display:none;}
+  .lb-table-wrap{display:none;}
+  .lb-list{display:flex;}
+  .lb-me-tools{margin-left:0;}
+}
 #public-report-root{min-height:100vh;background:var(--bg);}
 .pub-wrap{max-width:1100px;margin:0 auto;padding:22px 24px 48px;}
 .pub-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px;}
@@ -7041,6 +7202,373 @@ function ecPeriodSelect(id, months, current){
   return `<select id="${id}" class="ec-period"><option value="" ${!current?'selected':''}>Depuis le début</option>${(months||[]).map(m=>`<option value="${m}" ${current===m?'selected':''}>${monthLabelFull(m)}</option>`).join('')}</select>`;
 }
 
+/* ---------- Classement mensuel au ROI (10/10/2026, voir migration_ecole_classement.sql) ----------
+   Facultatif et séparé du bilan anonyme : seuls les membres qui s'inscrivent eux-mêmes y apparaissent
+   (pseudo ou prénom). Tout est calculé côté serveur (cohort_leaderboard) : ROI = net du mois ÷ capital
+   engagé. Le règlement affiché ici (lbRulesHtml) doit rester identique aux règles du fichier SQL. */
+function lbMonthKey(offset){
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + (offset||0));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function lbMonthsSince(since){
+  const out = []; const cur = lbMonthKey(0);
+  let k = (since && /^\d{4}-\d{2}$/.test(since) && since < cur) ? since : lbMonthKey(-11);
+  if(k < lbMonthKey(-23)) k = lbMonthKey(-23);
+  while(k <= cur){ out.push(k); const [y,m] = k.split('-').map(Number); k = m===12 ? `${y+1}-01` : `${y}-${String(m+1).padStart(2,'0')}`; }
+  return out.reverse();
+}
+function lbNum(v, digits){ return Math.abs(Number(v)||0).toLocaleString('fr-FR', { maximumFractionDigits: digits==null?1:digits }).replace(/ | /g,' '); }
+function lbSign(v){ v = Number(v)||0; return v>0 ? '+' : v<0 ? '−' : ''; }
+function lbRoi(v){ return `${lbSign(v)}${lbNum(v)} %`; }
+function lbPts(v){ return `${lbSign(v)}${lbNum(v)} pts`; }
+function lbEur(v, signed){ return `${signed?lbSign(v):''}${lbNum(Math.round(Number(v)||0),0)} €`; }
+function lbInitials(name){
+  const parts = String(name||'?').trim().split(/\s+/).filter(Boolean);
+  if(parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase();
+  const w = parts[0] || '?';
+  const caps = w.slice(1).match(/[A-ZÀ-Ý0-9]/); // TigreNQ → TN, OrionFutures → OF ; Léa → L
+  return (w[0] + (caps ? caps[0] : '')).toUpperCase();
+}
+function lbOfMonth(m){ const t = monthLabelFull(m).toLowerCase(); return (/^[aeiouéè]/.test(t) ? 'd’' : 'de ') + t; }
+function lbTone(v){ return (Number(v)||0) >= 0 ? 'lb-pos' : 'lb-neg'; }
+async function loadLeaderboard(){
+  const es = ecoleState();
+  if(!es.selectedId) return;
+  const key = es.selectedId + '|' + (es.lbMonth||'');
+  es.lbLoading = true; es.lbError = '';
+  if(state.route==='ecole') renderView();
+  const { data, error } = await supabaseClient.rpc('cohort_leaderboard', { p_cohort: es.selectedId, p_month: es.lbMonth || null });
+  if(key !== es.selectedId + '|' + (es.lbMonth||'')) return; // une autre cohorte / un autre mois a été choisi entre-temps
+  es.lbLoading = false;
+  es.lbMissing = !!(error && ecoleMissingSchema(error));
+  es.lb = error ? null : data;
+  es.lbKey = key;
+  es.lbError = error && !es.lbMissing ? error.message : '';
+  if(state.route==='ecole') renderView();
+}
+async function loadPalmares(){
+  const es = ecoleState();
+  if(!es.selectedId) return;
+  const id = es.selectedId;
+  es.palmaresLoading = true; es.palmaresError = '';
+  if(state.route==='ecole') renderView();
+  const { data, error } = await supabaseClient.rpc('cohort_leaderboard_palmares', { p_cohort: id });
+  if(id !== es.selectedId) return;
+  es.palmaresLoading = false;
+  es.palmares = error ? null : (data||[]);
+  es.palmaresKey = id;
+  es.lbMissing = !!(error && ecoleMissingSchema(error));
+  es.palmaresError = error && !es.lbMissing ? error.message : '';
+  if(state.route==='ecole') renderView();
+}
+// Règlement complet — affiché en bas du classement, dans la fenêtre d'inscription et dans le Manuel.
+function lbRulesItems(){
+  return [
+    ['Qui est classé', 'Les membres de la cohorte qui ont choisi de participer, avec au moins un compte actif dans le mois. La participation est facultative et séparée du bilan anonyme : sans inscription, tu n’apparais pas.'],
+    ['ROI du mois', '<strong>Net du mois ÷ capital engagé</strong>, en pourcentage. Classer au ROI met un compte 25K et un compte 150K à égalité : c’est la performance qui compte, pas la taille du capital.'],
+    ['Net du mois', 'Payouts reçus dans le mois − dépenses du mois sur tes comptes (achats, mensualités, frais d’activation, resets). Les frais généraux (formation, VPS, logiciels…) ne sont pas comptés.'],
+    ['Capital engagé', 'Tout ce que tu as dépensé, depuis l’achat jusqu’à la fin du mois, sur tes comptes actifs dans le mois, y compris le challenge d’origine d’un PA ou d’un Live. Un compte est actif s’il a été acheté au plus tard le dernier jour du mois et n’a pas été clôturé avant le 1er.'],
+    ['Comptes offerts', 'Un compte offert par une promo compte pour le prix d’un compte payant identique (même PropFirm, même type, même taille), pour que le ROI reste comparable.'],
+    ['Devises', 'Tous les montants sont convertis en euros au taux enregistré pour chaque opération, comme dans le reste de l’application.'],
+    ['Égalité', 'À ROI égal, le net du mois le plus élevé passe devant.'],
+    ['Meilleure progression', 'La plus forte hausse du ROI par rapport au mois précédent, en points, parmi les élèves classés les deux mois.'],
+    ['Clôture', 'Le mois se termine le dernier jour à 23 h 59. Un classement passé est recalculé à partir des données actuelles : il peut encore bouger si un élève corrige une saisie ou se retire du classement.'],
+    ['Ce qui est visible', 'Pour les participants seulement : nom d’affichage (pseudo ou prénom), ROI, net du mois, capital engagé et progression, visibles par les membres de la cohorte et par l’école. Ton e-mail et le détail de tes comptes restent privés.'],
+    ['Données', 'Calculé par Contralytix à partir des comptes, dépenses et payouts que chacun enregistre. Les payouts peuvent être appuyés par une preuve ; les dépenses sont déclarées.'],
+    ['Se retirer', 'À tout moment, depuis cette page : tu disparais immédiatement du classement, mois passés compris.'],
+  ];
+}
+function lbRulesHtml(){
+  return `
+    <section class="panel lb-rules" id="lb-rules" aria-labelledby="lb-rules-title">
+      <div class="lb-rules-head">${icon('book')}<h3 id="lb-rules-title">Règlement du classement</h3></div>
+      <div class="lb-rules-grid">
+        ${lbRulesItems().map(([t,d],i)=>`<div class="lb-rule"><div class="lb-rule-n mono">${String(i+1).padStart(2,'0')}</div><div><div class="lb-rule-t">${t}</div><div class="lb-rule-d">${d}</div></div></div>`).join('')}
+      </div>
+    </section>`;
+}
+function lbCountdown(){
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth()+1, 1, 0, 0, 0);
+  const ms = Math.max(0, end - now);
+  const days = Math.floor(ms / 86400000), hours = Math.floor((ms % 86400000) / 3600000);
+  const last = new Date(end - 1);
+  return { days, hours, label: `${last.getDate()} ${monthLabelFull(lbMonthKey(0)).split(' ')[0].toLowerCase()}` };
+}
+function lbPodiumCard(r, place){
+  if(!r) return `<div class="lb-podium-card lb-place-${place} empty" aria-hidden="true"><div class="lb-podium-step">${place}</div></div>`;
+  return `
+    <div class="lb-podium-card lb-place-${place} ${r.is_me?'me':''}">
+      ${place===1?`<div class="lb-crown">${icon('trophy')}<span>En tête</span></div>`:''}
+      <div class="lb-avatar lb-avatar-${place}">${escapeHtml(lbInitials(r.name))}</div>
+      <div class="lb-podium-name">${escapeHtml(r.name)}${r.is_me?' <span class="lb-me-tag">Toi</span>':''}</div>
+      <div class="lb-podium-roi mono ${lbTone(r.roi)}">${lbRoi(r.roi)}</div>
+      <div class="lb-podium-sub mono">${lbEur(r.net,true)} sur ${lbEur(r.capital)}</div>
+      <div class="lb-podium-step">${place}</div>
+    </div>`;
+}
+function lbParticipationPanel(lb, membership){
+  const me = lb.me || {};
+  if(!membership) return '';
+  const rows = lb.rows || [];
+  if(!me.opted_in){
+    return `
+      <div class="panel lb-join">
+        <div class="lb-join-icon">${icon('trophy')}</div>
+        <div class="lb-join-txt">
+          <div class="lb-join-title">Participe au classement de ta cohorte</div>
+          <div class="lb-join-sub">Facultatif. Tu apparais avec un pseudo ou ton prénom, classé au ROI du mois. Tes chiffres restent anonymes dans le bilan si tu ne participes pas.</div>
+        </div>
+        <div class="lb-join-actions">
+          <a href="#lb-rules" class="btn btn-ghost btn-sm" data-lb-rules>Lire le règlement</a>
+          <button class="btn btn-primary btn-sm" data-lb-optin>Participer</button>
+        </div>
+      </div>`;
+  }
+  const mine = rows.find(r=>r.is_me);
+  const shownAs = me.display==='PRENOM' ? (me.display_name||'ton prénom') : (me.pseudo||'ton pseudo');
+  const tools = `
+    <div class="lb-me-tools">
+      <span class="lb-me-as">Tu apparais comme <strong>${escapeHtml(shownAs)}</strong></span>
+      <button class="btn btn-outline btn-sm" data-lb-edit>Modifier mon affichage</button>
+      <button class="btn btn-ghost btn-sm" data-lb-quit>Me retirer</button>
+    </div>`;
+  if(!mine){
+    return `
+      <div class="panel lb-me">
+        <div class="lb-me-main">
+          <div class="lb-me-rank">—</div>
+          <div><div class="lb-me-title">Tu es inscrit au classement</div>
+          <div class="lb-me-sub">Pas encore classé ${lb.current?'ce mois-ci':'sur ce mois'} : il faut au moins un compte actif dans le mois.</div></div>
+        </div>
+        ${tools}
+      </div>`;
+  }
+  const third = rows.find(r=>r.rank===3);
+  let gap = '';
+  if(mine.rank > 3 && third){
+    const pts = Math.max(0, Number(third.roi) - Number(mine.roi));
+    const pct = third.roi > 0 ? Math.max(4, Math.min(100, Math.round(Math.max(0, mine.roi) / third.roi * 100))) : 0;
+    gap = `<div class="lb-me-gap"><div class="lb-me-gap-txt"><span>Encore ${lbPts(pts)} pour entrer dans le top 3</span><span>3e : ${lbRoi(third.roi)}</span></div><div class="lb-bar"><div style="width:${pct}%"></div></div></div>`;
+  } else if(mine.rank <= 3){
+    gap = `<div class="lb-me-gap"><div class="lb-me-gap-txt"><span>${mine.rank===1?'Tu es en tête du classement':'Tu es sur le podium'}${lb.current?' : tiens jusqu’à la clôture':''}</span></div></div>`;
+  }
+  return `
+    <div class="panel lb-me">
+      <div class="lb-me-main">
+        <div class="lb-me-rank">${mine.rank}<span>${mine.rank===1?'er':'e'}</span></div>
+        <div><div class="lb-me-title">Ta position · ${lbRoi(mine.roi)}</div>
+        <div class="lb-me-sub mono">${lbEur(mine.net,true)} sur ${lbEur(mine.capital)} engagés${mine.prog!=null?` · ${lbPts(mine.prog)} vs ${monthLabelFull(lb.prev_month).split(' ')[0].toLowerCase()}`:''}</div></div>
+      </div>
+      ${gap}
+      ${tools}
+    </div>`;
+}
+function lbOwnerPanel(lb, owned){
+  if(!owned) return '';
+  const total = ecoleState().counts[owned.id] || 0;
+  return `
+    <div class="panel lb-owner">
+      ${icon('users')}
+      <div class="lb-owner-txt"><strong>${ecPlural(lb.opted_in_count||0,'élève inscrit','élèves inscrits')}</strong> au classement sur ${ecPlural(total,'membre','membres')}. Chaque élève choisit lui-même d’y participer ; les autres restent uniquement dans le bilan anonyme.</div>
+    </div>`;
+}
+function viewLeaderboard(owned, membership){
+  const es = ecoleState();
+  const key = es.selectedId + '|' + (es.lbMonth||'');
+  if(es.lbMissing){
+    return `<div class="panel ec-locked"><div class="ec-locked-icon">${icon('trophy')}</div><div class="ec-locked-title">Classement pas encore activé sur cette base</div><div class="ec-locked-sub">Exécute <code>migration_ecole_classement.sql</code> dans Supabase, puis recharge la page.</div></div>`;
+  }
+  const view = es.lbView || 'mois';
+  const cur = lbMonthKey(0), prev = lbMonthKey(-1);
+  const month = es.lbMonth || cur;
+  const lb = es.lbKey===key ? es.lb : null;
+  const months = lbMonthsSince(lb && lb.since);
+  const older = months.filter(m=>m!==cur && m!==prev);
+  const tabs = `
+    <div class="lb-period" role="tablist" aria-label="Période du classement">
+      <button type="button" role="tab" aria-selected="${view==='mois'&&month===cur}" class="${view==='mois'&&month===cur?'active':''}" data-lb-month="${cur}">Ce mois</button>
+      <button type="button" role="tab" aria-selected="${view==='mois'&&month===prev}" class="${view==='mois'&&month===prev?'active':''}" data-lb-month="${prev}">${monthLabelFull(prev).split(' ')[0]}</button>
+      <button type="button" role="tab" aria-selected="${view==='palmares'}" class="${view==='palmares'?'active':''}" data-lb-palmares>Palmarès</button>
+    </div>
+    ${older.length?`<select class="ec-period" id="lb-month-older" aria-label="Autre mois"><option value="">Autre mois…</option>${older.map(m=>`<option value="${m}" ${view==='mois'&&month===m?'selected':''}>${monthLabelFull(m)}</option>`).join('')}</select>`:''}`;
+
+  const head = (title, sub)=>`
+    <div class="lb-head">
+      <div>
+        <div class="ec-report-title">${title}</div>
+        <div class="ec-report-sub">${sub} · <a href="#lb-rules" data-lb-rules>Règlement</a></div>
+      </div>
+      <div class="lb-head-tools">${tabs}</div>
+    </div>`;
+
+  if(view==='palmares'){
+    const pal = es.palmaresKey===es.selectedId ? es.palmares : null;
+    if(!pal && !es.palmaresLoading && !es.palmaresError) setTimeout(loadPalmares, 0);
+    const body = es.palmaresError ? `<div class="panel" style="padding:18px;color:var(--danger);font-size:13px;">${escapeHtml(es.palmaresError)}</div>`
+      : !pal ? emptyState('trophy','Chargement du palmarès…','')
+      : !pal.length ? `<div class="panel ec-locked"><div class="ec-locked-icon">${icon('trophy')}</div><div class="ec-locked-title">Pas encore de mois terminé</div><div class="ec-locked-sub">Le palmarès affiche le podium de chaque mois clôturé depuis la création de la cohorte.</div></div>`
+      : `<div class="lb-palmares">${pal.map(p=>`
+          <div class="panel lb-pal-card">
+            <div class="lb-pal-month">${monthLabelFull(p.month)}</div>
+            ${(p.podium||[]).length ? `<ol class="lb-pal-list">${p.podium.map(r=>`<li class="${r.is_me?'me':''}"><span class="lb-pal-rank lb-medal-${r.rank}">${r.rank}</span><span class="lb-pal-name">${escapeHtml(r.name)}${r.is_me?' <span class="lb-me-tag">Toi</span>':''}</span><span class="mono ${lbTone(r.roi)}">${lbRoi(r.roi)}</span></li>`).join('')}</ol>` : `<div class="lb-pal-empty">Aucun élève classé</div>`}
+          </div>`).join('')}</div>`;
+    return `${head('Palmarès', 'Podium de chaque mois terminé')}${body}${lbRulesHtml()}`;
+  }
+
+  if(!lb){
+    if(!es.lbLoading && !es.lbError) setTimeout(loadLeaderboard, 0);
+    return `${head(`Classement ${lbOfMonth(month)}`, 'ROI du mois')}${es.lbError ? `<div class="panel" style="padding:18px;color:var(--danger);font-size:13px;">${escapeHtml(es.lbError)}</div>` : emptyState('trophy','Calcul du classement…','')}`;
+  }
+  if(!lb.enabled){
+    return `${head(`Classement ${lbOfMonth(month)}`, 'ROI du mois')}
+      <div class="panel ec-locked"><div class="ec-locked-icon">${icon('lock')}</div><div class="ec-locked-title">Classement désactivé</div><div class="ec-locked-sub">${owned ? 'Réactive-le avec l’interrupteur « Classement » ci-dessus.' : 'L’école a désactivé le classement de cette cohorte. Le bilan anonyme reste disponible.'}</div></div>`;
+  }
+  const rows = lb.rows || [];
+  const top = [1,2,3].map(n=>rows.find(r=>r.rank===n));
+  const best = rows.filter(r=>r.prog!=null && Number(r.prog)>0).sort((a,b)=>Number(b.prog)-Number(a.prog) || a.rank-b.rank)[0];
+  const cd = lbCountdown();
+  const leader = top[0];
+  const clock = lb.current ? `
+      <div class="panel lb-clock">
+        <div class="stat-label">Clôture du mois</div>
+        <div class="lb-clock-num"><span class="mono">${cd.days}</span> ${cd.days>1?'jours':'jour'} <span class="mono">${String(cd.hours).padStart(2,'0')}</span> h</div>
+        <div class="ec-card-sub">Le classement se fige le ${cd.label} à 23 h 59.</div>
+      </div>` : `
+      <div class="panel lb-clock">
+        <div class="stat-label">Mois terminé</div>
+        <div class="lb-clock-num" style="font-size:20px;">Classement final</div>
+        <div class="ec-card-sub">Recalculé à partir des données actuelles (voir règlement, point 9).</div>
+      </div>`;
+  const explain = `
+      <div class="panel lb-explain">
+        <div class="lb-explain-txt">
+          <div class="ec-kicker">Classé au ROI, pas au montant</div>
+          <div class="lb-explain-title">Un compte 25K et un compte 150K partent à égalité.</div>
+          <div class="ec-card-sub">ROI = net du mois ÷ capital engagé sur tes comptes actifs.</div>
+        </div>
+        ${leader ? `<div class="lb-formula mono" aria-label="Exemple du premier : ${lbEur(leader.net,true)} divisé par ${lbEur(leader.capital)} égale ${lbRoi(leader.roi)}">
+          <div><span>Net du mois</span><b class="${lbTone(leader.net)}">${lbEur(leader.net,true)}</b></div><i>÷</i>
+          <div><span>Capital engagé</span><b>${lbEur(leader.capital)}</b></div><i>=</i>
+          <div class="hl"><span>ROI du 1er</span><b class="${lbTone(leader.roi)}">${lbRoi(leader.roi)}</b></div>
+        </div>` : ''}
+      </div>`;
+  const podium = rows.length ? `
+    <div class="lb-stage ${best?'':'solo'}">
+      <div class="lb-podium">${lbPodiumCard(top[1],2)}${lbPodiumCard(top[0],1)}${lbPodiumCard(top[2],3)}</div>
+      ${best ? `
+      <div class="panel lb-best">
+        <div class="lb-best-kicker">${icon('arrowUp')}Meilleure progression</div>
+        <div class="lb-best-who"><div class="lb-avatar lb-avatar-prog">${escapeHtml(lbInitials(best.name))}</div><div><div class="lb-podium-name">${escapeHtml(best.name)}${best.is_me?' <span class="lb-me-tag">Toi</span>':''}</div><div class="ec-card-sub" style="margin-top:2px;">${best.rank}${best.rank===1?'er':'e'} au classement</div></div></div>
+        <div class="lb-best-val mono">${lbPts(best.prog)}</div>
+        <div class="ec-card-sub">de ${lbRoi(best.prev_roi)} de ROI en ${monthLabelFull(lb.prev_month).split(' ')[0].toLowerCase()} à ${lbRoi(best.roi)}</div>
+      </div>` : ''}
+    </div>` : `
+    <div class="panel ec-locked"><div class="ec-locked-icon">${icon('trophy')}</div><div class="ec-locked-title">Personne n’est encore classé ${lb.current?'ce mois-ci':'sur ce mois'}</div><div class="ec-locked-sub">${(lb.opted_in_count||0) ? 'Les inscrits apparaîtront dès qu’ils auront un compte actif dans le mois.' : 'Aucun élève n’est encore inscrit au classement.'}</div></div>`;
+  const maxRoi = Math.max(1, ...rows.map(r=>Math.abs(Number(r.roi)||0)));
+  const prevShort = monthLabelFull(lb.prev_month).split(' ')[0].toLowerCase();
+  const table = rows.length ? `
+    <div class="panel lb-table-panel">
+      <div class="lb-table-head"><h3>Classement complet</h3><span class="ec-card-sub" style="margin:0;">${ecPlural(rows.length,'élève classé','élèves classés')}</span></div>
+      <div class="lb-table-wrap">
+        <table class="lb-table">
+          <thead><tr><th>Rang</th><th>Élève</th><th class="num">ROI du mois</th><th class="num">Net du mois</th><th class="num">Capital engagé</th><th class="num">vs ${prevShort}</th></tr></thead>
+          <tbody>${rows.map(r=>`
+            <tr class="${r.is_me?'me':''}">
+              <td><span class="lb-rank lb-medal-${r.rank<=3?r.rank:'x'}">${r.rank}</span></td>
+              <td><div class="lb-who"><span class="lb-avatar sm">${escapeHtml(lbInitials(r.name))}</span><span>${escapeHtml(r.name)}</span>${r.is_me?'<span class="lb-me-tag">Toi</span>':''}${best && r.rank===best.rank?'<span class="lb-prog-tag">Meilleure progression</span>':''}</div></td>
+              <td class="num"><div class="lb-roi-cell"><div class="lb-bar sm"><div class="${lbTone(r.roi)}" style="width:${Math.max(3, Math.round(Math.abs(Number(r.roi)||0)/maxRoi*100))}%"></div></div><b class="mono ${lbTone(r.roi)}">${lbRoi(r.roi)}</b></div></td>
+              <td class="num mono ${Number(r.net)<0?'lb-neg':''}">${lbEur(r.net,true)}</td>
+              <td class="num mono">${lbEur(r.capital)}</td>
+              <td class="num mono ${r.prog==null?'':lbTone(r.prog)}">${r.prog==null?'<span class="text-faint">—</span>':lbPts(r.prog)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <ol class="lb-list" aria-label="Classement complet">${rows.map(r=>`
+        <li class="${r.is_me?'me':''}">
+          <span class="lb-rank lb-medal-${r.rank<=3?r.rank:'x'}">${r.rank}</span>
+          <div class="lb-list-who"><div class="lb-list-name">${escapeHtml(r.name)}${r.is_me?' <span class="lb-me-tag">Toi</span>':''}</div>
+          <div class="lb-list-sub mono">${lbEur(r.net,true)} sur ${lbEur(r.capital)}${r.prog==null?'':` · <span class="${lbTone(r.prog)}">${lbPts(r.prog)}</span>`}</div></div>
+          <b class="mono ${lbTone(r.roi)}">${lbRoi(r.roi)}</b>
+        </li>`).join('')}
+      </ol>
+      <div class="lb-table-foot">Seuls les membres inscrits au classement apparaissent. « — » : pas classé le mois précédent.</div>
+    </div>` : '';
+  return `
+    ${head(`Classement ${lbOfMonth(month)}`, `ROI du mois · ${ecPlural(rows.length,'élève classé','élèves classés')}`)}
+    <div style="${es.lbLoading?'opacity:.55;transition:opacity .15s;':''}">
+      <div class="lb-top">${clock}${explain}</div>
+      ${lbParticipationPanel(lb, membership)}
+      ${lbOwnerPanel(lb, owned)}
+      ${podium}
+      ${table}
+      ${lbRulesHtml()}
+    </div>`;
+}
+function lbParticipationModal(cohortName, me){
+  const first = !me.opted_in;
+  let display = me.display==='PRENOM' && me.display_name ? 'PRENOM' : 'PSEUDO';
+  openModal({
+    title: first ? 'Participer au classement' : 'Mon affichage dans le classement',
+    bodyHtml: `
+      <div class="ec-consent lb-optin">
+        <p>${first ? `Le classement de <strong>${escapeHtml(cohortName)}</strong> compare les membres au <strong>ROI du mois</strong> (net du mois ÷ capital engagé).` : 'Choisis comment tu apparais dans le classement.'}</p>
+        <div class="field"><label>Afficher</label>
+          <div class="radio-group" role="radiogroup" aria-label="Nom affiché">
+            <div class="radio-chip ${display==='PSEUDO'?'selected':''}" role="radio" tabindex="0" aria-checked="${display==='PSEUDO'}" data-lb-disp="PSEUDO">Un pseudo</div>
+            <div class="radio-chip ${display==='PRENOM'?'selected':''} ${me.display_name?'':'disabled'}" role="radio" tabindex="0" aria-checked="${display==='PRENOM'}" data-lb-disp="PRENOM">Mon prénom${me.display_name?` (${escapeHtml(me.display_name)})`:''}</div>
+          </div>
+          ${me.display_name ? '' : '<div class="field-hint">Pour afficher ton prénom, renseigne-le d’abord dans Profil.</div>'}
+        </div>
+        <div class="field" id="lb-pseudo-wrap" style="${display==='PSEUDO'?'':'display:none;'}"><label for="lb-pseudo">Pseudo</label><input id="lb-pseudo" type="text" maxlength="24" value="${escapeHtml(me.pseudo||'')}" placeholder="Ex : TigreNQ"/><div class="field-hint">2 à 24 caractères, unique dans la cohorte.</div></div>
+        <ul>
+          <li>Visible par les membres et par l’école : ton nom d’affichage, ton <strong>ROI</strong>, ton <strong>net du mois</strong>, ton <strong>capital engagé</strong> et ta progression.</li>
+          <li>Ton e-mail et le détail de tes comptes restent <strong>privés</strong>.</li>
+          <li>Tu peux te retirer <strong>à tout moment</strong> : tu disparais aussitôt du classement, mois passés compris.</li>
+        </ul>
+        <details class="lb-optin-rules"><summary>Lire le règlement complet</summary>
+          <ol>${lbRulesItems().map(([t,d])=>`<li><strong>${t}.</strong> ${d}</li>`).join('')}</ol>
+        </details>
+        ${first ? `<label class="ec-consent-check"><input type="checkbox" id="lb-consent"/> J’ai lu le règlement et j’accepte d’apparaître dans le classement de ${escapeHtml(cohortName)} avec ces informations.</label>` : ''}
+        <div id="lb-optin-error" class="error-text"></div>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="lb-optin-cancel">Annuler</button><button class="btn btn-primary" id="lb-optin-ok" ${first?'disabled':''}>${first?'Participer':'Enregistrer'}</button>`,
+    onMount(){
+      const ok = document.getElementById('lb-optin-ok');
+      const err = document.getElementById('lb-optin-error');
+      document.getElementById('lb-optin-cancel').onclick = closeModal;
+      const cb = document.getElementById('lb-consent');
+      if(cb) cb.onchange = ()=>{ ok.disabled = !cb.checked; };
+      const pick = (chip)=>{
+        if(chip.classList.contains('disabled')) return;
+        display = chip.dataset.lbDisp;
+        document.querySelectorAll('[data-lb-disp]').forEach(c=>{ const on = c===chip; c.classList.toggle('selected', on); c.setAttribute('aria-checked', on); });
+        document.getElementById('lb-pseudo-wrap').style.display = display==='PSEUDO' ? '' : 'none';
+      };
+      document.querySelectorAll('[data-lb-disp]').forEach(chip=>{
+        chip.onclick = ()=>pick(chip);
+        chip.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); pick(chip); } };
+      });
+      ok.onclick = async ()=>{
+        err.textContent = '';
+        if(cb && !cb.checked) return;
+        const pseudo = (document.getElementById('lb-pseudo').value||'').trim();
+        if(display==='PSEUDO' && (pseudo.length<2 || pseudo.length>24)){ err.textContent = 'Choisis un pseudo de 2 à 24 caractères.'; return; }
+        ok.disabled = true;
+        const es = ecoleState();
+        const { error } = await supabaseClient.rpc('set_leaderboard_participation', { p_cohort: es.selectedId, p_opt_in: true, p_display: display, p_pseudo: display==='PSEUDO' ? pseudo : null });
+        if(error){ ok.disabled = false; err.textContent = error.message; return; }
+        closeModal();
+        if(first) await logActivity('UPDATE', 'cohort', es.selectedId, 'Inscription au classement de la cohorte');
+        showToast(first ? 'Tu participes au classement.' : 'Affichage mis à jour.');
+        es.palmares = null; es.palmaresKey = null;
+        loadLeaderboard();
+      };
+    }
+  });
+}
+
 /* ---------- Page École (connecté) ---------- */
 function viewEcole(){
   const es = ecoleState();
@@ -7070,6 +7598,7 @@ function viewEcole(){
           <p>Crée une cohorte, partage le code à tes élèves. Contralytix calcule automatiquement, à partir de leurs vrais comptes, le résultat net du groupe, la part d'élèves rentables, la médiane, l'entonnoir challenge → payout et le taux de justificatifs.</p>
           <ul class="ec-points">
             <li>${icon('shield')}<span><strong>Anonyme :</strong> tu ne vois jamais qui est dans la cohorte ni un chiffre individuel. Rien ne s'affiche sous 5 membres actifs.</span></li>
+            <li>${icon('trophy')}<span><strong>Classement au ROI :</strong> un classement mensuel facultatif, où n'apparaissent que les élèves qui s'y inscrivent eux-mêmes.</span></li>
             <li>${icon('check')}<span><strong>Consenti :</strong> chaque élève accepte explicitement, et peut quitter à tout moment.</span></li>
             <li>${icon('barChart')}<span><strong>Incontestable :</strong> calculé côté serveur à partir des données réelles — personne ne saisit « son » bilan.</span></li>
           </ul>
@@ -7123,16 +7652,38 @@ function viewEcole(){
             <button class="btn btn-ghost btn-sm" data-ec-regen-token title="Coupe l'ancien lien public">${icon('reset')}Nouveau lien</button>
           </div>
         </div>
+        <div class="panel ec-card">
+          <div class="stat-label" style="display:flex;justify-content:space-between;align-items:center;">Classement
+            <label class="switch" title="Afficher le classement mensuel au ROI aux membres">
+              <input type="checkbox" id="ec-lb-toggle" ${owned.leaderboardEnabled!==false?'checked':''}/><span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="ec-card-sub" style="margin-top:10px;">${owned.leaderboardEnabled!==false
+            ? 'Classement mensuel au ROI, visible par les membres. Facultatif : seuls les élèves qui s’y inscrivent apparaissent.'
+            : 'Désactivé : les membres ne voient pas de classement. Le bilan anonyme n’est pas concerné.'}</div>
+          <div class="ec-card-actions">
+            <button class="btn btn-outline btn-sm" data-ec-tab="classement" ${owned.leaderboardEnabled!==false?'':'disabled'}>${icon('trophy')}Voir le classement</button>
+          </div>
+        </div>
       </div>`;
   } else if(membership){
     admin = `
       <div class="panel ec-member">
         <div>${icon('shield')}</div>
-        <div class="ec-member-txt">Tu fais partie de <strong>${escapeHtml(membership.name)}</strong> depuis le ${fmtDate((membership.joinedAt||'').slice(0,10))}. Tes chiffres sont comptés de façon anonyme dans le bilan ci-dessous ; l'école ne voit jamais tes données individuelles.</div>
+        <div class="ec-member-txt">Tu fais partie de <strong>${escapeHtml(membership.name)}</strong> depuis le ${fmtDate((membership.joinedAt||'').slice(0,10))}. Tes chiffres sont comptés de façon anonyme dans le bilan ; l'école ne voit jamais tes données individuelles${(es.lb && es.lbKey && es.lbKey.indexOf(membership.cohortId)===0 && es.lb.me && es.lb.me.opted_in)?', sauf celles du classement auquel tu participes (nom d’affichage, ROI, net du mois, capital engagé)':''}.</div>
         <button class="btn btn-outline btn-sm" data-ec-leave="${membership.cohortId}">Quitter la cohorte</button>
       </div>`;
   }
 
+  const tab = es.tab==='classement' ? 'classement' : 'bilan';
+  const tabsHtml = `
+    <div class="ec-tabs" role="tablist" aria-label="Vue de la cohorte">
+      <button type="button" role="tab" aria-selected="${tab==='bilan'}" class="${tab==='bilan'?'active':''}" data-ec-tab="bilan">${icon('shield')}Bilan anonyme</button>
+      <button type="button" role="tab" aria-selected="${tab==='classement'}" class="${tab==='classement'?'active':''}" data-ec-tab="classement">${icon('trophy')}Classement</button>
+    </div>`;
+  if(tab==='classement'){
+    return `<div class="rt-page ec-page">${selector}${admin}${tabsHtml}${viewLeaderboard(owned, membership)}</div>`;
+  }
   const r = es.report;
   const reportHead = `
     <div class="ec-report-head">
@@ -7148,7 +7699,7 @@ function viewEcole(){
   const reportBody = es.reportLoading && !r ? emptyState('barChart','Calcul du bilan…','')
     : es.reportError ? `<div class="panel" style="padding:18px;color:var(--danger);font-size:13px;">${escapeHtml(es.reportError)}</div>`
     : cohortReportHtml(r);
-  return `<div class="rt-page ec-page">${selector}${admin}${reportHead}<div style="${es.reportLoading?'opacity:.55;transition:opacity .15s;':''}">${reportBody}</div></div>`;
+  return `<div class="rt-page ec-page">${selector}${admin}${tabsHtml}${reportHead}<div style="${es.reportLoading?'opacity:.55;transition:opacity .15s;':''}">${reportBody}</div></div>`;
 }
 
 function createCohortModal(){
@@ -7156,7 +7707,7 @@ function createCohortModal(){
     title: 'Créer une cohorte',
     bodyHtml: `
       <div class="field"><label>Nom de l'école / du groupe</label><input id="ec-new-name" type="text" maxlength="80" placeholder="Ex : Promo Intraday — Automne 2026"/></div>
-      <div class="field-hint">Tu obtiendras un code d'invitation à partager. Tu ne verras jamais qui a rejoint ni les chiffres individuels : uniquement des statistiques agrégées, à partir de 5 membres actifs.</div>`,
+      <div class="field-hint">Tu obtiendras un code d'invitation à partager. Tu ne verras jamais qui a rejoint ni les chiffres individuels : uniquement des statistiques agrégées, à partir de 5 membres actifs. Seule exception : le classement mensuel au ROI, où n'apparaissent que les élèves qui choisissent d'y participer.</div>`,
     footHtml: `<button class="btn btn-outline" id="ec-new-cancel">Annuler</button><button class="btn btn-primary" id="ec-new-ok">Créer</button>`,
     onMount(){
       const input = document.getElementById('ec-new-name');
@@ -7191,6 +7742,7 @@ function joinCohortModal(prefillCode){
             <ul>
               <li>Tes dépenses, payouts et comptes Contralytix sont comptés <strong>de façon anonyme et agrégée</strong> (totaux, médiane, répartition).</li>
               <li>L'école ne voit <strong>jamais</strong> ton identité, ton email ni tes chiffres individuels. Rien n'est affiché sous 5 membres actifs.</li>
+              <li>Le <strong>classement mensuel au ROI</strong> est à part et facultatif : tu n'y apparais que si tu t'y inscris toi-même ensuite, et tu peux t'en retirer à tout moment.</li>
               <li>Tu peux <strong>quitter à tout moment</strong> depuis la page Mode École : tes données cessent immédiatement d'être comptées.</li>
             </ul>
             <label class="ec-consent-check"><input type="checkbox" id="ec-consent"/> J'accepte que mes données soient utilisées de cette façon dans le bilan de ${escapeHtml(preview.name)}.</label>
@@ -7250,12 +7802,49 @@ function bindEcoleEvents(){
   on('#ec-create', createCohortModal);
   on('#ec-join', ()=>joinCohortModal(''));
   document.querySelectorAll('[data-ec-select]').forEach(b=>{
-    b.onclick = ()=>{ es.selectedId = b.dataset.ecSelect; es.month = ''; es.report = null; renderView(); loadCohortReport(); };
+    b.onclick = ()=>{ es.selectedId = b.dataset.ecSelect; es.month = ''; es.report = null; es.lbMonth = ''; es.lbView = 'mois'; es.lb = null; es.lbKey = null; es.palmares = null; es.palmaresKey = null; renderView(); loadCohortReport(); };
   });
   const month = document.getElementById('ec-month');
   if(month) month.onchange = ()=>{ es.month = month.value; loadCohortReport(); };
+  // Classement
+  document.querySelectorAll('[data-ec-tab]').forEach(b=>{
+    b.onclick = ()=>{ es.tab = b.dataset.ecTab; renderView(); window.scrollTo({ top:0, behavior:'smooth' }); };
+  });
+  document.querySelectorAll('[data-lb-month]').forEach(b=>{
+    b.onclick = ()=>{ const m = b.dataset.lbMonth; es.lbView = 'mois'; es.lbMonth = m===lbMonthKey(0) ? '' : m; loadLeaderboard(); };
+  });
+  const older = document.getElementById('lb-month-older');
+  if(older) older.onchange = ()=>{ if(!older.value) return; es.lbView = 'mois'; es.lbMonth = older.value; loadLeaderboard(); };
+  on('[data-lb-palmares]', ()=>{ es.lbView = 'palmares'; if(es.palmaresKey!==es.selectedId) loadPalmares(); else renderView(); });
+  document.querySelectorAll('[data-lb-rules]').forEach(a=>{
+    a.onclick = (e)=>{ e.preventDefault(); const el = document.getElementById('lb-rules'); if(el){ el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'), 1200); } };
+  });
+  const lbMe = ()=> (es.lb && es.lb.me) || {};
+  const lbCohortName = ()=>{ const m = es.memberships.find(x=>x.cohortId===es.selectedId); const o = es.owned.find(x=>x.id===es.selectedId); return (m||o||{}).name || ''; };
+  on('[data-lb-optin]', ()=>lbParticipationModal(lbCohortName(), lbMe()));
+  on('[data-lb-edit]', ()=>lbParticipationModal(lbCohortName(), lbMe()));
+  on('[data-lb-quit]', ()=>confirmModal('Te retirer du classement ? Tu disparais immédiatement du classement de la cohorte, mois passés compris. Tes chiffres restent comptés de façon anonyme dans le bilan.', async ()=>{
+    const { error } = await supabaseClient.rpc('set_leaderboard_participation', { p_cohort: es.selectedId, p_opt_in: false });
+    if(error){ showToast('Erreur : ' + error.message, 'danger'); return; }
+    await logActivity('UPDATE', 'cohort', es.selectedId, 'Retrait du classement de la cohorte');
+    showToast('Tu ne participes plus au classement.');
+    es.palmares = null; es.palmaresKey = null;
+    loadLeaderboard();
+  }));
   if(owned){
     on('[data-ec-copy-invite]', ()=>copyToClipboard(ecoleInviteLink(owned.inviteCode), 'Lien d’invitation copié.'));
+    const lbToggle = document.getElementById('ec-lb-toggle');
+    if(lbToggle) lbToggle.onchange = async ()=>{
+      const { error } = await supabaseClient.from('cohorts').update({ leaderboard_enabled: lbToggle.checked }).eq('id', owned.id);
+      if(error){
+        showToast(ecoleMissingSchema(error) || /leaderboard_enabled/.test(error.message||'') ? 'Exécute d’abord migration_ecole_classement.sql sur cette base.' : 'Erreur : ' + error.message, 'danger');
+        lbToggle.checked = !lbToggle.checked; return;
+      }
+      owned.leaderboardEnabled = lbToggle.checked;
+      showToast(lbToggle.checked ? 'Classement activé pour les membres.' : 'Classement désactivé.');
+      es.lb = null; es.lbKey = null; es.palmares = null; es.palmaresKey = null;
+      renderView();
+    };
     on('[data-ec-copy-public]', ()=>copyToClipboard(ecolePublicLink(owned.publicToken), 'Lien public copié.'));
     const toggle = document.getElementById('ec-public-toggle');
     if(toggle) toggle.onchange = async ()=>{
@@ -9251,7 +9840,8 @@ const HELP_CATEGORIES = [
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
     { q:"Qu'est-ce que le Mode École ?", a:"Un bilan collectif pour une école de trading ou une communauté : l'école crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
-    { q:"L'école voit-elle mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période." },
+    { q:"L'école voit-elle mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
+    { q:"Comment fonctionne le classement de l'école ?", a:"Mode École > onglet « Classement ». Il est facultatif : clique « Participer », choisis un pseudo ou ton prénom et accepte le règlement. Les participants sont classés au ROI du mois (net du mois ÷ capital engagé), pour qu'un petit capital parte à égalité avec un gros. Le règlement complet est affiché sous le classement. Tu peux te retirer à tout moment." },
     { q:"Comment rejoindre ou quitter une école ?", a:"Ouvre le lien d'invitation reçu (ou Mode École > « Rejoindre une école » et saisis le code), puis coche la case de consentement. Pour quitter : Mode École > « Quitter la cohorte » — tes données cessent immédiatement d'être comptées." },
     { q:"À quoi sert le bilan public d'une cohorte ?", a:"L'école peut activer un lien consultable sans connexion (sous une vidéo, dans un Discord, sur une page de vente). Il montre le même bilan agrégé, avec les mêmes règles d'anonymat. L'école peut le désactiver ou le régénérer à tout moment." },
   ]},
@@ -9589,10 +10179,14 @@ const MANUAL_CHAPTERS = [
     <p>Le sélecteur de période permet d'afficher le bilan d'un mois précis ou depuis le début. Les boutons crayon et corbeille renomment ou suppriment la cohorte (les données des élèves ne sont jamais touchées).</p>
     <h3>Anonymat et consentement</h3>
     <ul>
-      <li>L'école ne voit <b>jamais</b> la liste des membres, leur e-mail ni un chiffre individuel : uniquement des totaux, une médiane et une répartition.</li>
+      <li>L'école ne voit <b>jamais</b> la liste des membres, leur e-mail ni un chiffre individuel : uniquement des totaux, une médiane et une répartition. Seule exception : le classement, pour les élèves qui choisissent d'y participer (voir ci-dessous).</li>
       <li><b>Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité</b> sur la période : un écran « Chiffres protégés » indique le nombre de membres actifs manquants.</li>
       <li>Chaque élève donne un consentement explicite en rejoignant, et peut quitter la cohorte à tout moment (voir ci-dessous).</li>
     </ul>
+    <h3>Classement mensuel au ROI</h3>
+    <p>L'onglet <b>Classement</b> compare chaque mois les membres qui choisissent d'y participer (bouton « Participer », pseudo ou prénom, acceptation du règlement). On y trouve le podium, la meilleure progression, ta position et le classement complet ; « Palmarès » garde le podium de chaque mois terminé. L'école peut désactiver le classement avec l'interrupteur « Classement ».</p>
+    <p><b>Règlement :</b></p>
+    <ol>${lbRulesItems().map(([t,d])=>`<li><b>${t}.</b> ${d}</li>`).join('')}</ol>
     <h3>Côté élève : rejoindre une école</h3>
     <p>Ouvre le lien d'invitation (après connexion, la fenêtre s'ouvre toute seule) ou va dans Mode École &gt; « Rejoindre une école » et saisis le code. Un écran explique ce qui sera partagé ; il faut cocher la case d'accord pour valider.</p>
     ${manualShot('18c-ecole-consentement.jpg', "Écran de consentement avant de rejoindre une école.")}
