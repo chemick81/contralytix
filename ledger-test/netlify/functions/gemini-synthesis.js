@@ -35,7 +35,7 @@ exports.handler = async (event) => {
   // Google, pas de la clé utilisée — retenter avec une clé différente (perso)
   // ne contourne donc pas une vraie saturation, mais peut aider si la clé du
   // site a atteint son propre quota alors que le modèle n'est pas saturé.
-  const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
+  const MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
   const MAX_ATTEMPTS_PER_MODEL = 3;
   const BASE_RETRY_DELAY_MS = 900;
 
