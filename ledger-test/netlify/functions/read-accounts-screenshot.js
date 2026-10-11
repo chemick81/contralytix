@@ -30,7 +30,15 @@ const supabaseAdmin = createClient(
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024; // 6 Mo une fois décodée — largement assez pour une capture
 const MAX_ACCOUNTS = 50;                 // même plafond que le formulaire « Ajout en masse »
-const DAILY_LIMIT = 20;                  // lectures réussies par jour (heure de Paris) et par compte
+// Plafonds réglables dans Netlify (variables d'environnement), sinon valeurs par défaut :
+//   READ_DAILY_LIMIT   : lectures réussies par jour (heure de Paris) et par compte (défaut 10 ;
+//                        un import demande en général 1 à 3 captures).
+//   GEMINI_READ_BUDGET : lectures réussies par jour pour TOUT le site (défaut 0 = pas de plafond).
+//                        À régler sous le quota quotidien du projet Google (partagé avec la synthèse IA).
+//                        Plafond atteint → le navigateur bascule sur la lecture locale gratuite.
+const intEnv = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : d; };
+const DAILY_LIMIT = intEnv(process.env.READ_DAILY_LIMIT, 10);
+const GLOBAL_BUDGET = intEnv(process.env.GEMINI_READ_BUDGET, 0);
 
 // Début de la journée en cours, heure de Paris, en instant UTC.
 function parisDayStart(now = new Date()) {
@@ -43,16 +51,17 @@ function parisDayStart(now = new Date()) {
 
 // Lectures déjà faites aujourd'hui (null si le compteur est indisponible).
 async function countReadsToday(userId) {
-  const { count, error } = await supabaseAdmin
+  let q = supabaseAdmin
     .from('screenshot_reads')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
     .gte('created_at', parisDayStart().toISOString());
+  if (userId) q = q.eq('user_id', userId);   // sans userId : total du site
+  const { count, error } = await q;
   if (error) { console.error('screenshot_reads count error:', error.message); return null; }
   return count || 0;
 }
 
-const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
+const MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
 const MAX_ATTEMPTS_PER_MODEL = 2;
 const BASE_RETRY_DELAY_MS = 700;
 // Netlify coupe une fonction synchrone vers 10 s et renvoie alors une page d'erreur sans
@@ -64,12 +73,21 @@ const THINKING = { thinkingLevel: 'minimal' };
 
 // Consigne de lecture. `firmNames` = catalogue des PropFirms de Contralytix (envoyé par le
 // navigateur) : Gemini ne peut répondre qu'un de ces noms, jamais une PropFirm inventée.
-function buildPrompt(firmNames) {
+// Indice facultatif envoyé par le navigateur : la plateforme choisie par le trader dans l'écran
+// d'import (onglets d'exemples). Simple aide à la lecture : Gemini l'ignore si l'image ne correspond pas.
+const SOURCE_HINTS = {
+  rithmic: "Rithmic (R | Trader Pro ou Rithmic Trader Dashboard) : tableau dont la colonne « Account » contient l'identifiant. Les colonnes Account Balance, Min Account Balance, Auto Liquidate… sont des montants, jamais des tailles de compte. Le libellé « IB » (ex : Bulenox) désigne la PropFirm affichée à l'écran.",
+  atas: "ATAS : liste ou tableau dont la colonne « Account » regroupe souvent des comptes de plusieurs PropFirms (préfixes différents). Chaque ligne est un compte distinct ; lis chaque identifiant en entier, tirets compris.",
+  tradovate: "Tradovate : tableau des comptes avec la colonne « Compte » / « Account » ; les colonnes Gains/Pert., Niv. Liq., Total, Montant (ou P&L, Net Liq, Cash Balance) sont des montants, jamais des tailles de compte. L'identifiant peut être tronqué à droite par la largeur de la colonne : recopie seulement ce qui est visible.",
+  propfirm: "Tableau de bord d'une PropFirm (site web) : cartes ou menu listant les comptes ; le nom du plan (ex : « 50K », « $50k Intraday Evaluation », « Funded ») peut donner la taille et le type, affichés à l'écran pour ce compte. Le logo ou le nom du site indique la PropFirm.",
+};
+
+function buildPrompt(firmNames, source) {
   const firms = firmNames.length ? firmNames.map((n) => `"${n}"`).join(', ') : '(aucune)';
   return `Tu lis une capture d'écran d'une plateforme de trading (Tradovate, Rithmic, NinjaTrader, Project X, tableau de bord de prop firm…).
 Pour CHAQUE compte de trading visible, renvoie un objet avec ces champs :
 
-- "number" : l'identifiant du compte, recopié exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000247-000010", "LFF050-KE249Z1F-PRO002", "DEMO19714"). Recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite).
+- "number" : l'identifiant du compte, recopié exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000123-000045", "LFF050-AB123C4D-PRO001", "DEMO12345"). Recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite).
 - "propfirm" : la PropFirm du compte, en choisissant UNIQUEMENT un nom de cette liste, écrit à l'identique : ${firms}. Sinon null.
 - "propfirmSource" : "screen" si le nom (ou le logo) de la PropFirm est affiché à l'écran pour ce compte (colonne, en-tête, titre de la page) ; "number" si tu le déduis d'un nom ou d'une abréviation sans ambiguïté contenu dans l'identifiant (ex : "APEX" dans "APEX-123456-03") ; null si propfirm est null. Ne devine jamais : en cas de doute, propfirm = null.
 - "size" : la taille du compte en dollars (nombre entier, ex : 50000), uniquement si elle est affichée comme taille ou plan du compte, ou écrite explicitement dans l'identifiant avec un K (ex : "150K" → 150000, "50K" → 50000). Ne JAMAIS utiliser le solde, l'équité, le P&L ou un autre montant comme taille. Sinon null.
@@ -78,7 +96,9 @@ Pour CHAQUE compte de trading visible, renvoie un objet avec ces champs :
 - "typeSource" : "screen", "number" ou null.
 
 Ignore les en-têtes de colonnes, soldes, montants, dates, noms de personnes, adresses e-mail et libellés de menus. Ne mets pas deux fois le même compte. Si aucun compte n'est lisible, renvoie une liste vide.
-Réponds uniquement avec du JSON de la forme {"accounts":[{"number":"...","propfirm":null,"propfirmSource":null,"size":null,"sizeSource":null,"type":null,"typeSource":null}]}.`;
+Réponds uniquement avec du JSON de la forme {"accounts":[{"number":"...","propfirm":null,"propfirmSource":null,"size":null,"sizeSource":null,"type":null,"typeSource":null}]}.${SOURCE_HINTS[source] ? `
+
+Indication du trader (à ignorer si l'image ne correspond visiblement pas) : la capture vient probablement de ${SOURCE_HINTS[source]}` : ''}`;
 }
 
 const json = (statusCode, body) => ({
@@ -163,9 +183,15 @@ exports.handler = async (event) => {
   if (usedToday !== null && usedToday >= DAILY_LIMIT) {
     return json(429, { error: `Tu as atteint la limite de ${DAILY_LIMIT} lectures de capture pour aujourd'hui. Réessaie demain, ou ajoute tes comptes avec « Ajout en masse ».`, remaining: 0, limit: DAILY_LIMIT });
   }
+  if (GLOBAL_BUDGET > 0 && !isAdmin) {
+    const siteToday = await countReadsToday(null);
+    if (siteToday !== null && siteToday >= GLOBAL_BUDGET) {
+      return json(429, { error: "Le service de lecture est très sollicité aujourd'hui.", remaining: null, limit: DAILY_LIMIT, budget: true });
+    }
+  }
 
   // 2. Image valide
-  let image, mimeType, firmNames = [];
+  let image, mimeType, firmNames = [], source = '';
   try {
     const body = JSON.parse(event.body || '{}');
     // Catalogue des PropFirms (noms seulement) : 100 max, noms courts et sans guillemets.
@@ -177,6 +203,7 @@ exports.handler = async (event) => {
     }
     image = typeof body.image === 'string' ? body.image.replace(/^data:[^,]*,/, '') : '';
     mimeType = typeof body.mimeType === 'string' ? body.mimeType : '';
+    source = typeof body.source === 'string' && Object.prototype.hasOwnProperty.call(SOURCE_HINTS, body.source) ? body.source : '';
   } catch (e) {
     return json(400, { error: 'Requête invalide.' });
   }
@@ -207,7 +234,7 @@ exports.handler = async (event) => {
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
-            contents: [{ parts: [{ text: buildPrompt(firmNames) }, { inline_data: { mime_type: mimeType, data: image } }] }],
+            contents: [{ parts: [{ text: buildPrompt(firmNames, source) }, { inline_data: { mime_type: mimeType, data: image } }] }],
             generationConfig,
           }),
         });

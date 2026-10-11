@@ -18,8 +18,8 @@
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_ACCOUNTS = 50;
-const DAILY_LIMIT = 20;
-const MODELS = ['gemini-3.5-flash', 'gemini-flash-latest'];
+const DAILY_LIMIT_DEFAULT = 10; // par compte et par jour — voir READ_DAILY_LIMIT / GEMINI_READ_BUDGET plus bas
+const MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
 const MAX_ATTEMPTS_PER_MODEL = 2;
 const BASE_RETRY_DELAY_MS = 800;
 // La réponse est ouverte tout de suite (en-têtes envoyés) puis le résultat est écrit quand Gemini
@@ -38,6 +38,12 @@ const env = (name) => {
   return undefined;
 };
 
+// Plafonds réglables dans Netlify (variables d'environnement), sinon valeurs par défaut :
+//   READ_DAILY_LIMIT   : lectures réussies par jour (heure de Paris) et par compte (défaut 10).
+//   GEMINI_READ_BUDGET : lectures réussies par jour pour TOUT le site (défaut 0 = pas de plafond),
+//                        à régler sous le quota quotidien du projet Google (partagé avec la synthèse IA).
+const intEnv = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : d; };
+
 // Résultat interne { status, body } : écrit dans la réponse en flux (voir le gestionnaire en bas).
 const json = (status, body) => ({ status, body });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -49,12 +55,21 @@ function isDemoAccount(id) {
   return /demo|practice|paper/.test(k) || /^sim\d/.test(k);
 }
 
-function buildPrompt(firmNames) {
+// Indice facultatif envoyé par le navigateur : la plateforme choisie par le trader dans l'écran
+// d'import (onglets d'exemples). Simple aide à la lecture : Gemini l'ignore si l'image ne correspond pas.
+const SOURCE_HINTS = {
+  rithmic: "Rithmic (R | Trader Pro ou Rithmic Trader Dashboard) : tableau dont la colonne « Account » contient l'identifiant. Les colonnes Account Balance, Min Account Balance, Auto Liquidate… sont des montants, jamais des tailles de compte. Le libellé « IB » (ex : Bulenox) désigne la PropFirm affichée à l'écran.",
+  atas: "ATAS : liste ou tableau dont la colonne « Account » regroupe souvent des comptes de plusieurs PropFirms (préfixes différents). Chaque ligne est un compte distinct ; lis chaque identifiant en entier, tirets compris.",
+  tradovate: "Tradovate : tableau des comptes avec la colonne « Compte » / « Account » ; les colonnes Gains/Pert., Niv. Liq., Total, Montant (ou P&L, Net Liq, Cash Balance) sont des montants, jamais des tailles de compte. L'identifiant peut être tronqué à droite par la largeur de la colonne : recopie seulement ce qui est visible.",
+  propfirm: "Tableau de bord d'une PropFirm (site web) : cartes ou menu listant les comptes ; le nom du plan (ex : « 50K », « $50k Intraday Evaluation », « Funded ») peut donner la taille et le type, affichés à l'écran pour ce compte. Le logo ou le nom du site indique la PropFirm.",
+};
+
+function buildPrompt(firmNames, source) {
   const firms = firmNames.length ? firmNames.map((n) => `"${n}"`).join(', ') : '(aucune)';
   return `Tu lis une capture d'écran d'une plateforme de trading (Tradovate, Rithmic, NinjaTrader, Project X, tableau de bord de prop firm…).
 Pour CHAQUE compte de trading visible, renvoie un objet avec ces champs :
 
-- "number" : l'identifiant du compte, recopié exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000247-000010", "LFF050-KE249Z1F-PRO002", "DEMO19714"). Recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite).
+- "number" : l'identifiant du compte, recopié exactement, caractère par caractère, tirets compris, sans le corriger ni le compléter (exemples : "FFFUNDED541223", "APEX-123456-03", "PP-F150K-000123-000045", "LFF050-AB123C4D-PRO001", "DEMO12345"). Recopie aussi les comptes de démo ou de simulation (ils sont filtrés ensuite).
 - "propfirm" : la PropFirm du compte, en choisissant UNIQUEMENT un nom de cette liste, écrit à l'identique : ${firms}. Sinon null.
 - "propfirmSource" : "screen" si le nom (ou le logo) de la PropFirm est affiché à l'écran pour ce compte ; "number" si tu le déduis d'un nom ou d'une abréviation sans ambiguïté contenu dans l'identifiant ; null si propfirm est null. Ne devine jamais : en cas de doute, propfirm = null.
 - "size" : la taille du compte en dollars (entier, ex : 50000), uniquement si elle est affichée comme taille ou plan du compte, ou écrite explicitement dans l'identifiant avec un K (ex : "150K" → 150000). Ne JAMAIS utiliser le solde, l'équité, le P&L ou un autre montant. Sinon null.
@@ -63,7 +78,9 @@ Pour CHAQUE compte de trading visible, renvoie un objet avec ces champs :
 - "typeSource" : "screen", "number" ou null.
 
 Ignore les en-têtes de colonnes, soldes, montants, dates, noms de personnes, adresses e-mail et libellés de menus. Ne mets pas deux fois le même compte.
-Réponds uniquement avec du JSON : {"accounts":[{"number":"...","propfirm":null,"propfirmSource":null,"size":null,"sizeSource":null,"type":null,"typeSource":null}]}.`;
+Réponds uniquement avec du JSON : {"accounts":[{"number":"...","propfirm":null,"propfirmSource":null,"size":null,"sizeSource":null,"type":null,"typeSource":null}]}.${SOURCE_HINTS[source] ? `
+
+Indication du trader (à ignorer si l'image ne correspond visiblement pas) : la capture vient probablement de ${SOURCE_HINTS[source]}` : ''}`;
 }
 
 function cleanAccounts(list, firmNames) {
@@ -133,7 +150,8 @@ async function countReadsToday(userId) {
   const { url, headers } = sb();
   try {
     const since = encodeURIComponent(parisDayStart().toISOString());
-    const res = await fetch(`${url}/rest/v1/screenshot_reads?user_id=eq.${encodeURIComponent(userId)}&created_at=gte.${since}&select=id&limit=1`,
+    const who = userId ? `user_id=eq.${encodeURIComponent(userId)}&` : '';   // sans userId : total du site
+    const res = await fetch(`${url}/rest/v1/screenshot_reads?${who}created_at=gte.${since}&select=id&limit=1`,
       { headers: { ...headers, Prefer: 'count=exact' } });
     if (!res.ok) { console.error('screenshot_reads count error:', res.status); return null; }
     const range = res.headers.get('content-range') || '';
@@ -162,19 +180,28 @@ async function handle(request) {
   const userId = await getUserId(authHeader.replace('Bearer ', '').trim()).catch(() => null);
   if (!userId) return json(401, { error: 'Session invalide, reconnecte-toi.' });
 
-  // 2. Limite quotidienne (admins exemptés)
+  // 2. Limites quotidiennes (admins exemptés)
+  const DAILY_LIMIT = intEnv(env('READ_DAILY_LIMIT'), DAILY_LIMIT_DEFAULT);
+  const GLOBAL_BUDGET = intEnv(env('GEMINI_READ_BUDGET'), 0);
   const admin = await isAdminUser(userId);
   const usedToday = admin ? null : await countReadsToday(userId);
   if (usedToday !== null && usedToday >= DAILY_LIMIT) {
     return json(429, { error: `Tu as atteint la limite de ${DAILY_LIMIT} lectures de capture pour aujourd'hui. Réessaie demain, ou ajoute tes comptes avec « Ajout en masse ».`, remaining: 0, limit: DAILY_LIMIT });
   }
+  if (GLOBAL_BUDGET > 0 && !admin) {
+    const siteToday = await countReadsToday(null);
+    if (siteToday !== null && siteToday >= GLOBAL_BUDGET) {
+      return json(429, { error: "Le service de lecture est très sollicité aujourd'hui.", remaining: null, limit: DAILY_LIMIT, budget: true });
+    }
+  }
 
   // 3. Image valide
-  let image = '', mimeType = '', firmNames = [];
+  let image = '', mimeType = '', firmNames = [], source = '';
   try {
     const body = await request.json();
     image = typeof body.image === 'string' ? body.image.replace(/^data:[^,]*,/, '') : '';
     mimeType = typeof body.mimeType === 'string' ? body.mimeType : '';
+    source = typeof body.source === 'string' && Object.prototype.hasOwnProperty.call(SOURCE_HINTS, body.source) ? body.source : '';
     if (Array.isArray(body.firms)) {
       firmNames = [...new Set(body.firms
         .filter((n) => typeof n === 'string')
@@ -192,7 +219,7 @@ async function handle(request) {
   if (!key) return json(500, { error: 'GEMINI_API_KEY non configurée sur Netlify.' });
 
   // 4. Lecture par Gemini
-  const prompt = buildPrompt(firmNames);
+  const prompt = buildPrompt(firmNames, source);
   const startedAt = Date.now();
   const timeLeft = () => TIME_BUDGET_MS - (Date.now() - startedAt);
   let thinkingIdx = 0;
