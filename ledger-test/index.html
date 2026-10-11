@@ -463,6 +463,49 @@ th.th-sort-active svg{opacity:1;}
 .cim-drop-title{font-size:var(--fs-md);font-weight:700;color:var(--text);}
 .cim-drop-sub{font-size:var(--fs-sm);color:var(--text-dim);line-height:1.5;max-width:380px;}
 .cim-kbd{display:inline-block;padding:1px 6px;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;font-size:11px;font-weight:700;color:var(--text);background:var(--surface);}
+/* Guide « D'où vient ta capture ? » : onglets par plateforme + exemple flouté + étapes */
+.cim-guide{margin:0 0 14px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);}
+.cim-guide-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+.cim-guide-title{font-size:var(--fs-md);font-weight:700;color:var(--text);}
+.cim-guide-sub{font-size:11.5px;color:var(--text-faint);}
+.cim-src-tabs{display:flex;gap:4px;padding:4px;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);overflow-x:auto;scrollbar-width:none;}
+.cim-src-tabs::-webkit-scrollbar{display:none;}
+.cim-src-tab{flex:1 0 auto;padding:7px 12px;border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--text-dim);font:inherit;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.cim-src-tab:hover{color:var(--text);background:var(--surface-3);}
+.cim-src-tab:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.cim-src-tab.is-on{color:var(--accent);background:var(--accent-dim);border-color:color-mix(in srgb, var(--accent) 40%, transparent);}
+.cim-guide-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start;animation:fadeIn .15s ease;}
+.cim-ex{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:190px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);cursor:zoom-in;overflow:hidden;font:inherit;}
+.cim-ex:hover{border-color:var(--accent);}
+.cim-ex:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.cim-ex img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.28);}
+.cim-ex-tag{position:absolute;left:8px;top:8px;display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:600;letter-spacing:.2px;pointer-events:none;}
+.cim-ex-tag svg{width:11px;height:11px;}
+.cim-ex-zoom{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;opacity:0;transition:opacity .15s;pointer-events:none;}
+.cim-ex-zoom svg{width:13px;height:13px;}
+.cim-ex:hover .cim-ex-zoom,.cim-ex:focus-visible .cim-ex-zoom{opacity:1;}
+.cim-exwrap{position:relative;min-width:0;}
+.cim-ex-variants{position:absolute;right:8px;bottom:8px;display:flex;gap:2px;padding:2px;border-radius:999px;background:rgba(0,0,0,.62);}
+.cim-ex-var{padding:3px 9px;border:0;border-radius:999px;background:transparent;color:rgba(255,255,255,.75);font:inherit;font-size:10.5px;font-weight:600;cursor:pointer;}
+.cim-ex-var:hover{color:#fff;}
+.cim-ex-var.is-on{background:#fff;color:#111;}
+.cim-ex-var:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.cim-ex.is-empty{cursor:default;flex-direction:column;gap:8px;color:var(--text-faint);font-size:12px;text-align:center;}
+.cim-ex.is-empty svg{width:26px;height:26px;color:var(--text-dim);}
+.cim-ex.is-empty:hover{border-color:var(--border);}
+.cim-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;counter-reset:cimstep;}
+.cim-steps li{position:relative;padding-left:30px;font-size:12.5px;color:var(--text-dim);line-height:1.5;counter-increment:cimstep;}
+.cim-steps li::before{content:counter(cimstep);position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);font-size:11px;font-weight:700;}
+.cim-steps b{color:var(--text);font-weight:600;}
+.cim-shortcut{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-faint);line-height:1.6;}
+.cim-guide + .cim-drop{min-height:150px;}
+@media (max-width:760px){
+  .cim-guide{padding:12px;}
+  .cim-guide-body{grid-template-columns:minmax(0,1fr);gap:12px;}
+  .cim-ex{height:140px;}
+  .cim-src-tabs{flex-wrap:wrap;overflow:visible;}
+  .cim-src-tab{flex:1 1 auto;padding:7px 10px;}
+}
 .cim-privacy{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:11.5px;color:var(--text-faint);line-height:1.5;}
 .cim-privacy svg{width:13px;height:13px;flex-shrink:0;margin-top:2px;}
 .cim-reading{display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
@@ -17585,6 +17628,40 @@ function bulkAccountFormModal(){
 ============================================================ */
 const CIM_MAX_ACCOUNTS = 50; // même plafond que « Ajout en masse »
 
+// Exemples de captures par plateforme, affichés à l'étape de dépôt (numéros de compte floutés).
+// La plateforme choisie est aussi envoyée à la lecture (champ `source`) comme simple indice pour Gemini.
+// Images : assets/import/ (à déployer avec index.html, au même niveau).
+const CIM_SOURCES = [
+  { id:'rithmic', label:'Rithmic', img:'rithmic.png', alt:'Exemple : fenêtre Trader Dashboard de Rithmic',
+    steps:[ 'Ouvre <b>R | Trader Pro</b> (ou le <b>Trader Dashboard</b> Rithmic) et affiche la liste des comptes.',
+            'Choisis <b>Accounts : ALL</b> pour voir tous tes comptes d’un coup.',
+            'Capture au moins la colonne <b>Account</b> : les soldes ne sont pas nécessaires.' ] },
+  { id:'atas', label:'ATAS', img:'atas.png', alt:'Exemple : colonne Account dans ATAS',
+    steps:[ 'Dans <b>ATAS</b>, ouvre la liste de tes comptes (portefeuille / comptes).',
+            'Élargis la colonne <b>Account</b> pour que chaque numéro soit visible en entier.',
+            'Capture la liste, même avec plusieurs PropFirms : les comptes <b>DEMO</b> sont ignorés.' ] },
+  { id:'tradovate', label:'Tradovate', img:'tradovate.png', alt:'Exemple : tableau des comptes Tradovate',
+    steps:[ 'Ouvre le module <b>Comptes</b> (Accounts) dans Tradovate.',
+            'Élargis la colonne <b>Compte</b> : un numéro coupé à l’écran ne peut pas être lu.',
+            'Capture le tableau : niveau de liquidation et montants sont ignorés.' ] },
+  { id:'propfirm', label:'Dashboard prop firm',
+    imgs:[ { img:'propfirm-dashboard.png', label:'Cartes', alt:'Exemple : comptes affichés en cartes sur le tableau de bord d’une prop firm' },
+           { img:'propfirm-menu.png', label:'Menu déroulant', alt:'Exemple : menu déroulant des comptes sur le tableau de bord d’une prop firm' } ],
+    steps:[ 'Connecte-toi au <b>tableau de bord</b> de ta prop firm.',
+            'Affiche <b>tous</b> tes comptes : filtre « All », ou <b>ouvre le menu déroulant</b> des comptes.',
+            'Capture les cartes ou la liste dépliée : le nom du plan aide à préremplir <b>taille</b> et <b>type</b>.' ] },
+  { id:'other', label:'Autre', img:null, alt:'',
+    steps:[ 'NinjaTrader, Project X, Quantower… : affiche la liste de tes comptes.',
+            'Vérifie que chaque <b>numéro de compte</b> est visible en entier.',
+            'Capture uniquement cette zone : plus l’image est nette, meilleure est la lecture.' ] },
+];
+const CIM_SOURCE_KEY = 'cim_source';
+function cimGetSource(){
+  try{ const v = localStorage.getItem(CIM_SOURCE_KEY); if(CIM_SOURCES.some(s=>s.id===v)) return v; }catch(e){ /* stockage indisponible */ }
+  return CIM_SOURCES[0].id;
+}
+function cimSetSource(id){ try{ localStorage.setItem(CIM_SOURCE_KEY, id); }catch(e){ /* */ } }
+
 // Préfixe alphabétique d'un numéro de compte (ex: "FFFUNDED541223" -> "fffunded"),
 // utilisé pour deviner la PropFirm / le type à partir des comptes déjà enregistrés.
 function cimPrefix(num){
@@ -17805,6 +17882,8 @@ function captureImportModal(){
   let shots = [];            // images des captures lues, gardées à l'écran pour vérifier les numéros
   let shotIdx = 0;           // capture affichée
   let thumb = '';
+  let source = cimGetSource(); // plateforme choisie dans le guide (indice de lecture)
+  let exIdx = 0;               // exemple affiché quand une plateforme en a plusieurs
   let busy = false;          // lecture en cours
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
@@ -17842,17 +17921,27 @@ function captureImportModal(){
     busy = false;
     const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
     root().innerHTML = `
+      <section class="cim-guide" aria-labelledby="cim-guide-title">
+        <div class="cim-guide-head">
+          <span class="cim-guide-title" id="cim-guide-title">D’où vient ta capture ?</span>
+          <span class="cim-guide-sub">L’exemple montre quoi capturer, et la lecture s’adapte à ta plateforme.</span>
+        </div>
+        <div class="cim-src-tabs" role="tablist" aria-label="Plateforme de la capture">
+          ${CIM_SOURCES.map(s=>`<button type="button" class="cim-src-tab ${s.id===source?'is-on':''}" role="tab" id="cim-tab-${s.id}" aria-selected="${s.id===source}" aria-controls="cim-guide-body" tabindex="${s.id===source?0:-1}" data-src="${s.id}">${s.label}</button>`).join('')}
+        </div>
+        <div class="cim-guide-body" id="cim-guide-body" role="tabpanel" aria-labelledby="cim-tab-${source}">${guideBodyHtml()}</div>
+      </section>
       <div class="cim-drop" id="cim-drop" tabindex="0" role="button" aria-label="Choisir ou coller une capture d'écran">
         <div class="cim-drop-icon">${icon('camera')}</div>
         <div class="cim-drop-title">${isTouch ? 'Choisis ta capture d’écran' : 'Colle ta capture ici'}</div>
         <div class="cim-drop-sub">${isTouch
           ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme.'
           : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse l’image ici, ou clique pour choisir un fichier.`}</div>
-        <div class="cim-drop-sub" style="color:var(--text-faint);">Tradovate, Rithmic, NinjaTrader, tableau de bord de ta PropFirm… Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
+        <div class="cim-drop-sub" style="color:var(--text-faint);">Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
       </div>
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si Gemini est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 20 lectures Gemini par jour.</span></div>`;
+      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si Gemini est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 10 lectures Gemini par jour.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
     const drop = document.getElementById('cim-drop');
     const input = document.getElementById('cim-file');
@@ -17866,7 +17955,74 @@ function captureImportModal(){
       const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find(x=>x.type.startsWith('image/'));
       if(f) handleFile(f, false); else renderDrop('Dépose une image (PNG, JPG ou WEBP).');
     };
+    bindGuide();
     if(!isTouch) drop.focus();
+  }
+
+  // ---------- Guide par plateforme (onglets + exemple + étapes) ----------
+  function guideBodyHtml(){
+    const s = CIM_SOURCES.find(x=>x.id===source) || CIM_SOURCES[0];
+    const isTouch = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+    const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+    const imgs = s.imgs || (s.img ? [{ img:s.img, alt:s.alt, label:'' }] : []);
+    if(exIdx >= imgs.length) exIdx = 0;
+    const cur = imgs[exIdx];
+    const ex = cur
+      ? `<div class="cim-exwrap">
+           <button type="button" class="cim-ex" data-ex-zoom="assets/import/${cur.img}" aria-label="Agrandir l’exemple ${escapeHtml(s.label)}">
+             <img src="assets/import/${cur.img}" alt="${escapeHtml(cur.alt)}" loading="lazy"/>
+             <span class="cim-ex-tag">${icon('eyeOff')}Exemple · numéros floutés</span>
+             <span class="cim-ex-zoom" aria-hidden="true">${icon('search')}</span>
+           </button>
+           ${imgs.length>1 ? `<div class="cim-ex-variants" role="group" aria-label="Autres exemples">${imgs.map((x,k)=>`<button type="button" class="cim-ex-var ${k===exIdx?'is-on':''}" data-ex-var="${k}" aria-pressed="${k===exIdx}">${escapeHtml(x.label)}</button>`).join('')}</div>` : ''}
+         </div>`
+      : `<div class="cim-ex is-empty">${icon('image')}<span>N’importe quelle plateforme, du moment<br/>que les numéros sont lisibles.</span></div>`;
+    const shortcut = isTouch ? '' : `<div class="cim-shortcut">Capture rapide : ${isMac
+      ? '<span class="cim-kbd">⌘</span> + <span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">Maj</span> + <span class="cim-kbd">4</span> (copie directe), puis colle ici.'
+      : '<span class="cim-kbd">Win</span> + <span class="cim-kbd">Maj</span> + <span class="cim-kbd">S</span>, sélectionne la zone, puis colle ici.'}</div>`;
+    return `${ex}<div><ol class="cim-steps">${s.steps.map(t=>`<li>${t}</li>`).join('')}</ol>${shortcut}</div>`;
+  }
+  function selectSource(id, focus){
+    if(!CIM_SOURCES.some(s=>s.id===id)) return;
+    if(id!==source) exIdx = 0;
+    source = id; cimSetSource(id);
+    document.querySelectorAll('#cim-root .cim-src-tab').forEach(b=>{
+      const on = b.dataset.src===id;
+      b.classList.toggle('is-on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+      if(on && focus) b.focus();
+      if(on) b.scrollIntoView({ block:'nearest', inline:'nearest' });
+    });
+    const body = document.getElementById('cim-guide-body');
+    if(body){ body.innerHTML = guideBodyHtml(); body.setAttribute('aria-labelledby', 'cim-tab-'+id); body.style.animation = 'none'; void body.offsetWidth; body.style.animation = ''; bindGuideBody(); }
+  }
+  function bindGuideBody(){
+    const ex = document.querySelector('#cim-root [data-ex-zoom]');
+    if(ex) ex.onclick = ()=>openZoom(ex.dataset.exZoom);
+    document.querySelectorAll('#cim-root [data-ex-var]').forEach(b=>{
+      b.onclick = ()=>{
+        const k = Number(b.dataset.exVar);
+        if(k===exIdx) return;
+        exIdx = k;
+        const body = document.getElementById('cim-guide-body');
+        if(body){ body.innerHTML = guideBodyHtml(); bindGuideBody(); const nb = body.querySelector(`[data-ex-var="${k}"]`); if(nb) nb.focus(); }
+      };
+    });
+  }
+  function bindGuide(){
+    const tabs = Array.from(document.querySelectorAll('#cim-root .cim-src-tab'));
+    tabs.forEach((b,i)=>{
+      b.onclick = ()=>selectSource(b.dataset.src, false);
+      // Navigation clavier entre onglets (flèches, Début, Fin).
+      b.onkeydown = (e)=>{
+        let j = null;
+        if(e.key==='ArrowRight') j = (i+1)%tabs.length;
+        else if(e.key==='ArrowLeft') j = (i-1+tabs.length)%tabs.length;
+        else if(e.key==='Home') j = 0;
+        else if(e.key==='End') j = tabs.length-1;
+        if(j!==null){ e.preventDefault(); selectSource(tabs[j].dataset.src, true); }
+      };
+    });
+    bindGuideBody();
   }
 
   function renderLocalReading(){
@@ -17924,7 +18080,7 @@ function captureImportModal(){
         method:'POST',
         headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
         // Les noms des PropFirms du catalogue : Gemini ne peut répondre que l'un d'eux.
-        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean) }),
+        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean), source: source==='other' ? '' : source }),
       };
       // Edge Function d'abord (pas de coupure à 10 s) ; si elle n'est pas déployée, fonction classique.
       const t0 = Date.now();
@@ -18188,8 +18344,8 @@ function captureImportModal(){
     if(img){ img.src = shots[k]; img.alt = `Capture ${k+1}`; }
     document.querySelectorAll('#cim-root [data-shot]').forEach(b=>b.classList.toggle('is-on', Number(b.dataset.shot)===k));
   }
-  function openZoom(){
-    const src = shots[shotIdx];
+  function openZoom(srcArg){
+    const src = typeof srcArg==='string' ? srcArg : shots[shotIdx];
     if(!src) return;
     const z = document.createElement('div');
     z.className = 'cim-zoom';
