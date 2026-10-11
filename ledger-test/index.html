@@ -106,7 +106,7 @@
     {
       "@type": "Question",
       "name": "Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes ; c'est pourquoi le Radar ne s'active que si tu le choisis." }
     },
     {
       "@type": "Question",
@@ -465,6 +465,124 @@ th.th-sort-active svg{opacity:1;}
 .promo-row-sub{font-size:11.5px;color:var(--text-faint);}
 .baf-line{display:flex;align-items:center;gap:10px;}
 .baf-line .baf-number{flex:1;min-width:0;}
+/* ============================================================
+   GUIDAGE UTILISATEUR (11/10/2026) — checklist « Bien démarrer », états vides actionnables,
+   aide de page (panneau « ? »), visite guidée, prochaine action sur les cartes Comptes.
+============================================================ */
+/* --- Checklist « Bien démarrer » (Dashboard) --- */
+.gd-start{margin:0 0 16px;padding:16px 18px;border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border));border-radius:var(--radius-lg);background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--surface)) 0%, var(--surface) 60%);}
+.gd-start-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.gd-start-title{font-family:'Space Grotesk',inherit;font-size:16px;font-weight:700;color:var(--text);}
+.gd-start-sub{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+.gd-start-prog{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:12px;color:var(--text-dim);font-weight:600;}
+.gd-start-bar{width:140px;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.gd-start-bar span{display:block;height:100%;border-radius:999px;background:var(--accent);transition:width .4s ease;}
+.gd-start-hide{background:none;border:0;color:var(--text-faint);font:inherit;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:6px;}
+.gd-start-hide:hover{color:var(--text);background:var(--surface-2);}
+.gd-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;list-style:none;margin:0;padding:0;}
+.gd-step{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);min-width:0;}
+.gd-step.is-next{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.gd-step.is-done{background:transparent;opacity:.72;}
+.gd-step-top{display:flex;align-items:center;gap:8px;}
+.gd-step-num{width:22px;height:22px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--surface-3);color:var(--text-dim);}
+.gd-step.is-next .gd-step-num{background:var(--accent);color:var(--accent-text);}
+.gd-step.is-done .gd-step-num{background:var(--accent-dim);color:var(--accent);}
+.gd-step-num svg{width:12px;height:12px;}
+.gd-step-title{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;}
+.gd-step.is-done .gd-step-title{text-decoration:line-through;text-decoration-color:var(--text-faint);}
+.gd-step-sub{font-size:11.5px;color:var(--text-dim);line-height:1.45;flex:1;}
+.gd-step .btn{align-self:flex-start;margin-top:2px;}
+.gd-step-tag{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--gold);}
+.gd-start-done{display:flex;align-items:center;gap:12px;}
+@media (max-width:1100px){ .gd-steps{grid-template-columns:repeat(3,minmax(0,1fr));} }
+@media (max-width:640px){
+  .gd-start{padding:14px;}
+  .gd-steps{grid-template-columns:minmax(0,1fr);}
+  .gd-step.is-done{padding:8px 12px;}
+  .gd-step.is-done .gd-step-sub,.gd-step.is-done .btn{display:none;}
+  .gd-start-prog{margin-left:0;width:100%;}
+  .gd-start-bar{flex:1;}
+}
+
+/* --- États vides actionnables --- */
+.gd-empty{max-width:760px;margin:24px auto;padding:30px 24px;text-align:center;border:1px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface);}
+.gd-empty-icon{width:52px;height:52px;margin:0 auto 12px;border-radius:14px;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);}
+.gd-empty-icon svg{width:24px;height:24px;}
+.gd-empty-title{font-family:'Space Grotesk',inherit;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.gd-empty-sub{font-size:13px;color:var(--text-dim);line-height:1.55;max-width:520px;margin:0 auto 18px;}
+.gd-empty-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,240px));justify-content:center;gap:10px;text-align:left;}
+@media (max-width:640px){ .gd-empty-opts{grid-template-columns:minmax(0,1fr);} }
+.gd-opt{position:relative;display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,transform .15s,background .15s;}
+.gd-opt:hover{border-color:var(--accent);transform:translateY(-1px);}
+.gd-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.gd-opt.is-main{border-color:color-mix(in srgb, var(--accent) 55%, var(--border));background:color-mix(in srgb, var(--accent) 8%, var(--surface-2));}
+.gd-opt-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--surface);color:var(--accent);}
+.gd-opt-icon svg{width:16px;height:16px;}
+.gd-opt-title{font-size:13.5px;font-weight:700;}
+.gd-opt-sub{font-size:12px;color:var(--text-dim);line-height:1.45;}
+.gd-opt-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--accent);color:var(--accent-text);}
+.gd-empty-foot{margin-top:16px;font-size:12px;color:var(--text-faint);}
+.gd-link{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
+/* --- Bouton « ? » + panneau d'aide --- */
+.gd-help-btn{position:relative;}
+.gd-help-btn.is-pulse::after{content:"";position:absolute;inset:-3px;border-radius:10px;border:2px solid var(--accent);animation:gdPulse 1.6s ease-out infinite;pointer-events:none;}
+@keyframes gdPulse{0%{opacity:.9;transform:scale(.92);}100%{opacity:0;transform:scale(1.25);}}
+.gd-drawer-back{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.45);animation:fadeIn .15s ease;}
+.gd-drawer{position:fixed;top:0;right:0;bottom:0;z-index:241;width:min(420px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);box-shadow:-12px 0 40px rgba(0,0,0,.35);animation:gdSlide .2s ease;}
+@keyframes gdSlide{from{transform:translateX(24px);opacity:0;}to{transform:none;opacity:1;}}
+.gd-drawer-head{display:flex;align-items:flex-start;gap:10px;padding:18px 18px 12px;border-bottom:1px solid var(--border);}
+.gd-drawer-kicker{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);}
+.gd-drawer-title{font-family:'Space Grotesk',inherit;font-size:18px;font-weight:700;color:var(--text);margin-top:2px;}
+.gd-drawer-body{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:18px;}
+.gd-drawer-intro{font-size:13px;color:var(--text-dim);line-height:1.55;}
+.gd-sec-title{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;}
+.gd-points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.gd-points li{display:flex;gap:10px;font-size:13px;color:var(--text);line-height:1.5;}
+.gd-points li svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;margin-top:2px;}
+.gd-points b{font-weight:600;}
+.gd-actions{display:flex;flex-direction:column;gap:6px;}
+.gd-action{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;}
+.gd-action:hover{border-color:var(--accent);}
+.gd-action svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
+.gd-action span{flex:1;}
+.gd-gloss{display:flex;flex-direction:column;gap:8px;margin:0;}
+.gd-gloss div{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.gd-gloss dt{display:inline;font-weight:700;color:var(--text);}
+.gd-gloss dd{display:inline;margin:0;}
+.gd-drawer-foot{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+.gd-drawer-foot .btn{flex:1;justify-content:center;}
+
+/* --- Proposition de visite (première visite d'une page) --- */
+.gd-nudge{position:fixed;z-index:230;width:280px;padding:14px;border:1px solid color-mix(in srgb, var(--accent) 45%, var(--border));border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 14px 40px rgba(0,0,0,.4);animation:gdSlide .2s ease;}
+.gd-nudge::before{content:"";position:absolute;top:-7px;right:var(--arrow,22px);width:12px;height:12px;transform:rotate(45deg);background:var(--surface);border-left:1px solid color-mix(in srgb, var(--accent) 45%, var(--border));border-top:1px solid color-mix(in srgb, var(--accent) 45%, var(--border));}
+.gd-nudge-title{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.gd-nudge-sub{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:12px;}
+.gd-nudge-row{display:flex;gap:8px;justify-content:flex-end;}
+
+/* --- Visite guidée --- */
+.gd-tour-spot{position:fixed;z-index:260;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.62),0 0 0 2px var(--accent);transition:all .25s ease;pointer-events:none;}
+.gd-tour-block{position:fixed;inset:0;z-index:259;}
+.gd-tour-pop{position:fixed;z-index:261;width:min(320px,calc(100vw - 32px));padding:16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 16px 44px rgba(0,0,0,.45);transition:top .25s ease,left .25s ease;}
+.gd-tour-step{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--accent);margin-bottom:4px;}
+.gd-tour-title{font-size:14.5px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.gd-tour-text{font-size:12.5px;color:var(--text-dim);line-height:1.55;}
+.gd-tour-row{display:flex;align-items:center;gap:8px;margin-top:14px;}
+.gd-tour-dots{display:flex;gap:4px;margin-right:auto;}
+.gd-tour-dots span{width:6px;height:6px;border-radius:50%;background:var(--surface-3);}
+.gd-tour-dots span.on{background:var(--accent);}
+
+/* --- Prochaine action sur une carte compte --- */
+.gd-next{display:flex;align-items:center;gap:10px;margin:10px 0 0;padding:8px 10px 8px 12px;border:1px dashed color-mix(in srgb, var(--accent) 45%, var(--border));border-radius:var(--radius-md);background:color-mix(in srgb, var(--accent) 6%, transparent);font-size:12.5px;color:var(--text);}
+.gd-next > svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
+.gd-next-text{flex:1;min-width:0;line-height:1.45;}
+.gd-next-text b{font-weight:700;}
+.gd-next.is-warn{border-color:color-mix(in srgb, var(--gold) 55%, var(--border));background:color-mix(in srgb, var(--gold) 8%, transparent);}
+.gd-next.is-warn > svg{color:var(--gold);}
+.gd-next .btn{flex-shrink:0;}
+@media (max-width:640px){ .gd-next{flex-wrap:wrap;} .gd-next .btn{margin-left:25px;} }
+@media (prefers-reduced-motion:reduce){ .gd-help-btn.is-pulse::after,.gd-drawer,.gd-nudge{animation:none;} .gd-tour-spot,.gd-tour-pop{transition:none;} }
+
 /* Import de comptes depuis une capture d'écran (cim = capture import modal) */
 .cim-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:190px;padding:26px 18px;border:1.5px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface-2);text-align:center;cursor:pointer;transition:border-color .15s,background .15s;outline:none;}
 .cim-drop:hover,.cim-drop:focus-visible,.cim-drop.is-over{border-color:var(--accent);background:var(--accent-dim);}
@@ -556,6 +674,9 @@ th.th-sort-active svg{opacity:1;}
   .cim-shot-hint{display:none;}
 }
 .radar-sub{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.radar-optin{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;margin:0 0 16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);font-size:13px;line-height:1.5;cursor:pointer;}
+.radar-optin input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;}
+.radar-optin .text-faint{font-size:12px;}
 .radar-firm-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
 .radar-firm-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 6px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
 .radar-firm-name{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:600;}
@@ -2143,7 +2264,7 @@ th.th-sort-active svg{opacity:1;}
       <div class="ml-tour-row">
         <div class="ml-tour-text">
           <h2>Ne perds plus un compte financé pour inactivité</h2>
-          <p>Un PA fermé parce que tu n'as pas tradé à temps, c'est un payout qui s'envole. Le Radar inactivité suit chaque compte financé selon ta règle — un trade tous les 7 jours, un seuil de P&amp;L, ou un quota mensuel par PropFirm — classe tes comptes par urgence et te prévient dès qu'il ne reste que 3 jours.</p>
+          <p>Un PA fermé parce que tu n'as pas tradé à temps, c'est un payout qui s'envole. Le Radar inactivité suit chaque compte financé selon ta règle — un trade tous les 7 jours, un seuil de P&amp;L, ou un quota mensuel par PropFirm — classe tes comptes par urgence et te prévient dès qu'il ne reste que 3 jours. Tu l'actives si tu veux, tu le coupes quand tu veux.</p>
         </div>
         <div class="ml-tour-visual">
           <div class="ml-browser-frame">
@@ -2176,7 +2297,7 @@ th.th-sort-active svg{opacity:1;}
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12M6 22h12"/><path d="M7 2c0 5 10 5 10 10S7 17 7 22"/><path d="M17 2c0 5-10 5-10 10s10 5 10 10"/></svg></div>
           <h3>Radar inactivité</h3>
-          <p>Ta règle d'inactivité (délai, seuil de P&amp;L, quota mensuel par PropFirm) appliquée à chaque compte financé, avec alerte à 3 jours de l'échéance. Formules Premium et Lifetime.</p>
+          <p>Ta règle d'inactivité (délai, seuil de P&amp;L, quota mensuel par PropFirm) appliquée à chaque compte financé, avec alerte à 3 jours de l'échéance. À activer si tu le souhaites. Formules Premium et Lifetime.</p>
         </article>
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
@@ -2306,7 +2427,7 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?</summary>
-          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&amp;L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes.</p>
+          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&amp;L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes ; c'est pourquoi le Radar ne s'active que si tu le choisis.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix est-il gratuit ?</summary>
@@ -6083,7 +6204,7 @@ function render(){
           `}
         </div>
         <div class="topbar-actions">
-          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale">${icon('search')}</button>`}
+          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `${gdHelpBtnHtml()}<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale">${icon('search')}</button>`}
           <div class="topbar-actions" id="topbar-actions"></div>
         </div>
       </div>
@@ -6145,6 +6266,7 @@ function render(){
   };
   renderTopbarActions();
   renderView();
+  gdAfterRender();
 }
 function topbarSub(){
   const map = {
@@ -6183,7 +6305,7 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
-  else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
+  else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
   else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes à partir d'une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('camera')}Importer une capture</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
@@ -8545,6 +8667,7 @@ function viewDashboard(){
         <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
+    ${gdStartChecklistHtml()}
     ${filterBar}
     ${widgetsOut}
   `;
@@ -9344,7 +9467,7 @@ function traderRegularityModal(trader){
 
 function viewTraders(){
   if(state.traders.length===0){
-    return emptyState('users','Aucun trader','Ajoute ton premier trader pour commencer à suivre ses comptes PropFirm.');
+    return gdEmptyTraders();
   }
   // Formule Free : tout trader qui n'est pas le sien (créé par soi, ou lié à son email) est
   // floue en totalité — pas d'aperçu partiel comme avant, la règle est binaire et simple.
@@ -9404,7 +9527,7 @@ function viewPropfirms(){
 }
 function viewPropfirmsList(){
   if(state.propfirms.length===0){
-    return emptyState('building','Aucune PropFirm','Ajoute les PropFirms utilisées par tes traders.');
+    return gdEmptyPropfirms();
   }
   // Catalogue partagé (pas de notion de "propriétaire") : simple coupure par quota, comme avant.
   const pfBlurred = freeBlurIndexSet(sortedFirms(), null);
@@ -10095,6 +10218,14 @@ const MANUAL_CHAPTERS = [
       <li><b>Déconnexion</b> — ferme la session en cours.</li>
     </ul>
     <p>Sous cette rangée : les liens légaux, les liens vers la communauté Contralytix (Discord, YouTube, TikTok) et le numéro de version. Le menu est conçu pour tenir dans la hauteur de l'écran ; sur un petit écran, seule la liste des pages défile, le bas de la barre reste toujours visible.</p>
+    <h3>Être guidé</h3>
+    <ul>
+      <li><b>Bien démarrer</b> — en tête du Dashboard, une checklist de 5 étapes (créer ton trader, ajouter tes comptes, enregistrer un payout, découvrir ton net réel, protéger tes comptes financés ou activer ton bilan du lundi). Les étapes se cochent toutes seules ; « Masquer » la range, et le bouton ? permet de la reprendre.</li>
+      <li><b>Le bouton ?</b> — en haut de chaque page, il ouvre « Comment ça marche » : l'essentiel de la page, des actions rapides, un lexique et un lien vers le bon chapitre de ce manuel.</li>
+      <li><b>Visite guidée</b> — sur les pages principales, quelques bulles montrent les zones importantes. Elle est proposée à ta première visite, puis reste disponible depuis le bouton ?.</li>
+      <li><b>Prochaine étape</b> — sur la page Comptes, une ligne indique ce qu'un compte attend de toi (créer le PA, enregistrer un premier payout, indiquer ton dernier trade), avec le bon bouton.</li>
+      <li><b>Pages vides</b> — tant qu'une page n'a pas de contenu, elle propose directement les façons de commencer.</li>
+    </ul>
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
@@ -10216,7 +10347,9 @@ const MANUAL_CHAPTERS = [
     <h3>Droits d'édition</h3>
     <p>Un compte n'est modifiable ou supprimable que par son créateur ou un administrateur ; sinon il s'affiche en lecture seule, avec un accès conservé à la consultation des payouts.</p>` },
   { n:'7', id:'m-radar', title:"Radar inactivité", html:`
-    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes &amp; Traders, réservé aux formules Premium et Lifetime) surveille tes comptes PA et Live et te prévient avant qu'il soit trop tard.</p>
+    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes &amp; Traders, réservé aux formules Premium et Lifetime) surveille les comptes PA et Live de ton trader et te prévient avant qu'il soit trop tard.</p>
+    <h3>Un outil à ton choix</h3>
+    <p>Le Radar demande de pointer tes journées tradées : il est donc <b>désactivé par défaut</b>. Active-le depuis la page Radar inactivité (« Activer le Radar ») ou depuis <b>Profil → Radar inactivité</b> (case « Utiliser le Radar inactivité »). Tu peux le désactiver à tout moment au même endroit : plus de bandeau, d'alerte, de bande sur les cartes ni de pointage. Tes réglages et ton historique de pointage sont conservés pour le jour où tu le réactives. Il suit tous les comptes financés de ton trader, y compris ceux qu'un administrateur ou un coach aurait créés pour toi.</p>
     ${manualShot('19-radar.jpg', "Radar inactivité — tuiles de synthèse, filtres et comptes triés par urgence.")}
     <h3>Ta règle</h3>
     <p>Par défaut, une seule règle s'applique à tous tes comptes financés, la plus prudente : <b>au moins un trade tous les 7 jours</b>. Tu la règles dans <b>Profil → Radar inactivité</b> : délai entre deux trades (1 à 90 jours) et, si tu veux, un <b>seuil de P&amp;L</b> — seule une journée à ce montant ou plus compte alors comme active.</p>
@@ -10933,7 +11066,7 @@ function viewAccounts(){
   const totalsBar = accountsTotalsHtml(list, f, anyFilterActive);
 
   if(state.accounts.length===0){
-    return emptyState('card','Aucun compte','Crée un compte Challenge ou PA pour un trader.');
+    return gdEmptyAccounts();
   }
   if(list.length===0){
     // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
@@ -11115,6 +11248,7 @@ function accountCard(a){
         <div><div class="acc-field-label">Payouts cumulés</div><div class="acc-field-value" style="color:var(--accent)">${fmtMoneyCur(pay, accMoney.currency)}</div></div>
         ${accNetCellHtml(a, accMoney, child)}
       </div>
+      ${gdNextActionHtml(a, child)}
       ${dmCardBandHtml(a)}
 
     </div>
@@ -14451,12 +14585,17 @@ function radarSettingsPanelHtml(){
   const premium = perms().isPremium;
   const { maxDays, threshold } = dmPersonalSettings();
   const draft = premium ? radarFirmDraft() : {};
-  const fundedCount = id => (state.accounts||[]).filter(a=>isMine(a) && String(a.propFirmId)===String(id) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF').length;
+  const fundedCount = id => (state.accounts||[]).filter(a=>isMineAccount(a) && String(a.propFirmId)===String(id) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF').length;
   const available = sortedFirms().filter(f=>!draft[String(f.id)]).sort((x,y)=>fundedCount(y.id)-fundedCount(x.id));
   return `<div class="panel" style="padding:20px;">
     <div class="section-title" style="margin-bottom:4px;display:flex;align-items:center;gap:8px;">Radar inactivité ${premium ? '' : '<span class="badge badge-gold">Premium</span>'}</div>
     <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;line-height:1.5;">Une règle générale pour tes comptes funded, par défaut ${DM_DEFAULT_MAX_DAYS} jours : la règle la plus stricte couvre celles de la plupart des prop firms. Un rappel s’affiche à la connexion quand un compte arrive à ${DM_ALERT_DAYS} jours ou moins.</div>
     ${premium ? `
+    <label class="radar-optin">
+      <input type="checkbox" id="radar-optin" ${dmOptedIn()?'checked':''} onchange="this.checked ? dmSetOptIn(true) : (this.checked = true, dmDisableConfirm())"/>
+      <span><b>Utiliser le Radar inactivité</b><br/><span class="text-faint">Alertes avant fermeture pour inactivité, en pointant tes journées tradées. Désactivé : ni bandeau, ni popup, ni pointage.</span></span>
+    </label>
+    ${dmOptedIn() ? `
     <div class="radar-sub">Règle générale</div>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
       <div class="field" style="margin:0;"><label>Délai maximum entre deux trades</label>
@@ -14498,7 +14637,7 @@ function radarSettingsPanelHtml(){
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap;">
       ${(maxDays!==DM_DEFAULT_MAX_DAYS || threshold) ? `<button class="btn btn-ghost btn-sm" id="radar-settings-reset" title="Règle générale uniquement ; les règles par PropFirm sont conservées">Règle générale : revenir à ${DM_DEFAULT_MAX_DAYS} jours sans seuil</button>` : ''}
       <button class="btn btn-primary btn-sm" id="radar-settings-save">${icon('check')}Enregistrer</button>
-    </div>` : `
+    </div>` : ''}` : `
     <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('Le radar inactivité')">Débloquer le radar inactivité</button>`}
   </div>`;
 }
@@ -15088,9 +15227,51 @@ async function loadDormancy(){
   state.dormancyStates = states.data.map(fromRow);
   state.dormancyReady = true;
 }
-function dmEnabled(){ return !!(state.dormancyReady && perms().isPremium); }
+// Radar au choix du trader (11/10/2026) : désactivé par défaut, activé/désactivé depuis la page Radar
+// ou le Profil (colonne profiles.radar_enabled, migration_radar_opt_in.sql). Désactivé : ni bandeau,
+// ni popup, ni bande sur les cartes, ni pointage — seule la page Radar reste, pour proposer de l'activer.
+function dmOptedIn(){ return !!(state.profile && state.profile.radarEnabled); }
+function dmEnabled(){ return !!(state.dormancyReady && perms().isPremium && dmOptedIn()); }
+async function dmSetOptIn(on){
+  const uidv = currentUserId();
+  if(!uidv || !state.profile) return;
+  const prev = !!state.profile.radarEnabled;
+  state.profile.radarEnabled = !!on; // optimiste
+  const { error } = await supabaseClient.from('profiles').update({ radar_enabled: !!on }).eq('id', uidv);
+  if(error){
+    state.profile.radarEnabled = prev; render();
+    showToast(isAdmin() ? 'Colonne radar_enabled absente : exécute migration_radar_opt_in.sql sur Supabase. (' + error.message + ')' : 'Impossible d’enregistrer ce choix pour le moment. Réessaie dans un instant.', 'danger');
+    return;
+  }
+  try{ await logActivity('SETTINGS', 'profile', uidv, `Radar inactivité ${on ? 'activé' : 'désactivé'}`); }catch(e){}
+  render();
+  showToast(on ? 'Radar inactivité activé. Indique ton dernier trade sur chaque compte pour démarrer.' : 'Radar inactivité désactivé. Tes réglages et ton historique de pointage sont conservés.');
+}
+function dmDisableConfirm(){
+  confirmModal('Désactiver le Radar inactivité ? Plus d’alerte, de bandeau ni de pointage. Tes réglages et ton historique sont conservés : tu pourras le réactiver à tout moment.', ()=>dmSetOptIn(false));
+}
+function dmOptInViewHtml(){
+  const funded = (state.accounts||[]).filter(a=>isMineAccount(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF').length;
+  const ck = icon('check');
+  return `
+    <div class="gd-empty" style="max-width:720px;">
+      <div class="gd-empty-icon">${icon('hourglass')}</div>
+      <div class="gd-empty-title">Le Radar inactivité est désactivé</div>
+      <div class="gd-empty-sub">Beaucoup de PropFirms ferment un compte financé resté trop longtemps sans trade. Le Radar surveille tes comptes${funded ? ` (${funded} compte${funded>1?'s':''} financé${funded>1?'s':''} actif${funded>1?'s':''})` : ''} et te prévient avant l’échéance. Il demande un petit geste : pointer tes journées tradées, en un clic pour plusieurs comptes. C’est toi qui choisis.</div>
+      <ul class="gd-points" style="max-width:460px;margin:0 auto 18px;text-align:left;">
+        <li>${ck}<span>Ta règle : <b>un trade tous les 7 jours</b> par défaut, réglable, avec des règles par PropFirm.</span></li>
+        <li>${ck}<span>Alerte à la connexion dès qu’il ne reste que <b>3 jours</b>.</span></li>
+        <li>${ck}<span>Désactivable à tout moment : <b>rien n’est supprimé</b>.</span></li>
+      </ul>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" onclick="dmSetOptIn(true)">${icon('check')}Activer le Radar</button>
+        <button type="button" class="btn btn-outline" onclick="gdOpenManual('m-radar')">${icon('book')}En savoir plus</button>
+      </div>
+      <div class="gd-empty-foot">Sans le Radar, tout le reste de Contralytix fonctionne normalement.</div>
+    </div>`;
+}
 function dmFundedAccounts(){
-  return (state.accounts||[]).filter(a=>isMine(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF');
+  return (state.accounts||[]).filter(a=>isMineAccount(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF');
 }
 function dmRuleFor(a){ return dmPersonalRule(a.propFirmId); }   // règle personnelle (générale ou propre à la PropFirm)
 function dmStateFor(a){ return (state.dormancyStates||[]).find(s=>String(s.accountId)===String(a.id)) || null; }
@@ -15252,9 +15433,10 @@ function viewRadar(){
   if(!state.dormancyReady){
     return emptyState('clock', 'Radar inactivité indisponible', isAdmin() ? 'Les tables dormancy_* sont introuvables : exécute migration_dormance_dev_20261008.sql sur Supabase.' : 'Le module est en cours d’activation, réessaie un peu plus tard.');
   }
+  if(!dmOptedIn()) return dmOptInViewHtml();
   const all = dmAllResults();
   if(!all.length){
-    return emptyState('clock', 'Aucun compte funded actif', 'Le radar suit tes PA et comptes Live actifs. Ajoute-les depuis la page Comptes.');
+    return gdEmptyRadar();
   }
   const f = state.dmFilter || 'all';
   const counts = { crit:0, warn:0, ok:0, unconfirmed:0 };
@@ -15345,7 +15527,7 @@ function dmRowHtml(a, r){
 /* ---------- Bande en pied de carte compte (page Comptes) ---------- */
 function dmCardBandHtml(a){
   if(!dmEnabled()) return '';
-  if(!(isMine(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF')) return '';
+  if(!(isMineAccount(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF')) return '';
   const r = dmResult(a);
   const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown;
   const headline = r.engine==='MONTHLY' ? `Activité du mois : ${dmLevelLabel(r).toLowerCase()}` : r.level==='ok' ? 'Inactivité : en règle' : r.dormant ? 'Phase dormante (Apex)' : `Inactivité : ${m.label.toLowerCase()}`;
@@ -15439,7 +15621,7 @@ function dmOpenDetail(accountId){
 /* ---------- Pointage d'une journée ---------- */
 // accountId fourni = pointage unitaire de ce seul compte (depuis son détail) ; sinon tous les comptes.
 function dmOpenPointage(dayArg, accountId){
-  if(!dmEnabled()){ openUpgradeModal('Le radar inactivité'); return; }
+  if(!dmEnabled()){ if(!perms().isPremium) openUpgradeModal('Le radar inactivité'); else { state.route='radar'; render(); } return; }
   const single = !!accountId;
   const accounts = single ? dmFundedAccounts().filter(a=>String(a.id)===String(accountId)) : dmFundedAccounts();
   if(!accounts.length){ showToast('Aucun compte funded actif à pointer.', 'danger'); return; }
@@ -15541,7 +15723,7 @@ function dmOpenPointage(dayArg, accountId){
 
 /* ---------- Point de départ (activation, une seule fois par compte) ---------- */
 function dmOpenActivation(accountIds){
-  if(!dmEnabled()){ openUpgradeModal('Le radar inactivité'); return; }
+  if(!dmEnabled()){ if(!perms().isPremium) openUpgradeModal('Le radar inactivité'); else { state.route='radar'; render(); } return; }
   let accounts = dmFundedAccounts();
   if(accountIds && accountIds[0]!=='all') accounts = accounts.filter(a=>accountIds.includes(a.id));
   else accounts = accounts.filter(a=>!dmStateFor(a)).concat(accounts.filter(a=>dmStateFor(a)));
@@ -15742,6 +15924,363 @@ function dmBindEvents(){
 /* ============================================================
    EMPTY STATE
 ============================================================ */
+/* ============================================================
+   GUIDAGE UTILISATEUR (11/10/2026)
+   1. Checklist « Bien démarrer » en tête du Dashboard (étapes cochées automatiquement).
+   2. États vides actionnables (gdEmpty) : options cliquables + lien vers le bon chapitre du manuel.
+   3. Aide de page : bouton « ? » dans l'en-tête → panneau « Comment ça marche » (essentiel,
+      actions rapides, lexique, lien manuel) + visite guidée en quelques bulles.
+      À la première visite d'une page qui a une visite, une petite bulle la propose (une seule fois).
+   4. Prochaine action sur les cartes Comptes (gdNextActionHtml).
+   Préférences d'affichage (checklist masquée, visites vues) : localStorage, par utilisateur.
+============================================================ */
+function gdKey(k){ return 'cx_gd_' + (currentUserId()||'anon') + '_' + k; }
+function gdGet(k){ try{ return localStorage.getItem(gdKey(k)); }catch(e){ return null; } }
+function gdSet(k, v){ try{ localStorage.setItem(gdKey(k), v); }catch(e){ /* stockage indisponible */ } }
+function gdGo(route){ state.route = route; if(typeof closeModal==='function' && document.querySelector('#modal-root .modal')) closeModal(); render(); window.scrollTo({ top:0 }); }
+// Ouvre le manuel directement au bon chapitre.
+function gdOpenManual(anchor){
+  gdCloseHelp();
+  gdGo('manuel');
+  if(anchor) setTimeout(()=>{ const t = document.getElementById(anchor); if(t) t.scrollIntoView({ behavior:'smooth', block:'start' }); }, 80);
+}
+
+/* ---------- 1. Checklist « Bien démarrer » ---------- */
+function gdStartSteps(){
+  const myTraders = (state.traders||[]).filter(isMineTrader);
+  const myAccounts = (state.accounts||[]).filter(isMineAccount);
+  const myIds = new Set(myAccounts.map(a=>a.id));
+  const steps = [
+    { id:'trader', title:'Crée ton profil trader', sub:'Ton nom de trader : tous tes comptes y seront rattachés.',
+      done: myTraders.length>0, cta:'Créer mon trader', run:"gdGo('traders');setTimeout(()=>traderFormModal(),60)" },
+    { id:'accounts', title:'Ajoute tes comptes', sub:'Le plus rapide : une capture de ta plateforme, les numéros sont lus pour toi.',
+      done: myAccounts.length>0, cta:'Importer une capture', run:"gdGo('accounts');setTimeout(()=>captureImportModal(),60)" },
+    { id:'payout', title:'Enregistre un payout', sub:'Depuis la carte d’un compte financé, bouton « Payouts ». C’est ce qui alimente ton net.',
+      done: (state.payouts||[]).some(p=>myIds.has(p.accountId)), cta:'Voir mes comptes', run:"gdGo('accounts')" },
+    { id:'rentabilite', title:'Découvre ton net réel', sub:'Payouts moins toutes tes dépenses : ce que tu as vraiment gagné.',
+      done: gdGet('seen_rentabilite')==='1', cta:'Voir ma rentabilité', run:"gdGo('rentabilite')" },
+  ];
+  if(perms().isPremium && state.dormancyReady && !dmOptedIn() && gdGet('radar_skip')!=='1'){
+    steps.push({ id:'radar', title:'Protège tes comptes financés', sub:'Optionnel : le Radar t’alerte avant une fermeture pour inactivité. À activer si tu veux.',
+      done:false, cta:'Découvrir le Radar', run:"gdGo('radar')", skip:true });
+  } else if(typeof dmEnabled==='function' && dmEnabled()){
+    const funded = dmFundedAccounts();
+    const missing = funded.filter(a=>{ try{ return !dmResult(a).hasStart; }catch(e){ return false; } }).length;
+    steps.push({ id:'radar', title:'Protège tes comptes financés', sub: funded.length ? (missing ? `Indique ton dernier trade sur ${missing} compte${missing>1?'s':''} : le Radar calcule ton délai avant fermeture.` : 'Ton Radar inactivité suit tous tes comptes financés.') : 'Dès que tu as un PA, le Radar surveille son inactivité.',
+      done: funded.length>0 && missing===0, cta: funded.length ? 'Ouvrir le Radar' : 'Voir le Radar', run:"gdGo('radar')" });
+  } else {
+    steps.push({ id:'weekly', title:'Reçois ton bilan du lundi', sub:'Un e-mail chaque semaine : net, payouts, dépenses et mouvements de comptes.',
+      done: !!(state.profile && state.profile.notifPerfSummary), cta:'Activer', run:"gdGo('parametres')" });
+  }
+  return steps;
+}
+function gdStartChecklistHtml(){
+  if(!state.profile || gdGet('start_hidden')==='1') return '';
+  const steps = gdStartSteps();
+  const done = steps.filter(s=>s.done).length;
+  if(done===steps.length) return '';
+  const next = steps.find(s=>!s.done);
+  const pct = Math.round(done/steps.length*100);
+  return `
+    <section class="gd-start" aria-label="Bien démarrer">
+      <div class="gd-start-head">
+        <div>
+          <div class="gd-start-title">Bien démarrer sur Contralytix</div>
+          <div class="gd-start-sub">${done===0 ? 'Cinq étapes pour voir ton vrai résultat prop firm. Compte 5 minutes.' : `Plus que ${steps.length-done} étape${steps.length-done>1?'s':''}. Prochaine : ${next.title.toLowerCase()}.`}</div>
+        </div>
+        <div class="gd-start-prog">
+          <span>${done}/${steps.length}</span>
+          <div class="gd-start-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${steps.length}" aria-valuenow="${done}" aria-label="Progression"><span style="width:${pct}%"></span></div>
+          <button type="button" class="gd-start-hide" onclick="gdHideStart()" title="Masquer cette checklist (elle reste accessible depuis le bouton ? de l’en-tête)">Masquer</button>
+        </div>
+      </div>
+      <ol class="gd-steps">
+        ${steps.map((s,i)=>`
+          <li class="gd-step ${s.done?'is-done':''} ${s===next?'is-next':''}">
+            <div class="gd-step-top"><span class="gd-step-num">${s.done?icon('check'):i+1}</span><span class="gd-step-title">${s.title}</span></div>
+            <div class="gd-step-sub">${s.sub}</div>
+            ${s.done ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><button type="button" class="btn ${s===next?'btn-primary':'btn-outline'} btn-sm" onclick="${s.run}">${s.cta}</button>${s.skip ? `<button type="button" class="gd-start-hide" onclick="gdSet('radar_skip','1');renderView();" title="Retirer cette étape : le Radar reste disponible dans le menu">Pas pour moi</button>` : ''}</div>`}
+          </li>`).join('')}
+      </ol>
+    </section>`;
+}
+function gdHideStart(){
+  gdSet('start_hidden','1');
+  renderView();
+  showToast('Checklist masquée. Tu la retrouves avec le bouton ? en haut de page.');
+}
+function gdShowStart(){
+  gdSet('start_hidden','0'); gdCloseHelp(); gdGo('dashboard');
+}
+
+/* ---------- 2. États vides actionnables ---------- */
+// opts : [{ icon, title, sub, run (code JS), main (bool), badge }]
+function gdEmpty({ icon:ic, title, sub, opts=[], manual, foot }){
+  return `
+    <div class="gd-empty">
+      <div class="gd-empty-icon">${icon(ic||'info')}</div>
+      <div class="gd-empty-title">${title}</div>
+      <div class="gd-empty-sub">${sub}</div>
+      ${opts.length ? `<div class="gd-empty-opts">${opts.map(o=>`
+        <button type="button" class="gd-opt ${o.main?'is-main':''}" onclick="${o.run}">
+          ${o.badge ? `<span class="gd-opt-badge">${o.badge}</span>` : ''}
+          <span class="gd-opt-icon">${icon(o.icon||'plus')}</span>
+          <span class="gd-opt-title">${o.title}</span>
+          <span class="gd-opt-sub">${o.sub}</span>
+        </button>`).join('')}</div>` : ''}
+      ${(manual || foot) ? `<div class="gd-empty-foot">${foot||''}${manual ? `${foot?' · ':''}<button type="button" class="gd-link" onclick="gdOpenManual('${manual}')">Comment ça marche ?</button>` : ''}</div>` : ''}
+    </div>`;
+}
+function gdEmptyAccounts(){
+  if(!(state.traders||[]).some(isMineTrader)){
+    return gdEmpty({ icon:'users', title:'Commence par créer ton trader',
+      sub:'Chaque compte prop firm est rattaché à un trader. Crée le tien (ton nom ou ton pseudo), puis ajoute tes comptes.',
+      opts:[{ icon:'users', title:'Créer mon trader', sub:'30 secondes : un nom, c’est tout.', run:'traderFormModal()', main:true }],
+      manual:'m-traders' });
+  }
+  return gdEmpty({ icon:'card', title:'Ajoute tes premiers comptes',
+    sub:'Challenge, PA (compte financé) ou Live : ajoute-les une fois, Contralytix calcule ensuite tes dépenses, tes payouts et ton net.',
+    opts:[
+      { icon:'camera', title:'Importer une capture', sub:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les numéros sont lus pour toi.', run:'captureImportModal()', main:true, badge:'Le plus rapide' },
+      { icon:'plus', title:'Nouveau compte', sub:'Un compte à la fois, avec tous les détails : prix, mensualités, date d’activation.', run:'accountFormModal({})' },
+      { icon:'layers', title:'Ajout en masse', sub:'Plusieurs comptes identiques achetés ensemble : seul le numéro change.', run:'bulkAccountFormModal()' },
+    ], manual:'m-comptes' });
+}
+function gdEmptyTraders(){
+  return gdEmpty({ icon:'users', title:'Aucun trader pour l’instant',
+    sub:'Un trader regroupe ses comptes, ses payouts et ses statistiques. Seul ? Crée simplement ton propre trader. Tu suis une équipe ? Crée un trader par personne.',
+    opts:[{ icon:'users', title:'Créer mon trader', sub:'Ton nom ou ton pseudo. Tu pourras ajouter ton e-mail pour relier tes comptes.', run:'traderFormModal()', main:true }],
+    manual:'m-traders' });
+}
+function gdEmptyPropfirms(){
+  return gdEmpty({ icon:'building', title:'Aucune PropFirm dans le catalogue',
+    sub: isAdmin() ? 'Ajoute les PropFirms utilisées : elles seront proposées à tous les utilisateurs, avec leur logo.' : 'Le catalogue est géré par l’équipe Contralytix. Il te manque une PropFirm ? Demande son ajout, c’est généralement fait sous 24 h.',
+    opts: isAdmin()
+      ? [{ icon:'plus', title:'Nouvelle PropFirm', sub:'Nom, site web et notes.', run:'firmFormModal()', main:true }]
+      : [{ icon:'mail', title:'Demander une PropFirm', sub:'Envoie le nom au support.', run:"document.getElementById('request-firm-btn')&&document.getElementById('request-firm-btn').click()", main:true }],
+    manual:'m-propfirms' });
+}
+function gdEmptyRadar(){
+  return gdEmpty({ icon:'clock', title:'Aucun compte financé à surveiller',
+    sub:'Le Radar suit tes comptes PA et Live actifs pour t’éviter une fermeture pour inactivité. Dès qu’un compte financé est ajouté, il apparaît ici avec son délai.',
+    opts:[
+      { icon:'card', title:'Ajouter un compte financé', sub:'Crée un PA, ou transforme un Challenge réussi avec « Créer le PA ».', run:"gdGo('accounts')", main:true },
+      { icon:'gear', title:'Régler ma règle', sub:'Par défaut : un trade tous les 7 jours. À ajuster dans ton Profil.', run:"gdGo('profil')" },
+    ], manual:'m-radar' });
+}
+
+/* ---------- 3. Aide de page ---------- */
+const GD_HELP = {
+  dashboard: { manual:'m-dashboard', intro:'Ta vue d’ensemble : ce que tu as dépensé, encaissé et gagné, et ce qui demande ton attention.',
+    points:['Les <b>filtres</b> (trader, PropFirm, période) s’appliquent à tous les modules.','<b>Personnaliser</b> : choisis les modules, leur ordre et leur taille (SM, MD, LG). Ta disposition suit ton compte.','Le <b>Net</b> = payouts − dépenses. Le <b>Net global</b> ajoute tes frais généraux.','Les petites flèches ▲▼ comparent à la période précédente.'],
+    actions:[{ icon:'layout', label:'Personnaliser le Dashboard', run:"document.getElementById('dash-customize-btn')&&document.getElementById('dash-customize-btn').click()" },{ icon:'check', label:'Afficher la checklist « Bien démarrer »', run:'gdShowStart()' }],
+    tour:[
+      { sel:'.gd-start', title:'Bien démarrer', text:'Les étapes clés pour voir ton vrai résultat. Elles se cochent toutes seules.' },
+      { sel:'.filter-bar', title:'Filtres', text:'Trader, PropFirm et période : tout le Dashboard suit ces filtres.' },
+      { sel:'#dash-customize-btn', title:'Personnaliser', text:'Affiche, masque, réordonne et redimensionne les modules. Ta disposition est enregistrée sur ton compte.' },
+      { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
+    ] },
+  accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
+    points:['<b>Importer une capture</b> crée tes comptes depuis une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net profit, ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    actions:[{ icon:'camera', label:'Importer une capture', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
+    glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net profit','payouts − dépenses, Challenge d’origine inclus.'],['ROI','net profit ÷ dépenses.']],
+    tour:[
+      { sel:'#capture-import-account', title:'Le plus rapide pour démarrer', text:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les comptes sont créés pour toi.' },
+      { sel:'.acc-totals', title:'Tes totaux', text:'Dépenses, payouts, net profit et ROI des comptes affichés. Ils suivent tes filtres.' },
+      { sel:'.filter-bar', title:'Filtres et regroupement', text:'Cherche un numéro, filtre par trader, PropFirm, taille ou statut, et regroupe la liste.' },
+      { sel:'.type-tabs', title:'Par type de compte', text:'Challenge, PA ou Live en un clic, avec leur nombre.' },
+      { sel:'.acc-card', title:'La carte d’un compte', text:'Statut, dépenses, payouts et net. Les boutons changent selon l’étape : marquer réussi, créer le PA, payouts, passer en Live…' },
+      { sel:'.gd-next', title:'La prochaine étape', text:'Quand un compte attend quelque chose de toi (créer le PA, enregistrer un payout, indiquer ton dernier trade), c’est écrit ici, avec le bon bouton.' },
+    ] },
+  radar: { manual:'m-radar', intro:'Évite qu’un compte financé soit fermé parce que tu n’as pas tradé à temps.',
+    points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Ta règle par défaut : <b>un trade tous les 7 jours</b>. Modifiable dans ton Profil, avec des règles par PropFirm.','Contralytix n’est pas relié à ta plateforme : <b>pointe tes journées</b>, en un clic pour plusieurs comptes.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
+    actions:[{ icon:'check', label:'Pointer une journée', run:"gdCloseHelp();typeof dmOpenPointage==='function'&&dmOpenPointage()" },{ icon:'edit', label:'Indiquer mon dernier trade', run:"gdCloseHelp();dmOpenActivation(['all'])" },{ icon:'gear', label:'Régler ma règle (Profil)', run:"gdGo('profil');gdCloseHelp()" }],
+    glossary:[['Délai glissant','au moins un trade (ou une journée au-dessus du seuil) tous les N jours.'],['Quota mensuel','N journées gagnantes à +X $ dans le mois calendaire.'],['Dernier trade connu','point de départ du compteur ; sans lui, la date d’activation du compte.']],
+    tour:[
+      { sel:'.dm-start-cta', title:'À faire une fois', text:'Indique la date de ton dernier trade : sans elle, le compteur part prudemment de l’activation du compte.' },
+      { sel:'.dm-tiles', title:'La situation en un coup d’œil', text:'À trader en priorité, à surveiller, en règle, et ta règle actuelle.' },
+      { sel:'.dm-pill', title:'Filtrer par urgence', text:'Affiche seulement les comptes prioritaires, en cours ou en règle.' },
+    ] },
+  traders: { manual:'m-traders', intro:'Les traders suivis : leurs comptes, leurs dépenses, leurs payouts et leurs badges.',
+    points:['Seul ? Crée <b>ton propre trader</b>. Tu suis une équipe ? Un trader par personne.','Renseigne ton <b>e-mail</b> sur ton trader : c’est ce qui relie tes comptes à ton profil.','L’<b>étoile</b> choisit le trader présélectionné partout (filtres et formulaires).'],
+    actions:[{ icon:'users', label:'Nouveau trader', run:'gdCloseHelp();traderFormModal()' }] },
+  propfirms: { manual:'m-propfirms', intro:'Le catalogue des PropFirms, avec leur logo et le nombre de comptes rattachés.',
+    points:['Le catalogue est <b>partagé</b> et tenu à jour par l’équipe.','Clique sur une PropFirm pour voir sa fiche et tes comptes chez elle.','Une PropFirm manque ? <b>Demande son ajout</b> depuis le bouton en haut à droite.'] },
+  rentabilite: { manual:'m-rentabilite', intro:'Ce que tu as vraiment gagné, une fois toutes tes dépenses déduites.',
+    points:['<b>Net réel</b> = payouts − achats, mensualités, activations et resets (+ frais généraux si coché).','La <b>courbe</b> descend à chaque dépense et remonte à chaque payout.','L’<b>entonnoir</b> montre combien de Challenges il faut pour un payout.'] },
+  calendrier: { manual:'m-calendrier', intro:'Tous tes événements mois par mois : payouts, achats, mensualités, réussites et breaches.',
+    points:['Clique sur une journée pour voir son détail.','Les mensualités à venir apparaissent avant leur échéance.'] },
+  accounting: { manual:'m-comptabilite', intro:'Chaque dépense et chaque payout, ligne par ligne, avec filtres et exports.',
+    points:['Seules tes propres lignes apparaissent, quelle que soit ta formule.','Chaque ligne reste dans sa devise ; les totaux mixtes sont convertis au taux BCE.'] },
+  bilan: { manual:'m-bilan', intro:'Des cartes de résultats mensuelles, prêtes à partager en image.',
+    points:['Choisis le mois et les traders, puis exporte une carte ou tout le mois en PNG.'] },
+  sessions: { manual:'m-sessions', intro:'Ton journal de séances : replay, notes et évaluation, sans données financières.',
+    points:['« Nouvelle session » crée une session et ouvre sa page.'] },
+  meteo: { manual:'m-meteo', intro:'Une prépa de séance générée par IA, avec le calendrier économique du jour.', points:['« Nouvelle prépa » génère le brief du jour ; ajoute ton biais dans le champ prévu.'] },
+  comparatif: { manual:'m-comparatif', intro:'Quelle PropFirm te rapporte vraiment ? Réussite, dépenses, payouts et net, côte à côte.', points:['Clique sur un en-tête de colonne pour trier.'] },
+  ecole: { manual:'m-ecole', intro:'Le bilan réel d’une cohorte d’élèves, anonyme et consenti, calculé à partir de leurs comptes.', points:['Crée une cohorte, partage le lien d’invitation, publie le bilan.'] },
+  fiscalite: { manual:'m-fiscalite', intro:'Tes seuils micro-BNC et tes échéances déclaratives, calculés depuis tes payouts.', points:['Ne remplace pas un expert-comptable : c’est un outil de suivi.'] },
+  'frais-generaux': { manual:'m-frais-generaux', intro:'Tes frais hors comptes : abonnements, données de marché, VPS, formation…', points:['Ils comptent dans le Net global du Dashboard et, si tu le choisis, dans ta rentabilité réelle.'] },
+  profil: { manual:'m-profil', intro:'Tes réglages personnels, dont ta règle du Radar inactivité.', points:['Radar inactivité : délai, seuil de P&amp;L et règles par PropFirm.'] },
+  parametres: { manual:'m-profil', intro:'Tes notifications e-mail et préférences d’affichage.', points:['Active le résumé du lundi pour recevoir ton bilan de la semaine.'] },
+  changelog: { manual:'m-nouveautes', intro:'Les dernières nouveautés et corrections de l’application.', points:['Le premier réflexe si une fonction a changé.'] },
+  subscription: { manual:'m-abonnement', intro:'Ta formule actuelle et le comparatif des formules.', points:['Premium et Lifetime débloquent notamment le Radar inactivité, le Calendrier et les exports.'] },
+};
+function gdHelpFor(route){ return GD_HELP[route] || null; }
+function gdHelpBtnHtml(){
+  if(['manuel','aide-centre','confidentialite','mentions-legales','cgv'].includes(state.route)) return '';
+  return `<button class="btn btn-ghost btn-sm gd-help-btn" id="gd-help-btn" title="Comment fonctionne cette page ?" aria-label="Aide sur cette page" onclick="gdOpenHelp()">${icon('help')}</button>`;
+}
+function gdCloseHelp(){
+  document.querySelectorAll('.gd-drawer, .gd-drawer-back').forEach(n=>n.remove());
+  document.removeEventListener('keydown', gdHelpKey, true);
+}
+function gdHelpKey(e){ if(e.key==='Escape'){ e.stopPropagation(); gdCloseHelp(); } }
+function gdOpenHelp(){
+  gdCloseNudge(); gdCloseHelp();
+  const h = gdHelpFor(state.route);
+  const label = (getNav().find(n=>n.id===state.route)||{label:''}).label;
+  const back = document.createElement('div'); back.className = 'gd-drawer-back'; back.onclick = gdCloseHelp;
+  const d = document.createElement('aside'); d.className = 'gd-drawer'; d.setAttribute('role','dialog'); d.setAttribute('aria-label','Aide : '+label);
+  const ck = icon('check');
+  d.innerHTML = `
+    <div class="gd-drawer-head">
+      <div style="flex:1;min-width:0;"><div class="gd-drawer-kicker">Comment ça marche</div><div class="gd-drawer-title">${escapeHtml(label)}</div></div>
+      <button type="button" class="btn btn-ghost btn-sm" aria-label="Fermer" onclick="gdCloseHelp()">${icon('x')}</button>
+    </div>
+    <div class="gd-drawer-body">
+      ${h ? `<div class="gd-drawer-intro">${h.intro}</div>` : `<div class="gd-drawer-intro">Le manuel décrit cette page en détail, section par section.</div>`}
+      ${h && h.points ? `<div><div class="gd-sec-title">L’essentiel</div><ul class="gd-points">${h.points.map(p=>`<li>${ck}<span>${p}</span></li>`).join('')}</ul></div>` : ''}
+      ${h && h.actions ? `<div><div class="gd-sec-title">Actions rapides</div><div class="gd-actions">${h.actions.map(a=>`<button type="button" class="gd-action" onclick="${a.run}">${icon(a.icon)}<span>${a.label}</span>${icon('chevRight')}</button>`).join('')}</div></div>` : ''}
+      ${h && h.glossary ? `<div><div class="gd-sec-title">Lexique</div><dl class="gd-gloss">${h.glossary.map(([t,x])=>`<div><dt>${t}</dt> <dd>— ${x}</dd></div>`).join('')}</dl></div>` : ''}
+      ${state.route!=='dashboard' && gdGet('start_hidden')==='1' && gdStartSteps().some(s=>!s.done) ? `<div><div class="gd-sec-title">Bien démarrer</div><div class="gd-actions"><button type="button" class="gd-action" onclick="gdShowStart()">${icon('check')}<span>Reprendre la checklist « Bien démarrer »</span>${icon('chevRight')}</button></div></div>` : ''}
+    </div>
+    <div class="gd-drawer-foot">
+      ${h && h.tour ? `<button type="button" class="btn btn-primary" onclick="gdCloseHelp();gdStartTour()">${icon('play')}Visite guidée</button>` : ''}
+      <button type="button" class="btn btn-outline" onclick="gdOpenManual('${h ? h.manual : ''}')">${icon('book')}Lire le manuel</button>
+    </div>`;
+  document.body.appendChild(back); document.body.appendChild(d);
+  document.addEventListener('keydown', gdHelpKey, true);
+  const first = d.querySelector('.gd-drawer-body button, .gd-drawer-foot button'); if(first) first.focus({ preventScroll:true });
+}
+
+/* ---------- Proposition de visite à la première visite d'une page ---------- */
+function gdCloseNudge(){ document.querySelectorAll('.gd-nudge').forEach(n=>n.remove()); const b = document.getElementById('gd-help-btn'); if(b) b.classList.remove('is-pulse'); }
+function gdAfterRender(){
+  if(state.route==='rentabilite') gdSet('seen_rentabilite','1');
+  gdCloseNudge();
+  const h = gdHelpFor(state.route);
+  if(!h || !h.tour || gdGet('tour_'+state.route)) return;
+  // Sur le Dashboard, la checklist « Bien démarrer » guide déjà : pas de bulle en plus tant qu'elle est là.
+  if(state.route==='dashboard' && document.querySelector('.gd-start')) return;
+  const route = state.route;
+  setTimeout(()=>{
+    if(state.route!==route || document.querySelector('#modal-root .modal') || document.querySelector('.gd-drawer, .gd-tour-pop')) return;
+    if(gdTourSteps(route).length < 2) return;   // une visite d'une seule bulle n'apporte rien
+    const btn = document.getElementById('gd-help-btn'); if(!btn) return;
+    btn.classList.add('is-pulse');
+    const r = btn.getBoundingClientRect();
+    const n = document.createElement('div'); n.className = 'gd-nudge'; n.setAttribute('role','dialog');
+    const left = Math.max(12, Math.min(window.innerWidth-292, r.right-280+14));
+    n.style.top = (r.bottom+12)+'px'; n.style.left = left+'px';
+    n.style.setProperty('--arrow', Math.max(12, Math.min(260, r.left + r.width/2 - left - 6))+'px');
+    n.innerHTML = `<div class="gd-nudge-title">Première visite ici ?</div><div class="gd-nudge-sub">Découvre cette page en ${gdTourSteps(route).length} étapes, environ 30 secondes.</div>
+      <div class="gd-nudge-row"><button type="button" class="btn btn-ghost btn-sm" id="gd-nudge-later">Plus tard</button><button type="button" class="btn btn-primary btn-sm" id="gd-nudge-go">${icon('play')}Visite guidée</button></div>`;
+    document.body.appendChild(n);
+    n.querySelector('#gd-nudge-later').onclick = ()=>{ gdSet('tour_'+route,'later'); gdCloseNudge(); };
+    n.querySelector('#gd-nudge-go').onclick = ()=>{ gdCloseNudge(); gdStartTour(); };
+  }, 700);
+}
+
+/* ---------- Visite guidée ---------- */
+function gdTourSteps(route){
+  const h = gdHelpFor(route);
+  if(!h || !h.tour) return [];
+  return h.tour.filter(s=>{ const el = document.querySelector(s.sel); return el && el.getClientRects().length; });
+}
+let gdTourState = null;
+function gdStartTour(){
+  const steps = gdTourSteps(state.route);
+  if(!steps.length){ showToast('Rien à montrer sur cette page pour l’instant.'); return; }
+  gdSet('tour_'+state.route,'done');
+  gdEndTour();
+  const block = document.createElement('div'); block.className = 'gd-tour-block';
+  const spot = document.createElement('div'); spot.className = 'gd-tour-spot';
+  const pop = document.createElement('div'); pop.className = 'gd-tour-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-live','polite');
+  document.body.append(block, spot, pop);
+  const onKey = (e)=>{
+    if(e.key==='Escape'){ e.stopPropagation(); gdEndTour(); }
+    else if(e.key==='ArrowRight'){ gdTourGo(gdTourState.i+1); }
+    else if(e.key==='ArrowLeft'){ gdTourGo(gdTourState.i-1); }
+  };
+  const onResize = ()=>gdTourGo(gdTourState.i, true);
+  document.addEventListener('keydown', onKey, true);
+  window.addEventListener('resize', onResize);
+  block.onclick = gdEndTour;
+  gdTourState = { steps, i:0, spot, pop, block, onKey, onResize };
+  gdTourGo(0);
+}
+function gdTourGo(i, keepScroll){
+  const t = gdTourState; if(!t) return;
+  if(i<0) return;
+  if(i>=t.steps.length){ gdEndTour(); showToast('Visite terminée. Le bouton ? reste là si besoin.'); return; }
+  t.i = i;
+  const s = t.steps[i];
+  const el = document.querySelector(s.sel);
+  if(!el){ gdTourGo(i+1); return; }
+  if(!keepScroll) el.scrollIntoView({ block:'center', behavior:'instant' in document.documentElement.style ? 'instant' : 'auto' });
+  const place = ()=>{
+    const r = el.getBoundingClientRect(), pad = 6;
+    const top = Math.max(4, r.top-pad), left = Math.max(4, r.left-pad);
+    const w = Math.min(window.innerWidth-8-left, r.width+pad*2), h = Math.min(Math.max(r.height+pad*2, 30), window.innerHeight*0.6);
+    Object.assign(t.spot.style, { top:top+'px', left:left+'px', width:w+'px', height:h+'px' });
+    t.pop.innerHTML = `
+      <div class="gd-tour-step">Étape ${i+1} sur ${t.steps.length}</div>
+      <div class="gd-tour-title">${s.title}</div>
+      <div class="gd-tour-text">${s.text}</div>
+      <div class="gd-tour-row">
+        <div class="gd-tour-dots">${t.steps.map((_,k)=>`<span class="${k===i?'on':''}"></span>`).join('')}</div>
+        ${i>0 ? `<button type="button" class="btn btn-ghost btn-sm" data-gd-prev>Précédent</button>` : `<button type="button" class="btn btn-ghost btn-sm" data-gd-skip>Passer</button>`}
+        <button type="button" class="btn btn-primary btn-sm" data-gd-next>${i===t.steps.length-1 ? 'Terminer' : 'Suivant'}</button>
+      </div>`;
+    const pw = t.pop.offsetWidth, ph = t.pop.offsetHeight;
+    let py = top + h + 12;
+    if(py + ph > window.innerHeight - 8) py = Math.max(8, top - ph - 12);
+    const px = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
+    t.pop.style.top = py+'px'; t.pop.style.left = px+'px';
+    const prev = t.pop.querySelector('[data-gd-prev]'); if(prev) prev.onclick = ()=>gdTourGo(i-1);
+    const skip = t.pop.querySelector('[data-gd-skip]'); if(skip) skip.onclick = gdEndTour;
+    const next = t.pop.querySelector('[data-gd-next]'); next.onclick = ()=>gdTourGo(i+1); next.focus({ preventScroll:true });
+  };
+  requestAnimationFrame(place);
+}
+function gdEndTour(){
+  const t = gdTourState; if(!t) return;
+  t.spot.remove(); t.pop.remove(); t.block.remove();
+  document.removeEventListener('keydown', t.onKey, true);
+  window.removeEventListener('resize', t.onResize);
+  gdTourState = null;
+}
+
+/* ---------- 4. Prochaine action sur une carte compte ---------- */
+function gdNextActionHtml(a, child){
+  if(!canEdit(a) || !isMine(a)) return '';
+  const row = (txt, btn, warn)=>`<div class="gd-next ${warn?'is-warn':''}">${icon(warn?'alertTriangle':'bolt')}<div class="gd-next-text">${txt}</div>${btn||''}</div>`;
+  if(a.type==='CHALLENGE'){
+    if(a.status==='REUSSI' && !child) return row('<b>Prochaine étape :</b> crée le PA obtenu avec ce Challenge. Ses dépenses compteront dans le net du PA.', `<button class="btn btn-primary btn-sm" data-create-pa="${a.id}">${icon('bolt')}Créer le PA</button>`);
+    if(a.status==='ACTIF' && !a.purchaseDate) return row('<b>À compléter :</b> la date d’achat manque. Elle sert au calcul de tes délais et de ta rentabilité.', `<button class="btn btn-outline btn-sm" data-edit-account="${a.id}">${icon('edit')}Compléter</button>`, true);
+    return '';
+  }
+  if((a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF'){
+    if(typeof dmEnabled==='function' && dmEnabled()){
+      let noStart = false; try{ noStart = !dmResult(a).hasStart; }catch(e){}
+      if(noStart) return row('<b>Radar inactivité :</b> indique la date de ton dernier trade sur ce compte pour connaître ton vrai délai avant fermeture.', `<button class="btn btn-outline btn-sm" data-dm-activate="${a.id}">${icon('edit')}Dernier trade</button>`, true);
+    }
+    if(!(state.payouts||[]).some(p=>p.accountId===a.id)) return row('<b>Premier payout reçu ?</b> Enregistre-le ici : il alimente ton net profit, ta rentabilité et tes délais.', `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Ajouter un payout</button>`);
+  }
+  return '';
+}
+
 function emptyState(iconName, title, sub){
   return `<div class="empty">${icon(iconName)}<div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;
 }
