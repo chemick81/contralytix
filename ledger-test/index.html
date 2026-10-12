@@ -738,6 +738,8 @@ th.th-sort-active svg{opacity:1;}
 .cim-field select:focus,.cim-field input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
 .cim-field .cim-need,.cim-top .cim-need{border:1px dashed var(--gold);background:color-mix(in srgb, var(--gold) 7%, var(--surface));}
 .cim-src{font-size:10.5px;font-weight:500;color:var(--accent);margin-top:4px;}
+.cim-row-date{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--text-dim);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.cim-row-date svg{width:12px;height:12px;flex:none;}
 .cim-reads{font-size:11.5px;color:var(--text-faint);margin-left:auto;}
 .cim-hint{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;font-size:12.5px;color:var(--text-dim);line-height:1.45;}
 .cim-hint svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;margin-top:2px;}
@@ -19110,7 +19112,7 @@ function captureImportModal(){
       const firm = dlxFirmName(a.propfirm);
       if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
       if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
-      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [], dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxHidden: !!a.hidden });
+      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [], dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden });
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
@@ -19134,12 +19136,13 @@ function captureImportModal(){
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
       if(ex) existing++;
-      const row = { value:f.value, det:f.det, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay };
+      const row = { value:f.value, det:f.det, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay, dlxFirstDay: f.dlxFirstDay };
       placeInGroup(row);
       rows.push(row);
       added++;
     });
     groups.forEach(g=>ensureFx(g.date));
+    rows.forEach(r=>{ if(r.dlxFirstDay) ensureFx(r.dlxFirstDay); });
     const newCount = rows.filter(r=>!cimExistingAccount(r.value)).length;
     const parts = [`Deltalytix : ${added} compte${added>1?'s':''}`];
     if(existing) parts.push(`${existing} déjà dans Contralytix`);
@@ -19263,6 +19266,13 @@ function captureImportModal(){
     });
   }
   const fxOf = (g)=> top.currency==='EUR' ? '1' : (g.fx || fxCache[g.date] || '');
+  // Date propre à un compte : 1er jour tradé connu de Deltalytix, sinon la date du groupe.
+  const rowDate = (r, g)=> r.dlxFirstDay || g.date || todayISO();
+  const rowFx = (r, g)=> {
+    if(top.currency==='EUR') return '1';
+    const d = rowDate(r, g);
+    return d===g.date ? fxOf(g) : (fxCache[d] || g.fx || '');
+  };
   const allFxPending = ()=>Promise.all(Object.keys(fxPending).map(d=>new Promise(res=>{
     const t = setInterval(()=>{ if(!fxPending[d]){ clearInterval(t); res(); } }, 100);
   })));
@@ -19303,7 +19313,7 @@ function captureImportModal(){
         <div class="cim-field"><label>Taille</label>${sizeSelect(`data-g-size="${g.id}"`, g.sizeKey, need)}${srcHint(g.sizeFrom)}
           ${g.sizeKey==='AUTRE' ? `<input type="number" min="0" placeholder="Montant ($)" data-g-custom="${g.id}" value="${escapeHtml(g.customSize)}" class="${need&&!(Number(g.customSize)>0)?'cim-need':''}" style="margin-top:6px;"/>` : ''}
         </div>
-        <div class="cim-field"><label>${paLike ? 'Date d’activation' : 'Date d’achat'}</label><input type="date" data-g-date="${g.id}" value="${escapeHtml(g.date)}"/></div>
+        <div class="cim-field"><label>${paLike ? 'Date d’activation' : 'Date d’achat'}</label><input type="date" data-g-date="${g.id}" value="${escapeHtml(g.date)}"/>${active.some(x=>x.r.dlxFirstDay) ? `<span class="cim-src">${active.every(x=>x.r.dlxFirstDay) ? 'Chaque compte garde sa date Deltalytix' : 'Pour les comptes sans date Deltalytix'}</span>` : ''}</div>
         <div class="cim-field"><label>Paiement</label><select data-g-pay="${g.id}">${opt('UNIQUE','Paiement unique', g.pay==='UNIQUE')}${opt('MENSUEL','Mensualités', g.pay==='MENSUEL')}</select></div>
         ${g.pay==='MENSUEL'
           ? `<div class="cim-field"><label>Mensualité (${cur()}, par compte)</label><input type="number" min="0" step="0.01" data-g-monthly="${g.id}" value="${escapeHtml(g.monthly)}" class="${need&&!(Number(g.monthly)>0)?'cim-need':''}"/></div>`
@@ -19341,6 +19351,7 @@ function captureImportModal(){
         <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} ${exists?'disabled':''} aria-label="Importer ce compte"/>
         <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" ${exists&&r.createdHere?'readonly':''} aria-label="Numéro de compte ${i+1}"/>
         <span class="cim-row-tags" data-badge="${i}">${rowBadgeHtml(r)}</span>
+        ${r.dlxFirstDay && !exists ? `<span class="cim-row-date" title="${isPaLike(g.type)?'Date d’activation':'Date d’achat'} : premier jour tradé sur ce compte d’après Deltalytix. Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : ''}
         <span class="cim-row-actions">
           ${showFree ? `<label class="promo-chip" title="Compte offert par une promo — enregistré à 0">${icon('gift')}Offert<span class="switch"><input type="checkbox" data-free="${i}" ${r.free?'checked':''}/><span class="switch-track"></span></span></label>` : ''}
           ${exists ? '' : `<button class="btn btn-ghost btn-sm" data-custom="${i}" title="Ouvrir le formulaire « Nouveau compte » prérempli pour ce compte (date, prix, type… différents)">${icon('edit')}<span class="cim-hide-sm">Personnaliser</span></button>`}
@@ -19465,6 +19476,7 @@ function captureImportModal(){
       top.currency = e.target.value;
       Object.keys(fxCache).forEach(k=>delete fxCache[k]);
       groups.forEach(g=>{ g.fx = ''; ensureFx(g.date); });
+      rows.forEach(r=>{ if(r.dlxFirstDay) ensureFx(r.dlxFirstDay); });
       rerender();
     };
     const more = document.getElementById('cim-file-more');
@@ -19539,11 +19551,11 @@ function captureImportModal(){
       purchasePrice: g.pay==='UNIQUE' ? (r.free ? 0 : g.price) : '',
       monthlyAmount: g.pay==='MENSUEL' ? g.monthly : '',
       promoFree: g.pay==='UNIQUE' && !!r.free,
-      purchaseDate: g.date,
-      activationDate: g.date,
+      purchaseDate: rowDate(r, g),
+      activationDate: rowDate(r, g),
       activationFee: paLike ? g.fee : '',
       currency: top.currency,
-      fxRateToEur: top.currency==='EUR' ? 1 : fx,
+      fxRateToEur: top.currency==='EUR' ? 1 : rowFx(r, g),
     };
     // Les champs inconnus gardent les valeurs par défaut du formulaire.
     const prefill = {};
@@ -19587,7 +19599,7 @@ function captureImportModal(){
       const free = g.pay==='UNIQUE' && r.free;
       if(g.pay==='UNIQUE' && !free && !(Number(g.price)>0)) missing.push('prix d’achat');
       if(g.pay==='MENSUEL' && !(Number(g.monthly)>0)) missing.push('mensualité');
-      const fx = fxOf(g);
+      const fx = rowFx(r, g);
       if(top.currency!=='EUR' && !(Number(fx)>0)) missing.push('taux de change');
       if(missing.length){ err.groups[g.id] = `À compléter : ${[...new Set(missing)].join(', ')}.`; return; }
       if(trader && g.type==='CHALLENGE' && trader.status==='INACTIF'){
@@ -19603,7 +19615,7 @@ function captureImportModal(){
         err.rows[i] = `Déjà utilisé chez ${getFirm(g.firmId)?.name||'cette PropFirm'} (compte ${TYPE_LABELS[dupAccount.type]||dupAccount.type} de ${dupTrader?dupTrader.pseudo:'un autre trader'}).`;
         return;
       }
-      const date = g.date || todayISO();
+      const date = rowDate(r, g);
       records.push({ free, record: {
         id: uid('acc'), traderId: top.traderId, propFirmId: g.firmId, type: g.type,
         parentChallengeId: null,
@@ -19616,7 +19628,7 @@ function captureImportModal(){
         activationDate: paLike ? date : null,
         activationFee: paLike ? (Number(g.fee)||0) : null,
         // Compte perdu d'après Deltalytix : créé directement en Breached (date du dernier trade connu).
-        status: r.dlxBreached ? 'BREACHED' : 'ACTIF', endDate: r.dlxBreached ? (r.dlxLastDay || todayISO()) : null,
+        status: r.dlxBreached ? 'BREACHED' : 'ACTIF', endDate: r.dlxBreached ? [r.dlxLastDay || todayISO(), date].sort()[1] : null,
         currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(fx),
         createdAt: new Date().toISOString(), createdBy: currentUserId(),
       }});
