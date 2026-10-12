@@ -1,7 +1,7 @@
 // netlify/functions/deltalytix.js
 //
 // Connexion Deltalytix (OAuth, voir deltalytix-oauth.js) : une fois connecté, cette fonction
-//   - renvoie les comptes (numéro, taille, libellé de prop firm) et leurs payouts pour l'import ;
+//   - renvoie les comptes (numéro, taille, libellé de prop firm, dates, breached) pour l'import ;
 //   - pointe automatiquement le Radar inactivité à partir du P&L journalier (net des commissions).
 // Les jetons OAuth sont conservés CHIFFRÉS dans broker_connections.token_enc (illisible par les
 // utilisateurs) et renouvelés ici quand ils expirent. L'API Deltalytix n'envoie pas d'en-têtes CORS :
@@ -55,9 +55,6 @@ function slimAccount(a) {
     lastTradeDay: lastDay,
     // Comptes masqués dans Deltalytix : pas encore exposé par l'API (champ lu s'il apparaît).
     hidden: a.hidden === true || !!(a.group && /hidden/i.test(String(a.group.name || a.group))),
-    payouts: (Array.isArray(a.payouts) ? a.payouts : []).map((p) => ({
-      id: String(p.id || ''), amount: Number(p.amount) || 0, date: isoDay(p.date), status: String(p.status || '').toUpperCase(),
-    })).filter((p) => p.amount > 0 && p.date),
   };
 }
 
