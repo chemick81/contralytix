@@ -700,15 +700,6 @@ th.th-sort-active svg{opacity:1;}
 .cim-tv-txt strong{font-size:13.5px;color:var(--text);}
 .dlx-logo{width:34px;height:34px;border-radius:8px;background:#6E56CF;color:#fff;font:700 12px/34px 'Space Grotesk',sans-serif;text-align:center;flex-shrink:0;display:inline-block;}
 .dlx-logo.sm{width:28px;height:28px;line-height:28px;font-size:11px;}
-.dlx-form{display:flex;flex-direction:column;gap:14px;}
-.dlx-head{display:flex;align-items:center;gap:12px;}
-.dlx-title{font-weight:700;font-size:15px;}
-.dlx-sub{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
-.dlx-steps{margin:0;padding-left:18px;font-size:13px;color:var(--text-dim);line-height:1.6;display:flex;flex-direction:column;gap:6px;}
-.dlx-steps strong{color:var(--text);}
-.dlx-steps a{color:var(--accent);}
-.dlx-note{display:flex;gap:8px;font-size:12px;color:var(--text-faint);line-height:1.5;}
-.dlx-note svg{width:14px;height:14px;flex-shrink:0;margin-top:2px;}
 .dlx-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;}
 .dlx-strip.is-error{border-color:var(--danger);}
 .dlx-strip-txt{flex:1 1 260px;font-size:13px;line-height:1.5;}
@@ -10677,7 +10668,7 @@ function viewConfidentialite(){
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
-            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes et payouts, et P&amp;L journalier pour le Radar inactivité</td><td>Ton jeton Deltalytix est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
+            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes et payouts, et P&amp;L journalier pour le Radar inactivité</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
@@ -15467,14 +15458,13 @@ document.addEventListener('visibilitychange', ()=>{
 /* ---------- Page Radar dormance ---------- */
 /* ============================================================
    CONNEXION DELTALYTIX (12/10/2026) — import des comptes + radar automatique
-   Jeton personnel Deltalytix (dltx_pat_…) vérifié puis conservé CHIFFRÉ côté serveur
-   (netlify/functions/deltalytix.js, table broker_connections, migration_deltalytix.sql). Le
-   navigateur ne voit jamais le jeton : seulement l'état de la connexion. La synchronisation écrit
+   Connexion OAuth « Se connecter avec Deltalytix » (netlify/functions/deltalytix-oauth.js) ; jetons
+   conservés CHIFFRÉS côté serveur et renouvelés automatiquement (deltalytix.js, table
+   broker_connections, migration_deltalytix.sql). Le navigateur ne voit jamais les jetons. La synchronisation écrit
    le P&L journalier (net des commissions) dans dormancy_logs (source 'deltalytix') : le radar se
    met à jour tout seul, à l'ouverture de l'app (au plus une fois par heure) ou sur demande.
 ============================================================ */
 const DLX_SYNC_EVERY_MS = 60 * 60 * 1000;
-const DLX_TOKEN_URL = 'https://beta.deltalytix.app/fr/docs';
 function dlx(){ if(!state.dlx) state.dlx = { loaded:false, available:false, connected:false }; return state.dlx; }
 async function loadDlxStatus(){
   const d = dlx();
@@ -15547,59 +15537,61 @@ async function dlxMaybeAutoSync(){
   const last = d.lastSyncAt ? Date.parse(d.lastSyncAt) : 0;
   if(Date.now() - last > DLX_SYNC_EVERY_MS) dlxSync({ silent:true });
 }
-// Formulaire du jeton (utilisé dans une modale ou dans l'import de comptes).
-function dlxTokenFormHtml(){
-  return `
-    <div class="dlx-form">
-      <div class="dlx-head"><span class="dlx-logo" aria-hidden="true">DX</span><div><div class="dlx-title">Connecter Deltalytix</div><div class="dlx-sub">Tes comptes Tradovate, Rithmic… déjà reliés à Deltalytix, sans ressaisie.</div></div></div>
-      <ol class="dlx-steps">
-        <li>Dans Deltalytix, crée un <strong>jeton personnel</strong> (Paramètres → Développeur, ou depuis <a href="${DLX_TOKEN_URL}" target="_blank" rel="noopener">la documentation de l’API</a>) : il commence par « dltx_pat_ ».</li>
-        <li>Colle-le ci-dessous. Contralytix le vérifie, puis le garde <strong>chiffré</strong> : il n’est plus jamais affiché, et tu peux le retirer à tout moment.</li>
-      </ol>
-      <div class="field" style="margin:0;"><label for="dlx-token">Jeton Deltalytix</label>
-        <input id="dlx-token" type="password" autocomplete="off" spellcheck="false" placeholder="dltx_pat_…"/>
-      </div>
-      <div id="dlx-error" class="error-text"></div>
-      <div class="dlx-note">${icon('shield')}<span>Contralytix lit tes comptes, payouts et P&amp;L journalier, rien d’autre. Rien n’est créé sans ta validation.</span></div>
-    </div>`;
-}
-async function dlxSubmitToken(btn){
-  const inp = document.getElementById('dlx-token');
-  const err = document.getElementById('dlx-error');
-  const token = (inp && inp.value || '').trim();
-  if(err) err.textContent = '';
-  if(!/^dltx_/.test(token)){ if(err) err.textContent = 'Colle le jeton Deltalytix complet : il commence par « dltx_pat_ ».'; return false; }
-  if(btn) btn.disabled = true;
-  const r = await dlxCall('connect', { token });
-  if(btn) btn.disabled = false;
-  if(!r.ok){ if(err) err.textContent = r.data.error || 'Connexion impossible. Réessaie.'; return false; }
-  if(inp) inp.value = '';
-  const d = dlx();
-  Object.assign(d, { available:true, connected:true, hint:r.data.hint, email:r.data.email, lastError:null });
-  await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix ajoutée');
-  return true;
-}
-function dlxConnectModal(after){
-  openModal({
-    title: 'Connecter Deltalytix',
-    bodyHtml: dlxTokenFormHtml(),
-    footHtml: `<button class="btn btn-outline" id="dlx-cancel">Annuler</button><button class="btn btn-primary" id="dlx-ok">${icon('link')}Connecter</button>`,
-    onMount(){
-      document.getElementById('dlx-cancel').onclick = closeModal;
-      const ok = document.getElementById('dlx-ok');
-      document.getElementById('dlx-token').focus();
-      document.getElementById('dlx-token').onkeydown = (e)=>{ if(e.key==='Enter') ok.click(); };
-      ok.onclick = async ()=>{
-        if(!(await dlxSubmitToken(ok))) return;
-        closeModal();
-        showToast('Deltalytix connecté.');
-        if(after) after(); else render();
-      };
-    }
+// « Se connecter avec Deltalytix » (OAuth) : petite fenêtre Deltalytix, retour par postMessage
+// (même origine), jetons enregistrés chiffrés côté serveur (deltalytix-oauth.js).
+// Renvoie { ok } ou { ok:false, error } (message prêt à afficher).
+async function dlxConnectOAuth(){
+  const popup = window.open('', 'contralytix-deltalytix', 'width=520,height=760');
+  if(!popup) return { ok:false, error:'Ton navigateur a bloqué la fenêtre de connexion Deltalytix : autorise les fenêtres pop-up pour ce site, puis réessaie.' };
+  try{ popup.document.write('<p style="font-family:system-ui,sans-serif;padding:24px;">Ouverture de Deltalytix…</p>'); }catch(e){}
+  let start = null;
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/deltalytix-oauth', { headers:{ 'Authorization':'Bearer ' + (session ? session.access_token : '') } });
+    start = await res.json().catch(()=>({}));
+    if(res.status===404) start = { error:'not_deployed' };
+  }catch(e){ start = { error:'unreachable' }; }
+  if(!start || !start.authUrl){
+    try{ popup.close(); }catch(e){}
+    const msgs = {
+      not_configured: 'La connexion Deltalytix n’est pas encore activée sur Contralytix.',
+      not_deployed: 'Le service de connexion Deltalytix n’est pas déployé sur ce site.',
+      unreachable: 'Impossible de joindre le service de connexion. Vérifie ta connexion internet.',
+    };
+    return { ok:false, error: msgs[start && start.error] || (start && start.error) || 'Impossible de démarrer la connexion Deltalytix.' };
+  }
+  popup.location.href = start.authUrl;
+  const result = await new Promise(resolve=>{
+    let done = false;
+    const finish = (v)=>{ if(done) return; done = true; window.removeEventListener('message', onMsg); clearInterval(timer); resolve(v); };
+    const onMsg = (e)=>{ if(e.origin===location.origin && e.data && e.data.type==='contralytix-deltalytix') finish(e.data); };
+    window.addEventListener('message', onMsg);
+    const timer = setInterval(()=>{ if(popup.closed) setTimeout(()=>finish(null), 600); }, 800);
   });
+  if(!result) return { ok:false, error:'Connexion Deltalytix interrompue : la fenêtre a été fermée avant la fin.' };
+  if(!result.ok){
+    const msgs = {
+      denied: 'Tu as refusé l’accès dans Deltalytix : rien n’a été connecté.',
+      expired: 'La connexion a pris trop de temps. Recommence.',
+      not_configured: 'La connexion Deltalytix n’est pas encore activée sur Contralytix.',
+      migration_missing: 'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.',
+      exchange_refused: 'Deltalytix a refusé la connexion (application mal configurée ?). Réessaie, ou contacte le support.',
+    };
+    return { ok:false, error: msgs[result.error] || 'Deltalytix n’a pas répondu comme prévu. Réessaie dans quelques minutes.' };
+  }
+  await loadDlxStatus();
+  await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix ajoutée');
+  return { ok:true };
+}
+async function dlxConnectAndRefresh(){
+  const r = await dlxConnectOAuth();
+  if(!r.ok){ showToast(r.error, 'danger'); return; }
+  showToast('Deltalytix connecté.');
+  render();
+  if(dmEnabled()) dlxSync();
 }
 function dlxDisconnect(){
-  confirmModal('Déconnecter Deltalytix ? Le jeton enregistré est supprimé ; tes comptes et pointages déjà présents dans Contralytix sont conservés. Pense aussi à révoquer le jeton dans Deltalytix si tu ne t’en sers plus.', async ()=>{
+  confirmModal('Déconnecter Deltalytix ? L’accès enregistré est supprimé ; tes comptes et pointages déjà présents dans Contralytix sont conservés. Tu peux aussi retirer l’autorisation de Contralytix dans tes paramètres Deltalytix.', async ()=>{
     const r = await dlxCall('disconnect');
     if(!r.ok){ showToast(r.data.error || 'Déconnexion impossible.', 'danger'); return; }
     Object.assign(dlx(), { connected:false, hint:null, email:null, lastSyncAt:null, lastError:null });
@@ -15619,7 +15611,7 @@ function dlxRadarStripHtml(){
       <button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Connecter Deltalytix</button>
     </div>`;
   }
-  const errTxt = d.lastError==='token_invalid' ? 'Jeton refusé : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
+  const errTxt = d.lastError==='token_invalid' ? 'Accès expiré ou retiré : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
   return `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
     <span class="dlx-logo sm" aria-hidden="true">DX</span>
     <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? 'synchronisation en cours…' : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}</div>
@@ -15640,7 +15632,7 @@ function dlxProfilPanelHtml(){
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;">Deltalytix <span class="badge badge-slate" style="margin-left:4px;">Beta</span></div>
         <div class="text-dim" style="font-size:12.5px;margin-top:2px;">${d.connected
-          ? `Connecté${d.email ? ` · ${escapeHtml(maskedEmail(d.email))}` : ''} · jeton ••••${escapeHtml(d.hint||'')} · synchronisé ${dlxAgo(d.lastSyncAt)}`
+          ? `Connecté${d.email ? ` · ${escapeHtml(maskedEmail(d.email))}` : ''} · synchronisé ${dlxAgo(d.lastSyncAt)}`
           : 'Non connecté'}</div>
       </div>
       ${d.connected
@@ -15650,7 +15642,7 @@ function dlxProfilPanelHtml(){
   </div>`;
 }
 function dlxBindEvents(){
-  document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=()=>dlxConnectModal(()=>{ render(); if(dmEnabled()) dlxSync(); }));
+  document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=dlxConnectAndRefresh);
   document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
   document.querySelectorAll('[data-dlx-disconnect]').forEach(b=>b.onclick=dlxDisconnect);
 }
@@ -18817,7 +18809,7 @@ function captureImportModal(){
       <div class="cim-or"><span>ou</span></div>
       <button type="button" class="cim-tv-btn" id="cim-dlx">
         <span class="dlx-logo" aria-hidden="true">DX</span>
-        <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leurs payouts.' : 'Récupère tes comptes Tradovate, Rithmic… déjà reliés à Deltalytix, avec leurs payouts.'}</span></span>
+        <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leurs payouts.' : 'Connexion sécurisée chez Deltalytix : tes comptes Tradovate, Rithmic… avec leurs payouts, sans rien copier.'}</span></span>
         ${icon('chevRight')}
       </button>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
@@ -19066,30 +19058,26 @@ function captureImportModal(){
   }
 
   // ---------- Import via Deltalytix (jeton chiffré côté serveur, voir dlxCall) ----------
-  function renderDlxToken(errorMsg){
-    root().innerHTML = dlxTokenFormHtml();
-    if(errorMsg){ const e = document.getElementById('dlx-error'); if(e) e.textContent = errorMsg; }
-    setFoot(`<button class="btn btn-outline" id="cim-back">Retour</button><button class="btn btn-primary" id="cim-dlx-ok">${icon('link')}Connecter et importer</button>`);
-    document.getElementById('cim-back').onclick = ()=>renderDrop();
-    const ok = document.getElementById('cim-dlx-ok');
-    const inp = document.getElementById('dlx-token');
-    inp.focus();
-    inp.onkeydown = (e)=>{ if(e.key==='Enter') ok.click(); };
-    ok.onclick = async ()=>{ if(await dlxSubmitToken(ok)) importFromDlx(); };
-  }
   async function importFromDlx(){
     if(busy) return;
     const d = dlx();
     if(!d.loaded) await loadDlxStatus();
     if(!d.available){ renderDrop('La connexion Deltalytix n’est pas encore activée sur cette base (migration_deltalytix.sql).'); return; }
-    if(!d.connected){ renderDlxToken(); return; }
+    if(!d.connected){
+      busy = true;
+      renderReading('Connexion à Deltalytix…', 'Connecte-toi dans la fenêtre qui vient de s’ouvrir et autorise Contralytix à lire tes comptes.');
+      const c = await dlxConnectOAuth();
+      busy = false;
+      if(!isOpen()) return;
+      if(!c.ok){ renderDrop(c.error); return; }
+    }
     busy = true;
     renderReading('Récupération de tes comptes Deltalytix…', 'Quelques secondes : comptes, tailles et payouts.');
     const r = await dlxCall('accounts');
     busy = false;
     if(!isOpen()) return;
     if(!r.ok){
-      if(r.data.code==='token_invalid' || r.data.code==='not_connected'){ d.connected = false; renderDlxToken(r.data.error); return; }
+      if(r.data.code==='token_invalid' || r.data.code==='not_connected'){ d.connected = false; renderDrop(r.data.error + ' Clique sur « Connecter Deltalytix ».'); return; }
       renderDrop(r.data.error || 'Deltalytix n’a pas répondu. Réessaie dans un instant.'); return;
     }
     ingestDlx(Array.isArray(r.data.accounts) ? r.data.accounts : []);
