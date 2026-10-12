@@ -691,6 +691,40 @@ th.th-sort-active svg{opacity:1;}
   .radar-firm-name{grid-column:1 / -1;}
   .radar-firm-mode{grid-column:1 / -1;}
 }
+.cim-or{display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:var(--text-faint);font-size:12px;}
+.cim-or::before,.cim-or::after{content:'';flex:1;height:1px;background:var(--border);}
+.cim-tv-btn{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;min-height:56px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font-family:inherit;cursor:pointer;}
+.cim-tv-btn:hover{border-color:var(--accent);}
+.cim-tv-btn > svg{width:16px;height:16px;color:var(--text-dim);flex-shrink:0;}
+.cim-tv-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
+.cim-tv-txt strong{font-size:13.5px;color:var(--text);}
+.dlx-logo{width:34px;height:34px;border-radius:8px;background:#6E56CF;color:#fff;font:700 12px/34px 'Space Grotesk',sans-serif;text-align:center;flex-shrink:0;display:inline-block;}
+.dlx-logo.sm{width:28px;height:28px;line-height:28px;font-size:11px;}
+.dlx-form{display:flex;flex-direction:column;gap:14px;}
+.dlx-head{display:flex;align-items:center;gap:12px;}
+.dlx-title{font-weight:700;font-size:15px;}
+.dlx-sub{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+.dlx-steps{margin:0;padding-left:18px;font-size:13px;color:var(--text-dim);line-height:1.6;display:flex;flex-direction:column;gap:6px;}
+.dlx-steps strong{color:var(--text);}
+.dlx-steps a{color:var(--accent);}
+.dlx-note{display:flex;gap:8px;font-size:12px;color:var(--text-faint);line-height:1.5;}
+.dlx-note svg{width:14px;height:14px;flex-shrink:0;margin-top:2px;}
+.dlx-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;}
+.dlx-strip.is-error{border-color:var(--danger);}
+.dlx-strip-txt{flex:1 1 260px;font-size:13px;line-height:1.5;}
+.dlx-conn-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
+.cim-pays{padding:14px 16px;margin-top:14px;display:flex;flex-direction:column;gap:6px;}
+.cim-pays-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;font-size:13px;}
+.cim-pay{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto auto auto minmax(0,1fr);align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);font-size:12.5px;cursor:pointer;}
+.cim-pay.is-off{opacity:.5;cursor:default;}
+.cim-pay input{accent-color:var(--accent);width:16px;height:16px;}
+.cim-pay-num{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cim-pay-amt{font-weight:600;text-align:right;}
+.cim-pay-where{font-size:11.5px;text-align:right;}
+@media (max-width:640px){
+  .cim-pay{grid-template-columns:auto minmax(0,1fr) auto;}
+  .cim-pay-date,.cim-pay-where{grid-column:2 / -1;text-align:left;}
+}
 .cim-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);align-items:end;gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
 .cim-top-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
 .cim-top-add .btn svg{width:15px;height:15px;}
@@ -10643,6 +10677,7 @@ function viewConfidentialite(){
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
+            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes et payouts, et P&amp;L journalier pour le Radar inactivité</td><td>Ton jeton Deltalytix est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
@@ -14718,6 +14753,7 @@ function viewProfil(){
         </div>
 
         ${radarSettingsPanelHtml()}
+        ${dlxProfilPanelHtml()}
 
         <div class="panel" style="padding:20px;">
           <div class="section-title" style="margin-bottom:14px;color:var(--danger,#e5484d);">Zone de danger</div>
@@ -15429,6 +15465,196 @@ document.addEventListener('visibilitychange', ()=>{
 });
 
 /* ---------- Page Radar dormance ---------- */
+/* ============================================================
+   CONNEXION DELTALYTIX (12/10/2026) — import des comptes + radar automatique
+   Jeton personnel Deltalytix (dltx_pat_…) vérifié puis conservé CHIFFRÉ côté serveur
+   (netlify/functions/deltalytix.js, table broker_connections, migration_deltalytix.sql). Le
+   navigateur ne voit jamais le jeton : seulement l'état de la connexion. La synchronisation écrit
+   le P&L journalier (net des commissions) dans dormancy_logs (source 'deltalytix') : le radar se
+   met à jour tout seul, à l'ouverture de l'app (au plus une fois par heure) ou sur demande.
+============================================================ */
+const DLX_SYNC_EVERY_MS = 60 * 60 * 1000;
+const DLX_TOKEN_URL = 'https://beta.deltalytix.app/fr/docs';
+function dlx(){ if(!state.dlx) state.dlx = { loaded:false, available:false, connected:false }; return state.dlx; }
+async function loadDlxStatus(){
+  const d = dlx();
+  if(!SUPABASE_CONFIGURED || !state.session) return d;
+  const { data, error } = await supabaseClient.from('broker_connections')
+    .select('token_hint, account_email, last_sync_at, last_error').eq('provider', 'deltalytix').maybeSingle();
+  d.loaded = true;
+  if(error){ d.available = false; d.connected = false; return d; }   // migration pas encore passée
+  d.available = true;
+  d.connected = !!data;
+  d.hint = data ? data.token_hint : null;
+  d.email = data ? data.account_email : null;
+  d.lastSyncAt = data ? data.last_sync_at : null;
+  d.lastError = data ? data.last_error : null;
+  return d;
+}
+async function dlxCall(action, extra){
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/deltalytix', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
+      body: JSON.stringify({ action, ...(extra||{}) }),
+    });
+    const data = await res.json().catch(()=>({}));
+    if(res.status===404) return { ok:false, data:{ error:'Le service Deltalytix n’est pas déployé sur ce site.' } };
+    if(data.error==='not_configured') return { ok:false, data:{ error:'La connexion Deltalytix n’est pas encore activée sur Contralytix.' } };
+    if(data.error==='migration_missing') return { ok:false, data:{ error:'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.' } };
+    if(data.error==='not_connected') return { ok:false, data:{ error:'Deltalytix n’est pas connecté.', code:'not_connected' } };
+    return { ok: res.ok && !data.error, data };
+  }catch(e){
+    return { ok:false, data:{ error:'Impossible de joindre le service Deltalytix. Vérifie ta connexion.' } };
+  }
+}
+function dlxAgo(iso){
+  if(!iso) return 'jamais';
+  const min = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if(min < 1) return 'à l’instant';
+  if(min < 60) return `il y a ${min} min`;
+  const h = Math.round(min/60);
+  if(h < 24) return `il y a ${h} h`;
+  return `le ${fmtDate(String(iso).slice(0,10))}`;
+}
+async function dlxSync(opts){
+  const silent = !!(opts && opts.silent);
+  const d = dlx();
+  if(!d.connected || d.syncing) return;
+  d.syncing = true;
+  if(state.route==='radar') renderView();
+  const r = await dlxCall('sync');
+  d.syncing = false;
+  if(r.ok){
+    d.lastSyncAt = r.data.syncedAt; d.lastError = null;
+    await loadDormancy();
+    if(!silent){
+      const m = r.data.matched||0;
+      showToast(m ? `Radar mis à jour depuis Deltalytix : ${r.data.days} journée${r.data.days>1?'s':''} sur ${m} compte${m>1?'s':''}.` : 'Synchronisé, mais aucun de tes comptes financés actifs n’a été trouvé dans Deltalytix (vérifie les numéros).');
+    }
+    render();
+  } else {
+    d.lastError = r.data.code || 'error';
+    if(!silent) showToast(r.data.error || 'Synchronisation impossible pour le moment.', 'danger');
+    if(state.route==='radar') renderView();
+  }
+}
+// À l'ouverture de l'app : statut, puis synchro si le radar est activé et la dernière a plus d'une heure.
+async function dlxMaybeAutoSync(){
+  const d = await loadDlxStatus();
+  if(!d.connected || !dmEnabled()) return;
+  const last = d.lastSyncAt ? Date.parse(d.lastSyncAt) : 0;
+  if(Date.now() - last > DLX_SYNC_EVERY_MS) dlxSync({ silent:true });
+}
+// Formulaire du jeton (utilisé dans une modale ou dans l'import de comptes).
+function dlxTokenFormHtml(){
+  return `
+    <div class="dlx-form">
+      <div class="dlx-head"><span class="dlx-logo" aria-hidden="true">DX</span><div><div class="dlx-title">Connecter Deltalytix</div><div class="dlx-sub">Tes comptes Tradovate, Rithmic… déjà reliés à Deltalytix, sans ressaisie.</div></div></div>
+      <ol class="dlx-steps">
+        <li>Dans Deltalytix, crée un <strong>jeton personnel</strong> (Paramètres → Développeur, ou depuis <a href="${DLX_TOKEN_URL}" target="_blank" rel="noopener">la documentation de l’API</a>) : il commence par « dltx_pat_ ».</li>
+        <li>Colle-le ci-dessous. Contralytix le vérifie, puis le garde <strong>chiffré</strong> : il n’est plus jamais affiché, et tu peux le retirer à tout moment.</li>
+      </ol>
+      <div class="field" style="margin:0;"><label for="dlx-token">Jeton Deltalytix</label>
+        <input id="dlx-token" type="password" autocomplete="off" spellcheck="false" placeholder="dltx_pat_…"/>
+      </div>
+      <div id="dlx-error" class="error-text"></div>
+      <div class="dlx-note">${icon('shield')}<span>Contralytix lit tes comptes, payouts et P&amp;L journalier, rien d’autre. Rien n’est créé sans ta validation.</span></div>
+    </div>`;
+}
+async function dlxSubmitToken(btn){
+  const inp = document.getElementById('dlx-token');
+  const err = document.getElementById('dlx-error');
+  const token = (inp && inp.value || '').trim();
+  if(err) err.textContent = '';
+  if(!/^dltx_/.test(token)){ if(err) err.textContent = 'Colle le jeton Deltalytix complet : il commence par « dltx_pat_ ».'; return false; }
+  if(btn) btn.disabled = true;
+  const r = await dlxCall('connect', { token });
+  if(btn) btn.disabled = false;
+  if(!r.ok){ if(err) err.textContent = r.data.error || 'Connexion impossible. Réessaie.'; return false; }
+  if(inp) inp.value = '';
+  const d = dlx();
+  Object.assign(d, { available:true, connected:true, hint:r.data.hint, email:r.data.email, lastError:null });
+  await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix ajoutée');
+  return true;
+}
+function dlxConnectModal(after){
+  openModal({
+    title: 'Connecter Deltalytix',
+    bodyHtml: dlxTokenFormHtml(),
+    footHtml: `<button class="btn btn-outline" id="dlx-cancel">Annuler</button><button class="btn btn-primary" id="dlx-ok">${icon('link')}Connecter</button>`,
+    onMount(){
+      document.getElementById('dlx-cancel').onclick = closeModal;
+      const ok = document.getElementById('dlx-ok');
+      document.getElementById('dlx-token').focus();
+      document.getElementById('dlx-token').onkeydown = (e)=>{ if(e.key==='Enter') ok.click(); };
+      ok.onclick = async ()=>{
+        if(!(await dlxSubmitToken(ok))) return;
+        closeModal();
+        showToast('Deltalytix connecté.');
+        if(after) after(); else render();
+      };
+    }
+  });
+}
+function dlxDisconnect(){
+  confirmModal('Déconnecter Deltalytix ? Le jeton enregistré est supprimé ; tes comptes et pointages déjà présents dans Contralytix sont conservés. Pense aussi à révoquer le jeton dans Deltalytix si tu ne t’en sers plus.', async ()=>{
+    const r = await dlxCall('disconnect');
+    if(!r.ok){ showToast(r.data.error || 'Déconnexion impossible.', 'danger'); return; }
+    Object.assign(dlx(), { connected:false, hint:null, email:null, lastSyncAt:null, lastError:null });
+    await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix supprimée');
+    showToast('Deltalytix déconnecté.');
+    render();
+  });
+}
+// Bandeau de la page Radar
+function dlxRadarStripHtml(){
+  const d = dlx();
+  if(!d.available) return '';
+  if(!d.connected){
+    return `<div class="panel dlx-strip">
+      <span class="dlx-logo sm" aria-hidden="true">DX</span>
+      <div class="dlx-strip-txt"><strong>Fini le pointage à la main.</strong> <span class="text-dim">Connecte Deltalytix : le P&amp;L de chaque journée remplit le radar tout seul (journées à +50 $ comprises).</span></div>
+      <button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Connecter Deltalytix</button>
+    </div>`;
+  }
+  const errTxt = d.lastError==='token_invalid' ? 'Jeton refusé : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
+  return `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
+    <span class="dlx-logo sm" aria-hidden="true">DX</span>
+    <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? 'synchronisation en cours…' : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}</div>
+    ${d.lastError==='token_invalid'
+      ? `<button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Reconnecter</button>`
+      : `<button class="btn btn-outline btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button>`}
+  </div>`;
+}
+// Panneau du Profil
+function dlxProfilPanelHtml(){
+  const d = dlx();
+  if(!d.available) return '';
+  return `<div class="panel" style="padding:20px;">
+    <div class="section-title" style="margin-bottom:4px;">Connexions</div>
+    <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;line-height:1.5;">Relie un service qui suit déjà tes comptes pour les importer et remplir le radar automatiquement.</div>
+    <div class="dlx-conn-row">
+      <span class="dlx-logo" aria-hidden="true">DX</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;">Deltalytix <span class="badge badge-slate" style="margin-left:4px;">Beta</span></div>
+        <div class="text-dim" style="font-size:12.5px;margin-top:2px;">${d.connected
+          ? `Connecté${d.email ? ` · ${escapeHtml(maskedEmail(d.email))}` : ''} · jeton ••••${escapeHtml(d.hint||'')} · synchronisé ${dlxAgo(d.lastSyncAt)}`
+          : 'Non connecté'}</div>
+      </div>
+      ${d.connected
+        ? `<button class="btn btn-ghost btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button><button class="btn btn-outline btn-sm" data-dlx-disconnect>Déconnecter</button>`
+        : `<button class="btn btn-primary btn-sm" data-dlx-connect>${icon('link')}Connecter</button>`}
+    </div>
+  </div>`;
+}
+function dlxBindEvents(){
+  document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=()=>dlxConnectModal(()=>{ render(); if(dmEnabled()) dlxSync(); }));
+  document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
+  document.querySelectorAll('[data-dlx-disconnect]').forEach(b=>b.onclick=dlxDisconnect);
+}
+
 function viewRadar(){
   if(!state.dormancyReady){
     return emptyState('clock', 'Radar inactivité indisponible', isAdmin() ? 'Les tables dormancy_* sont introuvables : exécute migration_dormance_dev_20261008.sql sur Supabase.' : 'Le module est en cours d’activation, réessaie un peu plus tard.');
@@ -15464,6 +15690,7 @@ function viewRadar(){
   const hasMonthly = all.some(({r})=>r.engine==='MONTHLY');
   const pill = (id, label, n) => `<button type="button" class="dm-pill ${f===id?'active':''}" data-dm-filter="${id}">${label}<span class="mono">${n}</span></button>`;
   return `
+    ${dlxRadarStripHtml()}
     ${missingStart ? `<div class="panel dm-start-cta">
       ${icon('info')}<div style="flex:1;min-width:200px;"><strong>${missingStart} compte${missingStart>1?'s':''} sans dernier trade connu.</strong> <span class="text-dim">Indique une fois la date de ton dernier trade sur ces comptes : sans elle, le compteur part prudemment de la date d’activation du compte.</span></div>
       <button class="btn btn-primary btn-sm" data-dm-activate="all">Indiquer mon dernier trade</button>
@@ -15481,7 +15708,7 @@ function viewRadar(){
     <div class="dm-filterbar">
       ${pill('all','Tous',all.length)}${pill('crit',hasMonthly?'Prioritaires':'Critique',counts.crit)}${pill('warn',hasMonthly?'En cours':'À surveiller',counts.warn)}${pill('ok','En règle',counts.ok)}
       <div style="flex:1"></div>
-      <div class="text-dim" style="font-size:12.5px;">${unpointed ? `<a href="#" data-dm-pointage="1">${unpointed} jour${unpointed>1?'s':''} non pointé${unpointed>1?'s':''}</a>, compté${unpointed>1?'s':''} comme non tradé${unpointed>1?'s':''}` : 'Pointage à jour'}</div>
+      <div class="text-dim" style="font-size:12.5px;">${dlx().connected && dlx().lastSyncAt ? 'Pointage automatique via Deltalytix' : unpointed ? `<a href="#" data-dm-pointage="1">${unpointed} jour${unpointed>1?'s':''} non pointé${unpointed>1?'s':''}</a>, compté${unpointed>1?'s':''} comme non tradé${unpointed>1?'s':''}` : 'Pointage à jour'}</div>
     </div>
     <div class="dm-list">
       ${list.length ? list.map(({a,r})=>dmRowHtml(a,r)).join('') : `<div class="empty-sub" style="padding:24px 0;text-align:center;">Aucun compte dans ce filtre.</div>`}
@@ -15919,6 +16146,7 @@ function dmBindEvents(){
   document.querySelectorAll('[data-dm-pointage]').forEach(b=>b.onclick=(e)=>{ e.preventDefault(); dmOpenPointage(); });
   document.querySelectorAll('[data-dm-activate]').forEach(b=>b.onclick=()=>dmOpenActivation([b.dataset.dmActivate]));
   document.querySelectorAll('[data-dm-rule-edit]').forEach(b=>b.onclick=()=>dmOpenRuleEditor(b.dataset.dmRuleEdit));
+  dlxBindEvents();
 }
 
 /* ============================================================
@@ -16612,6 +16840,7 @@ function bindViewEvents(){
   // Profil
   const editDnBtn = document.getElementById('edit-display-name');
   if(editDnBtn) editDnBtn.onclick = editDisplayNameModal;
+  dlxBindEvents();
   const radarSave = document.getElementById('radar-settings-save');
   if(radarSave) radarSave.onclick = ()=>{
     const n = Number(document.getElementById('radar-max-days').value);
@@ -18346,7 +18575,7 @@ function cimSuggestion(numbers){
 }
 // Tailles standard de l'appli (SIZE_LABELS) à partir d'un montant en dollars lu sur la capture.
 const CIM_SIZE_KEYS = { 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' };
-const CIM_SOURCE_LABELS = { screen:'lu sur la capture', number:'déduit du numéro', history:'d’après tes comptes' };
+const CIM_SOURCE_LABELS = { screen:'lu sur la capture', number:'déduit du numéro', history:'d’après tes comptes', deltalytix:'donné par Deltalytix' };
 // Ce que l'on présélectionne pour une ligne, champ par champ : d'abord ce que Gemini a lu
 // (PropFirm affichée à l'écran ou déduite du numéro, taille, type), sinon l'historique des
 // comptes du trader ayant le même préfixe, sinon rien (choix à la main à l'étape suivante).
@@ -18531,6 +18760,7 @@ function captureImportModal(){
   let busy = false;          // lecture en cours
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
+  let pays = [];             // payouts proposés par Deltalytix : [{ key, number, amount, date, status, checked, existingId }]
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
   const fxPending = {};
@@ -18584,6 +18814,12 @@ function captureImportModal(){
         <div class="cim-drop-sub" style="color:var(--text-faint);">Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
       </div>
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
+      <div class="cim-or"><span>ou</span></div>
+      <button type="button" class="cim-tv-btn" id="cim-dlx">
+        <span class="dlx-logo" aria-hidden="true">DX</span>
+        <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leurs payouts.' : 'Récupère tes comptes Tradovate, Rithmic… déjà reliés à Deltalytix, avec leurs payouts.'}</span></span>
+        ${icon('chevRight')}
+      </button>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
       <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si Gemini est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 10 lectures Gemini par jour.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
@@ -18592,6 +18828,7 @@ function captureImportModal(){
     drop.onclick = ()=>input.click();
     drop.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); input.click(); } };
     input.onchange = ()=>{ if(input.files && input.files[0]) handleFile(input.files[0], false); };
+    document.getElementById('cim-dlx').onclick = importFromDlx;
     drop.ondragover = (e)=>{ e.preventDefault(); drop.classList.add('is-over'); };
     drop.ondragleave = ()=>drop.classList.remove('is-over');
     drop.ondrop = (e)=>{
@@ -18828,6 +19065,145 @@ function captureImportModal(){
     renderReview();
   }
 
+  // ---------- Import via Deltalytix (jeton chiffré côté serveur, voir dlxCall) ----------
+  function renderDlxToken(errorMsg){
+    root().innerHTML = dlxTokenFormHtml();
+    if(errorMsg){ const e = document.getElementById('dlx-error'); if(e) e.textContent = errorMsg; }
+    setFoot(`<button class="btn btn-outline" id="cim-back">Retour</button><button class="btn btn-primary" id="cim-dlx-ok">${icon('link')}Connecter et importer</button>`);
+    document.getElementById('cim-back').onclick = ()=>renderDrop();
+    const ok = document.getElementById('cim-dlx-ok');
+    const inp = document.getElementById('dlx-token');
+    inp.focus();
+    inp.onkeydown = (e)=>{ if(e.key==='Enter') ok.click(); };
+    ok.onclick = async ()=>{ if(await dlxSubmitToken(ok)) importFromDlx(); };
+  }
+  async function importFromDlx(){
+    if(busy) return;
+    const d = dlx();
+    if(!d.loaded) await loadDlxStatus();
+    if(!d.available){ renderDrop('La connexion Deltalytix n’est pas encore activée sur cette base (migration_deltalytix.sql).'); return; }
+    if(!d.connected){ renderDlxToken(); return; }
+    busy = true;
+    renderReading('Récupération de tes comptes Deltalytix…', 'Quelques secondes : comptes, tailles et payouts.');
+    const r = await dlxCall('accounts');
+    busy = false;
+    if(!isOpen()) return;
+    if(!r.ok){
+      if(r.data.code==='token_invalid' || r.data.code==='not_connected'){ d.connected = false; renderDlxToken(r.data.error); return; }
+      renderDrop(r.data.error || 'Deltalytix n’a pas répondu. Réessaie dans un instant.'); return;
+    }
+    ingestDlx(Array.isArray(r.data.accounts) ? r.data.accounts : []);
+  }
+  function dlxFirmName(label){
+    const l = String(label||'').trim().toLowerCase();
+    if(!l) return null;
+    const firms = state.propfirms.filter(f=>f.name);
+    const exact = firms.find(f=>f.name.trim().toLowerCase()===l);
+    if(exact) return exact.name;
+    const near = firms.filter(f=>{ const n = f.name.trim().toLowerCase(); return n.length>=4 && (l.includes(n) || n.includes(l.split(/\s+/)[0]) && l.split(/\s+/)[0].length>=4); });
+    return near.length===1 ? near[0].name : null;
+  }
+  function ingestDlx(accounts){
+    const found = [], demo = [];
+    accounts.forEach(a=>{
+      const num = String(a.number||'').trim();
+      if(!num) return;
+      if(cimIsDemoAccount(num)){ demo.push(num); return; }
+      const det = cimKeywordDetection(num);
+      const firm = dlxFirmName(a.propfirm);
+      if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
+      if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
+      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [] });
+    });
+    demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
+    if(!found.length){
+      renderDrop(accounts.length ? 'Seuls des comptes de démo ont été trouvés dans Deltalytix.' : 'Deltalytix n’a renvoyé aucun compte : relie d’abord tes comptes dans Deltalytix.');
+      return;
+    }
+    if(!rows.length){ rows = []; groups = []; shots = []; }
+    const known = new Set(rows.map(r=>normAccNum(r.value)));
+    let added = 0, existing = 0, overflow = 0;
+    found.forEach(f=>{
+      const k = normAccNum(f.value);
+      const ex = cimExistingAccount(f.value);
+      // Payouts : proposés s'ils ne sont pas déjà dans Contralytix (même compte, même date, même montant).
+      f.dlxPayouts.forEach(p=>{
+        if(ex && (state.payouts||[]).some(x=>x.accountId===ex.id && String(x.date).slice(0,10)===p.date && Math.abs(Number(x.amount)-Number(p.amount))<0.01)) return;
+        const key = `${k}|${p.id||p.date+'-'+p.amount}`;
+        if(pays.some(x=>x.key===key)) return;
+        pays.push({ key, number:f.value, amount:Number(p.amount), date:p.date, status:p.status||'', checked: !p.status || /PAID|COMPLET|APPROV|SUCCESS/.test(p.status), existingId: ex ? ex.id : null });
+      });
+      if(known.has(k)) return;
+      if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
+      known.add(k);
+      if(ex) existing++;
+      const row = { value:f.value, det:f.det, checked: !ex, gid:null, free:false, createdHere:false };
+      placeInGroup(row);
+      rows.push(row);
+      added++;
+    });
+    groups.forEach(g=>ensureFx(g.date));
+    const newCount = rows.filter(r=>!cimExistingAccount(r.value)).length;
+    const parts = [`Deltalytix : ${added} compte${added>1?'s':''}`];
+    if(existing) parts.push(`${existing} déjà dans Contralytix`);
+    if(demo.length) parts.push(`${demo.length} de démo ignoré${demo.length>1?'s':''}`);
+    if(overflow) parts.push(`${overflow} au-delà de ${CIM_MAX_ACCOUNTS}`);
+    if(pays.length) parts.push(`${pays.length} payout${pays.length>1?'s':''} à ajouter (liste en bas)`);
+    if(newCount) parts.push('Type déduit du numéro : vérifie chaque groupe, puis complète le prix');
+    notice = { text: parts.join(' · '), warn: !!newCount };
+    renderReview();
+  }
+  // Payouts proposés (section en bas de l'écran de vérification)
+  function payEligible(p){
+    if(p.existingId) return true;
+    const row = rows.find(r=>normAccNum(r.value)===normAccNum(p.number));
+    return !!(row && row.checked && !cimExistingAccount(row.value));
+  }
+  function paysHtml(){
+    if(!pays.length) return '';
+    const sel = pays.filter(p=>p.checked && payEligible(p)).length;
+    return `
+      <div class="panel cim-pays">
+        <div class="cim-pays-head"><div><strong>Payouts trouvés sur Deltalytix</strong> <span class="text-dim">· ${sel} sélectionné${sel>1?'s':''}</span></div>
+          <span class="text-faint" style="font-size:11.5px;">Système de paiement à compléter ensuite dans chaque payout</span></div>
+        ${pays.map((p,i)=>{
+          const ok = payEligible(p);
+          const where = p.existingId ? 'compte existant' : (ok ? 'avec le nouveau compte' : 'compte non créé : ignoré');
+          return `<label class="cim-pay ${ok?'':'is-off'}">
+            <input type="checkbox" data-pay="${i}" ${p.checked&&ok?'checked':''} ${ok?'':'disabled'}/>
+            <span class="mono cim-pay-num">${escapeHtml(p.number)}</span>
+            <span class="cim-pay-date">${fmtDate(p.date)}</span>
+            <span class="mono cim-pay-amt">${Number(p.amount).toLocaleString('fr-FR',{maximumFractionDigits:2})} $</span>
+            ${p.status ? `<span class="badge ${/PAID|COMPLET|APPROV|SUCCESS/.test(p.status)?'badge-accent':'badge-slate'}">${escapeHtml({PAID:'Payé',PENDING:'En attente',REJECTED:'Refusé',CANCELLED:'Annulé'}[p.status] || p.status.toLowerCase())}</span>` : ''}
+            <span class="text-faint cim-pay-where">${where}</span>
+          </label>`; }).join('')}
+      </div>`;
+  }
+  async function createPays(createdByNum){
+    const todo = pays.filter(p=>p.checked && payEligible(p));
+    const fx = {};
+    let n = 0;
+    for(const p of todo){
+      const acc = p.existingId ? getAccount(p.existingId) : createdByNum.get(normAccNum(p.number));
+      if(!acc) continue;
+      const currency = acc.currency || 'USD';
+      let rate = 1;
+      if(currency!=='EUR'){
+        const k = `${currency}|${p.date}`;
+        if(!(k in fx)){
+          fx[k] = null;
+          try{ const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${p.date}&currency=${currency}`); const d = await res.json(); if(res.ok && d.rateToEur) fx[k] = Number(d.rateToEur); }catch(e){}
+        }
+        rate = fx[k] || Number(acc.fxRateToEur) || 1;
+      }
+      const id = uid('pay');
+      await upsert('payouts', { id, accountId: acc.id, amount: Number(p.amount), date: p.date, note: 'Importé depuis Deltalytix', currency, fxRateToEur: rate, paymentSystem: null, createdAt: new Date().toISOString(), createdBy: currentUserId() });
+      await logActivity('CREATE', 'payout', id, `Payout importé depuis Deltalytix — ${fmtMoneyDisp(p.amount, currency, rate)}`);
+      n++;
+    }
+    return n;
+  }
+
   // ---------- Groupes : même PropFirm + type + taille détectés (sinon même préfixe) ----------
   function newGroup(res, prefix, key){
     return {
@@ -19037,11 +19413,15 @@ function captureImportModal(){
         ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro à la main</button>` : ''}
         <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('reset')}Tout recommencer</button>
       </div>
+      ${paysHtml()}
       <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>
       </div>
       </div>`;
     const n = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value)).length;
-    setFoot(`<button class="btn btn-outline" id="cim-cancel">${n ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${n&&!busy?'':'disabled'}>${icon('check')}Créer ${n||''} compte${n>1?'s':''}</button>`);
+    const np = pays.filter(p=>p.checked && payEligible(p)).length;
+    const label = n ? `Créer ${n} compte${n>1?'s':''}${np ? ` · ${np} payout${np>1?'s':''}` : ''}` : (np ? `Ajouter ${np} payout${np>1?'s':''}` : 'Créer');
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">${n||np ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${(n||np)&&!busy?'':'disabled'}>${icon('check')}${label}</button>`);
+    document.querySelectorAll('[data-pay]').forEach(cb=>cb.onchange=()=>{ pays[Number(cb.dataset.pay)].checked = cb.checked; renderReview(); });
     bindReview();
     const body2 = document.querySelector('#modal-root .modal-body');
     if(body2) body2.scrollTop = scroll;
@@ -19108,7 +19488,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; pays = []; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
@@ -19165,7 +19545,7 @@ function captureImportModal(){
     rows.forEach((r,i)=>{ if(r.checked && !r.value.trim()) err.rows[i] = 'Numéro vide : complète-le ou retire la ligne.'; });
 
     const trader = top.traderId ? getTrader(top.traderId) : null;
-    if(!trader) err.global = 'Choisis le trader à qui appartiennent ces comptes.';
+    if(!trader && selected.length) err.global = 'Choisis le trader à qui appartiennent ces comptes.';
 
     const records = [];
     const seen = new Map(); // firmId|numéro normalisé -> index de ligne
@@ -19231,12 +19611,18 @@ function captureImportModal(){
         return;
       }
     }
+    const createdByNum = new Map();
     for(const { record, free } of records){
       await upsert('accounts', record);
-      await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(record.propFirmId)?.name||''} · ${TYPE_LABELS[record.type]} (import capture${free?', offert promo':''})`);
+      createdByNum.set(normAccNum(record.accountNumber), record);
+      await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(record.propFirmId)?.name||''} · ${TYPE_LABELS[record.type]} (import${free?', offert promo':''})`);
     }
+    const nbPays = pays.length ? await createPays(createdByNum) : 0;
     const nbFree = records.filter(x=>x.free).length;
-    showToast(`${records.length} compte${records.length>1?'s':''} créé${records.length>1?'s':''}${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}.`);
+    const msgs = [];
+    if(records.length) msgs.push(`${records.length} compte${records.length>1?'s':''} créé${records.length>1?'s':''}${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}`);
+    if(nbPays) msgs.push(`${nbPays} payout${nbPays>1?'s':''} ajouté${nbPays>1?'s':''} (système de paiement à compléter)`);
+    showToast((msgs.join(' · ') || 'Rien à créer') + '.');
     document.removeEventListener('paste', onPaste);
     closeModal(); render();
   }
@@ -19246,7 +19632,7 @@ function captureImportModal(){
     document.removeEventListener('paste', onPaste);
     document.addEventListener('paste', onPaste);
     openModal({
-      title: 'Importer des comptes depuis une capture',
+      title: 'Importer mes comptes',
       wide: 'xwide',
       bodyHtml: `<div id="cim-root"></div>`,
       footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
@@ -20835,6 +21221,7 @@ function applyLandingPricing(){
     syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
     await loadDormancy();
+    dlxMaybeAutoSync();   // connexion Deltalytix : statut + radar automatique (sans bloquer l'affichage)
     await loadPricingSettings();
     await loadFiscalThresholds();
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
