@@ -713,6 +713,8 @@ th.th-sort-active svg{opacity:1;}
 .cim-top-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
 .cim-top-add .btn svg{width:15px;height:15px;}
 .cim-top-hint{font-size:11.5px;color:var(--text-faint);}
+.cim-top-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.dlx-logo.dlx-logo-sm{width:18px;height:18px;border-radius:5px;font-size:8.5px;line-height:18px;margin-right:2px;}
 .cim-notice{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);border-radius:var(--radius-md);background:var(--accent-dim);font-size:12.5px;color:var(--text);}
 .cim-notice svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 .cim-notice.is-danger{border-color:color-mix(in srgb, var(--danger) 40%, transparent);background:var(--danger-dim);}
@@ -18748,6 +18750,7 @@ function captureImportModal(){
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
   let showBreached = false;  // comptes breached (Deltalytix) affichés dans la liste ?
+  let dlxDone = false;       // comptes Deltalytix déjà ajoutés à la liste (bouton « Ajouter Deltalytix » masqué)
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
   const fxPending = {};
@@ -19020,16 +19023,22 @@ function captureImportModal(){
       rows = [];
       groups = [];
       shots = [];
+      dlxDone = false;
     }
     const shotIndex = shots.length;
     shots.push(prepared.dataUrl);
     shotIdx = shotIndex;
     // Fusion : on n'ajoute que les numéros pas encore dans la liste.
     const known = new Set(rows.map(r=>normAccNum(r.value)));
-    let added = 0, alreadyListed = 0, overflow = 0, toCheck = 0;
+    let added = 0, alreadyListed = 0, overflow = 0, toCheck = 0, completed = 0;
     found.forEach(f=>{
       const k = normAccNum(f.value);
-      if(known.has(k)){ alreadyListed++; return; }
+      if(known.has(k)){
+        alreadyListed++;
+        const prev = rows.find(r=>normAccNum(r.value)===k);
+        if(prev && fillDet(prev, f.det)){ regroup(prev); completed++; }
+        return;
+      }
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
       const row = { ...f, checked: !cimExistingAccount(f.value), gid:null, free:false, createdHere:false, shot: shotIndex };
@@ -19042,7 +19051,7 @@ function captureImportModal(){
     const parts = [];
     if(append){
       parts.push(found.length ? `Capture n°${captures} : ${added} compte${added>1?'s':''} ajouté${added>1?'s':''}` : `Capture n°${captures} : aucun compte lisible`);
-      if(alreadyListed) parts.push(`${alreadyListed} déjà dans la liste`);
+      if(alreadyListed) parts.push(`${alreadyListed} déjà dans la liste${completed ? ` (${completed} complété${completed>1?'s':''} : PropFirm, type ou taille)` : ''}`);
       if(overflow) parts.push(`${overflow} ignoré${overflow>1?'s':''} (${CIM_MAX_ACCOUNTS} comptes maximum)`);
     }
     if(local){
@@ -19055,27 +19064,31 @@ function captureImportModal(){
   // ---------- Import via Deltalytix (jeton chiffré côté serveur, voir dlxCall) ----------
   async function importFromDlx(){
     if(busy) return;
+    // Liste déjà commencée (capture) : on reste sur l'écran de vérification et on y ajoute Deltalytix.
+    const append = rows.length > 0;
+    const wait = (title, sub)=>{ if(append){ notice = { text:title, reading:true }; renderReview(); } else renderReading(title, sub); };
+    const fail = (msg)=>{ busy = false; if(append){ notice = { text:msg, danger:true }; renderReview(); } else renderDrop(msg); };
     const d = dlx();
     if(!d.loaded) await loadDlxStatus();
-    if(!d.available){ renderDrop('La connexion Deltalytix n’est pas encore activée sur cette base (migration_deltalytix.sql).'); return; }
+    if(!d.available){ fail('La connexion Deltalytix n’est pas encore activée sur cette base (migration_deltalytix.sql).'); return; }
     if(!d.connected){
       busy = true;
-      renderReading('Connexion à Deltalytix…', 'Connecte-toi dans la fenêtre qui vient de s’ouvrir et autorise Contralytix à lire tes comptes.');
+      wait('Connexion à Deltalytix… Connecte-toi dans la fenêtre qui vient de s’ouvrir.', 'Connecte-toi dans la fenêtre qui vient de s’ouvrir et autorise Contralytix à lire tes comptes.');
       const c = await dlxConnectOAuth();
       busy = false;
       if(!isOpen()) return;
-      if(!c.ok){ renderDrop(c.error); return; }
+      if(!c.ok){ fail(c.error); return; }
     }
     busy = true;
-    renderReading('Récupération de tes comptes Deltalytix…', 'Quelques secondes : numéros, tailles et dates.');
+    wait('Récupération de tes comptes Deltalytix…', 'Quelques secondes : numéros, tailles et dates.');
     const r = await dlxCall('accounts');
     busy = false;
     if(!isOpen()) return;
     if(!r.ok){
-      if(r.data.code==='token_invalid' || r.data.code==='not_connected'){ d.connected = false; renderDrop(r.data.error + ' Clique sur « Connecter Deltalytix ».'); return; }
-      renderDrop(r.data.error || 'Deltalytix n’a pas répondu. Réessaie dans un instant.'); return;
+      if(r.data.code==='token_invalid' || r.data.code==='not_connected'){ d.connected = false; fail(r.data.error + ' Reconnecte Deltalytix.'); return; }
+      fail(r.data.error || 'Deltalytix n’a pas répondu. Réessaie dans un instant.'); return;
     }
-    ingestDlx(Array.isArray(r.data.accounts) ? r.data.accounts : []);
+    ingestDlx(Array.isArray(r.data.accounts) ? r.data.accounts : [], append);
   }
   function dlxFirmName(label){
     const l = String(label||'').trim().toLowerCase();
@@ -19086,7 +19099,7 @@ function captureImportModal(){
     const near = firms.filter(f=>{ const n = f.name.trim().toLowerCase(); return n.length>=4 && (l.includes(n) || n.includes(l.split(/\s+/)[0]) && l.split(/\s+/)[0].length>=4); });
     return near.length===1 ? near[0].name : null;
   }
-  function ingestDlx(accounts){
+  function ingestDlx(accounts, append){
     const found = [], demo = [];
     let hiddenDlx = 0;
     accounts.forEach(a=>{
@@ -19102,20 +19115,33 @@ function captureImportModal(){
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
-      renderDrop(accounts.length ? 'Seuls des comptes de démo ont été trouvés dans Deltalytix.' : 'Deltalytix n’a renvoyé aucun compte : relie d’abord tes comptes dans Deltalytix.');
+      const msg = accounts.length ? 'Seuls des comptes de démo ont été trouvés dans Deltalytix.' : 'Deltalytix n’a renvoyé aucun compte : relie d’abord tes comptes dans Deltalytix.';
+      if(append){ notice = { text:msg, danger:true }; renderReview(); } else renderDrop(msg);
       return;
     }
     if(!rows.length){ rows = []; groups = []; shots = []; }
+    dlxDone = true;
     const known = new Set(rows.map(r=>normAccNum(r.value)));
-    let added = 0, existing = 0, overflow = 0;
+    let added = 0, existing = 0, overflow = 0, completed = 0;
     found.forEach(f=>{
       const k = normAccNum(f.value);
       const ex = cimExistingAccount(f.value);
-      if(known.has(k)) return;
+      if(known.has(k)){
+        // Déjà lu sur une capture : on le complète avec Deltalytix (dates, breached, taille…).
+        const prev = rows.find(r=>normAccNum(r.value)===k);
+        if(prev && !prev.dlx){
+          prev.dlx = true;
+          prev.dlxFirstDay = f.dlxFirstDay; prev.dlxLastDay = f.dlxLastDay; prev.dlxBreached = f.dlxBreached;
+          if(f.dlxBreached && !ex) prev.checked = false;
+          if(fillDet(prev, f.det)) regroup(prev);
+          completed++;
+        }
+        return;
+      }
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
       if(ex) existing++;
-      const row = { value:f.value, det:f.det, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay, dlxFirstDay: f.dlxFirstDay };
+      const row = { value:f.value, det:f.det, dlx:true, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay, dlxFirstDay: f.dlxFirstDay };
       placeInGroup(row);
       rows.push(row);
       added++;
@@ -19123,7 +19149,8 @@ function captureImportModal(){
     groups.forEach(g=>ensureFx(g.date));
     rows.forEach(r=>{ if(r.dlxFirstDay) ensureFx(r.dlxFirstDay); });
     const newCount = rows.filter(r=>!cimExistingAccount(r.value)).length;
-    const parts = [`Deltalytix : ${added} compte${added>1?'s':''}`];
+    const parts = [`Deltalytix : ${added} compte${added>1?'s':''}${append?' ajouté'+(added>1?'s':''):''}`];
+    if(completed) parts.push(`${completed} déjà lu${completed>1?'s':''} sur ta capture, complété${completed>1?'s':''} avec Deltalytix`);
     if(existing) parts.push(`${existing} déjà dans Contralytix`);
     if(demo.length) parts.push(`${demo.length} de démo ignoré${demo.length>1?'s':''}`);
     if(overflow) parts.push(`${overflow} au-delà de ${CIM_MAX_ACCOUNTS}`);
@@ -19174,6 +19201,23 @@ function captureImportModal(){
   const isHiddenRow = (r)=>!!(r.dlxBreached && !showBreached);
   const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id && !isHiddenRow(x.r));
   const dropEmptyGroups = ()=>{ groups = groups.filter(g=>rows.some(r=>r.gid===g.id)); };
+  // Mélange capture + Deltalytix : un même compte trouvé des deux côtés est complété (on ne remplit
+  // que ce qui manque : PropFirm, type, taille) puis reclassé dans le bon groupe.
+  function fillDet(row, extra){
+    if(!extra) return false;
+    const d = row.det || (row.det = { propfirm:null, propfirmSource:null, size:null, sizeSource:null, type:null, typeSource:null });
+    let changed = false;
+    [['propfirm','propfirmSource'],['type','typeSource'],['size','sizeSource']].forEach(([k,src])=>{
+      if(!d[k] && extra[k]){ d[k] = extra[k]; d[src] = extra[src] || null; changed = true; }
+    });
+    return changed;
+  }
+  function regroup(row){
+    if(cimExistingAccount(row.value)) return;
+    const before = row.gid;
+    placeInGroup(row);
+    if(row.gid!==before) dropEmptyGroups();
+  }
 
   // ---------- Taux BCE par date (même service que les autres formulaires) ----------
   async function ensureFx(date){
@@ -19359,8 +19403,11 @@ function captureImportModal(){
         </div>
         <div class="cim-field"><label>Devise</label><select id="cim-currency">${['USD','EUR'].map(c=>opt(c,c,c===top.currency)).join('')}</select></div>
         <div class="cim-top-add">
-          <button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
-          <span class="cim-top-hint">${isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Ou colle-la ici (Ctrl + V) pour compléter la liste.'}</span>
+          <div class="cim-top-btns">
+            <button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
+            ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true">DX</span>Ajouter Deltalytix</button>`}
+          </div>
+          <span class="cim-top-hint">${isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Capture : tu peux aussi la coller ici (Ctrl + V).'}</span>
           <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
         </div>
       </div>
@@ -19404,6 +19451,8 @@ function captureImportModal(){
     };
     const more = document.getElementById('cim-file-more');
     document.getElementById('cim-add-capture').onclick = ()=>more.click();
+    const addDlx = document.getElementById('cim-add-dlx');
+    if(addDlx) addDlx.onclick = importFromDlx;
     more.onchange = ()=>{ if(more.files && more.files[0]) handleFile(more.files[0], true); };
     // Groupes
     const gSel = (attr, apply, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
@@ -19451,7 +19500,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; dlxDone = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
