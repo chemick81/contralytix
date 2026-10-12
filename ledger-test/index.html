@@ -101,7 +101,7 @@
     {
       "@type": "Question",
       "name": "Puis-je importer mes comptes prop firm sans tout ressaisir ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Oui : sur la page Comptes, « Importer une capture » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui : sur la page Comptes, « Importer mes comptes » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée." }
     },
     {
       "@type": "Question",
@@ -709,19 +709,6 @@ th.th-sort-active svg{opacity:1;}
 .cim-bulk .btn svg{width:13px;height:13px;}
 .cim-bulk-toggle{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12.5px;color:var(--text-dim);cursor:pointer;}
 .cim-bulk-toggle input{accent-color:var(--accent);width:15px;height:15px;}
-.cim-pays-head .btn{padding:2px 8px;min-height:0;font-size:11.5px;margin-left:4px;}
-.cim-pays{padding:14px 16px;margin-top:14px;display:flex;flex-direction:column;gap:6px;}
-.cim-pays-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;font-size:13px;}
-.cim-pay{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto auto auto minmax(0,1fr);align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);font-size:12.5px;cursor:pointer;}
-.cim-pay.is-off{opacity:.5;cursor:default;}
-.cim-pay input{accent-color:var(--accent);width:16px;height:16px;}
-.cim-pay-num{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cim-pay-amt{font-weight:600;text-align:right;}
-.cim-pay-where{font-size:11.5px;text-align:right;}
-@media (max-width:640px){
-  .cim-pay{grid-template-columns:auto minmax(0,1fr) auto;}
-  .cim-pay-date,.cim-pay-where{grid-column:2 / -1;text-align:left;}
-}
 .cim-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);align-items:end;gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-2);}
 .cim-top-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
 .cim-top-add .btn svg{width:15px;height:15px;}
@@ -2456,7 +2443,7 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Puis-je importer mes comptes prop firm sans tout ressaisir ?</summary>
-          <p>Oui : sur la page Comptes, « Importer une capture » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée.</p>
+          <p>Oui : sur la page Comptes, « Importer mes comptes » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?</summary>
@@ -6339,7 +6326,7 @@ function renderTopbarActions(){
     }
   }
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes à partir d'une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('camera')}Importer une capture</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -10356,7 +10343,7 @@ const MANUAL_CHAPTERS = [
     <h3>Ajout en masse</h3>
     <p>Le bouton « Ajout en masse » permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
     <h3>Importer depuis une capture d'écran</h3>
-    <p>Le bouton <b>« Importer une capture »</b> crée tes comptes à partir d'une simple capture de la liste de tes comptes, sans recopier les numéros un par un.</p>
+    <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant Deltalytix, ou à partir d'une simple capture de la liste de tes comptes.</p>
     ${manualShot('06d-import-capture.jpg', "Import par capture — choisis ta plateforme, suis l'exemple, puis colle ta capture.")}
     <ol>
       <li><b>Choisis ta plateforme</b> — Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm, ou Autre. Chaque onglet montre un exemple de capture (numéros floutés) et les étapes pour obtenir le bon écran. Ce choix aide aussi la lecture.</li>
@@ -10676,7 +10663,7 @@ function viewConfidentialite(){
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
-            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes et payouts, et P&amp;L journalier pour le Radar inactivité</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
+            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes, et P&amp;L journalier pour le Radar inactivité</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
@@ -16182,7 +16169,7 @@ function gdStartSteps(){
     { id:'trader', title:'Crée ton profil trader', sub:'Ton nom de trader : tous tes comptes y seront rattachés.',
       done: myTraders.length>0, cta:'Créer mon trader', run:"gdGo('traders');setTimeout(()=>traderFormModal(),60)" },
     { id:'accounts', title:'Ajoute tes comptes', sub:'Le plus rapide : une capture de ta plateforme, les numéros sont lus pour toi.',
-      done: myAccounts.length>0, cta:'Importer une capture', run:"gdGo('accounts');setTimeout(()=>captureImportModal(),60)" },
+      done: myAccounts.length>0, cta:'Importer mes comptes', run:"gdGo('accounts');setTimeout(()=>captureImportModal(),60)" },
     { id:'payout', title:'Enregistre un payout', sub:'Depuis la carte d’un compte financé, bouton « Payouts ». C’est ce qui alimente ton net.',
       done: (state.payouts||[]).some(p=>myIds.has(p.accountId)), cta:'Voir mes comptes', run:"gdGo('accounts')" },
     { id:'rentabilite', title:'Découvre ton net réel', sub:'Payouts moins toutes tes dépenses : ce que tu as vraiment gagné.',
@@ -16269,7 +16256,7 @@ function gdEmptyAccounts(){
   return gdEmpty({ icon:'card', title:'Ajoute tes premiers comptes',
     sub:'Challenge, PA (compte financé) ou Live : ajoute-les une fois, Contralytix calcule ensuite tes dépenses, tes payouts et ton net.',
     opts:[
-      { icon:'camera', title:'Importer une capture', sub:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les numéros sont lus pour toi.', run:'captureImportModal()', main:true, badge:'Le plus rapide' },
+      { icon:'download', title:'Importer mes comptes', sub:'Connecte Deltalytix, ou colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les numéros sont lus pour toi.', run:'captureImportModal()', main:true, badge:'Le plus rapide' },
       { icon:'plus', title:'Nouveau compte', sub:'Un compte à la fois, avec tous les détails : prix, mensualités, date d’activation.', run:'accountFormModal({})' },
       { icon:'layers', title:'Ajout en masse', sub:'Plusieurs comptes identiques achetés ensemble : seul le numéro change.', run:'bulkAccountFormModal()' },
     ], manual:'m-comptes' });
@@ -16309,8 +16296,8 @@ const GD_HELP = {
       { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
     ] },
   accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
-    points:['<b>Importer une capture</b> crée tes comptes depuis une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net profit, ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
-    actions:[{ icon:'camera', label:'Importer une capture', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
+    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix ou une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net profit, ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    actions:[{ icon:'download', label:'Importer mes comptes', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
     glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net profit','payouts − dépenses, Challenge d’origine inclus.'],['ROI','net profit ÷ dépenses.']],
     tour:[
       { sel:'#capture-import-account', title:'Le plus rapide pour démarrer', text:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les comptes sont créés pour toi.' },
@@ -18761,7 +18748,6 @@ function captureImportModal(){
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
   let showBreached = false;  // comptes breached (Deltalytix) affichés dans la liste ?
-  let pays = [];             // payouts proposés par Deltalytix : [{ key, number, amount, date, status, checked, existingId }]
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
   const fxPending = {};
@@ -18818,7 +18804,7 @@ function captureImportModal(){
       <div class="cim-or"><span>ou</span></div>
       <button type="button" class="cim-tv-btn" id="cim-dlx">
         <span class="dlx-logo" aria-hidden="true">DX</span>
-        <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leurs payouts.' : 'Connexion sécurisée chez Deltalytix : tes comptes Tradovate, Rithmic… avec leurs payouts, sans rien copier.'}</span></span>
+        <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leur date de début.' : 'Connexion sécurisée chez Deltalytix : tes comptes Tradovate, Rithmic… sans rien copier.'}</span></span>
         ${icon('chevRight')}
       </button>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
@@ -19081,7 +19067,7 @@ function captureImportModal(){
       if(!c.ok){ renderDrop(c.error); return; }
     }
     busy = true;
-    renderReading('Récupération de tes comptes Deltalytix…', 'Quelques secondes : comptes, tailles et payouts.');
+    renderReading('Récupération de tes comptes Deltalytix…', 'Quelques secondes : numéros, tailles et dates.');
     const r = await dlxCall('accounts');
     busy = false;
     if(!isOpen()) return;
@@ -19112,7 +19098,7 @@ function captureImportModal(){
       const firm = dlxFirmName(a.propfirm);
       if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
       if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
-      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [], dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden });
+      found.push({ value:num, det, dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden });
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
@@ -19125,13 +19111,6 @@ function captureImportModal(){
     found.forEach(f=>{
       const k = normAccNum(f.value);
       const ex = cimExistingAccount(f.value);
-      // Payouts : proposés s'ils ne sont pas déjà dans Contralytix (même compte, même date, même montant).
-      f.dlxPayouts.forEach(p=>{
-        if(ex && (state.payouts||[]).some(x=>x.accountId===ex.id && String(x.date).slice(0,10)===p.date && Math.abs(Number(x.amount)-Number(p.amount))<0.01)) return;
-        const key = `${k}|${p.id||p.date+'-'+p.amount}`;
-        if(pays.some(x=>x.key===key)) return;
-        pays.push({ key, number:f.value, amount:Number(p.amount), date:p.date, status:p.status||'', checked: !p.status || /PAID|COMPLET|APPROV|SUCCESS/.test(p.status), existingId: ex ? ex.id : null });
-      });
       if(known.has(k)) return;
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
@@ -19151,7 +19130,6 @@ function captureImportModal(){
     const nBr = rows.filter(r=>r.dlxBreached && !cimExistingAccount(r.value)).length;
     if(nBr) parts.push(`${nBr} breached mis de côté (case « Afficher » pour les importer)`);
     if(hiddenDlx) parts.push(`${hiddenDlx} masqué${hiddenDlx>1?'s':''} dans Deltalytix ignoré${hiddenDlx>1?'s':''}`);
-    if(pays.length) parts.push(`${pays.length} payout${pays.length>1?'s':''} à ajouter (liste en bas)`);
     if(newCount) parts.push('Type déduit du numéro : vérifie chaque groupe, puis complète le prix');
     notice = { text: parts.join(' · '), warn: !!newCount };
     renderReview();
@@ -19170,57 +19148,6 @@ function captureImportModal(){
         ${nBreached ? `<label class="cim-bulk-toggle" title="Comptes ayant atteint leur limite de perte d’après Deltalytix. Importés, ils sont créés avec le statut Breached (utile pour tes dépenses passées).">
           <input type="checkbox" id="cim-show-breached" ${showBreached?'checked':''}/> Afficher les ${nBreached} compte${nBreached>1?'s':''} breached</label>` : ''}
       </div>`;
-  }
-  // Payouts proposés (section en bas de l'écran de vérification)
-  function payEligible(p){
-    if(p.existingId) return true;
-    const row = rows.find(r=>normAccNum(r.value)===normAccNum(p.number));
-    return !!(row && row.checked && !isHiddenRow(row) && !cimExistingAccount(row.value));
-  }
-  function paysHtml(){
-    if(!pays.length) return '';
-    const sel = pays.filter(p=>p.checked && payEligible(p)).length;
-    return `
-      <div class="panel cim-pays">
-        <div class="cim-pays-head"><div><strong>Payouts trouvés sur Deltalytix</strong> <span class="text-dim">· ${sel} sélectionné${sel>1?'s':''}</span>
-          <button type="button" class="btn btn-ghost btn-sm" data-pay-bulk="all">Tout</button><button type="button" class="btn btn-ghost btn-sm" data-pay-bulk="none">Aucun</button></div>
-          <span class="text-faint" style="font-size:11.5px;">Système de paiement à compléter ensuite dans chaque payout</span></div>
-        ${pays.map((p,i)=>{
-          const ok = payEligible(p);
-          const where = p.existingId ? 'compte existant' : (ok ? 'avec le nouveau compte' : 'compte non créé : ignoré');
-          return `<label class="cim-pay ${ok?'':'is-off'}">
-            <input type="checkbox" data-pay="${i}" ${p.checked&&ok?'checked':''} ${ok?'':'disabled'}/>
-            <span class="mono cim-pay-num">${escapeHtml(p.number)}</span>
-            <span class="cim-pay-date">${fmtDate(p.date)}</span>
-            <span class="mono cim-pay-amt">${Number(p.amount).toLocaleString('fr-FR',{maximumFractionDigits:2})} $</span>
-            ${p.status ? `<span class="badge ${/PAID|COMPLET|APPROV|SUCCESS/.test(p.status)?'badge-accent':'badge-slate'}">${escapeHtml({PAID:'Payé',PENDING:'En attente',REJECTED:'Refusé',CANCELLED:'Annulé'}[p.status] || p.status.toLowerCase())}</span>` : ''}
-            <span class="text-faint cim-pay-where">${where}</span>
-          </label>`; }).join('')}
-      </div>`;
-  }
-  async function createPays(createdByNum){
-    const todo = pays.filter(p=>p.checked && payEligible(p));
-    const fx = {};
-    let n = 0;
-    for(const p of todo){
-      const acc = p.existingId ? getAccount(p.existingId) : createdByNum.get(normAccNum(p.number));
-      if(!acc) continue;
-      const currency = acc.currency || 'USD';
-      let rate = 1;
-      if(currency!=='EUR'){
-        const k = `${currency}|${p.date}`;
-        if(!(k in fx)){
-          fx[k] = null;
-          try{ const res = await fetch(`/.netlify/functions/ecb-fx-rate?date=${p.date}&currency=${currency}`); const d = await res.json(); if(res.ok && d.rateToEur) fx[k] = Number(d.rateToEur); }catch(e){}
-        }
-        rate = fx[k] || Number(acc.fxRateToEur) || 1;
-      }
-      const id = uid('pay');
-      await upsert('payouts', { id, accountId: acc.id, amount: Number(p.amount), date: p.date, note: 'Importé depuis Deltalytix', currency, fxRateToEur: rate, paymentSystem: null, createdAt: new Date().toISOString(), createdBy: currentUserId() });
-      await logActivity('CREATE', 'payout', id, `Payout importé depuis Deltalytix — ${fmtMoneyDisp(p.amount, currency, rate)}`);
-      n++;
-    }
-    return n;
   }
 
   // ---------- Groupes : même PropFirm + type + taille détectés (sinon même préfixe) ----------
@@ -19444,16 +19371,12 @@ function captureImportModal(){
         ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro à la main</button>` : ''}
         <button class="btn btn-ghost btn-sm" id="cim-restart">${icon('reset')}Tout recommencer</button>
       </div>
-      ${paysHtml()}
       <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>
       </div>
       </div>`;
     const n = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r)).length;
-    const np = pays.filter(p=>p.checked && payEligible(p)).length;
-    const label = n ? `Créer ${n} compte${n>1?'s':''}${np ? ` · ${np} payout${np>1?'s':''}` : ''}` : (np ? `Ajouter ${np} payout${np>1?'s':''}` : 'Créer');
-    setFoot(`<button class="btn btn-outline" id="cim-cancel">${n||np ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${(n||np)&&!busy?'':'disabled'}>${icon('check')}${label}</button>`);
-    document.querySelectorAll('[data-pay]').forEach(cb=>cb.onchange=()=>{ pays[Number(cb.dataset.pay)].checked = cb.checked; renderReview(); });
-    document.querySelectorAll('[data-pay-bulk]').forEach(b=>b.onclick=()=>{ const on = b.dataset.payBulk==='all'; pays.forEach(p=>{ if(payEligible(p)) p.checked = on; }); renderReview(); });
+    const label = n ? `Créer ${n} compte${n>1?'s':''}` : 'Créer';
+    setFoot(`<button class="btn btn-outline" id="cim-cancel">${n ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${n&&!busy?'':'disabled'}>${icon('check')}${label}</button>`);
     document.querySelectorAll('[data-bulk]').forEach(b=>b.onclick=()=>{
       const on = b.dataset.bulk==='all';
       rows.forEach(r=>{ if(r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r)) r.checked = on; });
@@ -19528,7 +19451,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; pays = []; showBreached = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
@@ -19652,17 +19575,13 @@ function captureImportModal(){
         return;
       }
     }
-    const createdByNum = new Map();
     for(const { record, free } of records){
       await upsert('accounts', record);
-      createdByNum.set(normAccNum(record.accountNumber), record);
       await logActivity('CREATE', 'account', record.id, `${trader.pseudo} · ${getFirm(record.propFirmId)?.name||''} · ${TYPE_LABELS[record.type]} (import${free?', offert promo':''})`);
     }
-    const nbPays = pays.length ? await createPays(createdByNum) : 0;
     const nbFree = records.filter(x=>x.free).length;
     const msgs = [];
     if(records.length) msgs.push(`${records.length} compte${records.length>1?'s':''} créé${records.length>1?'s':''}${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}`);
-    if(nbPays) msgs.push(`${nbPays} payout${nbPays>1?'s':''} ajouté${nbPays>1?'s':''} (système de paiement à compléter)`);
     showToast((msgs.join(' · ') || 'Rien à créer') + '.');
     document.removeEventListener('paste', onPaste);
     closeModal(); render();
