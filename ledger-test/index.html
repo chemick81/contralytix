@@ -704,6 +704,12 @@ th.th-sort-active svg{opacity:1;}
 .dlx-strip.is-error{border-color:var(--danger);}
 .dlx-strip-txt{flex:1 1 260px;font-size:13px;line-height:1.5;}
 .dlx-conn-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
+.cim-bulk{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
+.cim-bulk-count{font-size:12.5px;font-weight:600;margin-right:4px;}
+.cim-bulk .btn svg{width:13px;height:13px;}
+.cim-bulk-toggle{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12.5px;color:var(--text-dim);cursor:pointer;}
+.cim-bulk-toggle input{accent-color:var(--accent);width:15px;height:15px;}
+.cim-pays-head .btn{padding:2px 8px;min-height:0;font-size:11.5px;margin-left:4px;}
 .cim-pays{padding:14px 16px;margin-top:14px;display:flex;flex-direction:column;gap:6px;}
 .cim-pays-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;font-size:13px;}
 .cim-pay{display:grid;grid-template-columns:auto minmax(0,1.6fr) auto auto auto minmax(0,1fr);align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);font-size:12.5px;cursor:pointer;}
@@ -18752,6 +18758,7 @@ function captureImportModal(){
   let busy = false;          // lecture en cours
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
+  let showBreached = false;  // comptes breached (Deltalytix) affichés dans la liste ?
   let pays = [];             // payouts proposés par Deltalytix : [{ key, number, amount, date, status, checked, existingId }]
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
@@ -19093,15 +19100,17 @@ function captureImportModal(){
   }
   function ingestDlx(accounts){
     const found = [], demo = [];
+    let hiddenDlx = 0;
     accounts.forEach(a=>{
       const num = String(a.number||'').trim();
       if(!num) return;
       if(cimIsDemoAccount(num)){ demo.push(num); return; }
+      if(a.hidden){ hiddenDlx++; return; }   // masqué dans Deltalytix (si l'API le précise)
       const det = cimKeywordDetection(num);
       const firm = dlxFirmName(a.propfirm);
       if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
       if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
-      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [] });
+      found.push({ value:num, det, dlxPayouts: Array.isArray(a.payouts) ? a.payouts : [], dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxHidden: !!a.hidden });
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
@@ -19125,7 +19134,7 @@ function captureImportModal(){
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
       if(ex) existing++;
-      const row = { value:f.value, det:f.det, checked: !ex, gid:null, free:false, createdHere:false };
+      const row = { value:f.value, det:f.det, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay };
       placeInGroup(row);
       rows.push(row);
       added++;
@@ -19136,23 +19145,42 @@ function captureImportModal(){
     if(existing) parts.push(`${existing} déjà dans Contralytix`);
     if(demo.length) parts.push(`${demo.length} de démo ignoré${demo.length>1?'s':''}`);
     if(overflow) parts.push(`${overflow} au-delà de ${CIM_MAX_ACCOUNTS}`);
+    const nBr = rows.filter(r=>r.dlxBreached && !cimExistingAccount(r.value)).length;
+    if(nBr) parts.push(`${nBr} breached mis de côté (case « Afficher » pour les importer)`);
+    if(hiddenDlx) parts.push(`${hiddenDlx} masqué${hiddenDlx>1?'s':''} dans Deltalytix ignoré${hiddenDlx>1?'s':''}`);
     if(pays.length) parts.push(`${pays.length} payout${pays.length>1?'s':''} à ajouter (liste en bas)`);
     if(newCount) parts.push('Type déduit du numéro : vérifie chaque groupe, puis complète le prix');
     notice = { text: parts.join(' · '), warn: !!newCount };
     renderReview();
   }
+  // Barre de sélection : tout cocher / décocher, comptes breached affichés ou non.
+  function bulkBarHtml(){
+    const selectable = rows.filter(r=>r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r));
+    const nBreached = rows.filter(r=>r.dlxBreached && !cimExistingAccount(r.value)).length;
+    if(!selectable.length && !nBreached) return '';
+    const nOn = selectable.filter(r=>r.checked).length;
+    return `
+      <div class="cim-bulk">
+        <span class="cim-bulk-count">${nOn} / ${selectable.length} sélectionné${nOn>1?'s':''}</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-bulk="all" ${nOn===selectable.length?'disabled':''}>${icon('check')}Tout cocher</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-bulk="none" ${!nOn?'disabled':''}>${icon('x')}Tout décocher</button>
+        ${nBreached ? `<label class="cim-bulk-toggle" title="Comptes ayant atteint leur limite de perte d’après Deltalytix. Importés, ils sont créés avec le statut Breached (utile pour tes dépenses passées).">
+          <input type="checkbox" id="cim-show-breached" ${showBreached?'checked':''}/> Afficher les ${nBreached} compte${nBreached>1?'s':''} breached</label>` : ''}
+      </div>`;
+  }
   // Payouts proposés (section en bas de l'écran de vérification)
   function payEligible(p){
     if(p.existingId) return true;
     const row = rows.find(r=>normAccNum(r.value)===normAccNum(p.number));
-    return !!(row && row.checked && !cimExistingAccount(row.value));
+    return !!(row && row.checked && !isHiddenRow(row) && !cimExistingAccount(row.value));
   }
   function paysHtml(){
     if(!pays.length) return '';
     const sel = pays.filter(p=>p.checked && payEligible(p)).length;
     return `
       <div class="panel cim-pays">
-        <div class="cim-pays-head"><div><strong>Payouts trouvés sur Deltalytix</strong> <span class="text-dim">· ${sel} sélectionné${sel>1?'s':''}</span></div>
+        <div class="cim-pays-head"><div><strong>Payouts trouvés sur Deltalytix</strong> <span class="text-dim">· ${sel} sélectionné${sel>1?'s':''}</span>
+          <button type="button" class="btn btn-ghost btn-sm" data-pay-bulk="all">Tout</button><button type="button" class="btn btn-ghost btn-sm" data-pay-bulk="none">Aucun</button></div>
           <span class="text-faint" style="font-size:11.5px;">Système de paiement à compléter ensuite dans chaque payout</span></div>
         ${pays.map((p,i)=>{
           const ok = payEligible(p);
@@ -19213,7 +19241,8 @@ function captureImportModal(){
     row.gid = g.id;
   }
   const groupById = (id)=>groups.find(g=>g.id===id);
-  const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id);
+  const isHiddenRow = (r)=>!!(r.dlxBreached && !showBreached);
+  const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id && !isHiddenRow(x.r));
   const dropEmptyGroups = ()=>{ groups = groups.filter(g=>rows.some(r=>r.gid===g.id)); };
 
   // ---------- Taux BCE par date (même service que les autres formulaires) ----------
@@ -19253,6 +19282,7 @@ function captureImportModal(){
 
   function groupCardHtml(g){
     const items = rowsOf(g);
+    if(!items.length) return '';
     const active = items.filter(x=>x.r.checked);
     const allExisting = items.every(x=>cimExistingAccount(x.r.value));
     const need = active.length>0;
@@ -19297,6 +19327,7 @@ function captureImportModal(){
       const firm = getFirm(ex.propFirmId);
       return `<span class="badge badge-slate" title="Ce numéro existe déjà dans Contralytix${firm?` (${escapeHtml(firm.name)})`:''}">Déjà enregistré${firm?` · ${escapeHtml(firm.name)}`:''}</span>`;
     }
+    if(r.dlxBreached) return `<span class="badge badge-danger" title="D’après Deltalytix, ce compte a atteint sa limite de perte${r.dlxLastDay?` (dernier trade le ${fmtDate(r.dlxLastDay)})`:''} : s’il est importé, il sera créé avec le statut Breached.">Breached</span>`;
     if(r.ocrFlag) return `<span class="badge badge-gold" title="Lecture simplifiée : vérifie ce numéro (0/O, 5/S, 1/I, 2/Z…) et corrige-le si besoin">À vérifier</span>`;
     return `<span class="badge badge-accent">Nouveau</span>`;
   }
@@ -19396,6 +19427,7 @@ function captureImportModal(){
         </div>
       </div>
       ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; pour un compte différent de son groupe (autre date, prix promo, autre taille…), utilise « Personnaliser » : il s’ouvre dans le formulaire « Nouveau compte ».</span></div>` : ''}
+      ${bulkBarHtml()}
       ${groups.map(groupCardHtml).join('')}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
         ${rows.length < CIM_MAX_ACCOUNTS ? `<button class="btn btn-ghost btn-sm" id="cim-add-row">${icon('plus')}Ajouter un numéro à la main</button>` : ''}
@@ -19405,11 +19437,19 @@ function captureImportModal(){
       <div id="cim-error" class="error-text" style="margin-top:8px;">${errors && errors.global ? escapeHtml(errors.global) : ''}</div>
       </div>
       </div>`;
-    const n = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value)).length;
+    const n = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r)).length;
     const np = pays.filter(p=>p.checked && payEligible(p)).length;
     const label = n ? `Créer ${n} compte${n>1?'s':''}${np ? ` · ${np} payout${np>1?'s':''}` : ''}` : (np ? `Ajouter ${np} payout${np>1?'s':''}` : 'Créer');
     setFoot(`<button class="btn btn-outline" id="cim-cancel">${n||np ? 'Annuler' : 'Fermer'}</button><button class="btn btn-primary" id="cim-create" ${(n||np)&&!busy?'':'disabled'}>${icon('check')}${label}</button>`);
     document.querySelectorAll('[data-pay]').forEach(cb=>cb.onchange=()=>{ pays[Number(cb.dataset.pay)].checked = cb.checked; renderReview(); });
+    document.querySelectorAll('[data-pay-bulk]').forEach(b=>b.onclick=()=>{ const on = b.dataset.payBulk==='all'; pays.forEach(p=>{ if(payEligible(p)) p.checked = on; }); renderReview(); });
+    document.querySelectorAll('[data-bulk]').forEach(b=>b.onclick=()=>{
+      const on = b.dataset.bulk==='all';
+      rows.forEach(r=>{ if(r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r)) r.checked = on; });
+      errors = null; renderReview();
+    });
+    const sb = document.getElementById('cim-show-breached');
+    if(sb) sb.onchange = ()=>{ showBreached = sb.checked; renderReview(); };
     bindReview();
     const body2 = document.querySelector('#modal-root .modal-body');
     if(body2) body2.scrollTop = scroll;
@@ -19476,7 +19516,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; pays = []; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; pays = []; showBreached = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
@@ -19529,7 +19569,7 @@ function captureImportModal(){
     if(btn){ btn.disabled = true; }
     await allFxPending();
     const err = { global:'', groups:{}, rows:{} };
-    const selected = rows.map((r,i)=>({ r, i })).filter(x=>x.r.checked && x.r.value.trim() && !cimExistingAccount(x.r.value));
+    const selected = rows.map((r,i)=>({ r, i })).filter(x=>x.r.checked && x.r.value.trim() && !cimExistingAccount(x.r.value) && !isHiddenRow(x.r));
     rows.forEach((r,i)=>{ if(r.checked && !r.value.trim()) err.rows[i] = 'Numéro vide : complète-le ou retire la ligne.'; });
 
     const trader = top.traderId ? getTrader(top.traderId) : null;
@@ -19575,7 +19615,8 @@ function captureImportModal(){
         purchaseDate: date,
         activationDate: paLike ? date : null,
         activationFee: paLike ? (Number(g.fee)||0) : null,
-        status: 'ACTIF', endDate: null,
+        // Compte perdu d'après Deltalytix : créé directement en Breached (date du dernier trade connu).
+        status: r.dlxBreached ? 'BREACHED' : 'ACTIF', endDate: r.dlxBreached ? (r.dlxLastDay || todayISO()) : null,
         currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(fx),
         createdAt: new Date().toISOString(), createdBy: currentUserId(),
       }});
