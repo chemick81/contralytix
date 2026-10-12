@@ -586,6 +586,8 @@ th.th-sort-active svg{opacity:1;}
 /* Import de comptes depuis une capture d'écran (cim = capture import modal) */
 .cim-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:190px;padding:26px 18px;border:1.5px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface-2);text-align:center;cursor:pointer;transition:border-color .15s,background .15s;outline:none;}
 .cim-drop:hover,.cim-drop:focus-visible,.cim-drop.is-over{border-color:var(--accent);background:var(--accent-dim);}
+#cim-review{position:relative;}
+#cim-review.is-dropping::after{content:'Dépose tes captures ici';position:absolute;inset:-6px;z-index:20;display:flex;align-items:center;justify-content:center;border:2px dashed var(--accent);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--surface) 88%, transparent);color:var(--accent);font-weight:700;font-size:15px;pointer-events:none;}
 .cim-drop-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);}
 .cim-drop-icon svg{width:22px;height:22px;}
 .cim-drop-title{font-size:var(--fs-md);font-weight:700;color:var(--text);}
@@ -642,6 +644,9 @@ th.th-sort-active svg{opacity:1;}
 .cim-list{display:flex;flex-direction:column;gap:6px;}
 .cim-row{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);transition:opacity .15s,border-color .15s;}
 .cim-row.is-off{opacity:.55;}
+.cim-row.is-on{border-color:var(--accent);background:var(--accent-dim);box-shadow:inset 3px 0 0 var(--accent);}
+.cim-row-cap{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--accent);white-space:nowrap;}
+.cim-row-cap svg{width:12px;height:12px;flex:none;}
 .cim-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;}
 .cim-row .cim-num{flex:1;min-width:0;background:transparent;border:1px solid transparent;color:var(--text);padding:7px 8px;border-radius:var(--radius-sm);font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px;}
 .cim-row .cim-num:hover{border-color:var(--border);}
@@ -741,7 +746,7 @@ th.th-sort-active svg{opacity:1;}
 .cim-field-hint{grid-column:span 2;align-self:end;font-size:11.5px;color:var(--text-faint);line-height:1.45;}
 .cim-row.has-error{border-color:var(--danger);}
 .cim-row-err{margin:-2px 0 4px 36px;}
-.cim-row-tags{display:flex;gap:6px;flex-shrink:0;}
+.cim-row-tags{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .cim-row-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .cim-row-actions .promo-chip{padding:4px 8px;}
 @media (max-width:760px){
@@ -18750,8 +18755,11 @@ function captureImportModal(){
   let errors = null;         // { global, groups:{gid:msg}, rows:{idx:msg} } après une tentative de création
   let notice = null;         // { text, danger } bandeau temporaire (capture ajoutée, erreur de lecture…)
   let showBreached = false;  // comptes breached (Deltalytix) affichés dans la liste ?
-  let dlxDone = false;
-  let selectMode = false;    // prochaine capture = sélection (seuls les comptes visibles dessus restent cochés)       // comptes Deltalytix déjà ajoutés à la liste (bouton « Ajouter Deltalytix » masqué)
+  let dlxDone = false;       // comptes Deltalytix déjà ajoutés à la liste (bouton « Ajouter Deltalytix » masqué)
+  let selectMode = false;    // sélection par capture demandée, en attente de la 1re capture
+  let selActive = false;     // sélection en cours : chaque capture suivante coche ses comptes en plus
+  let onlyChecked = false;   // n'afficher que les comptes cochés
+  let lastReadFailed = false; // la dernière capture n'a donné aucun compte (bilan des lectures multiples)
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
   const fxPending = {};
@@ -18769,10 +18777,10 @@ function captureImportModal(){
     if(!isOpen()){ document.removeEventListener('paste', onPaste); return; }
     if(busy) return;
     if(!document.getElementById('cim-drop') && !inReview()) return;
-    const item = Array.from((e.clipboardData && e.clipboardData.items) || []).find(it=>it.kind==='file' && it.type.startsWith('image/'));
-    if(!item) return;
+    const items = Array.from((e.clipboardData && e.clipboardData.items) || []).filter(it=>it.kind==='file' && it.type.startsWith('image/'));
+    if(!items.length) return;
     e.preventDefault();
-    handleFile(item.getAsFile(), inReview());
+    handleFiles(items.map(it=>it.getAsFile()), inReview());
   }
 
   function setFoot(html){
@@ -18800,11 +18808,11 @@ function captureImportModal(){
         <div class="cim-drop-icon">${icon('camera')}</div>
         <div class="cim-drop-title">${isTouch ? 'Choisis ta capture d’écran' : 'Colle ta capture ici'}</div>
         <div class="cim-drop-sub">${isTouch
-          ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme.'
-          : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse l’image ici, ou clique pour choisir un fichier.`}</div>
+          ? 'Depuis tes photos : la liste de tes comptes affichée dans ta plateforme (plusieurs captures possibles).'
+          : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse tes images ici (plusieurs d’un coup si tu veux), ou clique pour les choisir.`}</div>
         <div class="cim-drop-sub" style="color:var(--text-faint);">Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
       </div>
-      <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
+      <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
       <div class="cim-or"><span>ou</span></div>
       <button type="button" class="cim-tv-btn" id="cim-dlx">
         <span class="dlx-logo" aria-hidden="true">DX</span>
@@ -18818,14 +18826,13 @@ function captureImportModal(){
     const input = document.getElementById('cim-file');
     drop.onclick = ()=>input.click();
     drop.onkeydown = (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); input.click(); } };
-    input.onchange = ()=>{ if(input.files && input.files[0]) handleFile(input.files[0], false); };
+    input.onchange = ()=>{ const files = Array.from(input.files || []); input.value = ''; handleFiles(files, false); };
     document.getElementById('cim-dlx').onclick = importFromDlx;
     drop.ondragover = (e)=>{ e.preventDefault(); drop.classList.add('is-over'); };
     drop.ondragleave = ()=>drop.classList.remove('is-over');
     drop.ondrop = (e)=>{
-      e.preventDefault(); drop.classList.remove('is-over');
-      const f = Array.from((e.dataTransfer && e.dataTransfer.files) || []).find(x=>x.type.startsWith('image/'));
-      if(f) handleFile(f, false); else renderDrop('Dépose une image (PNG, JPG ou WEBP).');
+      e.preventDefault(); e.stopPropagation(); drop.classList.remove('is-over');
+      handleFiles((e.dataTransfer && e.dataTransfer.files) || [], false);
     };
     bindGuide();
     if(!isTouch) drop.focus();
@@ -18916,10 +18923,38 @@ function captureImportModal(){
   }
 
   // Lit une capture. `append` = ajoute ses comptes à la liste déjà affichée (multi-capture).
+  // Plusieurs captures d'un coup (sélecteur de fichiers, glisser-déposer, collage) : lues l'une après l'autre.
+  async function handleFiles(list, append){
+    const files = Array.from(list || []).filter(f=>f && /^image\//.test(f.type));
+    if(!files.length){
+      const msg = 'Dépose une image (PNG, JPG ou WEBP).';
+      if(append || inReview()){ notice = { text:msg, danger:true }; renderReview(); } else renderDrop(msg);
+      return;
+    }
+    const before = rows.length;
+    let failed = 0;
+    for(let i = 0; i < files.length; i++){
+      if(!isOpen()) return;
+      while(busy) await new Promise(r=>setTimeout(r, 150));   // une lecture à la fois
+      await handleFile(files[i], append || (i>0 && inReview()));
+      if(lastReadFailed) failed++;
+    }
+    // Bilan global quand plusieurs captures ont été lues d'un coup.
+    if(files.length > 1 && isOpen() && inReview()){
+      const add = rows.length - (append ? before : 0);
+      const on = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value)).length;
+      const parts = [`${files.length} captures lues`, `${add} compte${add>1?'s':''} ajouté${add>1?'s':''}`];
+      if(selActive) parts.push(`${on} coché${on>1?'s':''} au total`);
+      if(failed) parts.push(`${failed} illisible${failed>1?'s':''} : recadre-${failed>1?'les':'la'} sur la liste des comptes`);
+      notice = { text: parts.join(' · '), warn: !!failed || !!(notice && notice.warn) };
+      renderReview();
+    }
+  }
   async function handleFile(file, append){
     if(!file || busy) return;
-    const select = !!(append && selectMode);
-    selectMode = false;
+    lastReadFailed = false;
+    const select = !!(append && (selectMode || selActive));
+    const firstSelect = select && !selActive;   // 1re capture de la sélection : décoche ce qui n'y est pas
     if(!/^image\/(png|jpe?g|webp)$/.test(file.type)){
       if(append){ notice = { text:'Format non pris en charge : utilise une capture PNG, JPG ou WEBP.', danger:true }; renderReview(); }
       else renderDrop('Format non pris en charge : utilise une capture PNG, JPG ou WEBP.');
@@ -18942,6 +18977,7 @@ function captureImportModal(){
     if(append){ notice = { text: select ? 'Lecture de la capture pour sélectionner tes comptes…' : `Lecture de la capture n°${captures+1}…`, reading:true }; renderReview(); }
     else renderReading();
     const fail = (msg)=>{
+      lastReadFailed = true;
       busy = false;
       if(!isOpen()) return;
       if(append){ notice = { text: msg, danger:true }; renderReview(); } else renderDrop(msg);
@@ -19011,6 +19047,7 @@ function captureImportModal(){
     }
 
     demo.forEach(d=>{ if(!ignoredDemo.includes(d)) ignoredDemo.push(d); });
+    if(!found.length) lastReadFailed = true;
     captures++;
     busy = false;
     if(!append){
@@ -19058,20 +19095,30 @@ function captureImportModal(){
         notice = { text:'Aucun compte lisible sur cette capture : la sélection n’a pas changé. Recadre-la sur la liste de tes comptes.', danger:true };
         renderReview(); return;
       }
+      selectMode = false; selActive = true;
       const capKeys = new Set(found.map(f=>normAccNum(f.value)));
-      let on = 0, off = 0, br = 0, known = 0;
+      let on = 0, again = 0, off = 0, br = 0, known = 0;
       rows.forEach(r=>{
         if(!r.value.trim()) return;
         const hit = capKeys.has(normAccNum(r.value));
         if(cimExistingAccount(r.value)){ if(hit) known++; return; }
-        r.capSel = hit;
-        if(hit){ r.checked = true; on++; if(r.dlxBreached) br++; }
-        else { if(r.checked) off++; r.checked = false; }
+        if(hit){
+          if(r.capSel && !firstSelect) again++;
+          else { on++; if(r.dlxBreached) br++; }
+          r.capSel = true; r.checked = true;
+        } else if(firstSelect){
+          r.capSel = false;
+          if(r.checked) off++;
+          r.checked = false;
+        }
       });
+      const total = rows.filter(r=>r.checked && r.value.trim() && !cimExistingAccount(r.value)).length;
       const det = [];
       if(added) det.push(`${added} ajouté${added>1?'s':''} car absent${added>1?'s':''} de Deltalytix`);
       if(br) det.push(`${br} breached d’après Deltalytix, créé${br>1?'s':''} en Breached`);
-      const sp = [`Sélection d’après ta capture : ${on} compte${on>1?'s':''} coché${on>1?'s':''}${det.length ? ` (dont ${det.join(', ')})` : ''}`];
+      const sp = [firstSelect
+        ? `Sélection d’après ta capture : ${on} compte${on>1?'s':''} coché${on>1?'s':''}${det.length ? ` (dont ${det.join(', ')})` : ''}`
+        : `Capture ajoutée à la sélection : ${on} compte${on>1?'s':''} coché${on>1?'s':''} en plus${det.length ? ` (dont ${det.join(', ')})` : ''}${again ? `, ${again} déjà coché${again>1?'s':''}` : ''} · ${total} au total`];
       if(off) sp.push(`${off} décoché${off>1?'s':''} (pas sur la capture)`);
       if(known) sp.push(`${known} déjà dans Contralytix`);
       if(overflow) sp.push(`${overflow} ignoré${overflow>1?'s':''} (${CIM_MAX_ACCOUNTS} comptes maximum)`);
@@ -19203,6 +19250,7 @@ function captureImportModal(){
         <span class="cim-bulk-count">${nOn} / ${selectable.length} sélectionné${nOn>1?'s':''}</span>
         <button type="button" class="btn btn-ghost btn-sm" data-bulk="all" ${nOn===selectable.length?'disabled':''}>${icon('check')}Tout cocher</button>
         <button type="button" class="btn btn-ghost btn-sm" data-bulk="none" ${!nOn?'disabled':''}>${icon('x')}Tout décocher</button>
+        <label class="cim-bulk-toggle" title="Masque les comptes décochés pour vérifier d’un coup d’œil ce qui sera créé."><input type="checkbox" id="cim-only-checked" ${onlyChecked?'checked':''}/> Seulement les cochés</label>
         ${nBreached ? `<label class="cim-bulk-toggle" title="Comptes ayant atteint leur limite de perte d’après Deltalytix. Importés, ils sont créés avec le statut Breached (utile pour tes dépenses passées).">
           <input type="checkbox" id="cim-show-breached" ${showBreached?'checked':''}/> Afficher les ${nBreached} compte${nBreached>1?'s':''} breached</label>` : ''}
       </div>`;
@@ -19230,7 +19278,7 @@ function captureImportModal(){
   }
   const groupById = (id)=>groups.find(g=>g.id===id);
   const isHiddenRow = (r)=>!!(r.dlxBreached && !showBreached && !r.capSel);
-  const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id && !isHiddenRow(x.r));
+  const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id && !isHiddenRow(x.r) && !(onlyChecked && !x.r.checked));
   const dropEmptyGroups = ()=>{ groups = groups.filter(g=>rows.some(r=>r.gid===g.id)); };
   // Mélange capture + Deltalytix : un même compte trouvé des deux côtés est complété (on ne remplit
   // que ce qui manque : PropFirm, type, taille) puis reclassé dans le bon groupe.
@@ -19331,6 +19379,13 @@ function captureImportModal(){
   }
 
   function rowBadgeHtml(r){
+    const main = rowMainBadgeHtml(r);
+    if(cimExistingAccount(r.value)) return main;
+    return main
+      + (r.capSel ? `<span class="cim-row-cap" title="Visible sur ta capture">${icon('camera')}capture</span>` : '')
+      + (r.dlxFirstDay ? `<span class="cim-row-date" title="Date de début (activation pour un PA ou un Live, achat pour un challenge) : premier jour tradé sur ce compte d’après Deltalytix. Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : '');
+  }
+  function rowMainBadgeHtml(r){
     const value = r.value;
     if(!value.trim()) return `<span class="badge badge-danger">Vide</span>`;
     const ex = cimExistingAccount(value);
@@ -19349,11 +19404,10 @@ function captureImportModal(){
     const showFree = !exists && g.pay==='UNIQUE';
     const rErr = errors && errors.rows[i];
     return `
-      <div class="cim-row ${r.checked?'':'is-off'} ${rErr?'has-error':''}" data-row="${i}">
+      <div class="cim-row ${r.checked?(exists?'':'is-on'):'is-off'} ${rErr?'has-error':''}" data-row="${i}">
         <input type="checkbox" data-check="${i}" ${r.checked?'checked':''} ${exists?'disabled':''} aria-label="Importer ce compte"/>
         <input class="cim-num" data-num="${i}" value="${escapeHtml(r.value)}" spellcheck="false" autocomplete="off" ${exists&&r.createdHere?'readonly':''} aria-label="Numéro de compte ${i+1}"/>
         <span class="cim-row-tags" data-badge="${i}">${rowBadgeHtml(r)}</span>
-        ${r.dlxFirstDay && !exists ? `<span class="cim-row-date" title="${isPaLike(g.type)?'Date d’activation':'Date d’achat'} : premier jour tradé sur ce compte d’après Deltalytix. Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : ''}
         <span class="cim-row-actions">
           ${showFree ? `<label class="promo-chip" title="Compte offert par une promo — enregistré à 0">${icon('gift')}Offert<span class="switch"><input type="checkbox" data-free="${i}" ${r.free?'checked':''}/><span class="switch-track"></span></span></label>` : ''}
           ${exists ? '' : `<button class="btn btn-ghost btn-sm" data-custom="${i}" title="Ouvrir le formulaire « Nouveau compte » prérempli pour ce compte (date, prix, type… différents)">${icon('edit')}<span class="cim-hide-sm">Personnaliser</span></button>`}
@@ -19435,12 +19489,15 @@ function captureImportModal(){
         <div class="cim-field"><label>Devise</label><select id="cim-currency">${['USD','EUR'].map(c=>opt(c,c,c===top.currency)).join('')}</select></div>
         <div class="cim-top-add">
           <div class="cim-top-btns">
-            <button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
-            ${dlxDone ? `<button class="btn ${selectMode?'btn-primary':'btn-outline'}" id="cim-select-cap" ${busy?'disabled':''} title="Choisis une capture de tes comptes actifs : seuls les comptes visibles dessus restent cochés, les autres sont décochés.">${icon(selectMode?'x':'check')}${selectMode?'Annuler la sélection':'Sélectionner d’après une capture'}</button>` : ''}
+            ${selActive
+              ? `<button class="btn btn-primary" id="cim-sel-more" ${busy?'disabled':''} title="Les comptes visibles sur cette capture sont cochés en plus ; rien n’est décoché.">${icon('camera')}Ajouter une capture à la sélection</button>
+                 <button class="btn btn-ghost" id="cim-sel-end" ${busy?'disabled':''} title="Les captures suivantes ajouteront des comptes sans toucher à la sélection.">Terminer la sélection</button>`
+              : `<button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
+                 ${dlxDone ? `<button class="btn ${selectMode?'btn-primary':'btn-outline'}" id="cim-select-cap" ${busy?'disabled':''} title="Choisis une ou plusieurs captures de tes comptes actifs : seuls les comptes visibles dessus restent cochés, les autres sont décochés.">${icon(selectMode?'x':'check')}${selectMode?'Annuler la sélection':'Sélectionner d’après une capture'}</button>` : ''}`}
             ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true">DX</span>Ajouter Deltalytix</button>`}
           </div>
-          <span class="cim-top-hint">${isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Capture : tu peux aussi la coller ici (Ctrl + V).'}</span>
-          <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" style="display:none;"/>
+          <span class="cim-top-hint">${(selectMode||selActive) ? (isTouch ? 'Tu peux choisir plusieurs captures d’un coup.' : 'Plusieurs captures possibles : dépose-les ici, choisis-les ensemble ou colle-les (Ctrl + V).') : (isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Captures : tu peux aussi les déposer ici ou les coller (Ctrl + V).')}</span>
+          <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
         </div>
       </div>
       ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; pour un compte différent de son groupe (autre date, prix promo, autre taille…), utilise « Personnaliser » : il s’ouvre dans le formulaire « Nouveau compte ».</span></div>` : ''}
@@ -19482,7 +19539,14 @@ function captureImportModal(){
       rerender();
     };
     const more = document.getElementById('cim-file-more');
-    document.getElementById('cim-add-capture').onclick = ()=>{ if(selectMode){ selectMode = false; notice = null; } more.click(); };
+    const addCap = document.getElementById('cim-add-capture');
+    if(addCap) addCap.onclick = ()=>{ if(selectMode){ selectMode = false; notice = null; } more.click(); };
+    const selMore = document.getElementById('cim-sel-more');
+    if(selMore) selMore.onclick = ()=>more.click();
+    const selEnd = document.getElementById('cim-sel-end');
+    if(selEnd) selEnd.onclick = ()=>{ selActive = false; selectMode = false; notice = null; renderReview(); };
+    const only = document.getElementById('cim-only-checked');
+    if(only) only.onchange = ()=>{ onlyChecked = only.checked; renderReview(); };
     const selCap = document.getElementById('cim-select-cap');
     if(selCap) selCap.onclick = ()=>{
       if(selectMode){ selectMode = false; notice = null; renderReview(); return; }
@@ -19495,7 +19559,8 @@ function captureImportModal(){
     };
     const addDlx = document.getElementById('cim-add-dlx');
     if(addDlx) addDlx.onclick = importFromDlx;
-    more.onchange = ()=>{ if(more.files && more.files[0]) handleFile(more.files[0], true); };
+    // Plusieurs captures d'un coup : lues l'une après l'autre.
+    more.onchange = ()=>{ const files = Array.from(more.files || []); more.value = ''; handleFiles(files, true); };
     // Groupes
     const gSel = (attr, apply, redraw=true)=>R.querySelectorAll(`[${attr}]`).forEach(el=>{
       const handler = ()=>{ const g = groupById(el.getAttribute(attr)); if(!g) return; apply(g, el.value); if(redraw) rerender(); else el.classList.toggle('cim-need', !el.value); };
@@ -19542,7 +19607,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; dlxDone = false; selectMode = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; dlxDone = false; selectMode = false; selActive = false; onlyChecked = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
@@ -19689,6 +19754,22 @@ function captureImportModal(){
       footHtml: `<div id="cim-foot" style="display:contents;"></div>`,
       onMount(){
         firstRender();
+        // Glisser-déposer de captures n'importe où dans la fenêtre (écran de vérification compris).
+        const zone = document.querySelector('#modal-root .modal');
+        if(zone){
+          let depth = 0;
+          const hasFiles = (e)=>Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes('Files');
+          const mark = (on)=>{ const rv = document.getElementById('cim-review'); if(rv) rv.classList.toggle('is-dropping', on); };
+          zone.addEventListener('dragenter', (e)=>{ if(!hasFiles(e) || !inReview()) return; e.preventDefault(); depth++; mark(true); });
+          zone.addEventListener('dragover', (e)=>{ if(!hasFiles(e)) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect = busy ? 'none' : 'copy'; });
+          zone.addEventListener('dragleave', ()=>{ depth = Math.max(0, depth-1); if(!depth) mark(false); });
+          zone.addEventListener('drop', (e)=>{
+            if(!hasFiles(e)) return;
+            e.preventDefault(); depth = 0; mark(false);
+            if(busy) return;
+            handleFiles(e.dataTransfer.files, inReview());
+          });
+        }
         const x = document.getElementById('modal-close-btn');
         if(x) x.addEventListener('click', ()=>document.removeEventListener('paste', onPaste));
       }
