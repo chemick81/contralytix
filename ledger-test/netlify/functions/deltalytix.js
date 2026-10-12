@@ -50,6 +50,8 @@ function slimAccount(a) {
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
     // Compte perdu d'après Deltalytix : drawdown configuré et plus aucune marge de perte.
     breached: !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0),
+    // Premier jour tradé : sert de date d'activation (PA) ou d'achat (challenge) à l'import.
+    firstTradeDay: days.length ? days[0] : null,
     lastTradeDay: lastDay,
     // Comptes masqués dans Deltalytix : pas encore exposé par l'API (champ lu s'il apparaît).
     hidden: a.hidden === true || !!(a.group && /hidden/i.test(String(a.group.name || a.group))),
