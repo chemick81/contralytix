@@ -39,12 +39,20 @@ async function allAccounts(token, deadline) {
 function slimAccount(a) {
   const number = String(a.number || a.accountNumber || '').trim();
   const label = String(a.propfirm || '').trim();
+  const m = a.metrics || null;
+  const days = m && m.dailyPnL && typeof m.dailyPnL === 'object' ? Object.keys(m.dailyPnL).map(isoDay).filter(Boolean).sort() : [];
+  const lastDay = days.length ? days[days.length - 1] : null;
   return {
     number,
     // Le libellé « propfirm » est saisi dans Deltalytix : parfois vide ou égal au numéro.
     propfirm: label && normAccNum(label) !== normAccNum(number) ? label : null,
     size: Number(a.startingBalance) > 0 ? Math.round(Number(a.startingBalance)) : null,
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
+    // Compte perdu d'après Deltalytix : drawdown configuré et plus aucune marge de perte.
+    breached: !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0),
+    lastTradeDay: lastDay,
+    // Comptes masqués dans Deltalytix : pas encore exposé par l'API (champ lu s'il apparaît).
+    hidden: a.hidden === true || !!(a.group && /hidden/i.test(String(a.group.name || a.group))),
     payouts: (Array.isArray(a.payouts) ? a.payouts : []).map((p) => ({
       id: String(p.id || ''), amount: Number(p.amount) || 0, date: isoDay(p.date), status: String(p.status || '').toUpperCase(),
     })).filter((p) => p.amount > 0 && p.date),
