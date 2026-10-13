@@ -707,6 +707,28 @@ th.th-sort-active svg{opacity:1;}
 .dlx-logo.sm{width:28px;height:28px;line-height:28px;font-size:11px;}
 .dlx-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;}
 .dlx-strip.is-error{border-color:var(--danger);}
+.dlx-alert{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-md);font-size:13px;line-height:1.5;background:var(--surface-2);}
+.dlx-alert > svg{width:16px;height:16px;flex:none;margin-top:2px;}
+.dlx-alert.is-warn{border-color:var(--gold);}
+.dlx-alert.is-warn > svg{color:var(--gold);}
+.dlx-alert.is-danger{border-color:var(--danger);align-items:center;}
+.dlx-alert.is-danger > svg{color:var(--danger);}
+.dlx-health{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:7px 10px;border-radius:var(--radius-sm);background:var(--surface-2);font-size:12.5px;color:var(--text-dim);}
+.dlx-health strong{color:var(--text);font-variant-numeric:tabular-nums;}
+.dlx-health.is-warn{box-shadow:inset 3px 0 0 var(--gold);}
+.dlx-health.is-danger{box-shadow:inset 3px 0 0 var(--danger);}
+.dlx-health.is-danger strong{color:var(--danger);}
+.dlx-health .btn{margin-left:auto;}
+.dlx-textbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;}
+.dlx-logo.xs{width:18px;height:18px;border-radius:5px;font-size:8.5px;line-height:18px;}
+.dlx-br-list{display:flex;flex-direction:column;gap:8px;}
+.dlx-br-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);cursor:pointer;}
+.dlx-br-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--danger);flex:none;}
+.dlx-br-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.dlx-br-title{font-weight:600;font-size:13px;}
+.dlx-br-sub{font-size:12px;}
+.dlx-br-row input[type=date]{width:auto;flex:none;}
+@media (max-width:560px){ .dlx-br-row{flex-wrap:wrap;} .dlx-br-row input[type=date]{margin-left:26px;} }
 .dlx-strip-txt{flex:1 1 260px;font-size:13px;line-height:1.5;}
 .dlx-conn-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
 .cim-bulk{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
@@ -11099,15 +11121,15 @@ function viewAccounts(){
   if(list.length===0){
     // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
     const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size;
-    if(hiddenSearchHtml) return totalsBar + filterBar + hiddenSearchHtml;
-    return totalsBar + filterBar + (onlyStatusHides
+    if(hiddenSearchHtml) return dlxBreachBannerHtml() + totalsBar + filterBar + hiddenSearchHtml;
+    return dlxBreachBannerHtml() + totalsBar + filterBar + (onlyStatusHides
       ? `<div class="empty">${icon('search')}<div class="empty-title">Aucun compte ${f.status.length===1 ? (STATUS_LABELS[f.status[0]]||'').toLowerCase() : 'pour ces statuts'}</div><div class="empty-sub">Tes autres comptes (réussis, breached, fermés) sont masqués par le filtre de statut.</div><button type="button" class="btn btn-outline btn-sm" id="f-show-all-status" style="margin-top:12px;">Voir tous les statuts</button></div>`
       : emptyState('search','Aucun résultat','Essaie d\u2019élargir tes filtres.'));
   }
 
   if(f.groupBy.length){
     const activeGroups = [...f.groupBy].sort((a,b)=>GROUP_ORDER[a]-GROUP_ORDER[b]);
-    return totalsBar + filterBar + hiddenSearchHtml + renderGroupedAccounts(list, activeGroups);
+    return dlxBreachBannerHtml() + totalsBar + filterBar + hiddenSearchHtml + renderGroupedAccounts(list, activeGroups);
   }
 
   // Teaser flou Free : au-delà du quota d'un compte Free (déjà limité en création à
@@ -11115,7 +11137,7 @@ function viewAccounts(){
   // (ex: comptes d'un autre trader du même utilisateur, ou visibles via un trader partagé).
   // Ses propres comptes ne sont eux jamais floutés, quel que soit leur rang dans la liste.
   const accBlurred = freeBlurIndexSet(list, isMineAccount);
-  return totalsBar + filterBar + hiddenSearchHtml + `<div>
+  return dlxBreachBannerHtml() + totalsBar + filterBar + hiddenSearchHtml + `<div>
     ${list.map((a,ai)=>`<div class="${freeBlurClass(ai,accBlurred)}">${accountCard(a)}</div>`).join('')}
   </div>
   ${freeBlurBannerHtml(accBlurred.size, 'comptes')}`;
@@ -11277,6 +11299,7 @@ function accountCard(a){
         ${accNetCellHtml(a, accMoney, child)}
       </div>
       ${gdNextActionHtml(a, child)}
+      ${dlxCardHealthHtml(a)}
       ${dmCardBandHtml(a)}
 
     </div>
@@ -15481,7 +15504,26 @@ async function loadDlxStatus(){
   d.email = data ? data.account_email : null;
   d.lastSyncAt = data ? data.last_sync_at : null;
   d.lastError = data ? data.last_error : null;
+  if(d.connected && !d.health) d.health = dlxLoadCache('health');
+  if(!d.connected) d.health = null;
   return d;
+}
+// Petit cache local (par utilisateur) : santé des comptes reçue à la dernière synchro, alertes ignorées.
+function dlxCacheKey(name){ return `cx-dlx-${name}-${currentUserId()||'anon'}`; }
+function dlxLoadCache(name){ try{ const v = localStorage.getItem(dlxCacheKey(name)); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function dlxSaveCache(name, v){ try{ if(v==null) localStorage.removeItem(dlxCacheKey(name)); else localStorage.setItem(dlxCacheKey(name), JSON.stringify(v)); }catch(e){} }
+// Santé d'un compte d'après Deltalytix (dernière synchro) : { breached, lastTradeDay, remainingLoss, balance }
+function dlxHealthOf(accId){ const h = dlx().health; return h && h.byId ? h.byId[accId] || null : null; }
+// Comptes encore « Actif » dans Contralytix mais breached d'après Deltalytix (alerte non ignorée).
+function dlxBreachCandidates(){
+  const d = dlx();
+  if(!d.connected || !d.health) return [];
+  const dismissed = dlxLoadCache('dismissed') || {};
+  return state.accounts.filter(a=>{
+    if(a.status!=='ACTIF' || !canEdit(a)) return false;
+    const h = dlxHealthOf(a.id);
+    return h && h.breached && dismissed[a.id] !== (h.lastTradeDay || 'x');
+  });
 }
 async function dlxCall(action, extra){
   try{
@@ -15516,14 +15558,19 @@ async function dlxSync(opts){
   if(!d.connected || d.syncing) return;
   d.syncing = true;
   if(state.route==='radar') renderView();
-  const r = await dlxCall('sync');
+  const r = await dlxCall('sync', { radar: dmEnabled() });
   d.syncing = false;
   if(r.ok){
     d.lastSyncAt = r.data.syncedAt; d.lastError = null;
+    const byId = {};
+    (r.data.health || []).forEach(h=>{ byId[h.accountId] = h; });
+    d.health = { at: r.data.syncedAt, byId, stale: r.data.stale || [], connectionsScope: r.data.connectionsScope !== false };
+    dlxSaveCache('health', d.health);
     await loadDormancy();
     if(!silent){
       const m = r.data.matched||0;
-      showToast(m ? `Radar mis à jour depuis Deltalytix : ${r.data.days} journée${r.data.days>1?'s':''} sur ${m} compte${m>1?'s':''}.` : 'Synchronisé, mais aucun de tes comptes financés actifs n’a été trouvé dans Deltalytix (vérifie les numéros).');
+      if(!dmEnabled()) showToast('Deltalytix synchronisé.');
+      else showToast(m ? `Radar mis à jour depuis Deltalytix : ${r.data.days} journée${r.data.days>1?'s':''} sur ${m} compte${m>1?'s':''}.` : 'Synchronisé, mais aucun de tes comptes financés actifs n’a été trouvé dans Deltalytix (vérifie les numéros).');
     }
     render();
   } else {
@@ -15532,10 +15579,10 @@ async function dlxSync(opts){
     if(state.route==='radar') renderView();
   }
 }
-// À l'ouverture de l'app : statut, puis synchro si le radar est activé et la dernière a plus d'une heure.
+// À l'ouverture de l'app : statut, puis synchro si la dernière a plus d'une heure (radar, santé des comptes).
 async function dlxMaybeAutoSync(){
   const d = await loadDlxStatus();
-  if(!d.connected || !dmEnabled()) return;
+  if(!d.connected) return;
   const last = d.lastSyncAt ? Date.parse(d.lastSyncAt) : 0;
   if(Date.now() - last > DLX_SYNC_EVERY_MS) dlxSync({ silent:true });
 }
@@ -15578,6 +15625,7 @@ async function dlxConnectOAuth(){
       not_configured: 'La connexion Deltalytix n’est pas encore activée sur Contralytix.',
       migration_missing: 'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.',
       exchange_refused: 'Deltalytix a refusé la connexion (application mal configurée ?). Réessaie, ou contacte le support.',
+      scope_refused: 'Deltalytix a refusé une des autorisations demandées par Contralytix. Préviens le support.',
     };
     return { ok:false, error: msgs[result.error] || 'Deltalytix n’a pas répondu comme prévu. Réessaie dans quelques minutes.' };
   }
@@ -15590,13 +15638,14 @@ async function dlxConnectAndRefresh(){
   if(!r.ok){ showToast(r.error, 'danger'); return; }
   showToast('Deltalytix connecté.');
   render();
-  if(dmEnabled()) dlxSync();
+  dlxSync();
 }
 function dlxDisconnect(){
-  confirmModal('Déconnecter Deltalytix ? L’accès enregistré est supprimé ; tes comptes et pointages déjà présents dans Contralytix sont conservés. Tu peux aussi retirer l’autorisation de Contralytix dans tes paramètres Deltalytix.', async ()=>{
+  confirmModal('Déconnecter Deltalytix ? L’accès est retiré chez Deltalytix et supprimé de Contralytix ; tes comptes et pointages déjà présents dans Contralytix sont conservés.', async ()=>{
     const r = await dlxCall('disconnect');
     if(!r.ok){ showToast(r.data.error || 'Déconnexion impossible.', 'danger'); return; }
-    Object.assign(dlx(), { connected:false, hint:null, email:null, lastSyncAt:null, lastError:null });
+    Object.assign(dlx(), { connected:false, hint:null, email:null, lastSyncAt:null, lastError:null, health:null });
+    dlxSaveCache('health', null);
     await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix supprimée');
     showToast('Deltalytix déconnecté.');
     render();
@@ -15614,13 +15663,93 @@ function dlxRadarStripHtml(){
     </div>`;
   }
   const errTxt = d.lastError==='token_invalid' ? 'Accès expiré ou retiré : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
-  return `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
+  return dlxStaleHtml() + dlxBreachBannerHtml() + `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
     <span class="dlx-logo sm" aria-hidden="true">DX</span>
     <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? 'synchronisation en cours…' : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}</div>
     ${d.lastError==='token_invalid'
       ? `<button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Reconnecter</button>`
       : `<button class="btn btn-outline btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button>`}
   </div>`;
+}
+// Connexions broker que Deltalytix n'a pas synchronisées depuis plusieurs jours : le radar peut se tromper.
+const DLX_SERVICE_LABELS = { tradovate:'Tradovate', 'rithmic-protocol':'Rithmic', rithmic:'Rithmic', ibkr:'Interactive Brokers', dxfeed:'DXfeed', thor:'Thor', etp:'ETP' };
+function dlxStaleHtml(){
+  const d = dlx();
+  const st = d.connected && d.health && Array.isArray(d.health.stale) ? d.health.stale : [];
+  if(!st.length) return '';
+  const items = st.map(c=>`<strong>${escapeHtml(DLX_SERVICE_LABELS[c.service] || c.service || 'Connexion')}</strong> ${c.lastSyncedAt ? `depuis le ${fmtDate(String(c.lastSyncedAt).slice(0,10))}` : 'jamais synchronisé'} (${c.accounts} compte${c.accounts>1?'s':''} suivi${c.accounts>1?'s':''})`).join(' · ');
+  return `<div class="dlx-alert is-warn">${icon('alertTriangle')}<div><div><strong>Deltalytix ne reçoit plus tes trades :</strong> ${items}.</div><div class="text-dim" style="margin-top:2px;">Tant que la synchro est arrêtée, le radar peut te croire inactif à tort. Ouvre Deltalytix pour relancer la connexion.</div></div></div>`;
+}
+// Bandeau « comptes breached d'après Deltalytix » (page Comptes et Radar)
+function dlxBreachBannerHtml(){
+  const list = dlxBreachCandidates();
+  if(!list.length) return '';
+  const n = list.length;
+  return `<div class="dlx-alert is-danger">${icon('alertTriangle')}<div style="flex:1;min-width:0;"><strong>${n} compte${n>1?'s':''} ${n>1?'ont':'a'} atteint ${n>1?'leur':'sa'} limite de perte</strong> <span class="text-dim">d’après Deltalytix, mais ${n>1?'sont':'est'} encore Actif${n>1?'s':''} ici.</span></div><button class="btn btn-danger btn-sm" data-dlx-breach>Vérifier</button></div>`;
+}
+function dlxBreachModal(){
+  const list = dlxBreachCandidates();
+  if(!list.length){ showToast('Plus aucun compte à vérifier.'); render(); return; }
+  const sel = new Set(list.map(a=>a.id));
+  const label = (a)=>{ const f = getFirm(a.propFirmId), t = getTrader(a.traderId); return `${TYPE_LABELS[a.type]||a.type} · ${f?escapeHtml(f.name):'—'} · ${escapeHtml(sizeLabel(a))} · ${t?escapeHtml(t.pseudo):'—'}`; };
+  openModal({
+    title: 'Comptes breached d’après Deltalytix',
+    bodyHtml: `
+      <div class="field-hint" style="margin-bottom:12px;">Deltalytix indique que ces comptes n’ont plus de marge avant leur drawdown. Coche ceux à passer en <strong>Breached</strong> : la date proposée est leur dernier jour tradé (les mensualités s’arrêtent à cette date).</div>
+      <div class="dlx-br-list">${list.map(a=>{ const h = dlxHealthOf(a.id) || {}; return `
+        <label class="dlx-br-row">
+          <input type="checkbox" data-br-check="${a.id}" checked/>
+          <span class="dlx-br-main"><span class="dlx-br-title">${label(a)}</span><span class="text-faint dlx-br-sub">N° ${maskAccountNumber(a.accountNumber)}${Number.isFinite(h.remainingLoss) ? ` · marge ${fmtMoneyCur(h.remainingLoss, 'USD')}` : ''}</span></span>
+          <input type="date" data-br-date="${a.id}" value="${escapeHtml(h.lastTradeDay || todayISO())}" aria-label="Date du breach"/>
+        </label>`; }).join('')}</div>
+      <div class="text-faint" style="font-size:12px;margin-top:12px;">Déjà réglé autrement ? <button type="button" class="dlx-textbtn" id="br-ignore">Ne plus signaler ces comptes</button> (jusqu’à leur prochain trade).</div>`,
+    footHtml: `<button class="btn btn-outline" id="br-cancel">Plus tard</button><button class="btn btn-danger" id="br-ok">Passer en Breached</button>`,
+    onMount(){
+      const ok = document.getElementById('br-ok');
+      const refresh = ()=>{ ok.disabled = !sel.size; ok.textContent = sel.size ? `Passer ${sel.size} compte${sel.size>1?'s':''} en Breached` : 'Passer en Breached'; };
+      document.querySelectorAll('[data-br-check]').forEach(cb=>cb.onchange=()=>{ cb.checked ? sel.add(cb.dataset.brCheck) : sel.delete(cb.dataset.brCheck); refresh(); });
+      refresh();
+      document.getElementById('br-cancel').onclick = closeModal;
+      document.getElementById('br-ignore').onclick = ()=>{
+        const dismissed = dlxLoadCache('dismissed') || {};
+        list.forEach(a=>{ dismissed[a.id] = (dlxHealthOf(a.id) || {}).lastTradeDay || 'x'; });
+        dlxSaveCache('dismissed', dismissed);
+        closeModal(); render();
+      };
+      ok.onclick = async ()=>{
+        ok.disabled = true;
+        let n = 0;
+        for(const a of list){
+          if(!sel.has(a.id)) continue;
+          const inp = document.querySelector(`[data-br-date="${a.id}"]`);
+          const date = (inp && inp.value) || todayISO();
+          const acc = getAccount(a.id);
+          if(!acc || acc.status!=='ACTIF') continue;
+          await upsert('accounts', { ...acc, status:'BREACHED', endDate:date });
+          await logStatusChange(acc.id, 'ACTIF', 'BREACHED', `Breached d’après Deltalytix (dernier trade le ${fmtDate(date)})`);
+          await logActivity('STATUS_CHANGE', 'account', acc.id, `${getTrader(acc.traderId)?.pseudo||'—'} : ACTIF → BREACHED (Deltalytix)`);
+          n++;
+        }
+        showToast(`${n} compte${n>1?'s':''} passé${n>1?'s':''} en Breached.`);
+        closeModal(); render();
+      };
+    }
+  });
+}
+// Ligne « santé » sur la carte d'un compte actif (marge avant drawdown d'après Deltalytix).
+function dlxCardHealthHtml(a){
+  if(a.status!=='ACTIF') return '';
+  const d = dlx();
+  if(!d.connected) return '';
+  const h = dlxHealthOf(a.id);
+  if(!h) return '';
+  if(h.breached){
+    return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true">DX</span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
+  }
+  if(!Number.isFinite(h.remainingLoss)) return '';
+  const size = a.size==='AUTRE' ? Number(a.customSize)||0 : ({ S25K:25000, S50K:50000, S100K:100000, S150K:150000, S250K:250000 }[a.size] || 0);
+  const low = size > 0 && h.remainingLoss <= size * 0.01;
+  return `<div class="dlx-health ${low?'is-warn':''}" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Marge avant drawdown : <strong>${fmtMoneyCur(h.remainingLoss, 'USD')}</strong>${Number.isFinite(h.balance) ? ` <span class="text-faint">· solde ${fmtMoneyCur(h.balance, 'USD')}</span>` : ''}</span></div>`;
 }
 // Panneau du Profil
 function dlxProfilPanelHtml(){
@@ -15636,6 +15765,7 @@ function dlxProfilPanelHtml(){
         <div class="text-dim" style="font-size:12.5px;margin-top:2px;">${d.connected
           ? `Connecté${d.email ? ` · ${escapeHtml(maskedEmail(d.email))}` : ''} · synchronisé ${dlxAgo(d.lastSyncAt)}`
           : 'Non connecté'}</div>
+        ${d.connected && d.health && d.health.connectionsScope===false ? `<div class="text-faint" style="font-size:12px;margin-top:4px;">Reconnecte Deltalytix pour activer l’alerte « synchro en retard ». <button type="button" class="dlx-textbtn" data-dlx-connect>Reconnecter</button></div>` : ''}
       </div>
       ${d.connected
         ? `<button class="btn btn-ghost btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button><button class="btn btn-outline btn-sm" data-dlx-disconnect>Déconnecter</button>`
@@ -15647,6 +15777,8 @@ function dlxBindEvents(){
   document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=dlxConnectAndRefresh);
   document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
   document.querySelectorAll('[data-dlx-disconnect]').forEach(b=>b.onclick=dlxDisconnect);
+  document.querySelectorAll('[data-dlx-breach]').forEach(b=>b.onclick=dlxBreachModal);
+  document.querySelectorAll('[data-dlx-mark]').forEach(b=>b.onclick=()=>{ const a = getAccount(b.dataset.dlxMark); const h = dlxHealthOf(a.id) || {}; statusChangeModal(a, 'BREACHED', h.lastTradeDay); });
 }
 
 function viewRadar(){
@@ -19797,12 +19929,12 @@ function convertPaToLive(acc){
 /* ============================================================
    STATUS CHANGE (Réussi / Breached / Fermé)
 ============================================================ */
-function statusChangeModal(acc, newStatus){
+function statusChangeModal(acc, newStatus, defaultDate){
   const labels = { REUSSI:'Marquer comme réussi', BREACHED:'Marquer comme breached', FERME:'Fermer le compte' };
   openModal({
     title: labels[newStatus] || 'Changer le statut',
     bodyHtml: `
-      <div class="field"><label>Date</label><input id="sc-date" type="date" value="${todayISO()}"/></div>
+      <div class="field"><label>Date</label><input id="sc-date" type="date" value="${defaultDate || todayISO()}"/></div>
       <div class="field-hint">${newStatus==='BREACHED' ? 'Les mensualités éventuelles s\u2019arrêteront à cette date.' : (newStatus==='REUSSI' ? 'La création du PA associé s\u2019ouvrira juste après (tu pourras aussi la faire plus tard).' : 'Le compte sera archivé comme fermé.')}</div>
     `,
     footHtml: `<button class="btn btn-outline" id="sc-cancel">Annuler</button><button class="btn ${newStatus==='BREACHED'?'btn-danger':'btn-primary'}" id="sc-ok">Confirmer</button>`,
