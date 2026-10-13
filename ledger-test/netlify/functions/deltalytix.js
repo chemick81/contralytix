@@ -38,6 +38,28 @@ async function allAccounts(token, deadline) {
   return out;
 }
 
+// Plateforme de chaque compte, d'après les connexions broker Deltalytix (portée connections:read).
+const SERVICE_PLATFORM = { tradovate: 'TRADOVATE', rithmic: 'RITHMIC', 'rithmic-protocol': 'RITHMIC', ibkr: 'IBKR', dxfeed: 'DXFEED' };
+async function connectionsOf(token, deadline) {
+  try {
+    const body = await L.dltx(token, '/connections?limit=100', deadline);
+    return { list: Array.isArray(body && body.data) ? body.data : [], scope: true };
+  } catch (e) {
+    if (e.code === 'insufficient_scope') return { list: [], scope: false };
+    if (e.code === 'token_invalid') throw e;
+    return { list: [], scope: true };   // information facultative
+  }
+}
+function platformMap(conns) {
+  const map = new Map();
+  conns.forEach((c) => {
+    const p = SERVICE_PLATFORM[String(c.service || '').toLowerCase()] || null;
+    if (!p) return;
+    (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).forEach((n) => { const k = normAccNum(n); if (k && !map.has(k)) map.set(k, p); });
+  });
+  return map;
+}
+
 // Compte breached d'après Deltalytix : drawdown configuré, au moins un jour tradé, plus aucune marge.
 const isBreached = (m) => !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0);
 const lastDayOf = (m) => {
@@ -123,9 +145,13 @@ exports.handler = async (event) => {
     const token = await L.accessTokenFor(db, user.id);
 
     if (action === 'accounts') {
-      const accounts = (await allAccounts(token, deadline)).map(slimAccount).filter((a) => a.number);
+      const raw = await allAccounts(token, deadline);
+      const conns = await connectionsOf(token, deadline);
+      const plat = platformMap(conns.list);
+      const accounts = raw.map(slimAccount).filter((a) => a.number)
+        .map((a) => ({ ...a, platform: plat.get(normAccNum(a.number)) || null }));
       await saveState({ last_error: null });
-      return json(200, { accounts });
+      return json(200, { accounts, connectionsScope: conns.scope });
     }
 
     if (action === 'sync') {
@@ -139,29 +165,29 @@ exports.handler = async (event) => {
         byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
       });
       const allMine = await userAccounts(db, user.id, user.email);
-      // Santé des comptes actifs (tous types) trouvés dans Deltalytix.
+      // Connexions broker : plateforme de chaque compte + connexions en retard de synchro
+      // (portée connections:read ; absente des autorisations données avant le 13/10/2026).
+      const conns = await connectionsOf(token, deadline);
+      const connectionsScope = conns.scope;
+      const plat = platformMap(conns.list);
+      // Santé des comptes (tous types) trouvés dans Deltalytix : actifs, ou sans plateforme connue.
       const health = [];
-      allMine.filter((a) => a.status === 'ACTIF').forEach((a) => {
-        const r = remoteByNum.get(normAccNum(a.account_number));
-        if (r) health.push({ accountId: a.id, ...healthOf(r) });
+      allMine.forEach((a) => {
+        const k = normAccNum(a.account_number);
+        const r = remoteByNum.get(k);
+        if (!r && !plat.has(k)) return;
+        if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r), platform: plat.get(k) || null });
+        else if (plat.has(k)) health.push({ accountId: a.id, platform: plat.get(k), inactive: a.status !== 'ACTIF' });
       });
-      // Connexions broker en retard de synchro (portée connections:read ; absente des anciennes autorisations).
-      let stale = [], connectionsScope = true;
-      try {
-        const activeNums = new Set(allMine.filter((a) => a.status === 'ACTIF').map((a) => normAccNum(a.account_number)));
-        const conns = await L.dltx(token, '/connections?limit=100', deadline);
-        const limit = Date.now() - STALE_DAYS * 86400000;
-        (Array.isArray(conns && conns.data) ? conns.data : []).forEach((c) => {
-          const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).filter((n) => activeNums.has(normAccNum(n)));
-          if (!nums.length) return;
-          const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0;
-          if (!last || last < limit) stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length });
-        });
-      } catch (e) {
-        if (e.code === 'insufficient_scope') connectionsScope = false;
-        else if (e.code === 'token_invalid') throw e;
-        // sinon : information facultative, on n'empêche pas la synchro
-      }
+      const stale = [];
+      const activeNums = new Set(allMine.filter((a) => a.status === 'ACTIF').map((a) => normAccNum(a.account_number)));
+      const limit = Date.now() - STALE_DAYS * 86400000;
+      conns.list.forEach((c) => {
+        const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).filter((n) => activeNums.has(normAccNum(n)));
+        if (!nums.length) return;
+        const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0;
+        if (!last || last < limit) stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length });
+      });
       const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
       const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
       const now = new Date().toISOString();
@@ -210,4 +236,4 @@ exports.handler = async (event) => {
   }
 };
 
-exports._test = { slimAccount, normAccNum, healthOf };
+exports._test = { slimAccount, normAccNum, healthOf, platformMap };
