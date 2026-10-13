@@ -15332,7 +15332,8 @@ function dmResult(a){
   const rule = dmRuleFor(a);
   const res = dmCompute(a, rule || DM_DEFAULT_RULE, dmLogsFor(a), dmStateFor(a), todayISO());
   res.rule = rule || DM_DEFAULT_RULE;
-  res.hasStart = !!dmStateFor(a);
+  // Point de départ connu : saisi à la main, ou au moins une journée tradée pointée (Deltalytix, pointage).
+  res.hasStart = !!dmStateFor(a) || dmLogsFor(a).some(l=>l.traded);
   return res;
 }
 function dmAllResults(){
@@ -15750,7 +15751,7 @@ function dlxCardHealthHtml(a){
   if(!Number.isFinite(h.remainingLoss)) return '';
   const size = a.size==='AUTRE' ? Number(a.customSize)||0 : ({ S25K:25000, S50K:50000, S100K:100000, S150K:150000, S250K:250000 }[a.size] || 0);
   const low = size > 0 && h.remainingLoss <= size * 0.01;
-  return `<div class="dlx-health ${low?'is-warn':''}" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Marge avant drawdown : <strong>${fmtMoneyCur(h.remainingLoss, 'USD')}</strong>${Number.isFinite(h.balance) ? ` <span class="text-faint">· solde ${fmtMoneyCur(h.balance, 'USD')}</span>` : ''}</span></div>`;
+  return `<div class="dlx-health ${low?'is-warn':''}" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Marge avant drawdown : <strong>${fmtMoneyCur(h.remainingLoss, 'USD')}</strong>${Number.isFinite(h.balance) ? ` <span class="text-faint">· solde ${fmtMoneyCur(h.balance, 'USD')}</span>` : ''}${h.lastTradeDay ? ` <span class="text-faint">· dernier trade ${fmtDate(h.lastTradeDay)}</span>` : ''}</span></div>`;
 }
 // Panneau du Profil
 function dlxProfilPanelHtml(){
