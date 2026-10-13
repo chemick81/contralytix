@@ -7,13 +7,16 @@
 // utilisateurs) et renouvelés ici quand ils expirent. L'API Deltalytix n'envoie pas d'en-têtes CORS :
 // tous les appels passent par le serveur.
 //
-// POST /api/deltalytix  { action: 'accounts' | 'sync' | 'disconnect' }
+// POST /api/deltalytix  { action: 'accounts' | 'sync' | 'disconnect', radar?: boolean }
+// sync renvoie aussi la santé des comptes actifs (breached, marge avant drawdown) et les connexions
+// broker en retard de synchro ; disconnect révoque l'accès chez Deltalytix.
 // En-tête Authorization: Bearer <jeton Supabase> obligatoire. Configuration : voir _deltalytix-lib.js.
 
 const { createClient } = require('@supabase/supabase-js');
 const L = require('./_deltalytix-lib');
 
 const SYNC_DAYS = 70;              // pointages écrits sur les ~2 derniers mois
+const STALE_DAYS = 3;              // connexion broker sans synchro depuis plus longtemps : alerte
 const TIME_BUDGET_MS = 8500;       // Netlify coupe une fonction synchrone vers 10 s
 
 function json(status, body) {
@@ -35,6 +38,25 @@ async function allAccounts(token, deadline) {
   return out;
 }
 
+// Compte breached d'après Deltalytix : drawdown configuré, au moins un jour tradé, plus aucune marge.
+const isBreached = (m) => !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0);
+const lastDayOf = (m) => {
+  const days = m && m.dailyPnL && typeof m.dailyPnL === 'object' ? Object.keys(m.dailyPnL).map(isoDay).filter(Boolean).sort() : [];
+  return days.length ? days[days.length - 1] : null;
+};
+// Santé d'un compte Contralytix actif (cartes de compte, proposition « passer en Breached »).
+function healthOf(a) {
+  const m = a.metrics || null;
+  const rl = m && m.isConfigured && Number.isFinite(Number(m.remainingLoss)) ? Math.round(Number(m.remainingLoss) * 100) / 100 : null;
+  return {
+    breached: isBreached(m),
+    lastTradeDay: lastDayOf(m),
+    remainingLoss: rl,
+    balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
+    hidden: a.hidden === true,
+  };
+}
+
 // Comptes renvoyés au navigateur pour l'import (pas de P&L détaillé ici).
 function slimAccount(a) {
   const number = String(a.number || a.accountNumber || '').trim();
@@ -49,7 +71,7 @@ function slimAccount(a) {
     size: Number(a.startingBalance) > 0 ? Math.round(Number(a.startingBalance)) : null,
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
     // Compte perdu d'après Deltalytix : drawdown configuré et plus aucune marge de perte.
-    breached: !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0),
+    breached: isBreached(m),
     // Premier jour tradé : sert de date d'activation (PA) ou d'achat (challenge) à l'import.
     firstTradeDay: days.length ? days[0] : null,
     lastTradeDay: lastDay,
@@ -89,6 +111,11 @@ exports.handler = async (event) => {
 
   try {
     if (action === 'disconnect') {
+      // Révoque aussi l'accès chez Deltalytix (refresh token + jeton d'accès), puis efface notre copie.
+      const { data: conn } = await db.from('broker_connections').select('token_enc')
+        .eq('user_id', user.id).eq('provider', L.PROVIDER).maybeSingle();
+      const t = conn ? L.unpackTokens(conn.token_enc) : null;
+      if (t) await Promise.all([L.revokeToken(t.refresh_token), L.revokeToken(t.access_token)]);
       await db.from('broker_connections').delete().eq('user_id', user.id).eq('provider', L.PROVIDER);
       return json(200, { connected: false });
     }
@@ -104,12 +131,38 @@ exports.handler = async (event) => {
     if (action === 'sync') {
       const remote = await allAccounts(token, deadline);
       const byNum = new Map();
+      const remoteByNum = new Map();
       remote.forEach((a) => {
         const n = normAccNum(a.number || a.accountNumber);
-        if (n) byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
+        if (!n) return;
+        remoteByNum.set(n, a);
+        byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
       });
-      const mine = (await userAccounts(db, user.id, user.email))
-        .filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
+      const allMine = await userAccounts(db, user.id, user.email);
+      // Santé des comptes actifs (tous types) trouvés dans Deltalytix.
+      const health = [];
+      allMine.filter((a) => a.status === 'ACTIF').forEach((a) => {
+        const r = remoteByNum.get(normAccNum(a.account_number));
+        if (r) health.push({ accountId: a.id, ...healthOf(r) });
+      });
+      // Connexions broker en retard de synchro (portée connections:read ; absente des anciennes autorisations).
+      let stale = [], connectionsScope = true;
+      try {
+        const activeNums = new Set(allMine.filter((a) => a.status === 'ACTIF').map((a) => normAccNum(a.account_number)));
+        const conns = await L.dltx(token, '/connections?limit=100', deadline);
+        const limit = Date.now() - STALE_DAYS * 86400000;
+        (Array.isArray(conns && conns.data) ? conns.data : []).forEach((c) => {
+          const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).filter((n) => activeNums.has(normAccNum(n)));
+          if (!nums.length) return;
+          const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0;
+          if (!last || last < limit) stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length });
+        });
+      } catch (e) {
+        if (e.code === 'insufficient_scope') connectionsScope = false;
+        else if (e.code === 'token_invalid') throw e;
+        // sinon : information facultative, on n'empêche pas la synchro
+      }
+      const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
       const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
       const now = new Date().toISOString();
       const rows = [];
@@ -124,12 +177,14 @@ exports.handler = async (event) => {
           rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, source: 'deltalytix', updated_at: now });
         });
       });
+      // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
+      if (body.radar === false) rows.length = 0;
       for (let i = 0; i < rows.length; i += 500) {
         const { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
         if (error) throw new Error(`dormancy_logs : ${error.message}`);
       }
       await saveState({ last_sync_at: now, last_error: null });
-      return json(200, { matched, funded: mine.length, days: rows.length, syncedAt: now });
+      return json(200, { matched, funded: mine.length, days: rows.length, syncedAt: now, health, stale, connectionsScope });
     }
 
     return json(400, { error: 'Action inconnue' });
@@ -149,4 +204,4 @@ exports.handler = async (event) => {
   }
 };
 
-exports._test = { slimAccount, normAccNum };
+exports._test = { slimAccount, normAccNum, healthOf };

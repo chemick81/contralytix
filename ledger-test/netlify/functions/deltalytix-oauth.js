@@ -42,7 +42,7 @@ exports.handler = async (event) => {
   // ---- 2. Retour de Deltalytix ----
   if (q.code || q.error || q.state) {
     if (!L.configured()) return resultPage(event, { ok: false, error: 'not_configured' });
-    if (q.error) return resultPage(event, { ok: false, error: q.error === 'access_denied' ? 'denied' : 'oauth_error' });
+    if (q.error) return resultPage(event, { ok: false, error: q.error === 'access_denied' ? 'denied' : (q.error === 'invalid_scope' ? 'scope_refused' : 'oauth_error') });
     let st;
     try { st = JSON.parse(L.decrypt(Buffer.from(String(q.state || ''), 'base64url').toString('utf8'))); } catch (e) { st = null; }
     if (!st || !st.u || !st.v || !(st.exp > Date.now())) return resultPage(event, { ok: false, error: 'expired' });

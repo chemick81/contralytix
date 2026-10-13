@@ -7,6 +7,8 @@
 //   DELTALYTIX_BASE_URL      optionnel, défaut https://beta.deltalytix.app
 //   DELTALYTIX_REDIRECT_URI  optionnel, défaut https://<site>/api/deltalytix-oauth (doit être
 //                            déclarée à l'identique dans l'application OAuth Deltalytix)
+//   DELTALYTIX_SCOPES        optionnel, portées demandées (défaut ci-dessous). Chacune doit être
+//                            cochée dans l'application OAuth Deltalytix, sinon la connexion est refusée.
 
 const crypto = require('crypto');
 
@@ -16,7 +18,8 @@ const CLIENT_ID = process.env.DELTALYTIX_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.DELTALYTIX_CLIENT_SECRET || '';
 const KEY_SECRET = process.env.DELTALYTIX_TOKEN_KEY || '';
 const PROVIDER = 'deltalytix';
-const SCOPES = 'profile:read accounts:read trades:read metrics:read';
+// connections:read : date de dernière synchro de chaque connexion broker (alerte « synchro en retard »).
+const SCOPES = process.env.DELTALYTIX_SCOPES || 'profile:read accounts:read trades:read metrics:read connections:read';
 
 function configured() { return !!(CLIENT_ID && CLIENT_SECRET && KEY_SECRET.length >= 16); }
 function redirectUri(event) {
@@ -55,7 +58,13 @@ async function dltx(token, path, deadline) {
   } catch (e) {
     throw new DltxError(e.name === 'AbortError' ? 'timeout' : 'unreachable');
   } finally { clearTimeout(timer); }
-  if (res.status === 401 || res.status === 403) throw new DltxError('token_invalid');
+  if (res.status === 403) {
+    // Portée manquante (jeton obtenu avant l'ajout d'une portée) : distinct d'un jeton invalide.
+    const body = await res.json().catch(() => ({}));
+    if (body && body.error === 'insufficient_scope') throw new DltxError('insufficient_scope');
+    throw new DltxError('token_invalid');
+  }
+  if (res.status === 401) throw new DltxError('token_invalid');
   if (!res.ok) throw new DltxError('api_error', `HTTP ${res.status}`);
   return res.json();
 }
@@ -77,6 +86,20 @@ async function tokenRequest(params) {
     refresh_token: data.refresh_token || params.refresh_token || null,
     expires_at: Date.now() + (Number(data.expires_in) || 3600) * 1000,
   };
+}
+// Révocation chez Deltalytix (à la déconnexion). Best-effort : répond toujours 200 côté Deltalytix.
+async function revokeToken(token) {
+  if (!token) return;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    await fetch(`${BASE_URL}/api/oauth/revoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({ token, client_id: CLIENT_ID, client_secret: CLIENT_SECRET }).toString(),
+      signal: ctrl.signal,
+    });
+  } catch (e) { /* best-effort */ } finally { clearTimeout(timer); }
 }
 function packTokens(t) { return encrypt(JSON.stringify(t)); }
 function unpackTokens(blob) {
@@ -110,5 +133,5 @@ async function supabaseUser(db, event) {
 
 module.exports = {
   BASE_URL, CLIENT_ID, PROVIDER, SCOPES, DltxError,
-  configured, redirectUri, encrypt, decrypt, b64url, dltx, tokenRequest, packTokens, unpackTokens, accessTokenFor, supabaseUser,
+  configured, redirectUri, encrypt, decrypt, b64url, dltx, tokenRequest, revokeToken, packTokens, unpackTokens, accessTokenFor, supabaseUser,
 };
