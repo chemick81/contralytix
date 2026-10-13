@@ -171,11 +171,17 @@ exports.handler = async (event) => {
         const daily = byNum.get(normAccNum(a.account_number));
         if (!daily) return;
         matched++;
+        let lastOld = null;
         Object.entries(daily).forEach(([day, pnl]) => {
           const d = isoDay(day);
-          if (!d || d < since || !Number.isFinite(Number(pnl))) return;
+          if (!d || !Number.isFinite(Number(pnl))) return;
+          if (d < since) { if (!lastOld || d > lastOld[0]) lastOld = [d, pnl]; return; }
           rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, source: 'deltalytix', updated_at: now });
         });
+        // Aucun trade récent : on écrit quand même le dernier jour tradé connu (point de départ du Radar).
+        if (lastOld && !rows.some((r) => r.account_id === a.id)) {
+          rows.push({ user_id: user.id, account_id: a.id, day: lastOld[0], traded: true, pnl: Math.round(Number(lastOld[1]) * 100) / 100, source: 'deltalytix', updated_at: now });
+        }
       });
       // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
       if (body.radar === false) rows.length = 0;
