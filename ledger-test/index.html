@@ -720,6 +720,11 @@ th.th-sort-active svg{opacity:1;}
 .dlx-health.is-danger strong{color:var(--danger);}
 .dlx-health .btn{margin-left:auto;}
 .dlx-textbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;}
+.plat-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 5px;border:1px solid var(--border);border-radius:var(--radius-pill);font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap;line-height:1.4;}
+.plat-chip img{width:14px;height:14px;border-radius:3px;flex:none;}
+.plat-chip.is-compact{padding:2px;}
+.cim-plat{width:auto;min-width:0;max-width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;margin-left:6px;}
+.cim-plat:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
 .dlx-logo.xs{width:18px;height:18px;border-radius:5px;font-size:8.5px;line-height:18px;}
 .dlx-br-list{display:flex;flex-direction:column;gap:8px;}
 .dlx-br-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);cursor:pointer;}
@@ -2164,6 +2169,8 @@ th.th-sort-active svg{opacity:1;}
 }
 @media (max-width: 520px){
   .topbar{padding:14px 16px;flex-wrap:wrap;gap:10px;}
+  .topbar-actions{flex-wrap:wrap;}
+  .dlx-sync-label{display:none;}
   .content{padding:16px 16px 60px;}
   .acc-top{flex-direction:column;align-items:stretch;}
   .acc-actions{width:100%;}
@@ -2779,7 +2786,7 @@ const state = {
     // Page Comptes filtrée par défaut sur les comptes actifs — décision utilisateur du 23/09/2026.
     // Les sauts vers un compte précis (data-jump-acc...) repartent de status:[] pour qu'un compte
     // breached/réussi/fermé reste toujours trouvable.
-    accounts: { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
+    accounts: { q:'', trader:[], propfirm:'', type:'', size:'', platform:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false },
     accounting: { month:'', type:'', trader:[], propfirm:'', traderMenuOpen:false, monthMenuOpen:false, recapGranularity:'month', periodGranularity:'month' },
     dashboard: { trader:[], propfirm:'', dateFrom:'', dateTo:'', calMonth:'', dateMenuOpen:false, traderMenuOpen:false, pfSplitStatus:'all', pfSplitType:'all', delayFirmMetric:'firstPayout' },
     // Admin > Utilisateurs (26/09/2026) : filtres + tri du tableau.
@@ -6343,6 +6350,7 @@ function topbarSub(){
 }
 function renderTopbarActions(){
   const el = document.getElementById('topbar-actions');
+  if(!el) return;   // écran d'accueil / connexion : pas de barre du haut
   if(state.route==='meteo') el.innerHTML = `<button class="btn btn-primary" id="add-prep">${icon('plus')}Nouvelle prépa</button>`;
   else if(state.route==='traders') el.innerHTML = `<button class="btn btn-primary" id="add-trader">${icon('plus')}Nouveau trader</button>`;
   else if(state.route==='propfirms'){
@@ -6355,7 +6363,7 @@ function renderTopbarActions(){
     }
   }
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true">DX</span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -6386,6 +6394,7 @@ function renderTopbarActions(){
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
   if(document.getElementById('bulk-add-account')) document.getElementById('bulk-add-account').onclick = ()=>bulkAccountFormModal();
   if(document.getElementById('capture-import-account')) document.getElementById('capture-import-account').onclick = ()=>captureImportModal();
+  el.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
   if(document.getElementById('export-accounting')) document.getElementById('export-accounting').onclick = exportAccountingCSV;
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
@@ -10962,6 +10971,7 @@ function accountsTotalsHtml(list, f, anyFilterActive){
   if(f.type) scope.push('type ' + (TYPE_LABELS[f.type]||f.type));
   if(f.propfirm){ const pf = getFirm(f.propfirm); if(pf) scope.push(escapeHtml(pf.name)); }
   if(f.size) scope.push('taille ' + (SIZE_LABELS[f.size]||f.size));
+  if(f.platform) scope.push(f.platform==='NONE' ? 'plateforme non renseignée' : (PLATFORMS[f.platform]||{}).label || f.platform);
   if(f.trader.length){
     const names = f.trader.map(id=>{ const t=getTrader(id); return t?t.pseudo:''; }).filter(Boolean);
     scope.push(names.length<=2 ? 'trader ' + escapeHtml(names.join(', ')) : names.length + ' traders');
@@ -11029,6 +11039,7 @@ function viewAccounts(){
   const searchMatches = f.q ? list : null;
   if(f.propfirm) list = list.filter(a=>a.propFirmId===f.propfirm);
   if(f.size) list = list.filter(a=>a.size===f.size);
+  if(f.platform) list = list.filter(a=>f.platform==='NONE' ? !a.platform : a.platform===f.platform);
   if(f.status && f.status.length) list = list.filter(a=>f.status.includes(a.status) || (f.status.includes('ACTIF') && needsPa(a)));
   // Compteurs des onglets de type (07/10/2026) : calculés avec tous les autres filtres, avant celui du type.
   const typeCounts = { ALL:list.length, CHALLENGE:0, PA:0, LIVE:0 };
@@ -11046,6 +11057,7 @@ function viewAccounts(){
     }
     if(f.type && hidden.some(a=>a.type!==f.type)) reasons.push('type ' + [...new Set(hidden.filter(a=>a.type!==f.type).map(a=>TYPE_LABELS[a.type]||a.type))].join(', '));
     if(f.size && hidden.some(a=>a.size!==f.size)) reasons.push('taille');
+    if(f.platform) reasons.push('plateforme');
     if(f.propfirm && hidden.some(a=>a.propFirmId!==f.propfirm)) reasons.push('PropFirm');
     const n = hidden.length;
     return `<div class="search-hidden-note">${icon('info')}<span><strong>${n} compte${n>1?'s':''} correspondant${n>1?'s':''} à « ${escapeHtml(f.q)} » ${n>1?'sont masqués':'est masqué'}</strong> par tes filtres${reasons.length?` (${reasons.join(' · ')})`:''}.</span><button type="button" class="btn btn-outline btn-sm" id="f-show-hidden-search">Afficher</button></div>`;
@@ -11077,7 +11089,8 @@ function viewAccounts(){
     : f.status.length===1 ? STATUS_LABELS[f.status[0]]
     : `${f.status.length} statuts`;
   const statusIsDefault = f.status.length===DEFAULT_ACCOUNT_STATUS_FILTER.length && DEFAULT_ACCOUNT_STATUS_FILTER.every(v=>f.status.includes(v));
-  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || !statusIsDefault);
+  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || f.platform || !statusIsDefault);
+  const platformsUsed = [...new Set(state.accounts.map(a=>a.platform).filter(p=>PLATFORMS[p]))];
 
   const filterBar = `
     <div class="filter-bar">
@@ -11089,6 +11102,7 @@ function viewAccounts(){
       ${renderMultiSelect('f-trader', state.traders.map(t=>({v:t.id,l:t.pseudo})), f.trader, 'Tous les traders', f.traderMenuOpen)}
       ${renderFirmSelect('f-firm', f.propfirm, f.firmMenuOpen)}
       <select id="f-size"><option value="">Toutes tailles</option>${Object.entries(SIZE_LABELS).map(([k,v])=>`<option value="${k}" ${f.size===k?'selected':''}>${v}</option>`).join('')}</select>
+      ${(platformsUsed.length || f.platform) ? `<select id="f-platform"><option value="">Toutes plateformes</option>${Object.keys(PLATFORMS).filter(k=>platformsUsed.includes(k)).map(k=>`<option value="${k}" ${f.platform===k?'selected':''}>${PLATFORMS[k].label}</option>`).join('')}<option value="NONE" ${f.platform==='NONE'?'selected':''}>Plateforme non renseignée</option></select>` : ''}
       <div class="status-multiselect" id="f-status-wrap">
         <button type="button" class="status-ms-btn" id="f-status-btn">${statusBtnLabel} <span style="opacity:.6;font-size:10px;">▾</span></button>
         <div class="status-ms-menu" id="f-status-menu" style="display:${f.statusMenuOpen?'flex':'none'};">
@@ -11120,7 +11134,7 @@ function viewAccounts(){
   }
   if(list.length===0){
     // Cas fréquent avec le filtre par défaut « Actif » : proposer d'un clic de voir tous les comptes.
-    const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size;
+    const onlyStatusHides = f.status.length && !f.q && !f.trader.length && !f.propfirm && !f.type && !f.size && !f.platform;
     if(hiddenSearchHtml) return dlxBreachBannerHtml() + totalsBar + filterBar + hiddenSearchHtml;
     return dlxBreachBannerHtml() + totalsBar + filterBar + (onlyStatusHides
       ? `<div class="empty">${icon('search')}<div class="empty-title">Aucun compte ${f.status.length===1 ? (STATUS_LABELS[f.status[0]]||'').toLowerCase() : 'pour ces statuts'}</div><div class="empty-sub">Tes autres comptes (réussis, breached, fermés) sont masqués par le filtre de statut.</div><button type="button" class="btn btn-outline btn-sm" id="f-show-all-status" style="margin-top:12px;">Voir tous les statuts</button></div>`
@@ -11281,6 +11295,7 @@ function accountCard(a){
             ${typeBadgeHtml(a.type)}
             <span class="firm-name-inline">${firmLogoHtml(firm,18)}${firm?firm.name:'—'}</span>
             <span class="acc-size">${sizeLabel(a)}</span>
+            ${platformChipHtml(a.platform)}
             <span class="text-faint">·</span>
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
             ${paymentTypeBadgeHtml(a)}
@@ -15490,6 +15505,21 @@ document.addEventListener('visibilitychange', ()=>{
    le P&L journalier (net des commissions) dans dormancy_logs (source 'deltalytix') : le radar se
    met à jour tout seul, à l'ouverture de l'app (au plus une fois par heure) ou sur demande.
 ============================================================ */
+// Plateforme de trading d'un compte (accounts.platform, migration_plateforme_comptes.sql).
+const PLATFORMS = {
+  TRADOVATE: { label:'Tradovate', logo:'data:image/webp;base64,UklGRsoDAABXRUJQVlA4WAoAAAAQAAAAJwAAJwAAQUxQSEICAAABoLVtmyFJlv9GxNi259C2bdu21/ae2bZt27ZtW3V1ZUQ8i1LsRsQE6P9urCRrklknNWjUQHI2iTVSh2OfX/z8cR0kYyvmJHU78SdyS3L8fGJ3Sa4iTrLjr/od+GnJT8DvV02wkivHGKnm8ofzkAV+XvILIYP8QytqqXRrpLb7vQ74GGOBGKMHXtvbvgRrpA6tV7wEPoslxSyDjxYUMlbSgBvu2Pe5LatvB3woEjzw+JK6+rdxUvUJNwWe3h+e3b7h+h8hK5CH3J3TVNA4qfHaRyDwxH5k8PrxG07+CH5c/CN8e+4QSdbo360Oexui9zy5P8F7+OLi1fu9k1/hvzysqySnf5v+J3wBwccYCsQYPPxx5fb9R+1sJhmrwtWP+hPyPpYSQxbhioE1JWdUausDP4Poi4UAv503+5h3e8qp3Ma7XgCq/pV5eO/0NUd/BN1lyjBOqjP3Dg+P7Qs8c/CmC7+BkCtPMk7S4It56VDuXb317j/AB6oqIclKGrx72uF77wF8jLFikrVSkxkvgPcxjVRdu17csOIBwIc0Tnvg4T3br/oRsmQZvHz8ppM+gVwi7wN8ff7iQ96ll2ySGEOAXy/Ye2w7mUQxZBEu61NTFS8UPPx6+dxD3uopkyLv4d2TNh37DnRPsRt49uAtF3wJIZfkAB7csfLWKvCeqgRGk47b9w7AxxiTyGj8h5D5mExGddY8D2QhlYxUfc7NOcinkpykYef8BH+mkqykzid+Sy/ZRJK1UoftbWWSScbpP2tcOVZQOCBiAQAAcAsAnQEqKAAoAD5NHIxEIqGhGOzOACgExLYAXHCAGli8A/Enmo9AvAGTT8q3KT7AHOH/2ndAfq1+zvsMf4D+Z9gB/1eoA9DP9APSk9hH9x/2x9oYCOWrp80pGJUi8gBAOz0LuAD+/zpBqXJ9n8ySujJisp3aOelK/tN8JWtEEMcTbiKNHJ5y35+Tix5SEWtZc6114IpfdSQ/qP+cLkK8wvbxrxmXN180OXl9Jm9w+DycDDsc8noKAvgfb0igwQq5Q2FP+ZLU3xU93RZfbrtxk1XLbvvRBZfYkb90pYE+sJol4P7HrxXOpu2WDvqX4Ff9xjM4rkwsDOrylre9onarIzru11JjEB5oEpGy3jO3nyMRyee8uzPtd1DLfUMtZqh0iwMudqRYKf/6KasuZyrLXEUx786bsEO312A6otXHImj4uWBiYVSfpB5ZZdCH2gTwMXSw3e0H0IOkHKWO9l0kAAAA' },
+  RITHMIC:   { label:'Rithmic',   logo:'data:image/webp;base64,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' },
+  IBKR:      { label:'Interactive Brokers', short:'IBKR' },
+  DXFEED:    { label:'DXfeed' },
+  AUTRE:     { label:'Autre' },
+};
+function platformChipHtml(code, opts){
+  const p = PLATFORMS[code];
+  if(!p) return '';
+  const compact = opts && opts.compact;
+  const name = p.short || p.label;
+  return `<span class="plat-chip${compact?' is-compact':''}" title="Plateforme : ${escapeHtml(p.label)}">${p.logo ? `<img src="${p.logo}" alt="" width="14" height="14"/>` : ''}${compact && p.logo ? '' : escapeHtml(name)}</span>`;
+}
 const DLX_SYNC_EVERY_MS = 60 * 60 * 1000;
 function dlx(){ if(!state.dlx) state.dlx = { loaded:false, available:false, connected:false }; return state.dlx; }
 async function loadDlxStatus(){
@@ -15559,6 +15589,7 @@ async function dlxSync(opts){
   if(!d.connected || d.syncing) return;
   d.syncing = true;
   if(state.route==='radar') renderView();
+  if(state.route==='accounts') renderTopbarActions();
   const r = await dlxCall('sync', { radar: dmEnabled() });
   d.syncing = false;
   if(r.ok){
@@ -15567,6 +15598,11 @@ async function dlxSync(opts){
     (r.data.health || []).forEach(h=>{ byId[h.accountId] = h; });
     d.health = { at: r.data.syncedAt, byId, stale: r.data.stale || [], connectionsScope: r.data.connectionsScope !== false };
     dlxSaveCache('health', d.health);
+    // Plateforme connue chez Deltalytix mais pas encore renseignée ici : on la complète (jamais d'écrasement).
+    for(const h of (r.data.health || [])){
+      const acc = h.platform && getAccount(h.accountId);
+      if(acc && !acc.platform && PLATFORMS[h.platform] && canEdit(acc)) await upsert('accounts', { ...acc, platform: h.platform });
+    }
     await loadDormancy();
     if(!silent){
       const m = r.data.matched||0;
@@ -15578,6 +15614,7 @@ async function dlxSync(opts){
     d.lastError = r.data.code || 'error';
     if(!silent) showToast(r.data.error || 'Synchronisation impossible pour le moment.', 'danger');
     if(state.route==='radar') renderView();
+    if(state.route==='accounts') renderTopbarActions();
   }
 }
 // À l'ouverture de l'app : statut, puis synchro si la dernière a plus d'une heure (radar, santé des comptes).
@@ -15701,7 +15738,7 @@ function dlxBreachModal(){
       <div class="dlx-br-list">${list.map(a=>{ const h = dlxHealthOf(a.id) || {}; return `
         <label class="dlx-br-row">
           <input type="checkbox" data-br-check="${a.id}" checked/>
-          <span class="dlx-br-main"><span class="dlx-br-title">${label(a)}</span><span class="text-faint dlx-br-sub">N° ${maskAccountNumber(a.accountNumber)}${Number.isFinite(h.remainingLoss) ? ` · marge ${fmtMoneyCur(h.remainingLoss, 'USD')}` : ''}</span></span>
+          <span class="dlx-br-main"><span class="dlx-br-title">${label(a)}</span><span class="text-faint dlx-br-sub">N° ${maskAccountNumber(a.accountNumber)}</span></span>
           <input type="date" data-br-date="${a.id}" value="${escapeHtml(h.lastTradeDay || todayISO())}" aria-label="Date du breach"/>
         </label>`; }).join('')}</div>
       <div class="text-faint" style="font-size:12px;margin-top:12px;">Déjà réglé autrement ? <button type="button" class="dlx-textbtn" id="br-ignore">Ne plus signaler ces comptes</button> (jusqu’à leur prochain trade).</div>`,
@@ -15738,7 +15775,7 @@ function dlxBreachModal(){
     }
   });
 }
-// Ligne « santé » sur la carte d'un compte actif (marge avant drawdown d'après Deltalytix).
+// Ligne Deltalytix sur la carte d'un compte actif : dernier trade, ou limite de perte atteinte.
 function dlxCardHealthHtml(a){
   if(a.status!=='ACTIF') return '';
   const d = dlx();
@@ -15748,10 +15785,9 @@ function dlxCardHealthHtml(a){
   if(h.breached){
     return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true">DX</span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
   }
-  if(!Number.isFinite(h.remainingLoss)) return '';
-  const size = a.size==='AUTRE' ? Number(a.customSize)||0 : ({ S25K:25000, S50K:50000, S100K:100000, S150K:150000, S250K:250000 }[a.size] || 0);
-  const low = size > 0 && h.remainingLoss <= size * 0.01;
-  return `<div class="dlx-health ${low?'is-warn':''}" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Marge avant drawdown : <strong>${fmtMoneyCur(h.remainingLoss, 'USD')}</strong>${Number.isFinite(h.balance) ? ` <span class="text-faint">· solde ${fmtMoneyCur(h.balance, 'USD')}</span>` : ''}${h.lastTradeDay ? ` <span class="text-faint">· dernier trade ${fmtDate(h.lastTradeDay)}</span>` : ''}</span></div>`;
+  // Marge avant drawdown et solde retirés (13/10/2026) : on garde seulement la date du dernier trade.
+  if(!h.lastTradeDay) return '';
+  return `<div class="dlx-health" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong></span></div>`;
 }
 // Panneau du Profil
 function dlxProfilPanelHtml(){
@@ -17087,10 +17123,10 @@ function bindViewEvents(){
   // Accounts filters
   bindFirmSelect('f-firm', state.filters.accounts, 'firmMenuOpen');
   document.querySelectorAll('[data-type-tab]').forEach(b=>b.onclick=()=>{ state.filters.accounts.type = b.dataset.typeTab; renderView(); });
-  ['f-q','f-type','f-size'].forEach(id=>{
+  ['f-q','f-type','f-size','f-platform'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    const map = { 'f-q':'q', 'f-type':'type', 'f-size':'size' };
+    const map = { 'f-q':'q', 'f-type':'type', 'f-size':'size', 'f-platform':'platform' };
     el.addEventListener(id==='f-q'?'input':'change', ()=>{
       state.filters.accounts[map[id]] = el.value;
       if(id==='f-q'){
@@ -17106,7 +17142,7 @@ function bindViewEvents(){
   bindMultiSelectDropdown('f-groupby', state.filters.accounts, 'groupBy', 'groupByMenuOpen');
   const resetAllBtn = document.getElementById('f-reset-all');
   if(resetAllBtn) resetAllBtn.onclick = ()=>{
-    state.filters.accounts = { q:'', trader:[], propfirm:'', type:'', size:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
+    state.filters.accounts = { q:'', trader:[], propfirm:'', type:'', size:'', platform:'', status:[...DEFAULT_ACCOUNT_STATUS_FILTER], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
     setTraderFilterEverywhere([]);
     renderView();
   };
@@ -18035,7 +18071,10 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           <label>Montant personnalisé ($)</label><input id="af-customsize" type="number" value="${a.customSize||''}"/>
         </div>
       </div>
-      <div class="field"><label>Numéro de compte <span style="color:var(--danger)">*</span></label><input id="af-number" value="${a.accountNumber}"/>${!isEdit?`<div class="field-hint">Obligatoire — doit être unique pour cette PropFirm (vérifié à l’enregistrement).</div>`:''}</div>
+      <div class="field-row">
+        <div class="field"><label>Numéro de compte <span style="color:var(--danger)">*</span></label><input id="af-number" value="${a.accountNumber}"/>${!isEdit?`<div class="field-hint">Obligatoire — doit être unique pour cette PropFirm (vérifié à l’enregistrement).</div>`:''}</div>
+        <div class="field"><label>Plateforme</label><select id="af-platform"><option value="">Non renseignée</option>${Object.entries(PLATFORMS).map(([k,p])=>`<option value="${k}" ${a.platform===k?'selected':''}>${p.label}</option>`).join('')}</select></div>
+      </div>
       <div id="af-pay-block" style="display:${hidePayInit?'none':'block'};">
       ${legacyPaPayment ? `<div class="field-hint" style="margin-bottom:10px;color:var(--gold);display:flex;gap:6px;align-items:flex-start;"><span style="width:13px;height:13px;flex-shrink:0;margin-top:1px;">${icon('info')}</span><span>Ancienne saisie : un ${a.type==='LIVE'?'Live':'PA'} ne devrait avoir qu’un frais d’activation. Ce montant est compté dans tes dépenses — mets-le à 0 s’il a été saisi par erreur.</span></div>` : ''}
       <div class="field"><label>Mode de paiement</label>
@@ -18300,6 +18339,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           purchaseDate, activationDate: (curType==='PA'||curType==='LIVE')?activationDate:null, activationFee: (curType==='PA'||curType==='LIVE')?activationFee:null,
           status, endDate, parentChallengeId,
           currency, fxRateToEur,
+          platform: (document.getElementById('af-platform') || {}).value || null,
         };
         await upsert('accounts', record);
         const accDesc = `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]}`;
@@ -18893,6 +18933,7 @@ function captureImportModal(){
   let selectMode = false;    // sélection par capture demandée, en attente de la 1re capture
   let selActive = false;     // sélection en cours : chaque capture suivante coche ses comptes en plus
   let onlyChecked = false;   // n'afficher que les comptes cochés
+  let platFilter = '';       // import limité à une plateforme ('' = toutes, 'NONE' = non renseignée)
   let lastReadFailed = false; // la dernière capture n'a donné aucun compte (bilan des lectures multiples)
   const top = { traderId: defaultTrader() ? defaultTrader().id : '', currency:'USD' };
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
@@ -19323,7 +19364,7 @@ function captureImportModal(){
       const firm = dlxFirmName(a.propfirm);
       if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
       if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
-      found.push({ value:num, det, dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden });
+      found.push({ value:num, det, dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden, platform: PLATFORMS[a.platform] ? a.platform : null });
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
@@ -19344,6 +19385,7 @@ function captureImportModal(){
         if(prev && !prev.dlx){
           prev.dlx = true;
           prev.dlxFirstDay = f.dlxFirstDay; prev.dlxLastDay = f.dlxLastDay; prev.dlxBreached = f.dlxBreached;
+          if(!prev.platform && f.platform) prev.platform = f.platform;
           if(f.dlxBreached && !ex) prev.checked = false;
           if(fillDet(prev, f.det)) regroup(prev);
           completed++;
@@ -19353,7 +19395,7 @@ function captureImportModal(){
       if(rows.length >= CIM_MAX_ACCOUNTS){ overflow++; return; }
       known.add(k);
       if(ex) existing++;
-      const row = { value:f.value, det:f.det, dlx:true, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay, dlxFirstDay: f.dlxFirstDay };
+      const row = { value:f.value, det:f.det, dlx:true, checked: !ex && !f.dlxBreached, gid:null, free:false, createdHere:false, dlxBreached: f.dlxBreached, dlxLastDay: f.dlxLastDay, dlxFirstDay: f.dlxFirstDay, platform: f.platform };
       placeInGroup(row);
       rows.push(row);
       added++;
@@ -19373,6 +19415,15 @@ function captureImportModal(){
     notice = { text: parts.join(' · '), warn: !!newCount };
     renderReview();
   }
+  // Filtre par plateforme (Tradovate, Rithmic…), visible dès qu'une plateforme est connue.
+  function platSelectHtml(){
+    const pending = rows.filter(r=>r.value.trim() && !cimExistingAccount(r.value) && !(r.dlxBreached && !showBreached && !r.capSel));
+    const counts = {};
+    pending.forEach(r=>{ const k = r.platform || 'NONE'; counts[k] = (counts[k]||0) + 1; });
+    const known = Object.keys(PLATFORMS).filter(k=>counts[k]);
+    if(!known.length && !platFilter) return '';
+    return `<select id="cim-plat" class="cim-plat" aria-label="Plateforme"><option value="">Toutes plateformes (${pending.length})</option>${known.map(k=>`<option value="${k}" ${platFilter===k?'selected':''}>${PLATFORMS[k].label} (${counts[k]})</option>`).join('')}${counts.NONE ? `<option value="NONE" ${platFilter==='NONE'?'selected':''}>Plateforme inconnue (${counts.NONE})</option>` : ''}</select>`;
+  }
   // Barre de sélection : tout cocher / décocher, comptes breached affichés ou non.
   function bulkBarHtml(){
     const selectable = rows.filter(r=>r.value.trim() && !cimExistingAccount(r.value) && !isHiddenRow(r));
@@ -19384,6 +19435,7 @@ function captureImportModal(){
         <span class="cim-bulk-count">${nOn} / ${selectable.length} sélectionné${nOn>1?'s':''}</span>
         <button type="button" class="btn btn-ghost btn-sm" data-bulk="all" ${nOn===selectable.length?'disabled':''}>${icon('check')}Tout cocher</button>
         <button type="button" class="btn btn-ghost btn-sm" data-bulk="none" ${!nOn?'disabled':''}>${icon('x')}Tout décocher</button>
+        ${platSelectHtml()}
         <label class="cim-bulk-toggle" title="Masque les comptes décochés pour vérifier d’un coup d’œil ce qui sera créé."><input type="checkbox" id="cim-only-checked" ${onlyChecked?'checked':''}/> Seulement les cochés</label>
         ${nBreached ? `<label class="cim-bulk-toggle" title="Comptes ayant atteint leur limite de perte d’après Deltalytix. Importés, ils sont créés avec le statut Breached (utile pour tes dépenses passées).">
           <input type="checkbox" id="cim-show-breached" ${showBreached?'checked':''}/> Afficher les ${nBreached} compte${nBreached>1?'s':''} breached</label>` : ''}
@@ -19411,7 +19463,7 @@ function captureImportModal(){
     row.gid = g.id;
   }
   const groupById = (id)=>groups.find(g=>g.id===id);
-  const isHiddenRow = (r)=>!!(r.dlxBreached && !showBreached && !r.capSel);
+  const isHiddenRow = (r)=>!!((r.dlxBreached && !showBreached && !r.capSel) || (platFilter && (platFilter==='NONE' ? !!r.platform : r.platform!==platFilter)));
   const rowsOf = (g)=>rows.map((r,i)=>({ r, i })).filter(x=>x.r.gid===g.id && !isHiddenRow(x.r) && !(onlyChecked && !x.r.checked));
   const dropEmptyGroups = ()=>{ groups = groups.filter(g=>rows.some(r=>r.gid===g.id)); };
   // Mélange capture + Deltalytix : un même compte trouvé des deux côtés est complété (on ne remplit
@@ -19516,6 +19568,7 @@ function captureImportModal(){
     const main = rowMainBadgeHtml(r);
     if(cimExistingAccount(r.value)) return main;
     return main
+      + platformChipHtml(r.platform)
       + (r.capSel ? `<span class="cim-row-cap" title="Visible sur ta capture">${icon('camera')}capture</span>` : '')
       + (r.dlxFirstDay ? `<span class="cim-row-date" title="Date de début (activation pour un PA ou un Live, achat pour un challenge) : premier jour tradé sur ce compte d’après Deltalytix. Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : '');
   }
@@ -19679,6 +19732,8 @@ function captureImportModal(){
     if(selMore) selMore.onclick = ()=>more.click();
     const selEnd = document.getElementById('cim-sel-end');
     if(selEnd) selEnd.onclick = ()=>{ selActive = false; selectMode = false; notice = null; renderReview(); };
+    const plat = document.getElementById('cim-plat');
+    if(plat) plat.onchange = ()=>{ platFilter = plat.value; errors = null; renderReview(); };
     const only = document.getElementById('cim-only-checked');
     if(only) only.onchange = ()=>{ onlyChecked = only.checked; renderReview(); };
     const selCap = document.getElementById('cim-select-cap');
@@ -19741,7 +19796,7 @@ function captureImportModal(){
       const last = R.querySelector(`[data-num="${rows.length-1}"]`);
       if(last) last.focus();
     };
-    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; dlxDone = false; selectMode = false; selActive = false; onlyChecked = false; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
+    document.getElementById('cim-restart').onclick = ()=>{ rows = []; groups = []; showBreached = false; dlxDone = false; selectMode = false; selActive = false; onlyChecked = false; platFilter = ''; ignoredDemo = []; captures = 0; shots = []; shotIdx = 0; thumb = ''; errors = null; notice = null; renderDrop(); };
     document.getElementById('cim-create').onclick = createAll;
   }
 
@@ -19766,6 +19821,7 @@ function captureImportModal(){
       promoFree: g.pay==='UNIQUE' && !!r.free,
       purchaseDate: rowDate(r, g),
       activationDate: rowDate(r, g),
+      platform: r.platform || '',
       activationFee: paLike ? g.fee : '',
       currency: top.currency,
       fxRateToEur: top.currency==='EUR' ? 1 : rowFx(r, g),
@@ -19842,6 +19898,7 @@ function captureImportModal(){
         activationFee: paLike ? (Number(g.fee)||0) : null,
         // Compte perdu d'après Deltalytix : créé directement en Breached (date du dernier trade connu).
         status: r.dlxBreached ? 'BREACHED' : 'ACTIF', endDate: r.dlxBreached ? [r.dlxLastDay || todayISO(), date].sort()[1] : null,
+        platform: r.platform || null,
         currency: top.currency, fxRateToEur: top.currency==='EUR' ? 1 : Number(fx),
         createdAt: new Date().toISOString(), createdBy: currentUserId(),
       }});
