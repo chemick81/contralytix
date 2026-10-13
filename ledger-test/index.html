@@ -101,12 +101,17 @@
     {
       "@type": "Question",
       "name": "Puis-je importer mes comptes prop firm sans tout ressaisir ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Oui : sur la page Comptes, « Importer mes comptes » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, de deux façons, depuis « Importer mes comptes » sur la page Comptes : en connectant Deltalytix (beta), qui transmet tes comptes avec leur numéro, leur taille, leur plateforme (Tradovate, Rithmic…) et leur date de début ; ou par capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…), plusieurs captures d'un coup si besoin. Les deux se combinent : une capture de tes comptes actifs peut servir à ne cocher que ceux-là. Les comptes de démo sont ignorés, tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée." }
     },
     {
       "@type": "Question",
       "name": "Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes ; c'est pourquoi le Radar ne s'active que si tu le choisis." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Les journées tradées se pointent en un clic pour plusieurs comptes, ou automatiquement si tu connectes Deltalytix (beta). Le Radar ne s'active que si tu le choisis." }
+    },
+    {
+      "@type": "Question",
+      "name": "Contralytix fonctionne-t-il avec Deltalytix ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, en beta. Tu peux connecter Deltalytix à Contralytix sans recopier de mot de passe : tu autorises Contralytix à lire tes comptes dans Deltalytix. Tu récupères tes comptes, leur plateforme et leur dernier trade, le pointage automatique du Radar inactivité, et une alerte quand un compte a atteint sa limite de perte. Deltalytix analyse ton trading, Contralytix gère tes comptes, tes dépenses et tes payouts. Deltalytix est un service indépendant, non affilié à Contralytix." }
     },
     {
       "@type": "Question",
@@ -703,7 +708,7 @@ th.th-sort-active svg{opacity:1;}
 .cim-tv-btn > svg{width:16px;height:16px;color:var(--text-dim);flex-shrink:0;}
 .cim-tv-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
 .cim-tv-txt strong{font-size:13.5px;color:var(--text);}
-.dlx-logo{width:34px;height:34px;border-radius:8px;background:#6E56CF;color:#fff;font:700 12px/34px 'Space Grotesk',sans-serif;text-align:center;flex-shrink:0;display:inline-block;}
+.dlx-logo{width:34px;height:34px;border-radius:8px;background:#000 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAABr0lEQVR42r2WsUorQRSGv90xC4tprIIk5AG8kKyNXWobH+LqE6h94BaBtBbpAlmbPEGEYBtS2Sl4HyCFQooV5FhkCZlbOJsb7sXgTNj94TQzzPz8Z84583unl2dkuL+5awBXwAlwCOwDAXZIgQ/gBXgAbk4vz56yTX+DbAA8Aj+BI+DAgQxz5gD4AZwDj+buTxiFA0DnHIMsm40CyLJoKKALHFMMQt8UiBWiKHIlPAFIbNISRZFOksQ1pQnAwubQeDzWIqLb7bYL4QJbdSKikyTRs9nMSaUCfn33AeI4plqtorWmXC6jlGIymVg9om9TKK1Wi9VqtV6rVCrWVfNtwm63y3K53LkvfFt1IpI/YaYuCAL6/f7OKq0rU0S0iOher2ddpX7R6nDpu9wU5qEOl6mSi8JNdZ1O57991570zEAN/u276XRKmqbWF4oI9Xr9S7+jgGsg3FwdDofUajW01nietzVKpRJKqXWEYbhtxr7vAa/G9Kwxn88ZjUbORbFlxr4AxAV6mkHhJqpwm+gbb3phUpsXYsPx97cwC01D/Ay8Gdtui9Sc/Q3cAs2MDOAPQSLitYMNBdkAAAAASUVORK5CYII=) center/cover no-repeat;color:transparent;font-size:0;flex-shrink:0;display:inline-block;}
 .dlx-logo.sm{width:28px;height:28px;line-height:28px;font-size:11px;}
 .dlx-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:14px;}
 .dlx-strip.is-error{border-color:var(--danger);}
@@ -2129,6 +2134,19 @@ th.th-sort-active svg{opacity:1;}
 .sub-plan-card:hover{box-shadow:0 22px 42px -20px rgba(0,0,0,.55);}
 .sub-plan-ribbon{background:linear-gradient(135deg,var(--accent),#1FA98A)!important;color:var(--accent-text)!important;box-shadow:0 6px 16px -4px rgba(62,214,181,.55);}
 .sub-plan-ribbon.gold{background:linear-gradient(135deg,var(--gold),#B4842F)!important;box-shadow:0 6px 16px -4px var(--gold-dim);}
+.ml-integrations{padding:40px 0;border-top:1px solid var(--border);text-align:center;}
+.ml-integrations h2{margin:0 0 8px;}
+.ml-integ-card{display:flex;align-items:flex-start;gap:18px;max-width:760px;margin:22px auto 0;padding:22px 24px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);text-align:left;}
+.ml-integ-logo{width:48px;height:48px;border-radius:12px;flex:none;}
+.ml-integ-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.ml-integ-text p{margin:0 0 8px;color:var(--text-dim);line-height:1.6;font-size:14px;}
+.ml-integ-note{font-size:12px;color:var(--text-faint);}
+.ml-integ-badge{display:inline-block;padding:1px 7px;border:1px solid var(--border);border-radius:var(--radius-pill);font-size:10.5px;font-weight:600;color:var(--text-dim);letter-spacing:.3px;vertical-align:middle;}
+.ml-foot-compat{margin-top:8px;font-size:12px;}
+.ml-foot-compat a{display:inline-flex;align-items:center;gap:6px;color:var(--text-faint);text-decoration:none;}
+.ml-foot-compat a:hover{color:var(--text);}
+.ml-foot-compat img{border-radius:4px;}
+@media (max-width:600px){ .ml-integ-card{flex-direction:column;align-items:center;text-align:center;padding:18px;} .ml-integ-title{justify-content:center;} }
 .ml-faq{padding:44px 0 50px;border-top:1px solid var(--border-soft);max-width:760px;margin:0 auto;}
 .ml-faq h2{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:23px;margin:0 0 22px;}
 .ml-faq-list{display:flex;flex-direction:column;gap:10px;}
@@ -2416,6 +2434,19 @@ th.th-sort-active svg{opacity:1;}
       </div>
     </section>
 
+    <section class="ml-integrations" id="ml-integrations">
+      <h2>Compatible avec tes outils</h2>
+      <p class="ml-features-sub">Contralytix gère tes comptes, tes dépenses et tes payouts. Pour le reste, il se branche sur ce que tu utilises déjà.</p>
+      <div class="ml-integ-card">
+        <img class="ml-integ-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAABr0lEQVR42r2WsUorQRSGv90xC4tprIIk5AG8kKyNXWobH+LqE6h94BaBtBbpAlmbPEGEYBtS2Sl4HyCFQooV5FhkCZlbOJsb7sXgTNj94TQzzPz8Z84583unl2dkuL+5awBXwAlwCOwDAXZIgQ/gBXgAbk4vz56yTX+DbAA8Aj+BI+DAgQxz5gD4AZwDj+buTxiFA0DnHIMsm40CyLJoKKALHFMMQt8UiBWiKHIlPAFIbNISRZFOksQ1pQnAwubQeDzWIqLb7bYL4QJbdSKikyTRs9nMSaUCfn33AeI4plqtorWmXC6jlGIymVg9om9TKK1Wi9VqtV6rVCrWVfNtwm63y3K53LkvfFt1IpI/YaYuCAL6/f7OKq0rU0S0iOher2ddpX7R6nDpu9wU5qEOl6mSi8JNdZ1O57991570zEAN/u276XRKmqbWF4oI9Xr9S7+jgGsg3FwdDofUajW01nietzVKpRJKqXWEYbhtxr7vAa/G9Kwxn88ZjUbORbFlxr4AxAV6mkHhJqpwm+gbb3phUpsXYsPx97cwC01D/Ay8Gdtui9Sc/Q3cAs2MDOAPQSLitYMNBdkAAAAASUVORK5CYII=" alt="" width="48" height="48"/>
+        <div class="ml-integ-text">
+          <div class="ml-integ-title">Deltalytix <span class="ml-integ-badge">Beta</span></div>
+          <p>Connecte ton journal Deltalytix : tes comptes s'importent avec leur plateforme (Tradovate, Rithmic…) et leur date de début, le Radar inactivité se pointe tout seul, et Contralytix te prévient quand un compte a atteint sa limite de perte. Lecture seule, déconnexion en un clic.</p>
+          <div class="ml-integ-note">Deltalytix est un service indépendant, non affilié à Contralytix.</div>
+        </div>
+      </div>
+    </section>
+
     <section class="ml-pricing">
       <h2>Des formules simples, à commencer gratuitement</h2>
       <div class="ml-pricing-grid" id="ml-pricing-grid">
@@ -2487,11 +2518,15 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Puis-je importer mes comptes prop firm sans tout ressaisir ?</summary>
-          <p>Oui : sur la page Comptes, « Importer mes comptes » lit une capture d'écran de la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…). Les numéros sont reconnus automatiquement, ainsi que la PropFirm, la taille et le type quand ils sont affichés ; les comptes de démo sont ignorés. Tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée.</p>
+          <p>Oui, de deux façons, depuis « Importer mes comptes » sur la page Comptes. <b>Avec Deltalytix</b> (beta) : si tu utilises déjà Deltalytix, connecte-le et tes comptes arrivent avec leur numéro, leur taille, leur plateforme (Tradovate, Rithmic…) et leur date de début. <b>Par capture d'écran</b> : Contralytix lit la liste de tes comptes (Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm…), plusieurs captures d'un coup si besoin. Tu peux aussi combiner les deux : Deltalytix ramène tout, et une capture de tes comptes actifs ne coche que ceux-là. Les comptes de démo sont ignorés, tu vérifies la liste avant de valider, et la capture n'est jamais enregistrée.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?</summary>
-          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&amp;L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Contralytix n'étant pas relié à ta plateforme, tu pointes toi-même tes journées tradées, en un clic pour plusieurs comptes ; c'est pourquoi le Radar ne s'active que si tu le choisis.</p>
+          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&amp;L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Tes journées tradées se pointent en un clic pour plusieurs comptes, ou <b>automatiquement si tu connectes Deltalytix</b> (beta), qui transmet ton P&amp;L de chaque journée. Le Radar ne s'active que si tu le choisis.</p>
+        </details>
+        <details class="ml-faq-item" id="ml-faq-deltalytix">
+          <summary>Contralytix fonctionne-t-il avec Deltalytix ?</summary>
+          <p>Oui, en beta. Si tu utilises Deltalytix pour suivre tes trades, tu peux le connecter à Contralytix en quelques secondes (Profil → Connexions, ou « Importer mes comptes »), sans recopier de mot de passe : tu autorises simplement Contralytix à <b>lire</b> tes comptes dans Deltalytix. Tu récupères alors tes comptes, leur plateforme et leur dernier trade, le pointage automatique du Radar inactivité, et une alerte quand un compte a atteint sa limite de perte. Les deux outils se complètent : Deltalytix analyse ton trading, Contralytix gère tes comptes, tes dépenses et tes payouts. Deltalytix est un service indépendant, non affilié à Contralytix ; tu te déconnectes à tout moment.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix est-il gratuit ?</summary>
@@ -2522,6 +2557,7 @@ th.th-sort-active svg{opacity:1;}
       <a href="#" id="ml-legal-cgv">CGV / CGU</a><span class="legal-foot-sep">·</span>
       <a href="#" id="ml-legal-mentions">Mentions légales</a>
     </div>
+    <div class="ml-foot-compat"><a href="#ml-integrations"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAABr0lEQVR42r2WsUorQRSGv90xC4tprIIk5AG8kKyNXWobH+LqE6h94BaBtBbpAlmbPEGEYBtS2Sl4HyCFQooV5FhkCZlbOJsb7sXgTNj94TQzzPz8Z84583unl2dkuL+5awBXwAlwCOwDAXZIgQ/gBXgAbk4vz56yTX+DbAA8Aj+BI+DAgQxz5gD4AZwDj+buTxiFA0DnHIMsm40CyLJoKKALHFMMQt8UiBWiKHIlPAFIbNISRZFOksQ1pQnAwubQeDzWIqLb7bYL4QJbdSKikyTRs9nMSaUCfn33AeI4plqtorWmXC6jlGIymVg9om9TKK1Wi9VqtV6rVCrWVfNtwm63y3K53LkvfFt1IpI/YaYuCAL6/f7OKq0rU0S0iOher2ddpX7R6nDpu9wU5qEOl6mSi8JNdZ1O57991570zEAN/u276XRKmqbWF4oI9Xr9S7+jgGsg3FwdDofUajW01nietzVKpRJKqXWEYbhtxr7vAa/G9Kwxn88ZjUbORbFlxr4AxAV6mkHhJqpwm+gbb3phUpsXYsPx97cwC01D/Ay8Gdtui9Sc/Q3cAs2MDOAPQSLitYMNBdkAAAAASUVORK5CYII=" alt="" width="16" height="16"/>Compatible Deltalytix <span class="ml-integ-badge">Beta</span></a></div>
     <div class="social-links" style="margin-top:6px;"><a href="https://discord.gg/mCtStKZUJj" target="_blank" rel="noopener" aria-label="Contralytix sur Discord" title="Contralytix sur Discord"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.009c.12.099.246.198.373.292a.077.077 0 0 1-.007.128 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.182 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg></a><a href="https://www.youtube.com/@Contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur YouTube" title="Contralytix sur YouTube"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z"/></svg></a><a href="https://www.tiktok.com/@contralytix" target="_blank" rel="noopener" aria-label="Contralytix sur TikTok" title="Contralytix sur TikTok"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z"/></svg></a></div>
   </footer>
 </div>
@@ -6371,7 +6407,7 @@ function renderTopbarActions(){
     }
   }
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true">DX</span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -10379,17 +10415,30 @@ const MANUAL_CHAPTERS = [
       <li><b>Fermé</b> — le compte a été volontairement fermé.</li>
     </ul>
     <h3>Filtrer et rechercher</h3>
-    <p>Une barre de filtres permet de rechercher un compte par trader, numéro de compte ou nom de PropFirm, et de filtrer par trader (choix multiple), PropFirm, type de compte, taille de compte et statut (choix multiple).</p>
+    <p>Une barre de filtres permet de rechercher un compte par trader, numéro de compte ou nom de PropFirm, et de filtrer par trader (choix multiple), PropFirm, type de compte, taille de compte, <b>plateforme</b> (Tradovate, Rithmic, DXfeed, ProjectX… — dès qu'au moins un compte en a une) et statut (choix multiple).</p>
     <h3>Totaux de la liste</h3>
     <p>Au-dessus des filtres, quatre cartes totalisent les comptes affichés, en tenant compte de tes filtres : <b>Dépenses</b>, <b>Payouts</b>, <b>Net profit</b> (payouts − dépenses) et <b>ROI</b>. Le net profit est calculé sur les comptes PA et Live, en incluant les dépenses du Challenge dont ils sont issus ; les challenges encore en cours ou breached restent dans les Dépenses mais ne pèsent pas sur le Net. Ces totaux portent sur toute la vie des comptes, depuis leur ouverture, et n'incluent pas les frais généraux.</p>
     <h3>Regrouper la liste</h3>
     <p>Des onglets <b>Tous / Challenge / PA · financé / Live</b>, avec leur compteur, filtrent la liste d'un clic. Le menu « Regrouper par… » organise ensuite les cartes par PropFirm, type, taille ou statut. Le regroupement par type réorganise la liste en trois blocs — Challenges, PA, Live — chacun avec son propre en-tête et son compteur, plutôt que de mélanger tous les comptes par date d'achat. Pratique pour comparer d'un coup d'œil tous les Challenges entre eux, ou tous les PA entre eux.</p>
     <h3>Créer un compte</h3>
-    <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
+    <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, la plateforme de trading (facultative), le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
     <h3>Ajout en masse</h3>
     <p>Le bouton « Ajout en masse » permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
+    <h3>Importer mes comptes</h3>
+    <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant <b>Deltalytix</b>, ou à partir de <b>captures d'écran</b> de la liste de tes comptes. Les deux se combinent dans le même import.</p>
+    <h3>Importer depuis Deltalytix (beta)</h3>
+    <p>Si tu suis déjà tes trades dans Deltalytix, clique « Connecter Deltalytix » : une petite fenêtre Deltalytix s'ouvre, tu te connectes et tu autorises Contralytix à <b>lire</b> tes comptes (aucun mot de passe n'est recopié, rien n'est modifié chez Deltalytix). Tes comptes arrivent ensuite dans l'écran de vérification :</p>
+    <ul>
+      <li><b>Numéro, taille et PropFirm</b> d'après Deltalytix ; le type (Challenge, PA, Live) est déduit du numéro, à vérifier.</li>
+      <li><b>Plateforme</b> (Tradovate, Rithmic…) avec son logo, et un filtre pour n'importer qu'une plateforme à la fois.</li>
+      <li><b>Date de début</b> propre à chaque compte : son premier jour tradé dans Deltalytix, utilisé comme date d'activation (PA, Live) ou d'achat (Challenge), avec le taux de change BCE de ce jour-là.</li>
+      <li><b>Comptes breached</b> (limite de perte atteinte d'après Deltalytix) mis de côté et décochés ; la case « Afficher les comptes breached » permet de les importer directement au statut Breached, avec la date de leur dernier trade.</li>
+      <li><b>Comptes masqués</b> dans Deltalytix et comptes de démo ignorés. Les payouts ne sont pas importés : tu les saisis toi-même.</li>
+    </ul>
+    <p>La barre de sélection propose « Tout cocher », « Tout décocher » et « Seulement les cochés » ; les comptes cochés sont mis en évidence.</p>
+    <h3>Mélanger Deltalytix et captures</h3>
+    <p>Après une capture, le bouton « Ajouter Deltalytix » ajoute tes comptes Deltalytix à la liste ; après Deltalytix, « Ajouter une capture » ajoute ceux qu'il ne connaît pas. Un compte trouvé des deux côtés n'apparaît qu'une fois, complété par l'autre source. Pour n'importer que tes comptes actifs, utilise <b>« Sélectionner d'après une capture »</b> : seuls les comptes visibles sur ta capture restent cochés (ceux que Deltalytix ne connaît pas sont ajoutés), puis « Ajouter une capture à la sélection » coche ceux des captures suivantes. Tu peux déposer plusieurs captures d'un coup, n'importe où dans la fenêtre.</p>
     <h3>Importer depuis une capture d'écran</h3>
-    <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant Deltalytix, ou à partir d'une simple capture de la liste de tes comptes.</p>
     ${manualShot('06d-import-capture.jpg', "Import par capture — choisis ta plateforme, suis l'exemple, puis colle ta capture.")}
     <ol>
       <li><b>Choisis ta plateforme</b> — Rithmic, ATAS, Tradovate, tableau de bord de ta prop firm, ou Autre. Chaque onglet montre un exemple de capture (numéros floutés) et les étapes pour obtenir le bon écran. Ce choix aide aussi la lecture.</li>
@@ -10402,6 +10451,8 @@ const MANUAL_CHAPTERS = [
     ${manualShot('06-comptes.jpg', "Liste des comptes, avec filtres et cartes détaillées par compte.")}
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
     <p>Sur un compte PA ou Live, la colonne <b>Net profit</b> affiche payouts − dépenses, en incluant le Challenge d'origine (« dont challenge … »). Sur un Challenge, elle renvoie au PA ou Live qui en est issu. Pour les abonnés Premium, une bande <b>Inactivité</b> sous chaque compte financé montre où il en est de la règle d'inactivité (voir chapitre 7).</p>
+    <h3>Comptes reliés à Deltalytix</h3>
+    <p>Si Deltalytix est connecté, chaque compte actif affiche la date de son <b>dernier trade</b> et sa <b>plateforme</b>. Le bouton <b>« Synchroniser »</b> en haut de la page Comptes met tout à jour (sinon, la synchronisation se fait seule à l'ouverture de l'application, au plus une fois par heure). Quand Deltalytix indique qu'un compte encore « Actif » a atteint sa limite de perte, un bandeau rouge te propose de le <b>passer en Breached</b> à la date de son dernier trade : rien ne change sans ta validation, et « Ne plus signaler ces comptes » met l'alerte de côté jusqu'à leur prochain trade.</p>
     ${manualShot('06c-comptes-inactivite.jpg', "Comptes PA avec les totaux filtrés en haut et la bande Inactivité sous chaque carte.")}
     <h3>Payouts</h3>
     ${manualShot('06-payouts.jpg', "Fenêtre Payouts d'un compte — devise, système de paiement, justificatif à la création et historique.")}
@@ -10426,7 +10477,8 @@ const MANUAL_CHAPTERS = [
     </ul>
     <p>Une PropFirm sans règle propre suit ta règle générale. Vérifie toujours les conditions exactes de ta PropFirm : le Radar applique la règle que tu as définie.</p>
     <h3>Pointer tes journées</h3>
-    <p>Contralytix n'est pas relié à ta plateforme : c'est toi qui indiques quand tu as tradé. Le bouton <b>« Pointer une journée · multi-comptes »</b> enregistre une journée tradée sur plusieurs comptes d'un coup ; « Dernier trade connu » indique la date de ton dernier trade sur un compte. Tant qu'aucun trade n'est connu, le compteur part prudemment de la date d'activation du compte — un bandeau te le rappelle.</p>
+    <p><b>Avec Deltalytix</b> (beta, voir chapitre 6) : chaque journée tradée et son P&amp;L net des commissions sont pointés automatiquement, y compris pour un quota mensuel du type « 2 journées à +50 $ ». Le bandeau du Radar indique la dernière synchronisation et propose « Synchroniser » ; si Deltalytix ne reçoit plus les trades d'une de tes plateformes depuis plus de 3 jours, une alerte te prévient que le Radar pourrait te croire inactif à tort.</p>
+    <p><b>Sans Deltalytix</b>, c'est toi qui indiques quand tu as tradé. Le bouton <b>« Pointer une journée · multi-comptes »</b> enregistre une journée tradée sur plusieurs comptes d'un coup ; « Dernier trade connu » indique la date de ton dernier trade sur un compte. Tant qu'aucun trade n'est connu, le compteur part prudemment de la date d'activation du compte — un bandeau te le rappelle.</p>
     <h3>Lire le Radar</h3>
     <p>Quatre tuiles résument la situation : <b>À trader en priorité</b>, <b>En cours · à surveiller</b>, <b>En règle</b> et <b>Ta règle</b>. Les comptes sont triés par urgence, avec une barre de progression, l'échéance et un badge :</p>
     <ul>
@@ -10439,6 +10491,8 @@ const MANUAL_CHAPTERS = [
     <p>Deux pages personnelles, accessibles depuis la barre latérale, regroupent les réglages propres à ton compte — distinctes de l'espace Admin, qui concerne l'ensemble du site.</p>
     <h3>Profil</h3>
     <p>Affiche l'adresse e-mail du compte (masquée par défaut, un bouton permet de la révéler ponctuellement), la date de création du compte, la formule en cours et le nombre de traders suivis. Un champ « Nom affiché » permet de remplacer l'adresse e-mail par un nom ou pseudonyme dans la barre latérale et les échanges avec le support — purement cosmétique, sans effet sur la connexion.</p>
+    <h3>Profil — Connexions</h3>
+    <p>Relie Deltalytix (beta) à Contralytix : « Connecter » ouvre la fenêtre d'autorisation Deltalytix ; une fois connecté, tu vois l'adresse du compte Deltalytix (masquée) et la date de dernière synchronisation, avec les boutons « Synchroniser » et « Déconnecter ». La déconnexion retire l'accès chez Deltalytix et dans Contralytix ; tes comptes et pointages déjà importés sont conservés.</p>
     <h3>Paramètres — Notifications</h3>
     <p>Trois préférences d'envoi d'email, chacune activable ou désactivable indépendamment :</p>
     <ul>
@@ -10683,6 +10737,7 @@ function viewConfidentialite(){
             <tr><td>Frais généraux</td><td>Frais liés à votre activité de trading mais non rattachés à un compte propfirm (abonnement, données de marché, hébergement, logiciels, formation...), montants, devises et dates</td><td>Saisis par vous dans la page Frais généraux</td></tr>
             <tr><td>Facturation</td><td>Formule choisie, statut d'abonnement, historique de facturation</td><td>Gérées par Stripe (voir section 4)</td></tr>
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
+            <tr><td>Données reçues de Deltalytix (beta)</td><td>Uniquement si vous connectez Deltalytix : numéros de vos comptes de trading, libellé de prop firm, taille, plateforme (Tradovate, Rithmic…), P&amp;L journalier (net des commissions) et jours tradés, indicateur « limite de perte atteinte », indicateur « compte masqué », date de dernière synchronisation de vos connexions broker, adresse e-mail de votre compte Deltalytix</td><td>Transmises par Deltalytix, à votre demande, après votre autorisation dans Deltalytix</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
           </table>
         </div>
@@ -10693,6 +10748,7 @@ function viewConfidentialite(){
             <li><b>Fourniture du service</b> (authentification, stockage et affichage de vos données PropFirm) — exécution du contrat liant l'éditeur et l'utilisateur.</li>
             <li><b>Gestion de l'abonnement et de la facturation</b> — exécution du contrat et obligations légales (comptabilité).</li>
             <li><b>Génération de la préparation de séance par IA</b> — exécution du contrat, à votre initiative, lorsque vous déclenchez cette fonctionnalité.</li>
+            <li><b>Connexion Deltalytix</b> (import de comptes, pointage automatique du Radar, dernier trade, comptes breached, plateforme) — exécution du contrat, à votre initiative : la connexion est facultative, se fait par une autorisation que vous donnez dans Deltalytix, et se retire à tout moment.</li>
             <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
             <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
             <li><b>Mode École (bilan collectif d'une école ou d'une communauté)</b> — uniquement si vous rejoignez une cohorte, sur la base de votre <b>consentement explicite</b>, retirable à tout moment en quittant la cohorte (vos données cessent alors immédiatement d'être comptées). L'école ne reçoit que des statistiques agrégées calculées par Contralytix (totaux, médiane, répartition, à partir de 5 membres actifs minimum), jamais votre identité, votre e-mail ni vos chiffres individuels. Si l'école active le bilan public, ces mêmes statistiques agrégées sont consultables par toute personne disposant du lien.</li>
@@ -10709,16 +10765,18 @@ function viewConfidentialite(){
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
-            <tr><td>Deltalytix (beta)</td><td>Si tu connectes Deltalytix : import de tes comptes, et P&amp;L journalier pour le Radar inactivité</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
+            <tr><td>Deltalytix (beta) — service tiers indépendant</td><td>Si tu connectes Deltalytix : import de tes comptes, P&amp;L journalier pour le Radar inactivité, dernier trade, comptes breached et plateforme de chaque compte. Contralytix ne fait que <b>lire</b> ces données (aucune écriture chez Deltalytix) ; Deltalytix les traite sous sa propre responsabilité, selon ses propres conditions</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
           <p>Ces prestataires sont soumis à leurs propres conditions et politiques de confidentialité, et n'utilisent vos données que pour exécuter la prestation demandée.</p>
+          <p><b>Deltalytix</b> n'est pas un sous-traitant de Contralytix : c'est un service indépendant auquel vous êtes inscrit et que vous choisissez de relier à Contralytix. Les données que vous y avez confiées restent régies par sa propre politique de confidentialité ; Contralytix n'y accède qu'en lecture, dans la limite des autorisations que vous avez accordées (profil, comptes, trades, métriques, connexions), et cesse d'y accéder dès que vous le déconnectez.</p>
         </div>
 
         <div class="rgpd-block">
           <h2>5. Durée de conservation</h2>
           <p>Les données de votre compte et de votre activité sont conservées tant que votre compte reste actif. En cas de suppression de compte, les données sont supprimées ou anonymisées dans un délai raisonnable, sous réserve des durées de conservation imposées par la loi (notamment les données de facturation, conservées le temps requis par les obligations comptables).</p>
+          <p><b>Connexion Deltalytix</b> : l'accès accordé par Deltalytix est conservé chiffré tant que la connexion est active. En la retirant (Profil → Connexions → Déconnecter), il est révoqué chez Deltalytix et supprimé de Contralytix immédiatement. Les comptes et pointages déjà importés restent dans votre espace, comme s'ils avaient été saisis à la main, jusqu'à leur suppression par vous ou celle de votre compte.</p>
         </div>
 
         <div class="rgpd-block">
@@ -10738,11 +10796,13 @@ function viewConfidentialite(){
         <div class="rgpd-block">
           <h2>7. Sécurité</h2>
           <p>L'accès aux données est protégé par une authentification sans mot de passe (code à usage unique envoyé par e-mail, ou connexion Google), et par des règles d'accès appliquées à chaque enregistrement (voir chapitre 22 du manuel). Les clés d'accès aux services tiers (paiement, IA) sont conservées côté serveur et ne sont jamais exposées au navigateur.</p>
+          <p><b>Deltalytix</b> : la connexion utilise le protocole d'autorisation standard OAuth 2.0 (avec PKCE) ; Contralytix ne voit jamais votre mot de passe Deltalytix ni vos identifiants broker. L'accès obtenu est chiffré (AES-256) côté serveur, n'est jamais transmis à votre navigateur, et ne donne que des droits de lecture.</p>
         </div>
 
         <div class="rgpd-block">
           <h2>8. Cookies et stockage local</h2>
           <p>Contralytix utilise le stockage nécessaire au fonctionnement de la session de connexion (maintien de votre session applicative) et n'utilise pas de cookies publicitaires ou de traceurs tiers à des fins de suivi commercial.</p>
+          <p>Si vous connectez Deltalytix, le résultat de la dernière synchronisation (dernier trade, comptes signalés breached) est gardé dans le stockage local de votre navigateur pour s'afficher sans attendre ; il est effacé à la déconnexion de Deltalytix.</p>
         </div>
 
         <div class="rgpd-block">
@@ -10795,6 +10855,7 @@ function viewMentionsLegales(){
         <div class="rgpd-block">
           <h2>3. Propriété intellectuelle</h2>
           <p>L'ensemble des éléments de Contralytix (structure, logo, charte graphique, textes, code source) est protégé par le droit d'auteur et le droit des marques, sauf mention contraire. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation préalable de l'éditeur, est interdite.</p>
+          <p>Les noms et logos de services tiers cités dans l'application (Deltalytix, Tradovate, Rithmic, DXfeed, ProjectX, ATAS, ainsi que les noms et logos des prop firms) sont des marques de leurs propriétaires respectifs. Ils sont utilisés uniquement pour désigner ces services et indiquer une compatibilité ; leur mention n'implique aucune affiliation, aucun partenariat ni aucune approbation de leur part.</p>
           <p>Les données que vous saisissez dans l'application (traders, comptes, dépenses, payouts, notes...) restent votre propriété. L'éditeur n'en revendique aucun droit d'usage au-delà de ce qui est nécessaire au fonctionnement du service, tel que décrit dans la page <a href="#" data-nav="confidentialite">Confidentialité / RGPD</a>.</p>
         </div>
 
@@ -10876,6 +10937,13 @@ function viewCGV(){
         <div class="rgpd-block">
           <h2>9. Responsabilité</h2>
           <p>L'éditeur met en œuvre les moyens raisonnables pour assurer l'exactitude et la disponibilité du Service, sans garantie de résultat. L'éditeur ne saurait être tenu responsable des pertes financières résultant de décisions de trading de l'Utilisateur, ni des conséquences d'une saisie erronée de données par l'Utilisateur lui-même. La responsabilité de l'éditeur, si elle est établie, est limitée au montant effectivement versé par l'Utilisateur au titre de son abonnement au cours des douze derniers mois.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>9 bis. Services tiers et connexion Deltalytix</h2>
+          <p>Le Service peut proposer une connexion facultative à des services tiers, notamment <b>Deltalytix</b> (fonctionnalité en version beta), pour importer des comptes, pointer automatiquement le Radar inactivité, afficher le dernier trade d'un compte, signaler un compte ayant atteint sa limite de perte ou indiquer sa plateforme de trading. Ces services sont édités par des tiers <b>indépendants de l'éditeur</b> : l'éditeur n'en est ni l'auteur, ni le partenaire, ni le distributeur, et l'Utilisateur doit disposer de son propre compte auprès d'eux, soumis à leurs propres conditions.</p>
+          <p>Les informations provenant d'un service tiers sont affichées telles qu'il les transmet. L'éditeur ne garantit ni leur exactitude, ni leur exhaustivité, ni la disponibilité du service tiers (retard de synchronisation, panne, évolution ou arrêt de son interface). Aucune modification n'est appliquée aux comptes de l'Utilisateur sans sa validation (création de comptes, passage en « Breached ») : il lui appartient de vérifier ces informations, en particulier auprès de sa prop firm, avant de valider ou de prendre une décision de trading. Le Radar inactivité reste un outil d'aide qui ne remplace pas les règles officielles de la prop firm.</p>
+          <p>L'Utilisateur peut retirer la connexion à tout moment depuis son Profil ; l'éditeur peut suspendre ou retirer une connexion à un service tiers, notamment si celui-ci modifie ses conditions d'accès.</p>
         </div>
 
         <div class="rgpd-block">
@@ -15759,14 +15827,14 @@ function dlxRadarStripHtml(){
   if(!d.available) return '';
   if(!d.connected){
     return `<div class="panel dlx-strip">
-      <span class="dlx-logo sm" aria-hidden="true">DX</span>
+      <span class="dlx-logo sm" aria-hidden="true"></span>
       <div class="dlx-strip-txt"><strong>Fini le pointage à la main.</strong> <span class="text-dim">Connecte Deltalytix : le P&amp;L de chaque journée remplit le radar tout seul (journées à +50 $ comprises).</span></div>
       <button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Connecter Deltalytix</button>
     </div>`;
   }
   const errTxt = d.lastError==='token_invalid' ? 'Accès expiré ou retiré : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
   return dlxStaleHtml() + dlxBreachBannerHtml() + `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
-    <span class="dlx-logo sm" aria-hidden="true">DX</span>
+    <span class="dlx-logo sm" aria-hidden="true"></span>
     <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? 'synchronisation en cours…' : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}</div>
     ${d.lastError==='token_invalid'
       ? `<button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Reconnecter</button>`
@@ -15846,11 +15914,11 @@ function dlxCardHealthHtml(a){
   const h = dlxHealthOf(a.id);
   if(!h) return '';
   if(h.breached){
-    return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true">DX</span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
+    return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true"></span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
   }
   // Marge avant drawdown et solde retirés (13/10/2026) : on garde seulement la date du dernier trade.
   if(!h.lastTradeDay) return '';
-  return `<div class="dlx-health" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true">DX</span><span>Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong></span></div>`;
+  return `<div class="dlx-health" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true"></span><span>Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong></span></div>`;
 }
 // Panneau du Profil
 function dlxProfilPanelHtml(){
@@ -15860,7 +15928,7 @@ function dlxProfilPanelHtml(){
     <div class="section-title" style="margin-bottom:4px;">Connexions</div>
     <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;line-height:1.5;">Relie un service qui suit déjà tes comptes pour les importer et remplir le radar automatiquement.</div>
     <div class="dlx-conn-row">
-      <span class="dlx-logo" aria-hidden="true">DX</span>
+      <span class="dlx-logo" aria-hidden="true"></span>
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;">Deltalytix <span class="badge badge-slate" style="margin-left:4px;">Beta</span></div>
         <div class="text-dim" style="font-size:12.5px;margin-top:2px;">${d.connected
@@ -16548,7 +16616,7 @@ const GD_HELP = {
       { sel:'.gd-next', title:'La prochaine étape', text:'Quand un compte attend quelque chose de toi (créer le PA, enregistrer un payout, indiquer ton dernier trade), c’est écrit ici, avec le bon bouton.' },
     ] },
   radar: { manual:'m-radar', intro:'Évite qu’un compte financé soit fermé parce que tu n’as pas tradé à temps.',
-    points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Ta règle par défaut : <b>un trade tous les 7 jours</b>. Modifiable dans ton Profil, avec des règles par PropFirm.','Contralytix n’est pas relié à ta plateforme : <b>pointe tes journées</b>, en un clic pour plusieurs comptes.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
+    points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Ta règle par défaut : <b>un trade tous les 7 jours</b>. Modifiable dans ton Profil, avec des règles par PropFirm.','<b>Pointe tes journées</b> en un clic pour plusieurs comptes, ou <b>connecte Deltalytix</b> (beta) pour qu’elles se pointent toutes seules.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
     actions:[{ icon:'check', label:'Pointer une journée', run:"gdCloseHelp();typeof dmOpenPointage==='function'&&dmOpenPointage()" },{ icon:'edit', label:'Indiquer mon dernier trade', run:"gdCloseHelp();dmOpenActivation(['all'])" },{ icon:'gear', label:'Régler ma règle (Profil)', run:"gdGo('profil');gdCloseHelp()" }],
     glossary:[['Délai glissant','au moins un trade (ou une journée au-dessus du seuil) tous les N jours.'],['Quota mensuel','N journées gagnantes à +X $ dans le mois calendaire.'],['Dernier trade connu','point de départ du compteur ; sans lui, la date d’activation du compte.']],
     tour:[
@@ -19058,7 +19126,7 @@ function captureImportModal(){
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
       <div class="cim-or"><span>ou</span></div>
       <button type="button" class="cim-tv-btn" id="cim-dlx">
-        <span class="dlx-logo" aria-hidden="true">DX</span>
+        <span class="dlx-logo" aria-hidden="true"></span>
         <span class="cim-tv-txt"><strong>${dlx().connected ? 'Importer depuis Deltalytix' : 'Connecter Deltalytix'}</strong><span>${dlx().connected ? 'Tes comptes reliés à Deltalytix (Tradovate, Rithmic…), avec leur taille et leur date de début.' : 'Connexion sécurisée chez Deltalytix : tes comptes Tradovate, Rithmic… sans rien copier.'}</span></span>
         ${icon('chevRight')}
       </button>
@@ -19753,7 +19821,7 @@ function captureImportModal(){
                  <button class="btn btn-ghost" id="cim-sel-end" ${busy?'disabled':''} title="Les captures suivantes ajouteront des comptes sans toucher à la sélection.">Terminer la sélection</button>`
               : `<button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
                  ${dlxDone ? `<button class="btn ${selectMode?'btn-primary':'btn-outline'}" id="cim-select-cap" ${busy?'disabled':''} title="Choisis une ou plusieurs captures de tes comptes actifs : seuls les comptes visibles dessus restent cochés, les autres sont décochés.">${icon(selectMode?'x':'check')}${selectMode?'Annuler la sélection':'Sélectionner d’après une capture'}</button>` : ''}`}
-            ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true">DX</span>Ajouter Deltalytix</button>`}
+            ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true"></span>Ajouter Deltalytix</button>`}
           </div>
           <span class="cim-top-hint">${(selectMode||selActive) ? (isTouch ? 'Tu peux choisir plusieurs captures d’un coup.' : 'Plusieurs captures possibles : dépose-les ici, choisis-les ensemble ou colle-les (Ctrl + V).') : (isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Captures : tu peux aussi les déposer ici ou les coller (Ctrl + V).')}</span>
           <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
