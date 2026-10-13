@@ -53,8 +53,8 @@ function slimAccount(a) {
     // Premier jour tradé : sert de date d'activation (PA) ou d'achat (challenge) à l'import.
     firstTradeDay: days.length ? days[0] : null,
     lastTradeDay: lastDay,
-    // Comptes masqués dans Deltalytix : pas encore exposé par l'API (champ lu s'il apparaît).
-    hidden: a.hidden === true || !!(a.group && /hidden/i.test(String(a.group.name || a.group))),
+    // Comptes masqués dans le tableau de bord Deltalytix (groupe « Hidden Accounts ») : ignorés à l'import.
+    hidden: a.hidden === true || !!(a.group && a.group.name === 'Hidden Accounts'),
   };
 }
 
