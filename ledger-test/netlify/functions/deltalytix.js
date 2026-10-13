@@ -39,7 +39,7 @@ async function allAccounts(token, deadline) {
 }
 
 // Plateforme de chaque compte, d'après les connexions broker Deltalytix (portée connections:read).
-const SERVICE_PLATFORM = { tradovate: 'TRADOVATE', rithmic: 'RITHMIC', 'rithmic-protocol': 'RITHMIC', ibkr: 'IBKR', dxfeed: 'DXFEED' };
+const SERVICE_PLATFORM = { tradovate: 'TRADOVATE', rithmic: 'RITHMIC', 'rithmic-protocol': 'RITHMIC', dxfeed: 'DXFEED', projectx: 'PROJECTX', topstepx: 'PROJECTX' };
 async function connectionsOf(token, deadline) {
   try {
     const body = await L.dltx(token, '/connections?limit=100', deadline);
