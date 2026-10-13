@@ -15584,7 +15584,8 @@ async function dlxMaybeAutoSync(){
   const d = await loadDlxStatus();
   if(!d.connected) return;
   const last = d.lastSyncAt ? Date.parse(d.lastSyncAt) : 0;
-  if(Date.now() - last > DLX_SYNC_EVERY_MS) dlxSync({ silent:true });
+  // Pas encore de santé des comptes en cache (1re fois sur cet appareil) : synchro tout de suite.
+  if(!d.health || Date.now() - last > DLX_SYNC_EVERY_MS) dlxSync({ silent:true });
 }
 // « Se connecter avec Deltalytix » (OAuth) : petite fenêtre Deltalytix, retour par postMessage
 // (même origine), jetons enregistrés chiffrés côté serveur (deltalytix-oauth.js).
