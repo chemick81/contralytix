@@ -716,6 +716,7 @@ th.th-sort-active svg{opacity:1;}
 .radar-rule-row.is-focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
 .radar-softer{display:inline-flex;align-items:flex-start;gap:5px;color:var(--gold);font-weight:600;}
 .radar-softer svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
+.dlx-sum{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 18px;padding-top:10px;margin-top:2px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-dim);}.dlx-sum-item{display:inline-flex;align-items:flex-start;gap:6px;line-height:1.45;}.dlx-sum-item svg{width:13px;height:13px;flex:none;margin-top:2px;color:var(--accent);}.dlx-sum-item b{color:var(--text);font-weight:600;}.dlx-sum-item.is-warn svg{color:var(--gold);}
 .dm-known-hint{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:var(--text-dim);}.dm-known-hint svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px;color:var(--accent);}
 .dm-softer-note{display:flex;gap:8px;align-items:flex-start;border-color:var(--gold) !important;}
 .dm-softer-note svg{width:15px;height:15px;color:var(--gold);flex-shrink:0;margin-top:2px;}
@@ -16291,11 +16292,14 @@ async function dlxSync(opts){
       const acc = h.platform && getAccount(h.accountId);
       if(acc && !acc.platform && PLATFORMS[h.platform] && canEdit(acc)) await upsert('accounts', { ...acc, platform: h.platform });
     }
+    // Journées tradées déjà connues AVANT la synchro, pour n'annoncer que les nouvelles.
+    const before = new Set((state.dormancyLogs||[]).filter(l=>l.traded && l.source==='deltalytix').map(l=>l.accountId+'|'+l.day));
     await loadDormancy();
+    const sum = dlxSyncSummary(r.data, before);
+    d.health.summary = sum; dlxSaveCache('health', d.health);
     if(!silent){
-      const m = r.data.matched||0;
       if(!dmEnabled()) showToast('Deltalytix synchronisé.');
-      else showToast(m ? `Radar mis à jour depuis Deltalytix : ${r.data.days} journée${r.data.days>1?'s':''} sur ${m} compte${m>1?'s':''}.` : 'Synchronisé, mais aucun de tes comptes financés actifs n’a été trouvé dans Deltalytix (vérifie les numéros).');
+      else showToast(dlxSyncToastText(sum), '', state.route!=='radar' ? ()=>{ state.route='radar'; render(); } : null);
     }
     render();
   } else {
@@ -16378,6 +16382,47 @@ function dlxDisconnect(){
     render();
   });
 }
+
+// Résumé lisible d'une synchro : comptes suivis / introuvables, nouvelles journées tradées.
+function dlxSyncSummary(data, before){
+  const funded = dmFundedAccounts();
+  const fundedIds = new Set(funded.map(a=>String(a.id)));
+  let matchedIds = Array.isArray(data.matchedIds) ? data.matchedIds.map(String) : null;
+  let missingIds = Array.isArray(data.missingIds) ? data.missingIds.map(String) : null;
+  if(!matchedIds){ // ancienne version de la fonction serveur : on déduit des journées Deltalytix connues
+    const withLogs = new Set((state.dormancyLogs||[]).filter(l=>l.source==='deltalytix').map(l=>String(l.accountId)));
+    matchedIds = funded.filter(a=>withLogs.has(String(a.id))).map(a=>String(a.id));
+    missingIds = funded.filter(a=>!withLogs.has(String(a.id))).map(a=>String(a.id));
+  }
+  matchedIds = matchedIds.filter(id=>fundedIds.has(id));
+  missingIds = (missingIds||[]).filter(id=>fundedIds.has(id));
+  const fresh = (state.dormancyLogs||[]).filter(l=>l.traded && l.source==='deltalytix' && !before.has(l.accountId+'|'+l.day));
+  const freshAcc = [...new Set(fresh.map(l=>String(l.accountId)))];
+  const lastDay = dmMax(fresh.map(l=>l.day));
+  return { at: data.syncedAt, funded: funded.length, matched: matchedIds.length, missingIds, newDays: fresh.length, newAccIds: freshAcc, lastNewDay: lastDay };
+}
+function dlxAccShort(id){ const a = getAccount(id); return a ? `${dmAccountName(a)}${a.accountNumber ? ' N° '+maskAccountNumber(a.accountNumber) : ''}` : 'Compte'; }
+function dlxSyncToastText(s){
+  if(!s.matched) return 'Deltalytix synchronisé, mais aucun de tes comptes financés n’y a été trouvé : vérifie que les numéros de compte sont identiques dans les deux outils.';
+  const parts = [`Deltalytix synchronisé : ${s.matched} compte${s.matched>1?'s':''} financé${s.matched>1?'s':''} sur ${s.funded} suivi${s.matched>1?'s':''} automatiquement.`];
+  if(s.newDays) parts.push(`${s.newDays} nouvelle${s.newDays>1?'s':''} journée${s.newDays>1?'s':''} tradée${s.newDays>1?'s':''} sur ${s.newAccIds.length} compte${s.newAccIds.length>1?'s':''}${s.lastNewDay ? ` (la plus récente : ${fmtDate(s.lastNewDay)})` : ''}.`);
+  else parts.push('Aucun nouveau trade depuis la dernière synchro.');
+  if(s.missingIds.length) parts.push(`${s.missingIds.length} compte${s.missingIds.length>1?'s':''} introuvable${s.missingIds.length>1?'s':''} : détail dans le Radar.`);
+  return parts.join(' ');
+}
+// Ligne de détail sous le bandeau Deltalytix du Radar (persistante, contrairement au toast).
+function dlxSyncSummaryHtml(){
+  const d = dlx(); const s = d.health && d.health.summary;
+  if(!s || d.syncing || d.lastError) return '';
+  const fundedNow = new Set(dmFundedAccounts().map(a=>String(a.id)));
+  const missing = (s.missingIds||[]).filter(id=>fundedNow.has(String(id)));
+  const news = s.newDays ? `${s.newDays} nouvelle${s.newDays>1?'s':''} journée${s.newDays>1?'s':''} tradée${s.newDays>1?'s':''} ajoutée${s.newDays>1?'s':''}` : 'aucun nouveau trade depuis la synchro précédente';
+  return `<div class="dlx-sum">
+    <span class="dlx-sum-item">${icon('check')}<b>${s.matched}/${s.funded}</b> compte${s.funded>1?'s':''} financé${s.funded>1?'s':''} suivi${s.matched>1?'s':''} par Deltalytix</span>
+    <span class="dlx-sum-item">${icon('calendar')}${news}</span>
+    ${missing.length ? `<span class="dlx-sum-item is-warn">${icon('alertTriangle')}<span>Introuvable${missing.length>1?'s':''} dans Deltalytix : ${missing.map(id=>`<b>${dlxAccShort(id)}</b>`).join(', ')}. Vérifie le numéro de compte, ou pointe ${missing.length>1?'ces comptes':'ce compte'} à la main.</span></span>` : ''}
+  </div>`;
+}
 // Bandeau de la page Radar
 function dlxRadarStripHtml(){
   const d = dlx();
@@ -16396,6 +16441,7 @@ function dlxRadarStripHtml(){
     ${d.lastError==='token_invalid'
       ? `<button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Reconnecter</button>`
       : `<button class="btn btn-outline btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button>`}
+    ${dlxSyncSummaryHtml()}
   </div>`;
 }
 // Connexions broker que Deltalytix n'a pas synchronisées depuis plusieurs jours : le radar peut se tromper.
