@@ -5493,8 +5493,8 @@ function bindMultiSelectDropdown(idPrefix, filterObj, arrField, openField, onCha
 // Filtre PropFirm à choix unique, avec logo (05/10/2026). Remplace les <select> natifs, qui ne
 // peuvent pas afficher d'image : même habillage pilule que renderMultiSelect, logo + nom dans le
 // bouton et dans chaque ligne du menu. filterObj.propfirm = id sélectionné ('' = toutes).
-function renderFirmSelect(idPrefix, value, open){
-  const firms = sortedFirms();
+function renderFirmSelect(idPrefix, value, open, firmsList){
+  const firms = firmsList || sortedFirms();
   const cur = value ? getFirm(value) : null;
   const label = cur
     ? `<span class="firm-name-inline">${firmLogoHtml(cur,16)}${escapeHtml(cur.name)}</span>`
@@ -16511,10 +16511,15 @@ function viewRadar(){
     return emptyState('clock', 'Radar inactivité indisponible', isAdmin() ? 'Les tables dormancy_* sont introuvables : exécute migration_dormance_dev_20261008.sql sur Supabase.' : 'Le module est en cours d’activation, réessaie un peu plus tard.');
   }
   if(!dmOptedIn()) return dmOptInViewHtml();
-  const all = dmAllResults();
-  if(!all.length){
+  const allAccounts = dmAllResults();
+  if(!allAccounts.length){
     return gdEmptyRadar();
   }
+  // Filtre PropFirm (14/10/2026) : tuiles, pastilles et liste suivent la PropFirm choisie.
+  const ff = state.dmFirmFilter || (state.dmFirmFilter = { propfirm:'', open:false });
+  const radarFirms = sortedFirms().filter(fm=>allAccounts.some(({a})=>String(a.propFirmId)===String(fm.id)));
+  if(ff.propfirm && !radarFirms.some(fm=>String(fm.id)===String(ff.propfirm))) ff.propfirm = '';
+  const all = ff.propfirm ? allAccounts.filter(({a})=>String(a.propFirmId)===String(ff.propfirm)) : allAccounts;
   const f = state.dmFilter || 'all';
   const counts = { crit:0, warn:0, ok:0, unconfirmed:0 };
   all.forEach(({r})=>{
@@ -16560,6 +16565,7 @@ function viewRadar(){
     </div>
     <div class="dm-filterbar">
       ${pill('all','Tous',all.length)}${pill('crit',hasMonthly?'Prioritaires':'Critique',counts.crit)}${pill('warn',hasMonthly?'En cours':'À surveiller',counts.warn)}${pill('ok','En règle',counts.ok)}
+      ${radarFirms.length > 1 ? renderFirmSelect('dm-firm', ff.propfirm, ff.open, radarFirms) : ''}
       <div style="flex:1"></div>
       <div class="text-dim" style="font-size:12.5px;">${dlx().connected && dlx().lastSyncAt ? 'Pointage automatique via Deltalytix' : unpointed ? `<a href="#" data-dm-pointage="1">${unpointed} jour${unpointed>1?'s':''} non pointé${unpointed>1?'s':''}</a>, compté${unpointed>1?'s':''} comme non tradé${unpointed>1?'s':''}` : 'Pointage à jour'}</div>
     </div>
@@ -16907,11 +16913,14 @@ function viewAdminInactivity(){
     return `<div class="panel" style="padding:18px;">${emptyState('hourglass', 'Table du catalogue introuvable', 'Exécute migration_regles_inactivite.sql sur Supabase, puis recharge la page. En attendant, le Radar applique le catalogue intégré au code (vérifié le ' + fmtDate(DM_CATALOG_VERSION) + ').')}</div>`;
   }
   const rows = (state.inactivityRules||[]).filter(r=>getFirm(r.propfirmId));
-  const firms = sortedFirms();
+  const af = state.admInactFilter || (state.admInactFilter = { propfirm:'', open:false });
+  if(af.propfirm && !getFirm(af.propfirm)) af.propfirm = '';
+  const rowsShown = af.propfirm ? rows.filter(r=>String(r.propfirmId)===String(af.propfirm)) : rows;
+  const firms = sortedFirms().filter(f=>!af.propfirm || String(f.id)===String(af.propfirm));
   const withRows = firms.filter(f=>dmTableRowsForFirm(f).length);
   const without = firms.filter(f=>!dmTableRowsForFirm(f).length);
   const toImport = admInactFirmsToImport();
-  const active = rows.filter(r=>r.active!==false);
+  const active = rowsShown.filter(r=>r.active!==false);
   const stale = active.filter(r=>!r.verifiedAt || dmDiff(String(r.verifiedAt).slice(0,10), todayISO()) > ADM_STALE_DAYS);
   const ruleRow = (f, row) => {
     const r = dmRowToRule(row);
@@ -16945,7 +16954,8 @@ function viewAdminInactivity(){
             ${stale.length ? `<span style="color:var(--gold);font-weight:600;">${icon('alertTriangle')} ${stale.length} à revérifier (plus de ${ADM_STALE_DAYS} jours)</span>` : ''}
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          ${renderFirmSelect('adm-inact-firm', af.propfirm, af.open)}
           ${toImport.length ? `<button class="btn btn-outline btn-sm" id="adm-inact-import">${icon('download')}Importer le catalogue Contralytix (${toImport.length})</button>` : ''}
           <button class="btn btn-primary btn-sm" data-adm-inact-new="">${icon('plus')}Ajouter une règle</button>
         </div>
@@ -17154,6 +17164,7 @@ async function admInactHistory(ruleId){
   });
 }
 function admInactBind(){
+  if(state.admInactFilter) bindFirmSelect('adm-inact-firm', state.admInactFilter, 'open');
   const imp = document.getElementById('adm-inact-import'); if(imp) imp.onclick = admInactImport;
   document.querySelectorAll('[data-adm-inact-new]').forEach(b=>b.onclick = ()=>admInactEditor(null, b.dataset.admInactNew || null));
   document.querySelectorAll('[data-adm-inact-edit]').forEach(b=>b.onclick = ()=>admInactEditor(b.dataset.admInactEdit));
@@ -17284,6 +17295,7 @@ function dmOpenRuleEditor(propfirmId){
 
 /* ---------- Liaison des événements (appelée depuis bindViewEvents) ---------- */
 function dmBindEvents(){
+  if(state.dmFirmFilter) bindFirmSelect('dm-firm', state.dmFirmFilter, 'open');
   document.querySelectorAll('[data-dm-detail]').forEach(el=>{
     const open = (e)=>{ if(e.target.closest('a,input,select,textarea')) return; dmOpenDetail(el.dataset.dmDetail); };
     el.onclick = open;
