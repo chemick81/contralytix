@@ -106,7 +106,7 @@
     {
       "@type": "Question",
       "name": "Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Les journées tradées se pointent en un clic pour plusieurs comptes, ou automatiquement si tu connectes Deltalytix (beta). Le Radar ne s'active que si tu le choisis." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, avec le Radar inactivité (formules Premium et Lifetime) : chaque compte financé suit la règle d'inactivité officielle de sa PropFirm (catalogue vérifié et sourcé de 14 PropFirms de futures) ou ta propre règle, et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Les journées tradées se pointent en un clic pour plusieurs comptes, ou automatiquement si tu connectes Deltalytix (beta). Le Radar ne s'active que si tu le choisis." }
     },
     {
       "@type": "Question",
@@ -435,6 +435,7 @@ th.th-sort-active svg{opacity:1;}
 .badge-danger{background:var(--danger-dim);color:var(--danger);}
 .badge-gold{background:var(--gold-dim);color:var(--gold);}
 .badge-slate{background:var(--slate-dim);color:var(--slate);}
+.badge-perso{background:var(--surface-3);color:var(--text);}
 .type-pill{display:inline-flex;align-items:center;padding:3px 11px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
 /* Types de compte (07/10/2026, maquette « A · Rail + étiquette forte ») : une couleur par thème
    (--type-*), une icône par type (cible / bouclier / pulsation) pour ne pas dépendre de la couleur seule. */
@@ -700,6 +701,28 @@ th.th-sort-active svg{opacity:1;}
   .radar-firm-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;}
   .radar-firm-name{grid-column:1 / -1;}
   .radar-firm-mode{grid-column:1 / -1;}
+}
+/* Radar 14/10/2026 : catalogue officiel + règles personnelles (4 modèles) */
+.radar-cat-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;}
+.radar-cat-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr) auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border-soft);font-size:12.5px;}
+.radar-cat-row:last-child{border-bottom:none;}
+.radar-cat-rule{color:var(--text-dim);line-height:1.45;}
+.radar-cat-meta{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;font-size:11.5px;}
+.radar-rule-row{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) minmax(0,1.4fr) auto;}
+.radar-rule-row select,.radar-rule-fields select{width:100%;min-width:0;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 8px;border-radius:var(--radius-sm);font-size:12.5px;font-family:inherit;}
+.radar-rule-fields{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;}
+.radar-rule-fields .radar-firm-in input{width:72px;flex:0 0 auto;}
+.radar-rule-fields .radar-firm-in select{width:auto;}
+.radar-rule-row.is-focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.radar-softer{display:inline-flex;align-items:flex-start;gap:5px;color:var(--gold);font-weight:600;}
+.radar-softer svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
+.dm-softer-note{display:flex;gap:8px;align-items:flex-start;border-color:var(--gold) !important;}
+.dm-softer-note svg{width:15px;height:15px;color:var(--gold);flex-shrink:0;margin-top:2px;}
+@media (max-width:640px){
+  .radar-cat-row{grid-template-columns:minmax(0,1fr);gap:4px;}
+  .radar-cat-meta{justify-content:flex-start;}
+  .radar-rule-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;}
+  .radar-rule-row .radar-firm-name{grid-column:1 / -1;}
 }
 .cim-or{display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:var(--text-faint);font-size:12px;}
 .cim-or::before,.cim-or::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -2346,7 +2369,7 @@ th.th-sort-active svg{opacity:1;}
       <div class="ml-tour-row">
         <div class="ml-tour-text">
           <h2>Ne perds plus un compte financé pour inactivité</h2>
-          <p>Un PA fermé parce que tu n'as pas tradé à temps, c'est un payout qui s'envole. Le Radar inactivité suit chaque compte financé selon ta règle — un trade tous les 7 jours, un seuil de P&amp;L, ou un quota mensuel par PropFirm — classe tes comptes par urgence et te prévient dès qu'il ne reste que 3 jours. Tu l'actives si tu veux, tu le coupes quand tu veux.</p>
+          <p>Un PA fermé parce que tu n'as pas tradé à temps, c'est un payout qui s'envole. Le Radar inactivité suit chaque compte financé selon la règle officielle de sa PropFirm — catalogue vérifié et sourcé de 14 PropFirms de futures — ou ta propre règle, classe tes comptes par urgence et te prévient dès qu'il ne reste que 3 jours. Tu l'actives si tu veux, tu le coupes quand tu veux.</p>
         </div>
         <div class="ml-tour-visual">
           <div class="ml-browser-frame">
@@ -2522,7 +2545,7 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Contralytix peut-il m'éviter une fermeture de compte pour inactivité ?</summary>
-          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : tu définis ta règle — un trade tous les 7 jours par défaut, un seuil de P&amp;L, ou un quota mensuel propre à une PropFirm — et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Tes journées tradées se pointent en un clic pour plusieurs comptes, ou <b>automatiquement si tu connectes Deltalytix</b> (beta), qui transmet ton P&amp;L de chaque journée. Le Radar ne s'active que si tu le choisis.</p>
+          <p>Oui, avec le Radar inactivité (formules Premium et Lifetime) : chaque compte financé suit la règle d'inactivité officielle de sa PropFirm (catalogue vérifié et sourcé de 14 PropFirms de futures) ou ta propre règle, et Contralytix classe tes comptes financés par urgence et t'alerte dès qu'il reste 3 jours. Tes journées tradées se pointent en un clic pour plusieurs comptes, ou <b>automatiquement si tu connectes Deltalytix</b> (beta), qui transmet ton P&amp;L de chaque journée. Le Radar ne s'active que si tu le choisis.</p>
         </details>
         <details class="ml-faq-item" id="ml-faq-deltalytix">
           <summary>Contralytix fonctionne-t-il avec Deltalytix ?</summary>
@@ -10468,21 +10491,28 @@ const MANUAL_CHAPTERS = [
     <h3>Un outil à ton choix</h3>
     <p>Le Radar demande de pointer tes journées tradées : il est donc <b>désactivé par défaut</b>. Active-le depuis la page Radar inactivité (« Activer le Radar ») ou depuis <b>Profil → Radar inactivité</b> (case « Utiliser le Radar inactivité »). Tu peux le désactiver à tout moment au même endroit : plus de bandeau, d'alerte, de bande sur les cartes ni de pointage. Tes réglages et ton historique de pointage sont conservés pour le jour où tu le réactives. Il suit tous les comptes financés de ton trader, y compris ceux qu'un administrateur ou un coach aurait créés pour toi.</p>
     ${manualShot('19-radar.jpg', "Radar inactivité — tuiles de synthèse, filtres et comptes triés par urgence.")}
-    <h3>Ta règle</h3>
-    <p>Par défaut, une seule règle s'applique à tous tes comptes financés, la plus prudente : <b>au moins un trade tous les 7 jours</b>. Tu la règles dans <b>Profil → Radar inactivité</b> : délai entre deux trades (1 à 90 jours) et, si tu veux, un <b>seuil de P&amp;L</b> — seule une journée à ce montant ou plus compte alors comme active.</p>
-    <p>Pour les PropFirms qui ont leur propre exigence, tu peux ajouter une <b>règle par PropFirm</b>, de deux types :</p>
+    <h3>Les règles appliquées</h3>
+    <p>Chaque compte financé suit, dans cet ordre :</p>
     <ul>
-      <li><b>Délai glissant</b> — au moins un trade (ou une journée au-dessus du seuil) tous les N jours.</li>
-      <li><b>Quota mensuel</b> — un nombre de journées gagnantes à +X $ ou plus dans le mois calendaire (par exemple 2 journées à +50 $). Une perte ne compte pas, et les journées doivent être différentes.</li>
+      <li><b>Ta règle personnelle</b>, si tu en as créé une pour cette PropFirm et ce type de compte (PA, Live, ou les deux). Elle remplace la règle officielle ; si elle est plus souple, un avertissement te le signale.</li>
+      <li><b>La règle officielle</b> de la PropFirm, tirée du catalogue Contralytix : 14 PropFirms de futures (Apex, Bulenox, FFN, Funded Futures Family, FundedNext, Legends, Lucid, My Funded Futures, Phidias, Take Profit Trader, Taurus, Topstep, TradeDay, Tradeify), vérifiées sur leurs pages officielles, avec la date de vérification et le lien vers la source. Un badge précise la fiabilité : « Règle officielle », « Source secondaire » (page officielle illisible, règle recoupée) ou « Règle non vérifiée ».</li>
+      <li><b>Ta règle générale</b> pour une PropFirm absente du catalogue : par défaut <b>au moins un trade tous les 7 jours</b>, avec un seuil de P&amp;L optionnel.</li>
     </ul>
-    <p>Une PropFirm sans règle propre suit ta règle générale. Vérifie toujours les conditions exactes de ta PropFirm : le Radar applique la règle que tu as définie.</p>
+    <p>Une règle personnelle se crée dans <b>Profil → Radar inactivité</b> (ou « Personnaliser » sur une règle du catalogue), avec l'un de ces quatre modèles ; une phrase résume la règle pendant la saisie :</p>
+    <ul>
+      <li><b>Délai max sans trade</b> — au moins un trade tous les N jours, en jours calendaires ou en <b>jours de bourse</b> (week-ends et jours fériés du CME exclus), avec un seuil de P&amp;L optionnel.</li>
+      <li><b>1 jour tradé par semaine</b> — du lundi au vendredi, du dimanche au vendredi ou du lundi au dimanche.</li>
+      <li><b>Jours qualifiants sur une fenêtre</b> — par exemple 2 jours à +50 $ de gain sur 30 jours glissants (Apex), ou 3 jours à 5 $ de gain ou de perte sur 29 jours (FFN). Le seuil compte le gain seulement, ou le gain ou la perte.</li>
+      <li><b>Quota mensuel</b> — un nombre de journées différentes à +X $ ou plus dans le mois calendaire.</li>
+    </ul>
+    <p>Certaines PropFirms ont plusieurs types de compte avec des règles différentes (Apex : PA récents ou « Legacy » achetés avant le 1er mars 2026 ; FundedNext : compte après challenge ou Direct Funded). Le Radar choisit automatiquement quand il le peut ; tu peux corriger le choix dans le détail du compte. Les PropFirms changent parfois leurs règles sans préavis : vérifie toujours les conditions de la tienne.</p>
     <h3>Pointer tes journées</h3>
-    <p><b>Avec Deltalytix</b> (beta, voir chapitre 6) : chaque journée tradée et son P&amp;L net des commissions sont pointés automatiquement, y compris pour un quota mensuel du type « 2 journées à +50 $ ». Le bandeau du Radar indique la dernière synchronisation et propose « Synchroniser » ; si Deltalytix ne reçoit plus les trades d'une de tes plateformes depuis plus de 3 jours, une alerte te prévient que le Radar pourrait te croire inactif à tort.</p>
+    <p><b>Avec Deltalytix</b> (beta, voir chapitre 6) : chaque journée tradée et son P&amp;L net des commissions sont pointés automatiquement, y compris pour une règle à seuil du type « 2 journées à +50 $ ». Les journées sont celles de Deltalytix (date UTC d'ouverture du trade) : un trade ouvert entre minuit et 2 h, heure de Paris, compte pour la veille. Sur un même jour, la donnée Deltalytix prime sur ton pointage manuel. Le bandeau du Radar indique la dernière synchronisation et propose « Synchroniser » ; si Deltalytix ne reçoit plus les trades d'une de tes plateformes depuis plus de 3 jours, une alerte te prévient que le Radar pourrait te croire inactif à tort.</p>
     <p><b>Sans Deltalytix</b>, c'est toi qui indiques quand tu as tradé. Le bouton <b>« Pointer une journée · multi-comptes »</b> enregistre une journée tradée sur plusieurs comptes d'un coup ; « Dernier trade connu » indique la date de ton dernier trade sur un compte. Tant qu'aucun trade n'est connu, le compteur part prudemment de la date d'activation du compte — un bandeau te le rappelle.</p>
     <h3>Lire le Radar</h3>
-    <p>Quatre tuiles résument la situation : <b>À trader en priorité</b>, <b>En cours · à surveiller</b>, <b>En règle</b> et <b>Ta règle</b>. Les comptes sont triés par urgence, avec une barre de progression, l'échéance et un badge :</p>
+    <p>Quatre tuiles résument la situation : <b>À trader en priorité</b>, <b>En cours · à surveiller</b>, <b>En règle</b> et <b>Règles appliquées</b>. Les comptes sont triés par urgence, avec une barre de progression, l'échéance et un badge :</p>
     <ul>
-      <li><b>Délai glissant</b> — En règle, À surveiller (3 jours ou moins), Critique (1 jour ou moins), puis Délai dépassé.</li>
+      <li><b>Délai, semaine ou fenêtre</b> — En règle, À surveiller (3 jours ou moins), Critique (1 jour ou moins), puis Délai dépassé. « Aucune règle » pour une PropFirm sans exigence d'activité (Phidias).</li>
       <li><b>Quota mensuel</b> — rouge « À faire » (aucune journée validée), jaune « En cours » (au moins une), vert « Validé ce mois », et rouge « Alerte fin de mois » s'il manque des journées à 10 jours de la fin du mois.</li>
     </ul>
     <h3>Alertes</h3>
@@ -14720,29 +14750,128 @@ async function deleteMyAccount(code){
     if(btn){ btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
   }
 }
-// Réglage du Radar inactivité (Profil) : règle générale (délai maximum entre deux trades + seuil de P&L
-// optionnel) et, si le trader le souhaite, une règle propre à certaines PropFirms.
-// Stockés dans profiles.radar_max_days / radar_pnl_threshold / radar_firm_rules (migration_radar_simplifie.sql).
+// Réglage du Radar inactivité (Profil), 14/10/2026 :
+//  - règles officielles du catalogue (DM_CATALOG) pour les PropFirms du trader, en lecture ;
+//  - règles personnelles (PropFirm + type de compte, 4 modèles), qui remplacent la règle officielle ;
+//  - règle générale pour les PropFirms hors catalogue.
+// Stockés dans profiles.radar_max_days / radar_pnl_threshold / radar_firm_rules (aucune migration :
+// clés "<propFirmId>|ALL|PA|LIVE" → spec, et "__variants" → { accountId: id de variante }).
 function radarFirmDraft(){
-  if(!state.radarFirmDraft) state.radarFirmDraft = JSON.parse(JSON.stringify(dmFirmRules()));
+  if(!state.radarFirmDraft) state.radarFirmDraft = JSON.parse(JSON.stringify(dmPersoRules()));
   return state.radarFirmDraft;
+}
+const RADAR_MODEL_LABELS = { GAP:'Délai max sans trade', WEEKLY:'1 jour tradé par semaine', WINDOW:'Jours qualifiants sur une fenêtre', MONTHLY:'Quota mensuel' };
+function radarDefaultSpec(model, from){
+  from = from || {};
+  if(model==='GAP') return { model, days: from.days || from.window || dmPersonalSettings().maxDays, unit:'cal', threshold:null, thrMode:'ABS' };
+  if(model==='WEEKLY') return { model, week:'MF' };
+  if(model==='WINDOW') return { model, count: from.count || from.days || 2, window: from.window || from.days || 30, threshold: from.threshold || 50, thrMode: from.thrMode || 'POS' };
+  if(model==='MONTHLY') return { model, days: from.count || 2, threshold: from.threshold || 50, thrMode:'POS' };
+  return { model:'GAP', days:7, unit:'cal' };
+}
+// Règle officielle par défaut pour une PropFirm et un type (variante par défaut).
+function radarOfficialFor(firmId, type){
+  const firm = getFirm(firmId);
+  const types = type==='ALL' ? ['PA','LIVE'] : [type];
+  const out = [];
+  types.forEach(t=>{ const list = dmCatalogRulesFor(firm, t); if(!list.length) return;
+    const r = list.find(x=>x.isDefault) || list[0];
+    if(!out.some(o=>o.rule.id===r.id)) out.push({ type:t, rule:r }); });
+  return out;
+}
+function radarDraftHintHtml(key, raw){
+  const [id, type] = key.split('|');
+  const spec = dmNormSpec(raw);
+  if(!spec) return `<span class="text-danger">Règle incomplète : vérifie les valeurs.</span>`;
+  const off = radarOfficialFor(id, type);
+  const softer = off.map(o=>({ o, why: dmSpecSofter(spec, o.rule.spec) })).filter(x=>x.why);
+  let html = `<span>${escapeHtml(dmSpecSentence(spec))}.</span>`;
+  if(softer.length){
+    const x = softer[0];
+    html += ` <span class="radar-softer">${icon('alertTriangle')}Plus souple que la règle officielle (${escapeHtml(dmSpecSentence(x.o.rule.spec).toLowerCase())}) : ${escapeHtml(x.why)}.</span>`;
+  } else if(off.length){
+    html += ` <span class="text-faint">Remplace la règle officielle (${escapeHtml(dmSpecSentence(off[0].rule.spec).toLowerCase())}).</span>`;
+  } else {
+    html += ` <span class="text-faint">Hors catalogue : remplace ta règle générale.</span>`;
+  }
+  return html;
+}
+function radarRuleFieldsHtml(key, r){
+  const k = escapeHtml(key);
+  const num = (f, v, min, max, aria) => `<input type="number" min="${min}" max="${max}" step="1" data-rf-key="${k}" data-rf-f="${f}" value="${escapeHtml(v ?? '')}" aria-label="${aria}"/>`;
+  const thrMode = `<select data-rf-key="${k}" data-rf-f="thrMode" aria-label="Type de seuil"><option value="ABS" ${r.thrMode!=='POS'?'selected':''}>gain ou perte</option><option value="POS" ${r.thrMode==='POS'?'selected':''}>gain seulement</option></select>`;
+  const thrIn = (ph) => `<input type="number" min="0" step="1" placeholder="${ph}" data-rf-key="${k}" data-rf-f="threshold" value="${escapeHtml(r.threshold ?? '')}" aria-label="Seuil de P&L en dollars"/><span class="text-dim">$</span>`;
+  if(r.model==='WEEKLY') return `<div class="radar-firm-in"><span class="text-dim">Semaine</span><select data-rf-key="${k}" data-rf-f="week" aria-label="Bornes de la semaine">${Object.keys(DM_WEEK_DEF).map(w=>`<option value="${w}" ${r.week===w?'selected':''}>${DM_WEEK_DEF[w].label}</option>`).join('')}</select></div>`;
+  if(r.model==='WINDOW') return `<div class="radar-firm-in">${num('count', r.count, 1, 20, 'Nombre de jours qualifiants')}<span class="text-dim">jours sur</span>${num('window', r.window, 1, 90, 'Fenêtre glissante en jours')}<span class="text-dim">jours</span></div>
+    <div class="radar-firm-in"><span class="text-dim">seuil</span>${thrIn('aucun')}${thrMode}</div>`;
+  if(r.model==='MONTHLY') return `<div class="radar-firm-in">${num('days', r.days, 1, 20, 'Journées par mois')}<span class="text-dim">journées par mois, à +</span>${thrIn('aucun')}<span class="text-dim">de gain</span></div>`;
+  // GAP
+  return `<div class="radar-firm-in">${num('days', r.days, 1, 90, 'Délai en jours')}<select data-rf-key="${k}" data-rf-f="unit" aria-label="Unité"><option value="cal" ${r.unit!=='trading'?'selected':''}>jours calendaires</option><option value="trading" ${r.unit==='trading'?'selected':''}>jours de bourse</option></select></div>
+    ${r.unit==='trading' ? '' : `<div class="radar-firm-in"><span class="text-dim">seuil</span>${thrIn('aucun')}${thrMode}</div>`}`;
+}
+function radarCatalogListHtml(){
+  const myFirmIds = new Set((state.accounts||[]).filter(a=>isMineAccount(a) && (a.type==='PA'||a.type==='LIVE')).map(a=>String(a.propFirmId)));
+  // Entrées du catalogue reliées à une PropFirm de l'app (pour « Personnaliser »).
+  const firmOfEntry = e => sortedFirms().filter(f=>dmCatalogFirm(f)===e);
+  const showAll = !!state.radarShowCatalog;
+  const entries = DM_CATALOG.filter(e=>showAll || firmOfEntry(e).some(f=>myFirmIds.has(String(f.id))));
+  const rows = entries.map(e=>{
+    const firms = firmOfEntry(e);
+    const f = firms.find(x=>myFirmIds.has(String(x.id))) || firms[0] || null;
+    const logo = firmLogoHtml(f || { name:e.name, website:e.domains[0] }, 22);
+    return e.rules.map(r=>{
+      const c = DM_CONF_META[r.conf] || DM_CONF_META.unverified;
+      const type = r.types.length>1 ? 'ALL' : r.types[0];
+      const key = f ? `${f.id}|${type}` : '';
+      return `<div class="radar-cat-row">
+        <div class="radar-firm-name">${logo}<div style="min-width:0;line-height:1.3;"><div>${escapeHtml(e.name)}</div><div class="text-faint" style="font-weight:500;font-size:11.5px;">${escapeHtml(r.label)}</div></div></div>
+        <div class="radar-cat-rule">${escapeHtml(dmSpecSentence(r.spec))}</div>
+        <div class="radar-cat-meta"><span class="badge ${c.badge}" title="${escapeHtml(c.hint)}">${c.label}</span><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="text-faint">source ↗</a>${key ? `<button type="button" class="btn btn-ghost btn-sm" data-rf-custom="${escapeHtml(key)}" data-rf-from="${escapeHtml(r.id)}" title="Créer ta propre règle à partir de celle-ci">Personnaliser</button>` : ''}</div>
+      </div>`;
+    }).join('');
+  }).join('');
+  return `<div class="radar-cat-list">${rows || `<div class="text-faint" style="font-size:12.5px;padding:8px 0;">Aucune de tes PropFirms n’est encore au catalogue : ta règle générale s’applique.</div>`}</div>
+    <button type="button" class="btn btn-ghost btn-sm" id="radar-cat-toggle" style="margin-top:6px;">${showAll ? 'Seulement mes PropFirms' : `Voir tout le catalogue (${DM_CATALOG.length} PropFirms)`}</button>`;
 }
 function radarSettingsPanelHtml(){
   const premium = perms().isPremium;
   const { maxDays, threshold } = dmPersonalSettings();
   const draft = premium ? radarFirmDraft() : {};
   const fundedCount = id => (state.accounts||[]).filter(a=>isMineAccount(a) && String(a.propFirmId)===String(id) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF').length;
-  const available = sortedFirms().filter(f=>!draft[String(f.id)]).sort((x,y)=>fundedCount(y.id)-fundedCount(x.id));
+  const firmsForAdd = sortedFirms().slice().sort((x,y)=>fundedCount(y.id)-fundedCount(x.id) || x.name.localeCompare(y.name,'fr',{sensitivity:'base'}));
   return `<div class="panel" style="padding:20px;">
     <div class="section-title" style="margin-bottom:4px;display:flex;align-items:center;gap:8px;">Radar inactivité ${premium ? '' : '<span class="badge badge-gold">Premium</span>'}</div>
-    <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;line-height:1.5;">Une règle générale pour tes comptes funded, par défaut ${DM_DEFAULT_MAX_DAYS} jours : la règle la plus stricte couvre celles de la plupart des prop firms. Un rappel s’affiche à la connexion quand un compte arrive à ${DM_ALERT_DAYS} jours ou moins.</div>
+    <div class="text-faint" style="font-size:12.5px;margin-bottom:14px;line-height:1.5;">Chaque compte financé suit la règle d’inactivité officielle de sa PropFirm. Tu peux la remplacer par ta propre règle. Un rappel s’affiche à la connexion quand un compte arrive à ${DM_ALERT_DAYS} jours ou moins.</div>
     ${premium ? `
     <label class="radar-optin">
       <input type="checkbox" id="radar-optin" ${dmOptedIn()?'checked':''} onchange="this.checked ? dmSetOptIn(true) : (this.checked = true, dmDisableConfirm())"/>
       <span><b>Utiliser le Radar inactivité</b><br/><span class="text-faint">Alertes avant fermeture pour inactivité, en pointant tes journées tradées. Désactivé : ni bandeau, ni popup, ni pointage.</span></span>
     </label>
     ${dmOptedIn() ? `
-    <div class="radar-sub">Règle générale</div>
+    <div id="radar-rules-anchor"></div>
+    <div class="radar-sub">Règles officielles de tes PropFirms</div>
+    <div class="text-faint" style="font-size:12px;margin-bottom:10px;line-height:1.5;">Appliquées automatiquement. Catalogue vérifié le ${fmtDate(DM_CATALOG_VERSION)} sur les pages officielles des PropFirms ; les règles changent parfois sans préavis, garde un œil sur les annonces de la tienne.</div>
+    ${radarCatalogListHtml()}
+
+    <div class="radar-sub" style="margin-top:18px;">Mes règles personnelles <span class="text-faint" style="font-weight:500;">· optionnel</span></div>
+    <div class="text-faint" style="font-size:12px;margin-bottom:10px;line-height:1.5;">Pour une PropFirm absente du catalogue, une règle qui a changé, ou pour te garder une marge. Ta règle <strong>remplace</strong> la règle officielle pour la PropFirm et le type de compte choisis.</div>
+    ${Object.keys(draft).length ? `<div class="radar-firm-list">
+      ${Object.keys(draft).map(key=>{ const [id, type] = key.split('|'); const f = getFirm(id); const r = draft[key] || {}; const k = escapeHtml(key); return `
+        <div class="radar-firm-row radar-rule-row ${state.radarFocusKey===key ? 'is-focus' : ''}" data-rf-row="${k}">
+          <div class="radar-firm-name">${firmLogoHtml(f, 22)}<span>${escapeHtml(f ? f.name : '—')}</span></div>
+          <select data-rf-type="${k}" aria-label="Type de compte">${Object.keys(DM_PERSO_TYPES).map(t=>`<option value="${t}" ${type===t?'selected':''}>${DM_PERSO_TYPES[t]}</option>`).join('')}</select>
+          <select data-rf-model="${k}" aria-label="Type de règle">${Object.keys(RADAR_MODEL_LABELS).map(m=>`<option value="${m}" ${r.model===m?'selected':''}>${RADAR_MODEL_LABELS[m]}</option>`).join('')}</select>
+          <button type="button" class="btn btn-ghost btn-sm" data-rf-del="${k}" title="Supprimer : la règle officielle (ou générale) s’appliquera de nouveau" aria-label="Supprimer">${icon('x')}</button>
+          <div class="radar-rule-fields">${radarRuleFieldsHtml(key, r)}</div>
+          <div class="radar-firm-hint" data-rf-hint="${k}">${radarDraftHintHtml(key, r)}</div>
+        </div>`; }).join('')}
+    </div>` : ''}
+    <select id="radar-firm-add" class="radar-firm-add">
+      <option value="">+ Créer une règle pour une PropFirm…</option>
+      ${firmsForAdd.map(f=>{ const n = fundedCount(f.id); const cat = dmCatalogFirm(f); return `<option value="${escapeHtml(String(f.id))}">${escapeHtml(f.name)}${n ? ` · ${n} compte${n>1?'s':''} funded` : ''}${cat ? '' : ' · hors catalogue'}</option>`; }).join('')}
+    </select>
+
+    <div class="radar-sub" style="margin-top:18px;">Règle générale <span class="text-faint" style="font-weight:500;">· PropFirms hors catalogue</span></div>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
       <div class="field" style="margin:0;"><label>Délai maximum entre deux trades</label>
         <div style="display:flex;align-items:center;gap:8px;"><input type="number" id="radar-max-days" min="1" max="90" step="1" value="${maxDays}"/><span class="text-dim" style="font-size:12.5px;">jours</span></div>
@@ -14751,48 +14880,37 @@ function radarSettingsPanelHtml(){
         <div style="display:flex;align-items:center;gap:8px;"><span class="text-dim" style="font-size:12.5px;">±</span><input type="number" id="radar-threshold" min="0" step="1" placeholder="Aucun" value="${threshold ?? ''}"/><span class="text-dim" style="font-size:12.5px;">$</span></div>
       </div>
     </div>
-    <div class="field-hint" style="margin-top:8px;">Seuil : si ta prop firm exige un jour à au moins X $ de gain ou de perte, indique-le. Seuls ces jours remettront le compteur à zéro. Laisse vide si un simple trade suffit.</div>
-
-    <div class="radar-sub" style="margin-top:18px;">Règles par PropFirm <span class="text-faint" style="font-weight:500;">· optionnel</span></div>
-    <div class="text-faint" style="font-size:12px;margin-bottom:10px;line-height:1.5;">Pour une PropFirm dont la règle est différente. <strong>Délai glissant</strong> : un trade (ou un jour à ±X $) tous les N jours. <strong>Quota mensuel</strong> : N journées différentes à +X $ ou plus dans le mois calendaire (ex. Apex : 2 journées à +50 $). Les autres PropFirms suivent la règle générale.</div>
-    ${Object.keys(draft).length ? `<div class="radar-firm-list">
-      ${Object.keys(draft).map(id=>{ const f = getFirm(id); const r = draft[id] || {}; return `
-        <div class="radar-firm-row">
-          <div class="radar-firm-name">${firmLogoHtml(f, 22)}<span>${escapeHtml(f ? f.name : '—')}</span></div>
-          <select class="radar-firm-mode" data-rf-mode="${escapeHtml(id)}" aria-label="Type de règle">
-            <option value="ROLLING" ${r.mode!=='MONTHLY'?'selected':''}>Délai glissant</option>
-            <option value="MONTHLY" ${r.mode==='MONTHLY'?'selected':''}>Quota mensuel</option>
-          </select>
-          ${r.mode==='MONTHLY' ? `
-          <div class="radar-firm-in"><input type="number" min="1" max="20" step="1" data-rf-days="${escapeHtml(id)}" value="${escapeHtml(r.days ?? '')}" aria-label="Nombre de journées par mois"/><span class="text-dim">j/mois</span></div>
-          <div class="radar-firm-in"><span class="text-dim">+</span><input type="number" min="0" step="1" placeholder="Aucun" data-rf-thr="${escapeHtml(id)}" value="${escapeHtml(r.threshold ?? '')}" aria-label="Gain minimum par journée en dollars"/><span class="text-dim">$</span></div>` : `
-          <div class="radar-firm-in"><input type="number" min="1" max="90" step="1" data-rf-days="${escapeHtml(id)}" value="${escapeHtml(r.maxDays ?? '')}" aria-label="Délai en jours"/><span class="text-dim">jours</span></div>
-          <div class="radar-firm-in"><span class="text-dim">±</span><input type="number" min="0" step="1" placeholder="Aucun" data-rf-thr="${escapeHtml(id)}" value="${escapeHtml(r.threshold ?? '')}" aria-label="Seuil de P&L en dollars"/><span class="text-dim">$</span></div>`}
-          <button type="button" class="btn btn-ghost btn-sm" data-rf-del="${escapeHtml(id)}" title="Retirer : cette PropFirm suivra la règle générale" aria-label="Retirer">${icon('x')}</button>
-          <div class="radar-firm-hint">${r.mode==='MONTHLY'
-            ? `Chaque mois : ${escapeHtml(String(r.days||'N'))} journée(s) différente(s)${r.threshold ? ` à +${escapeHtml(String(r.threshold))} $ ou plus de gain` : ' tradée(s)'}. Alerte à ${DM_MONTHLY_ALERT_DAYS} jours de la fin du mois.`
-            : `Au plus ${escapeHtml(String(r.maxDays||'N'))} jours entre deux trades${r.threshold ? ` (jour à ±${escapeHtml(String(r.threshold))} $ ou plus)` : ''}.`}</div>
-        </div>`; }).join('')}
-    </div>` : ''}
-    ${available.length ? `<select id="radar-firm-add" class="radar-firm-add">
-      <option value="">+ Ajouter une règle pour une PropFirm…</option>
-      ${available.map(f=>{ const n = fundedCount(f.id); return `<option value="${escapeHtml(String(f.id))}">${escapeHtml(f.name)}${n ? ` · ${n} compte${n>1?'s':''} funded` : ''}</option>`; }).join('')}
-    </select>` : ''}
+    <div class="field-hint" style="margin-top:8px;">S’applique aux PropFirms absentes du catalogue sans règle personnelle, par défaut ${DM_DEFAULT_MAX_DAYS} jours. Seuil : seuls les jours à au moins X $ de gain ou de perte remettent le compteur à zéro.</div>
 
     <div id="radar-settings-error" class="error-text"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap;">
-      ${(maxDays!==DM_DEFAULT_MAX_DAYS || threshold) ? `<button class="btn btn-ghost btn-sm" id="radar-settings-reset" title="Règle générale uniquement ; les règles par PropFirm sont conservées">Règle générale : revenir à ${DM_DEFAULT_MAX_DAYS} jours sans seuil</button>` : ''}
+      ${(maxDays!==DM_DEFAULT_MAX_DAYS || threshold) ? `<button class="btn btn-ghost btn-sm" id="radar-settings-reset" title="Règle générale uniquement ; tes règles personnelles sont conservées">Règle générale : revenir à ${DM_DEFAULT_MAX_DAYS} jours sans seuil</button>` : ''}
       <button class="btn btn-primary btn-sm" id="radar-settings-save">${icon('check')}Enregistrer</button>
     </div>` : ''}` : `
     <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('Le radar inactivité')">Débloquer le radar inactivité</button>`}
   </div>`;
 }
-// Lit le brouillon des règles par PropFirm depuis les champs (sans re-dessiner).
+// Lit le brouillon des règles personnelles depuis les champs (sans re-dessiner).
 function radarSyncDraftFromInputs(){
   const draft = radarFirmDraft();
-  document.querySelectorAll('[data-rf-days]').forEach(inp=>{ const id = inp.dataset.rfDays; if(draft[id]){ if(draft[id].mode==='MONTHLY') draft[id].days = inp.value; else draft[id].maxDays = inp.value; } });
-  document.querySelectorAll('[data-rf-thr]').forEach(inp=>{ const id = inp.dataset.rfThr; if(draft[id]) draft[id].threshold = inp.value; });
+  document.querySelectorAll('[data-rf-key][data-rf-f]').forEach(inp=>{
+    const r = draft[inp.dataset.rfKey]; if(!r) return;
+    const f = inp.dataset.rfF;
+    r[f] = (f==='unit' || f==='thrMode' || f==='week') ? inp.value : (inp.value.trim()==='' ? null : inp.value);
+  });
   return draft;
+}
+async function dmSaveVariant(accountId, variantId){
+  const uidv = currentUserId();
+  if(!uidv || !state.profile) return;
+  const raw = JSON.parse(JSON.stringify(state.profile.radarFirmRules || {}));
+  raw.__variants = { ...(raw.__variants || {}), [String(accountId)]: variantId };
+  const prev = state.profile.radarFirmRules;
+  state.profile.radarFirmRules = raw;
+  const { error } = await supabaseClient.from('profiles').update({ radar_firm_rules: raw }).eq('id', uidv);
+  if(error){ state.profile.radarFirmRules = prev; showToast('Choix non enregistré. Réessaie dans un instant.', 'danger'); return; }
+  showToast('Type de compte enregistré : la règle correspondante s’applique.');
+  render();
 }
 async function saveRadarSettings(maxDays, threshold, firmDraft){
   const uidv = currentUserId();
@@ -14801,24 +14919,29 @@ async function saveRadarSettings(maxDays, threshold, firmDraft){
   const fail = (msg)=>{ if(errEl) errEl.textContent = msg; };
   if(!(Number.isInteger(maxDays) && maxDays>=1 && maxDays<=90)) return fail('Règle générale : indique un délai entre 1 et 90 jours.');
   if(threshold!==null && !(threshold>0)) return fail('Règle générale : le seuil doit être un montant positif, ou vide.');
-  // Règles par PropFirm : chaque ligne doit avoir un délai valide ; seuil vide = pas de seuil.
+  // Règles personnelles : chaque ligne doit former une règle valide.
   const firmRules = {};
-  const drafts = firmDraft || dmFirmRules();
-  for(const id of Object.keys(drafts)){
-    const f = getFirm(id); const r = drafts[id] || {};
+  const drafts = firmDraft || dmPersoRules();
+  for(const key of Object.keys(drafts)){
+    const [id, type] = key.split('|');
+    const f = getFirm(id); const r = drafts[key] || {};
+    const name = `${f ? f.name : 'PropFirm'} (${DM_PERSO_TYPES[type] || type})`;
     const tRaw = (r.threshold===null || r.threshold===undefined) ? '' : String(r.threshold).trim();
-    if(r.mode==='MONTHLY'){
-      const n = Number(r.days);
-      if(!(Number.isInteger(n) && n>=1 && n<=20)) return fail(`${f ? f.name : 'PropFirm'} : indique un nombre de journées par mois entre 1 et 20.`);
-      if(tRaw!=='' && !(Number(tRaw)>0)) return fail(`${f ? f.name : 'PropFirm'} : le gain minimum doit être un montant positif, ou vide.`);
-      firmRules[String(id)] = { mode:'MONTHLY', days: n, threshold: tRaw==='' ? null : Number(tRaw) };
-      continue;
+    if(tRaw!=='' && !(Number(tRaw)>0)) return fail(`${name} : le seuil doit être un montant positif, ou vide.`);
+    if(r.model==='GAP' && !dmNormSpec({ ...r, threshold:null })) return fail(`${name} : indique un délai entre 1 et 90 jours.`);
+    if(r.model==='WINDOW'){
+      const c = Number(r.count), w = Number(r.window);
+      if(!(Number.isInteger(c) && c>=1 && c<=20)) return fail(`${name} : indique un nombre de jours entre 1 et 20.`);
+      if(!(Number.isInteger(w) && w>=1 && w<=90)) return fail(`${name} : indique une fenêtre entre 1 et 90 jours.`);
+      if(c>w) return fail(`${name} : le nombre de jours ne peut pas dépasser la fenêtre.`);
     }
-    const d = Number(r.maxDays);
-    if(!(Number.isInteger(d) && d>=1 && d<=90)) return fail(`${f ? f.name : 'PropFirm'} : indique un délai entre 1 et 90 jours.`);
-    if(tRaw!=='' && !(Number(tRaw)>0)) return fail(`${f ? f.name : 'PropFirm'} : le seuil doit être un montant positif, ou vide.`);
-    firmRules[String(id)] = { mode:'ROLLING', maxDays: d, threshold: tRaw==='' ? null : Number(tRaw) };
+    if(r.model==='MONTHLY' && !dmNormSpec({ ...r, threshold:null })) return fail(`${name} : indique un nombre de journées par mois entre 1 et 20.`);
+    const spec = dmNormSpec(r);
+    if(!spec) return fail(`${name} : règle incomplète.`);
+    firmRules[`${id}|${type}`] = spec;
   }
+  const variants = dmVariantChoices();
+  if(Object.keys(variants).length) firmRules.__variants = variants;
   if(!uidv || !state.profile) return;
   const prev = { radarMaxDays: state.profile.radarMaxDays, radarPnlThreshold: state.profile.radarPnlThreshold, radarFirmRules: state.profile.radarFirmRules };
   Object.assign(state.profile, { radarMaxDays: maxDays, radarPnlThreshold: threshold, radarFirmRules: firmRules }); // optimiste
@@ -14827,10 +14950,10 @@ async function saveRadarSettings(maxDays, threshold, firmDraft){
     Object.assign(state.profile, prev);
     return fail('Réglage non enregistré' + (isAdmin() ? ` (colonnes absentes ? voir migration_radar_simplifie.sql) : ${error.message}` : '. Réessaie dans un instant.'));
   }
-  state.radarFirmDraft = null;
-  const nf = Object.keys(firmRules).length;
-  await logActivity('SETTINGS', 'profile', uidv, `Radar inactivité : ${maxDays} jours${threshold ? `, seuil ±${threshold} $` : ''}${nf ? `, ${nf} règle(s) par PropFirm` : ''}`);
-  showToast(`Radar : ${dmRuleShortLabel()}${nf ? ` · ${nf} PropFirm personnalisée${nf>1?'s':''}` : ''}.`);
+  state.radarFirmDraft = null; state.radarFocusKey = null;
+  const nf = Object.keys(firmRules).filter(k=>!k.startsWith('__')).length;
+  await logActivity('SETTINGS', 'profile', uidv, `Radar inactivité : règle générale ${maxDays} jours${threshold ? `, seuil ±${threshold} $` : ''}${nf ? `, ${nf} règle(s) personnelle(s)` : ''}`);
+  showToast(`Radar enregistré${nf ? ` · ${nf} règle${nf>1?'s':''} personnelle${nf>1?'s':''}` : ' · règles officielles du catalogue'}.`);
   renderView();
 }
 function viewProfil(){
@@ -15165,6 +15288,327 @@ function dmPersonalLevel(remaining){
   return 'ok';
 }
 
+/* ============================================================
+   CATALOGUE DES RÈGLES OFFICIELLES (14/10/2026)
+   Règles d'inactivité par PropFirm + type de compte (PA / Live), vérifiées sur les sources
+   officielles (note de projet claude/catalogue-regles-inactivite.md). Maintenu par Mickael :
+   modifier DM_CATALOG puis DM_CATALOG_VERSION.
+   Ordre d'application pour un compte :
+     1. règle personnelle du trader pour la PropFirm + ce type (ou « PA et Live ») — elle REMPLACE
+        la règle officielle, avec un avertissement si elle est plus souple ;
+     2. règle du catalogue ;
+     3. règle générale du trader (PropFirm hors catalogue, ou type non couvert).
+   Une règle est décrite par une « spec » commune au catalogue et aux règles personnelles :
+     GAP     : délai max { days, unit:'cal'|'trading', threshold?, thrMode:'POS'|'ABS', capDays? }
+     WEEKLY  : 1 jour tradé par semaine { week:'MF'|'SF'|'MS' }
+     WINDOW  : N jours qualifiants sur une fenêtre glissante { count, window, threshold?, thrMode }
+     MONTHLY : N journées différentes dans le mois calendaire { days, threshold? } (gain)
+     NONE    : aucune règle d'inactivité
+   Journées : celles de Deltalytix (date UTC d'ouverture du trade, P&L net des commissions)
+   ou du pointage manuel.
+============================================================ */
+const DM_CATALOG_VERSION = '2026-10-14';
+const DM_WEEK_DEF = {
+  MF: { start:1, end:5, label:'du lundi au vendredi' },
+  SF: { start:0, end:5, label:'du dimanche au vendredi' },
+  MS: { start:1, end:0, label:'du lundi au dimanche' },
+};
+const DM_CONF_META = {
+  official:   { label:'Règle officielle', badge:'badge-accent', hint:'Vérifiée sur la source officielle de la PropFirm.' },
+  secondary:  { label:'Source secondaire', badge:'badge-gold', hint:'Page officielle illisible : règle recoupée sur plusieurs sources indépendantes. Confirme-la auprès du support de la PropFirm.' },
+  unverified: { label:'Règle non vérifiée', badge:'badge-slate', hint:'Aucune source officielle accessible : règle indicative. Confirme-la auprès du support de la PropFirm, ou crée ta propre règle.' },
+};
+function dmAccStart(a){ return a.purchaseDate || a.activationDate || (a.createdAt ? String(a.createdAt).slice(0,10) : null); }
+const DM_CATALOG = [
+  { key:'apex', name:'Apex Trader Funding', domains:['apextraderfunding.com'], keys:['apex','apextraderfunding','apextrader'],
+    rules:[
+      { id:'apex-pa', types:['PA'], label:'PA acheté depuis le 01/03/2026', auto:a=>{ const d = dmAccStart(a); return !d || d >= '2026-03-01'; },
+        spec:{ model:'WINDOW', count:2, window:30, threshold:50, thrMode:'POS' }, dormantAfter:15,
+        conf:'official', verifiedAt:'2026-10-14', url:'https://apextraderfunding.com/help-center/billing/inactivity-policy-on-performance-accounts-pa/',
+        consequence:'Phase dormante après 15 jours (rappels à J15 et J20), fermeture définitive à 30 jours, sans réactivation possible.',
+        notes:'Fenêtre de 30 jours calendaires (week-ends et jours fériés inclus). Pour un nouveau PA, le jour d’achat est le jour 1. Seul un gain net de 50 $ ou plus valide la journée : une perte ne compte pas.' },
+      { id:'apex-legacy', types:['PA'], label:'PA Legacy (acheté avant le 01/03/2026)', auto:a=>{ const d = dmAccStart(a); return !!d && d < '2026-03-01'; },
+        spec:{ model:'WINDOW', count:1, window:30, threshold:150, thrMode:'POS' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://apextraderfunding.com/help-center/performance-accounts-pa/legacy-pa-inactivity-policy/',
+        consequence:'Le compte peut être fermé à 30 jours sans journée qualifiante.' },
+    ] },
+  { key:'bulenox', name:'Bulenox', domains:['bulenox.com'], keys:['bulenox'],
+    rules:[
+      { id:'bulenox-master', types:['PA'], label:'Master', spec:{ model:'GAP', days:5, unit:'trading' },
+        conf:'secondary', verifiedAt:'2026-10-14', url:'https://funded.now/propfirm/bulenox',
+        consequence:'Suspension sans préavis, le solde acquis retourne à la firme.',
+        notes:'Seuls les jours de bourse comptent : un dernier trade le vendredi laisse jusqu’au vendredi suivant. Un micro-trade ouvert et refermé juste pour relancer le compteur peut être refusé par Bulenox. Absent plus d’une semaine ? Encaisse tes gains avant de partir.' },
+    ] },
+  { key:'ffn', name:'Funded Futures Network', domains:['fundedfuturesnetwork.com'], keys:['ffn','fundedfuturesnetwork'],
+    rules:[
+      { id:'ffn-all', types:['PA','LIVE'], label:'Tous les comptes', spec:{ model:'WINDOW', count:3, window:29, threshold:5, thrMode:'ABS' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://fundedfuturesnetwork.zendesk.com/hc/en-us/articles/52807758679835-Article-6-5-Account-Inactivity-Policy',
+        consequence:'Annulation automatique du compte, sans avertissement.',
+        notes:'Une journée compte si elle se clôture avec au moins 5 $ de gain OU de perte réalisé.' },
+    ] },
+  { key:'fff', name:'Funded Futures Family', domains:['fundedfuturesfamily.com'], keys:['fff','fundedfuturesfamily'],
+    rules:[
+      { id:'fff-all', types:['PA','LIVE'], label:'Chaque compte', spec:{ model:'WEEKLY', week:'MF' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://intercom.help/funded-futures-family/en/articles/10114890-maximum-account-idle-time',
+        consequence:'Compte marqué inactif et breach, après un rappel.',
+        notes:'La règle s’applique compte par compte : un trade sur un compte ne protège pas les autres.' },
+    ] },
+  { key:'fundednext', name:'FundedNext Futures', domains:['fundednext.com'], keys:['fundednext','fundednextfutures'],
+    rules:[
+      { id:'fn-std', types:['PA','LIVE'], label:'FundedNext Account (après challenge)', isDefault:true, spec:{ model:'GAP', days:30, unit:'cal' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://fundednext.com/general-rules/futures/trading-objectives',
+        consequence:'Compte désactivé, sans réinitialisation possible.',
+        notes:'Jours calendaires, week-ends inclus ; le compteur avance chaque jour à 16:01 heure de Chicago.' },
+      { id:'fn-direct', types:['PA','LIVE'], label:'Direct Funded', spec:{ model:'WEEKLY', week:'MS' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://fundednext.com/general-rules/futures/trading-objectives',
+        consequence:'Compte désactivé.' },
+    ] },
+  { key:'legends', name:'Legends Trading', domains:['thelegendstrading.com','legendstrading.com'], keys:['legends','legendstrading','thelegendstrading'],
+    rules:[
+      { id:'legends-master', types:['PA'], label:'Master / Elite', spec:{ model:'GAP', days:20, unit:'trading', capDays:30 },
+        conf:'unverified', verifiedAt:'2026-10-14', url:'https://propscore.co/firms/legends-trading',
+        consequence:'Désactivation possible du compte.',
+        notes:'20 jours de bourse ou 30 jours calendaires sans activité, la première limite atteinte.' },
+      { id:'legends-live', types:['LIVE'], label:'Live', spec:{ model:'GAP', days:10, unit:'trading' },
+        conf:'unverified', verifiedAt:'2026-10-14', url:'https://funded.now/propfirm/legends-trading',
+        consequence:'Perte du compte Live.' },
+    ] },
+  { key:'lucid', name:'Lucid Trading', domains:['lucidtrading.com'], keys:['lucid','lucidtrading'],
+    rules:[
+      { id:'lucid-all', types:['PA','LIVE'], label:'Tous les comptes', spec:{ model:'GAP', days:30, unit:'cal', threshold:1, thrMode:'ABS' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://support.lucidtrading.com/en/articles/11404632-inactivity-policy',
+        consequence:'Compte considéré comme abandonné et supprimé définitivement.',
+        notes:'Il faut une activité produisant au moins 1 $ de gain ou de perte nette : se connecter ne suffit pas.' },
+    ] },
+  { key:'mff', name:'My Funded Futures', domains:['myfundedfutures.com'], keys:['mff','mffu','myfundedfutures'],
+    rules:[
+      { id:'mff-sim', types:['PA'], label:'Sim funded', spec:{ model:'GAP', days:7, unit:'cal' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://help.myfundedfutures.com/en/articles/11972075-inactivity-rule',
+        consequence:'Breach du compte.',
+        notes:'Jours calendaires : un week-end ou un jour férié ne prolonge pas le délai. Prévenir le support avant une pause.' },
+    ] },
+  { key:'phidias', name:'Phidias Propfirm', domains:['phidiaspropfirm.com'], keys:['phidias','phidiaspropfirm'],
+    rules:[
+      { id:'phidias-all', types:['PA','LIVE'], label:'Tous les comptes', spec:{ model:'NONE' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://phidiaspropfirm.com/rules',
+        notes:'Phidias ne publie aucune règle d’inactivité (page des règles mise à jour le 22/09/2026).' },
+    ] },
+  { key:'tpt', name:'Take Profit Trader', domains:['takeprofittrader.com'], keys:['tpt','takeprofittrader'],
+    rules:[
+      { id:'tpt-pro', types:['PA','LIVE'], label:'PRO et PRO+', spec:{ model:'WEEKLY', week:'SF' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15171769361053-PRO-Account-Rules',
+        consequence:'Perte du compte PRO.',
+        notes:'Un jour tradé = au moins un aller-retour complet. Exception possible en prévenant le support.' },
+    ] },
+  { key:'taurus', name:'Taurus Arena', domains:['taurusarena.com'], keys:['taurus','taurusarena'],
+    rules:[
+      { id:'taurus-pa', types:['PA'], label:'Profit Account', spec:{ model:'WEEKLY', week:'MF' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://tauruscapital.freshdesk.com/en/support/solutions/articles/204000074216-inactivity-rule-in-profit-accounts',
+        consequence:'Annulation du compte.',
+        notes:'Taurus ne précise pas les bornes de la semaine. En cas d’absence, prévenir le support avant ou pendant la période.' },
+    ] },
+  { key:'topstep', name:'Topstep', domains:['topstep.com'], keys:['topstep'],
+    rules:[
+      { id:'topstep-funded', types:['PA','LIVE'], label:'Express Funded et Live Funded', spec:{ model:'GAP', days:30, unit:'cal' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://help.topstep.com/en/articles/10657969-live-funded-account-parameters',
+        consequence:'Fermeture possible du compte ; pas de mise en pause.' },
+    ] },
+  { key:'tradeday', name:'TradeDay', domains:['tradeday.com'], keys:['tradeday'],
+    rules:[
+      { id:'tradeday-all', types:['PA','LIVE'], label:'Tous les comptes', spec:{ model:'GAP', days:30, unit:'cal' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://tradeday.freshdesk.com/en/support/solutions/articles/103000008899-are-there-any-inactivity-fees-or-minimum-trading-requirements-',
+        consequence:'Le compte peut être retiré.',
+        notes:'Tradovate archive aussi un compte sans connexion pendant plus d’un mois calendaire.' },
+    ] },
+  { key:'tradeify', name:'Tradeify', domains:['tradeify.co'], keys:['tradeify'],
+    rules:[
+      { id:'tradeify-all', types:['PA','LIVE'], label:'Chaque compte', spec:{ model:'WEEKLY', week:'MF' },
+        conf:'official', verifiedAt:'2026-10-14', url:'https://help.tradeify.co/en/articles/10468318-guidelines-for-traders',
+        consequence:'Compte supprimé après un mail d’avertissement.' },
+    ] },
+];
+// Retrouve l'entrée du catalogue d'une PropFirm (par son site web, ou par son nom).
+function dmCatalogFirm(firm){
+  if(!firm) return null;
+  const dom = (firmDomain(firm) || '').toLowerCase();
+  const k = normFirmKey(firm.name);
+  return DM_CATALOG.find(e=>e.domains.some(d=>dom===d || dom.endsWith('.'+d)))
+      || DM_CATALOG.find(e=>e.keys.includes(k))
+      || DM_CATALOG.find(e=>e.keys.some(x=>x.length>=5 && k.startsWith(x)))
+      || null;
+}
+function dmCatalogRulesFor(firm, type){
+  const e = dmCatalogFirm(firm);
+  return e ? e.rules.filter(r=>r.types.includes(type)) : [];
+}
+// Variante choisie par le trader pour un compte (ex. FundedNext Direct), sinon détection automatique.
+function dmVariantChoices(){
+  const raw = (state.profile && state.profile.radarFirmRules) || {};
+  const v = raw && raw.__variants;
+  return (v && typeof v==='object') ? v : {};
+}
+function dmCatalogRuleFor(a){
+  const list = dmCatalogRulesFor(getFirm(a.propFirmId), a.type);
+  if(!list.length) return null;
+  const chosen = dmVariantChoices()[String(a.id)];
+  return list.find(r=>r.id===chosen)
+      || list.find(r=>r.auto && r.auto(a))
+      || list.find(r=>r.isDefault)
+      || list[0];
+}
+
+/* ---- Spec : validation, phrase, comparaison, conversion vers le moteur ---- */
+function dmNormSpec(s){
+  s = s || {};
+  const num = (v, lo, hi) => { const n = Math.round(Number(v)); return (Number.isFinite(n) && n>=lo && n<=hi) ? n : null; };
+  const thr = dmValidThreshold(s.threshold);
+  const thrMode = s.thrMode==='POS' ? 'POS' : 'ABS';
+  switch(s.model){
+    case 'GAP': {
+      const unit = s.unit==='trading' ? 'trading' : 'cal';
+      const days = num(s.days, 1, 90); if(!days) return null;
+      const out = { model:'GAP', days, unit };
+      if(unit==='cal' && thr){ out.threshold = thr; out.thrMode = thrMode; }
+      const cap = num(s.capDays, 1, 120); if(cap) out.capDays = cap;
+      return out;
+    }
+    case 'WEEKLY': return { model:'WEEKLY', week: DM_WEEK_DEF[s.week] ? s.week : 'MF' };
+    case 'WINDOW': {
+      const count = num(s.count, 1, 20), window = num(s.window, 1, 90);
+      if(!count || !window || count>window) return null;
+      return { model:'WINDOW', count, window, threshold: thr, thrMode: thr ? thrMode : 'ABS' };
+    }
+    case 'MONTHLY': { const days = num(s.days, 1, 20); return days ? { model:'MONTHLY', days, threshold: thr, thrMode:'POS' } : null; }
+    case 'NONE': return { model:'NONE' };
+    default: return null;
+  }
+}
+function dmThrText(threshold, thrMode){
+  return thrMode==='POS' ? `+${threshold} $ ou plus de gain` : `${threshold} $ ou plus de gain ou de perte`;
+}
+function dmSpecSentence(s){
+  s = s || {};
+  const pl = (n, w) => `${n} ${w}${n>1?'s':''}`;
+  if(s.model==='NONE') return 'Aucune règle d’inactivité';
+  if(s.model==='GAP'){
+    const what = s.threshold ? `un jour à ${dmThrText(s.threshold, s.thrMode)}` : 'un trade';
+    return `Au moins ${what} tous les ${s.days} jours${s.unit==='trading' ? ' de bourse' : ''}${s.capDays ? ` (et au plus ${s.capDays} jours calendaires)` : ''}`;
+  }
+  if(s.model==='WEEKLY') return `Au moins un jour tradé par semaine, ${(DM_WEEK_DEF[s.week]||DM_WEEK_DEF.MF).label}`;
+  if(s.model==='WINDOW') return s.threshold
+    ? `Au moins ${pl(s.count,'jour')} à ${dmThrText(s.threshold, s.thrMode)} sur ${s.window} jours glissants`
+    : `Au moins ${pl(s.count,'jour')} tradé${s.count>1?'s':''} sur ${s.window} jours glissants`;
+  if(s.model==='MONTHLY') return `Au moins ${pl(s.days,'journée')} différente${s.days>1?'s':''}${s.threshold ? ` à +${s.threshold} $ ou plus de gain` : ' tradée' + (s.days>1?'s':'')} par mois calendaire`;
+  return '—';
+}
+// Écart maximal toléré sans activité (jours calendaires) et activité exigée sur 30 jours : sert à repérer
+// une règle personnelle plus souple que la règle officielle.
+function dmSpecGap(s){
+  if(s.model==='GAP'){ const g = s.unit==='trading' ? Math.ceil(s.days*7/5) : s.days; return s.capDays ? Math.min(g, s.capDays) : g; }
+  if(s.model==='WEEKLY') return 7;
+  if(s.model==='WINDOW') return s.window;
+  if(s.model==='MONTHLY') return 45;
+  return Infinity;
+}
+function dmSpecPer30(s){
+  if(s.model==='GAP') return 30 / dmSpecGap(s);
+  if(s.model==='WEEKLY') return 30 / 7;
+  if(s.model==='WINDOW') return s.count * 30 / s.window;
+  if(s.model==='MONTHLY') return s.days;
+  return 0;
+}
+function dmSpecSofter(p, o){
+  if(!p || !o || o.model==='NONE') return null;
+  if(p.model==='NONE') return 'elle ne surveille plus rien';
+  const reasons = [];
+  if(dmSpecGap(p) > dmSpecGap(o) + 0.01) reasons.push('elle tolère une plus longue période sans activité');
+  if(dmSpecPer30(p) < dmSpecPer30(o) - 0.01) reasons.push('elle demande moins de journées');
+  if(o.threshold){
+    if(!(p.threshold >= o.threshold)) reasons.push(`la PropFirm exige une journée à ${dmThrText(o.threshold, o.thrMode)}`);
+    else if(o.thrMode==='POS' && p.thrMode!=='POS') reasons.push('la PropFirm ne compte que les journées en gain');
+  }
+  return reasons.length ? reasons.join(', ') : null;
+}
+// Spec → règle comprise par dmCompute.
+function dmSpecToRule(s){
+  const thr = s.threshold || null, mode = s.thrMode==='POS' ? 'POS' : 'ABS';
+  switch(s.model){
+    case 'GAP':
+      if(s.unit==='trading') return { engine:'TRADING_DAYS', maxDays:s.days, capDays:s.capDays||null };
+      if(thr) return { engine:'QUALIFYING', qualifyingCount:1, maxDays:s.days, pnlMode:mode, pnlThreshold:thr, capDays:s.capDays||null };
+      return { engine:'CALENDAR', maxDays:s.days, capDays:s.capDays||null };
+    case 'WEEKLY': { const w = DM_WEEK_DEF[s.week] || DM_WEEK_DEF.MF; return { engine:'WEEKLY', weekStart:w.start, weekEnd:w.end }; }
+    case 'WINDOW': return { engine:'QUALIFYING', qualifyingCount:s.count, maxDays:s.window, pnlMode:mode, pnlThreshold:thr };
+    case 'MONTHLY': return { engine:'MONTHLY', monthlyDays:s.days, pnlMode:'POS', pnlThreshold:thr };
+    default: return { engine:'NONE' };
+  }
+}
+// Spec de la règle générale (PropFirms hors catalogue) et conversion des anciennes règles par PropFirm.
+function dmGeneralSpec(){
+  const { maxDays, threshold } = dmPersonalSettings();
+  return dmNormSpec({ model:'GAP', days:maxDays, unit:'cal', threshold, thrMode:'ABS' });
+}
+function dmLegacyToSpec(r){
+  if(!r) return null;
+  if(r.model) return dmNormSpec(r);
+  if(r.mode==='MONTHLY') return dmNormSpec({ model:'MONTHLY', days:r.days, threshold:r.threshold });
+  return dmNormSpec({ model:'GAP', days:r.maxDays, unit:'cal', threshold:r.threshold, thrMode:'ABS' });
+}
+const DM_PERSO_TYPES = { ALL:'PA et Live', PA:'PA', LIVE:'Live' };
+// Règles personnelles : { "<propFirmId>|ALL|PA|LIVE": spec }. Les anciennes clés "<propFirmId>"
+// (règles par PropFirm d'avant le 14/10/2026) valent « PA et Live ».
+function dmPersoRules(){
+  const raw = (state.profile && state.profile.radarFirmRules) || {};
+  const out = {};
+  if(raw && typeof raw==='object'){
+    Object.keys(raw).forEach(k=>{
+      if(k.startsWith('__')) return;
+      const [id, t] = k.split('|');
+      const type = DM_PERSO_TYPES[t] ? t : 'ALL';
+      if(!getFirm(id)) return;
+      const spec = dmLegacyToSpec(raw[k]);
+      if(spec) out[`${id}|${type}`] = spec;
+    });
+  }
+  return out;
+}
+function dmPersoSpecFor(a){
+  const p = dmPersoRules();
+  return p[`${a.propFirmId}|${a.type}`] || p[`${a.propFirmId}|ALL`] || null;
+}
+// Règle complète appliquée à un compte : moteur + métadonnées d'affichage.
+function dmAppliedRule(a){
+  const firm = getFirm(a.propFirmId);
+  const cat = dmCatalogRuleFor(a);
+  const perso = dmPersoSpecFor(a);
+  const entry = cat ? dmCatalogFirm(firm) : null;
+  const firmName = entry ? entry.name : (firm ? firm.name : 'cette PropFirm');
+  let spec, origin;
+  if(perso){ spec = perso; origin = 'perso'; }
+  else if(cat){ spec = cat.spec; origin = 'catalog'; }
+  else { spec = dmGeneralSpec(); origin = 'general'; }
+  const sentence = dmSpecSentence(spec);
+  const rule = { ...dmSpecToRule(spec), spec, origin, sentence, alert3:true, firmName,
+    personal: origin!=='catalog', firmCustom: origin==='perso', isDefault:false,
+    verifiedAt: origin==='catalog' ? cat.verifiedAt : 'personal',
+    consequence: cat ? cat.consequence || null : null, sourceUrl: cat ? cat.url : null,
+    conf: cat ? cat.conf : null, notes: cat ? cat.notes || null : null,
+    catalogRule: cat || null, variants: dmCatalogRulesFor(firm, a.type),
+    officialSentence: cat ? dmSpecSentence(cat.spec) : null,
+    softer: (origin==='perso' && cat) ? dmSpecSofter(perso, cat.spec) : null,
+    dormantAfter: origin==='catalog' ? (cat.dormantAfter || null) : null };
+  rule.ruleText = origin==='catalog'
+    ? `${sentence}. Règle de ${firmName}${cat.label && rule.variants.length>1 ? ` (${cat.label})` : ''}.`
+    : origin==='perso'
+      ? `${sentence}. C’est ta règle pour ${firm ? firm.name : 'cette PropFirm'}, elle remplace ${cat ? `la règle officielle (${rule.officialSentence.charAt(0).toLowerCase() + rule.officialSentence.slice(1)})` : 'la règle générale'}.`
+      : `${sentence}. ${cat===null && dmCatalogFirm(firm) ? `Le catalogue ne couvre pas les comptes ${TYPE_LABELS[a.type]||a.type} de ${firmName} : c’est ta règle générale qui s’applique.` : `${firm ? firm.name : 'Cette PropFirm'} n’est pas encore dans le catalogue : c’est ta règle générale qui s’applique.`} Vérifie les conditions de ta prop firm.`;
+  return rule;
+}
+function dmOriginLabel(rule){
+  if(!rule) return '';
+  return rule.origin==='perso' ? 'Ta règle' : rule.origin==='catalog' ? 'Règle officielle' : 'Règle générale';
+}
+
 function dmIso(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
 function dmAdd(iso, n){ const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return dmIso(d); }
 function dmDiff(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); } // b - a, en jours
@@ -15199,6 +15643,15 @@ function dmTradingDaysBetween(after, to){ let n=0, d=dmAdd(after,1); while(d<=to
 // Date du n-ième jour de trading après `from`
 function dmAddTradingDays(from, n){ let d=from, k=0; while(k<n){ d=dmAdd(d,1); if(dmIsTradingDay(d)) k++; } return d; }
 
+// Journée qualifiante : P&L Deltalytix d'abord (il prime sur un pointage manuel du même jour),
+// sinon la case « Tradé ≥ seuil » du pointage. Sans seuil, toute journée tradée compte.
+function dmLogQualifies(rule, l){
+  if(!l || !l.traded) return false;
+  if(!rule.pnlThreshold) return true;
+  const hasPnl = l.pnl!==null && l.pnl!==undefined && l.pnl!=='' && !isNaN(Number(l.pnl));
+  if(l.source==='deltalytix' && hasPnl) return dmQualifies(rule, l.pnl);
+  return !!l.qualifying || dmQualifies(rule, l.pnl);
+}
 function dmQualifies(rule, pnl){
   if(pnl===null || pnl===undefined || pnl==='' || isNaN(Number(pnl))) return false;
   const v = Number(pnl), t = Number(rule.pnlThreshold||0);
@@ -15252,7 +15705,7 @@ function dmCompute(account, rule, logs, st, today){
   else if(rule.engine==='QUALIFYING'){
     const W = Number(rule.maxDays)||30, need = Number(rule.qualifyingCount)||1; windowDays = W;
     const q = new Set((st && st.qualifyingDays) ? st.qualifyingDays.filter(Boolean) : []);
-    logs.forEach(l=>{ if(l.traded && (l.qualifying || dmQualifies(rule, l.pnl))) q.add(l.day); });
+    logs.forEach(l=>{ if(dmLogQualifies(rule, l)) q.add(l.day); });
     // Règle personnelle avec seuil : le « dernier trade connu » saisi par le trader (ou la date
     // d'activation) sert de point de départ, comme sans seuil.
     if(rule.personal && baseLast) q.add(baseLast);
@@ -15262,12 +15715,15 @@ function dmCompute(account, rule, logs, st, today){
     remaining = W - since;
     const inWindow = qs.filter(d=>dmDiff(d, today) < W).length;
     r.counter = `${Math.min(inWindow,need)} / ${need}`;
-    r.counterLabel = `jour${need>1?'s':''} qualifiant${need>1?'s':''} (${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $) sur ${W} j`;
+    r.counterLabel = rule.pnlThreshold ? `jour${need>1?'s':''} qualifiant${need>1?'s':''} (${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $) sur ${W} j` : `jour${need>1?'s':''} tradé${need>1?'s':''} sur ${W} j`;
     r.deadline = dmAdd(anchor, W);
     r.anchor = anchor; r.qualifying = qs;
     r.segs = Array.from({length:need}, (_,i)=>({ k: i<inWindow ? 'q' : 'empty' }));
     r.dormant = !!(rule.dormantAfter && since >= Number(rule.dormantAfter));
-    r.action = remaining>=0 ? `1 jour à ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $ ou plus avant le ${dmFmt(r.deadline)}` : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`;
+    const missingQ = Math.max(1, need - inWindow);
+    const unitQ = rule.pnlThreshold ? `jour${missingQ>1?'s':''} à ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $ ou plus` : `jour${missingQ>1?'s':''} tradé${missingQ>1?'s':''}`;
+    if(remaining<0 && qs.length<need) r.action = `Il manque ${missingQ} ${unitQ} sur les ${W} derniers jours : trade au plus vite et vérifie l’état du compte chez la prop firm`;
+    else r.action = remaining>=0 ? (inWindow>=need ? `En règle · prochain ${rule.pnlThreshold ? `jour à ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : 'jour tradé'} avant le ${dmFmt(r.deadline)}` : `${missingQ} ${unitQ} avant le ${dmFmt(r.deadline)}`) : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`;
   }
   else if(rule.engine==='MONTHLY'){
     const need = Number(rule.monthlyDays)||1, thr = rule.pnlThreshold;
@@ -15275,7 +15731,7 @@ function dmCompute(account, rule, logs, st, today){
     const me = dmAdd(dmAdd(ms, 32).slice(0,7) + '-01', -1);   // dernier jour du mois
     const left = dmDiff(today, me);                            // jours restants après aujourd'hui
     const q = new Set();
-    logs.forEach(l=>{ if(l.day>=ms && l.day<=today && l.traded && (!thr || l.qualifying || dmQualifies(rule, l.pnl))) q.add(l.day); });
+    logs.forEach(l=>{ if(l.day>=ms && l.day<=today && dmLogQualifies(rule, l)) q.add(l.day); });
     const done = q.size, missing = Math.max(0, need - done);
     const monthName = monthLabelFull(today.slice(0,7)).split(' ')[0].toLowerCase();
     windowDays = dmDiff(ms, me) + 1;
@@ -15323,6 +15779,21 @@ function dmCompute(account, rule, logs, st, today){
     if(today > wEnd && remaining>=0) windowDays = 7;
   }
 
+  else if(rule.engine==='NONE'){
+    r.counter = '—'; r.counterLabel = 'aucune règle d’inactivité';
+    r.action = 'Rien à surveiller pour cette PropFirm';
+    r.remainText = '—'; r.levelLabel = 'Aucune règle';
+    r.level = 'none'; r.remaining = null;
+    return r;
+  }
+
+  // Limite calendaire complémentaire (ex. Legends : 20 jours de bourse OU 30 jours calendaires)
+  if(rule.capDays && remaining!==null){
+    const capDeadline = dmAdd(lastTrade, Number(rule.capDays));
+    const cr = dmDiff(today, capDeadline);
+    if(!r.deadline || capDeadline < r.deadline){ remaining = cr; r.deadline = capDeadline; r.action = cr>=0 ? `Trader avant le ${dmFmt(r.deadline)} (limite de ${rule.capDays} jours calendaires)` : `Échéance du ${dmFmt(r.deadline)} dépassée : contacte la prop firm`; }
+  }
+
   // Compteur de connexion plateforme (ex. TradeDay / Tradovate)
   if(rule.loginDays){
     const lastLogin = dmMax([(st && st.lastLogin) || start, ...logs.filter(l=>l.platformLogin).map(l=>l.day)]);
@@ -15332,7 +15803,7 @@ function dmCompute(account, rule, logs, st, today){
   }
 
   r.remaining = remaining;
-  r.level = r.monthlyLevel || (rule.personal ? dmPersonalLevel(remaining) : dmLevel(remaining, windowDays));
+  r.level = r.monthlyLevel || ((rule.personal || rule.alert3) ? dmPersonalLevel(remaining) : dmLevel(remaining, windowDays));
   if(r.dormant && r.level==='ok') r.level = 'warn';
   return r;
 }
@@ -15352,6 +15823,7 @@ const DM_LEVEL_META = {
   warn:    { label:'À surveiller',  color:'var(--dm-yellow)', dim:'var(--dm-yellow-dim)', order:2 },
   ok:      { label:'En règle',      color:'var(--accent)', dim:'var(--accent-dim)', order:3 },
   unknown: { label:'Inconnu',       color:'var(--slate)',  dim:'var(--slate-dim)',  order:4 },
+  none:    { label:'Aucune règle',  color:'var(--slate)',  dim:'var(--slate-dim)',  order:5 },
 };
 
 async function loadDormancy(){
@@ -15406,7 +15878,7 @@ function dmOptInViewHtml(){
       <div class="gd-empty-title">Le Radar inactivité est désactivé</div>
       <div class="gd-empty-sub">Beaucoup de PropFirms ferment un compte financé resté trop longtemps sans trade. Le Radar surveille tes comptes${funded ? ` (${funded} compte${funded>1?'s':''} financé${funded>1?'s':''} actif${funded>1?'s':''})` : ''} et te prévient avant l’échéance. Il demande un petit geste : pointer tes journées tradées, en un clic pour plusieurs comptes. C’est toi qui choisis.</div>
       <ul class="gd-points" style="max-width:460px;margin:0 auto 18px;text-align:left;">
-        <li>${ck}<span>Ta règle : <b>un trade tous les 7 jours</b> par défaut, réglable, avec des règles par PropFirm.</span></li>
+        <li>${ck}<span>La <b>règle officielle de ta PropFirm</b>, vérifiée et sourcée (${DM_CATALOG.length} PropFirms), ou ta propre règle si tu préfères.</span></li>
         <li>${ck}<span>Alerte à la connexion dès qu’il ne reste que <b>3 jours</b>.</span></li>
         <li>${ck}<span>Désactivable à tout moment : <b>rien n’est supprimé</b>.</span></li>
       </ul>
@@ -15420,7 +15892,7 @@ function dmOptInViewHtml(){
 function dmFundedAccounts(){
   return (state.accounts||[]).filter(a=>isMineAccount(a) && (a.type==='PA'||a.type==='LIVE') && a.status==='ACTIF');
 }
-function dmRuleFor(a){ return dmPersonalRule(a.propFirmId); }   // règle personnelle (générale ou propre à la PropFirm)
+function dmRuleFor(a){ return dmAppliedRule(a); }   // catalogue officiel, règle personnelle ou règle générale (voir DM_CATALOG)
 function dmStateFor(a){ return (state.dormancyStates||[]).find(s=>String(s.accountId)===String(a.id)) || null; }
 function dmLogsFor(a){ return (state.dormancyLogs||[]).filter(l=>String(l.accountId)===String(a.id)); }
 function dmResult(a){
@@ -15463,7 +15935,19 @@ function dmSegsHtml(r){
     return `<span style="background:${bg}"></span>`;
   }).join('')}</div>`;
 }
+function dmConfBadgeHtml(rule){
+  if(!rule || rule.origin!=='catalog' || !rule.conf) return '';
+  const c = DM_CONF_META[rule.conf] || DM_CONF_META.unverified;
+  return `<span class="badge ${c.badge}" title="${escapeHtml(c.hint)}">${c.label}</span>`;
+}
 function dmVerifiedHtml(r){
+  const rule = r.rule;
+  if(rule && rule.origin==='catalog'){
+    const c = DM_CONF_META[rule.conf] || DM_CONF_META.unverified;
+    return `<span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">${dmConfBadgeHtml(rule)}<span class="text-faint" style="font-size:11.5px;" title="${escapeHtml(c.hint)}">${rule.conf==='official' ? 'Vérifiée' : 'Recherchée'} le ${fmtDate(String(rule.verifiedAt).slice(0,10))}</span></span>`;
+  }
+  if(rule && rule.origin==='perso') return `<span style="display:inline-flex;gap:6px;align-items:center;"><span class="badge badge-perso">Ta règle</span><a href="#" data-nav="profil" class="text-faint" style="font-size:11.5px;">modifier</a></span>`;
+  if(rule && rule.origin==='general') return `<span style="display:inline-flex;gap:6px;align-items:center;"><span class="badge badge-slate">Règle générale</span><a href="#" data-nav="profil" class="text-faint" style="font-size:11.5px;">modifier</a></span>`;
   if(r.rule && r.rule.personal) return `<a href="#" data-nav="profil" class="text-faint" style="font-size:11.5px;">Ta règle · modifier</a>`;
   if(r.isDefault) return `<span class="badge badge-slate" title="${escapeHtml(DM_DEFAULT_RULE.ruleText)}">Règle non confirmée · défaut 21 j</span>`;
   if(!r.verified) return `<span class="badge badge-slate" title="Règle appliquée mais non vérifiée sur une source officielle">À vérifier</span>`;
@@ -15507,8 +15991,7 @@ function dmMaybeShowDailyAlert(){
   try{ sessionStorage.setItem(sessKey, '1'); }catch(e){}
 
   const n = due.length;
-  const hasFirmRules = Object.keys(dmFirmRules()).length>0;
-  const anyThreshold = due.some(({a})=>!!dmPersonalSettings(a.propFirmId).threshold);
+  const anyThreshold = due.some(({r})=>!!(r.rule && r.rule.pnlThreshold));
   const allMonthly = due.every(x=>x.r.engine==='MONTHLY');
   const title = overdue
     ? `${n} compte${n>1?'s':''} à trader en urgence`
@@ -15521,7 +16004,7 @@ function dmMaybeShowDailyAlert(){
   openModal({
     title,
     bodyHtml: `
-      <p class="text-dim" style="margin:0 0 12px;font-size:13.5px;line-height:1.5;">${hasFirmRules ? 'Tes règles d’inactivité' : `Ta règle : ${escapeHtml(dmRuleShortLabel())}`}. Une fermeture pour inactivité est en général définitive.</p>
+      <p class="text-dim" style="margin:0 0 12px;font-size:13.5px;line-height:1.5;">Selon la règle d’inactivité de chaque PropFirm. Une fermeture pour inactivité est en général définitive.</p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${due.map(({a,r})=>{ const m = DM_LEVEL_META[r.level] || DM_LEVEL_META.unknown; return `
           <label class="dm-alert-row" style="cursor:pointer;">
@@ -15530,7 +16013,7 @@ function dmMaybeShowDailyAlert(){
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div>
               <div style="font-size:12px;color:${m.color};">${escapeHtml(whenText(r))}${r.lastTrade ? ` <span class="text-faint">· dernier trade ${dmFmt(r.lastTrade)}</span>` : ''}</div>
-              ${hasFirmRules || dmPersonalSettings(a.propFirmId).threshold ? `<div class="text-faint" style="font-size:11.5px;">Règle : ${escapeHtml(dmRuleShortLabel(a.propFirmId))}</div>` : ''}
+              <div class="text-faint" style="font-size:11.5px;">${escapeHtml(dmOriginLabel(r.rule))} : ${escapeHtml(r.rule.sentence || '')}</div>
             </div>
             <span class="mono" style="font-weight:700;color:${m.color};white-space:nowrap;">${dmRemainingText(r)}</span>
           </label>`; }).join('')}
@@ -15553,7 +16036,7 @@ function dmMaybeShowDailyAlert(){
         const payload = ids.map(id=>{
           const prev = (state.dormancyLogs||[]).find(l=>String(l.accountId)===String(id) && l.day===today);
           const acc = due.find(x=>String(x.a.id)===String(id));
-          const thr = acc ? dmPersonalSettings(acc.a.propFirmId).threshold : null;
+          const thr = acc && acc.r.rule ? acc.r.rule.pnlThreshold : null;
           return { user_id: uidv, account_id: id, day: today, traded: true, qualifying: !!thr, pnl: null,
                    platform_login: !!(prev && prev.platformLogin), updated_at: now };
         });
@@ -15994,11 +16477,13 @@ function viewRadar(){
       ${tile(hasMonthly ? 'À trader en priorité' : 'Critique · ≤ 1 jour', counts.crit, 'var(--danger)', escapeHtml(firmsOf(r=>r.level==='crit'||r.level==='over'||r.level==='todo')))}
       ${tile(hasMonthly ? 'En cours · à surveiller' : `À surveiller · ≤ ${DM_ALERT_DAYS} jours`, counts.warn, 'var(--dm-yellow)', escapeHtml(firmsOf(r=>r.level==='warn')))}
       ${tile('En règle', counts.ok, 'var(--accent)', 'Aucune action requise')}
-      <div class="panel dm-tile" style="border-style:dashed;">
-        <div class="dm-tile-label"><span class="dm-dot" style="background:var(--slate)"></span>Ta règle</div>
-        <div class="dm-tile-value" style="color:var(--text);font-size:22px;">${dmPersonalSettings().maxDays} jours</div>
-        <div class="dm-tile-sub">${escapeHtml(dmPersonalSettings().threshold ? `Jour à ±${dmPersonalSettings().threshold} $ minimum` : 'Un trade suffit')}${Object.keys(dmFirmRules()).length ? ` · ${Object.keys(dmFirmRules()).length} PropFirm personnalisée${Object.keys(dmFirmRules()).length>1?'s':''}` : ''} · <a href="#" data-nav="profil">Modifier</a></div>
-      </div>
+      ${(()=>{ const o = { catalog:0, perso:0, general:0 }; all.forEach(({r})=>{ if(r.rule && o[r.rule.origin]!==undefined) o[r.rule.origin]++; });
+        const parts = [o.perso ? `${o.perso} perso` : '', o.general ? `${o.general} générale${o.general>1?'s':''}` : ''].filter(Boolean);
+        return `<div class="panel dm-tile" style="border-style:dashed;">
+        <div class="dm-tile-label"><span class="dm-dot" style="background:var(--slate)"></span>Règles appliquées</div>
+        <div class="dm-tile-value" style="color:var(--text);font-size:22px;">${o.catalog} <span style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--text-dim);">officielle${o.catalog>1?'s':''}</span></div>
+        <div class="dm-tile-sub">${parts.length ? escapeHtml(parts.join(' · ')) + ' · ' : ''}<a href="#" data-nav="profil">Gérer</a></div>
+      </div>`; })()}
     </div>
     <div class="dm-filterbar">
       ${pill('all','Tous',all.length)}${pill('crit',hasMonthly?'Prioritaires':'Critique',counts.crit)}${pill('warn',hasMonthly?'En cours':'À surveiller',counts.warn)}${pill('ok','En règle',counts.ok)}
@@ -16013,7 +16498,7 @@ function viewRadar(){
       <span><span class="dm-sw" style="background:var(--accent)"></span>jour tradé / qualifiant</span>
       <span><span class="dm-sw" style="background:var(--surface-3)"></span>jour restant</span>
       ${hasMonthly ? `<span>Quota mensuel : <strong style="color:var(--danger)">rouge</strong> tant qu’aucune journée n’est faite, <strong style="color:var(--dm-yellow)">jaune</strong> dès la première, <strong style="color:var(--accent)">vert</strong> quand le quota est atteint ; rouge « Alerte » à ${DM_MONTHLY_ALERT_DAYS} jours de la fin du mois s’il en manque.</span>` : ''}
-      <span>Un jour non pointé compte comme non tradé. Règle générale : ${escapeHtml(dmRuleShortLabel())}${Object.keys(dmFirmRules()).length ? ', avec des règles propres à certaines PropFirms' : ''} (<a href="#" data-nav="profil">modifier dans Profil</a>).</span>
+      <div style="flex-basis:100%;line-height:1.5;">Chaque compte suit la règle officielle de sa PropFirm (catalogue vérifié le ${fmtDate(DM_CATALOG_VERSION)}), ta propre règle si tu en as créé une, sinon ta règle générale : ${escapeHtml(dmRuleShortLabel().toLowerCase())} (<a href="#" data-nav="profil">gérer dans Profil</a>). Un jour non pointé compte comme non tradé.</div>
     </div>`;
 }
 function dmRowHtml(a, r){
@@ -16026,7 +16511,7 @@ function dmRowHtml(a, r){
         ${firmLogoHtml(firm, 32)}
         <div style="min-width:0;">
           <div class="dm-row-title">${dmAccountName(a)} <span class="text-faint mono" style="font-weight:500;">${maskAccountNumber(a.accountNumber||'')}</span></div>
-          <div class="dm-row-sub">${trader ? escapeHtml(trader.pseudo)+' · ' : ''}${escapeHtml(r.rule && r.rule.personal ? (r.rule.firmCustom ? 'Règle PropFirm · ' : '') + dmRuleShortLabel(a.propFirmId) : (r.isDefault ? 'Défaut prudent · 21 jours calendaires' : DM_ENGINE_LABELS[r.engine]))}${r.dormant ? ' · <strong style="color:var(--gold)">phase dormante</strong>' : ''}</div>
+          <div class="dm-row-sub">${trader ? escapeHtml(trader.pseudo)+' · ' : ''}${escapeHtml(r.rule && r.rule.sentence ? `${dmOriginLabel(r.rule)} · ${r.rule.sentence}` : (r.isDefault ? 'Défaut prudent · 21 jours calendaires' : DM_ENGINE_LABELS[r.engine]))}${r.dormant ? ' · <strong style="color:var(--gold)">phase dormante</strong>' : ''}${r.rule && r.rule.origin==='catalog' && r.rule.conf!=='official' ? ' ' + dmConfBadgeHtml(r.rule) : ''}${r.rule && r.rule.softer ? ` <span class="badge badge-gold" title="${escapeHtml('Plus souple que la règle officielle : ' + r.rule.softer)}">${icon('alertTriangle')}Plus souple que l’officielle</span>` : ''}</div>
         </div>
       </div>
       <div class="dm-row-bar">
@@ -16109,7 +16594,7 @@ function dmOpenDetail(accountId){
         </div>
         ${r.engine==='MONTHLY'
           ? `<div style="text-align:right;"><div class="mono" style="font-size:30px;font-weight:700;color:${m.color};line-height:1;">${r.counter}</div><div class="text-dim" style="font-size:11.5px;">${r.daysLeft+1} jour${r.daysLeft>0?'s':''} restant${r.daysLeft>0?'s':''} dans le mois</div></div>`
-          : `<div style="text-align:right;"><div class="mono" style="font-size:30px;font-weight:700;color:${m.color};line-height:1;">${r.remaining!==null && r.remaining>=0 ? r.remaining : '!'}</div><div class="text-dim" style="font-size:11.5px;">${r.remaining!==null && r.remaining>=0 ? 'jour'+(r.remaining>1?'s':'')+' restant'+(r.remaining>1?'s':'') : 'délai dépassé'}</div></div>`}
+          : r.level==='none' ? '' : `<div style="text-align:right;"><div class="mono" style="font-size:30px;font-weight:700;color:${m.color};line-height:1;">${r.remaining!==null && r.remaining>=0 ? r.remaining : '!'}</div><div class="text-dim" style="font-size:11.5px;">${r.remaining!==null && r.remaining>=0 ? 'jour'+(r.remaining>1?'s':'')+' restant'+(r.remaining>1?'s':'') : 'délai dépassé'}</div></div>`}
       </div>
       ${grid}
       ${r.login ? `<div class="dm-alert-note" style="margin-top:12px;">Connexion à la plateforme : dernière le ${fmtDate(r.login.lastLogin)} · ${r.login.remaining<0?'délai dépassé':r.login.remaining+' jour'+(r.login.remaining>1?'s':'')+' restant'+(r.login.remaining>1?'s':'')}</div>` : ''}
@@ -16117,11 +16602,19 @@ function dmOpenDetail(accountId){
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;">
           <div class="dm-section-title" style="margin:0;">Règle appliquée</div>${dmVerifiedHtml(r)}
         </div>
-        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--text-dim);">${escapeHtml(rule.ruleText||'')}</p>
+        <p style="margin:0;font-size:13.5px;line-height:1.55;font-weight:600;">${escapeHtml(rule.sentence || '')}</p>
+        <p style="margin:4px 0 0;font-size:12.5px;line-height:1.55;color:var(--text-dim);">${escapeHtml(rule.ruleText||'')}</p>
+        ${rule.softer ? `<div class="dm-alert-note dm-softer-note" style="margin-top:10px;">${icon('alertTriangle')}<span><strong>Plus souple que la règle officielle</strong> : ${escapeHtml(rule.softer)}. Le Radar risque de te prévenir trop tard.</span></div>` : ''}
+        ${rule.variants && rule.variants.length>1 ? `<div class="field" style="margin:12px 0 0;"><label>Type de compte chez ${escapeHtml(rule.firmName)}</label>
+          <select id="dm-variant">${rule.variants.map(v=>`<option value="${escapeHtml(v.id)}" ${rule.catalogRule && rule.catalogRule.id===v.id ? 'selected' : ''}>${escapeHtml(v.label)} · ${escapeHtml(dmSpecSentence(v.spec))}</option>`).join('')}</select>
+          <div class="field-hint">${dmVariantChoices()[String(a.id)] ? 'Choisi par toi.' : rule.catalogRule && rule.catalogRule.auto ? 'Détecté automatiquement d’après la date d’achat du compte : corrige-le si besoin.' : 'Choix par défaut : corrige-le si ton compte est d’un autre type.'}${rule.origin==='perso' ? ' Ta règle personnelle reste appliquée.' : ''}</div></div>` : ''}
+        ${rule.notes ? `<p style="margin:10px 0 0;font-size:12.5px;line-height:1.55;"><strong>Bon à savoir :</strong> <span class="text-dim">${escapeHtml(rule.notes)}</span></p>` : ''}
         ${rule.consequence ? `<p style="margin:8px 0 0;font-size:12.5px;"><strong>Conséquence :</strong> <span class="text-dim">${escapeHtml(rule.consequence)}</span></p>` : ''}
+        ${dmLogsFor(a).some(l=>l.source==='deltalytix') ? `<p style="margin:8px 0 0;font-size:12px;" class="text-faint">Journées reçues de Deltalytix (date UTC d’ouverture du trade, P&L net des commissions) : un trade ouvert entre minuit et 2 h, heure de Paris, compte pour la veille. Sur un même jour, la donnée Deltalytix prime sur ton pointage.</p>` : ''}
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;">
-          ${rule.sourceUrl ? `<a href="${escapeHtml(rule.sourceUrl)}" target="_blank" rel="noopener">Source officielle ↗</a>` : ''}
-          ${rule.personal ? `<a href="#" id="dm-edit-rule">Modifier ma règle dans Profil</a>` : `<a href="#" id="dm-report">Signaler une règle obsolète</a>`}
+          ${rule.sourceUrl ? `<a href="${escapeHtml(rule.sourceUrl)}" target="_blank" rel="noopener">${rule.conf==='official' ? 'Source officielle' : 'Source'} ↗</a>` : ''}
+          <a href="#" id="dm-edit-rule">${rule.origin==='perso' ? 'Modifier ma règle' : rule.origin==='catalog' ? 'Créer ma propre règle' : 'Modifier ma règle générale'}</a>
+          ${rule.origin==='catalog' ? `<a href="#" id="dm-report">Signaler une règle obsolète</a>` : ''}
         </div>
       </div>`,
     footHtml: `<button class="btn btn-outline" id="dm-edit-start">Modifier le dernier trade connu</button><button class="btn btn-primary" id="dm-detail-pointer">Pointer ce compte</button>`,
@@ -16129,7 +16622,19 @@ function dmOpenDetail(accountId){
       document.getElementById('dm-edit-start').onclick = ()=>dmOpenActivation([a.id]);
       document.getElementById('dm-detail-pointer').onclick = ()=>dmOpenPointage(null, a.id);
       const er = document.getElementById('dm-edit-rule');
-      if(er) er.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route='profil'; render(); };
+      if(er) er.onclick = (e)=>{
+        e.preventDefault(); closeModal();
+        if(rule.origin==='catalog'){ // nouvelle règle personnelle préremplie avec la règle officielle
+          state.radarFirmDraft = null;
+          const d = radarFirmDraft(); const key = `${a.propFirmId}|${a.type}`;
+          if(!d[key]) d[key] = { ...rule.spec };
+          state.radarFocusKey = key;
+        }
+        state.route='profil'; render();
+        setTimeout(()=>{ const el = document.getElementById('radar-rules-anchor'); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }, 60);
+      };
+      const vs = document.getElementById('dm-variant');
+      if(vs) vs.onchange = async ()=>{ await dmSaveVariant(a.id, vs.value); closeModal(); dmOpenDetail(a.id); };
       const rep = document.getElementById('dm-report');
       if(rep) rep.onclick = (e)=>{
         e.preventDefault();
@@ -16160,8 +16665,8 @@ function dmOpenPointage(dayArg, accountId){
   const rows = accounts.map(a=>{
     const rule = dmRuleFor(a) || DM_DEFAULT_RULE;
     const log = dmLogsFor(a).find(l=>l.day===day);
-    const needPnl = rule.engine==='QUALIFYING' || (rule.engine==='MONTHLY' && !!rule.pnlThreshold); // 3e choix « Tradé ≥ seuil »
-    const qualifiesLog = !!(log && log.traded && (log.qualifying || dmQualifies(rule, log.pnl)));
+    const needPnl = (rule.engine==='QUALIFYING' || rule.engine==='MONTHLY') && !!rule.pnlThreshold; // 3e choix « Tradé ≥ seuil »
+    const qualifiesLog = dmLogQualifies(rule, log);
     const val = !log || !log.traded ? 0 : (needPnl && qualifiesLog ? 2 : 1);
     const qLabel = needPnl ? `Tradé ≥ ${rule.pnlMode==='ABS'?'±':'+'}${Number(rule.pnlThreshold)} $` : '';
     // Gain OU perte ≥ seuil (FFN, Lucid) : presque toujours vrai dès qu'on trade → « Tradé » coche directement le 3e choix
@@ -16187,7 +16692,7 @@ function dmOpenPointage(dayArg, accountId){
     title: single ? `Pointer une journée · ${dmAccountName(accounts[0])} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(accounts[0].accountNumber||'')}</span>` : 'Pointer une journée · tous mes comptes',
     wide: true,
     bodyHtml: `
-      <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Si tu as défini un seuil de P&L dans ton Profil, indique simplement si le jour l’atteint : aucun montant à saisir. Un jour non pointé compte comme non tradé.</p>
+      <p class="text-dim" style="margin:0 0 12px;font-size:13px;">Quand tu veux : après ta session ou le lendemain. Pour un compte dont la règle a un seuil de P&L (ex. Apex : +50 $), indique simplement si le jour l’atteint : aucun montant à saisir. Un jour non pointé compte comme non tradé.</p>
       <div class="dm-chips">
         ${chips.map(d=>`<button type="button" class="dm-pill ${d===day?'active':''}" data-dm-day="${d}">${chipLabel(d)}${!pointedDays.has(d) && d!==today ? '<span class="dm-chip-tag">non pointé</span>' : ''}</button>`).join('')}
         <label class="dm-pill" style="cursor:default;">Autre date <input type="date" id="dm-day-input" max="${today}" value="${day}"/></label>
@@ -16257,7 +16762,7 @@ function dmOpenActivation(accountIds){
     const st = dmStateFor(a) || {};
     const q = (st.qualifyingDays||[]).slice().sort().reverse();
     let fields = dateInput('dm-st-last', st.lastTrade, 'Dernier trade');
-    if(rule.engine==='QUALIFYING'){
+    if(rule.engine==='QUALIFYING' && rule.pnlThreshold){
       const need = Math.min(3, Number(rule.qualifyingCount)||1);
       const sign = rule.pnlMode==='ABS' ? '±' : '+';
       for(let i=0;i<need;i++) fields += dateInput('dm-st-q', q[i], `${i===0?'Dernier':i===1?'2e':'3e'} jour ≥ ${sign}${Number(rule.pnlThreshold)} $`);
@@ -16588,7 +17093,7 @@ function gdEmptyRadar(){
     sub:'Le Radar suit tes comptes PA et Live actifs pour t’éviter une fermeture pour inactivité. Dès qu’un compte financé est ajouté, il apparaît ici avec son délai.',
     opts:[
       { icon:'card', title:'Ajouter un compte financé', sub:'Crée un PA, ou transforme un Challenge réussi avec « Créer le PA ».', run:"gdGo('accounts')", main:true },
-      { icon:'gear', title:'Régler ma règle', sub:'Par défaut : un trade tous les 7 jours. À ajuster dans ton Profil.', run:"gdGo('profil')" },
+      { icon:'gear', title:'Voir mes règles', sub:'Règles officielles de tes PropFirms, ou ta propre règle, dans ton Profil.', run:"gdGo('profil')" },
     ], manual:'m-radar' });
 }
 
@@ -16616,7 +17121,7 @@ const GD_HELP = {
       { sel:'.gd-next', title:'La prochaine étape', text:'Quand un compte attend quelque chose de toi (créer le PA, enregistrer un payout, indiquer ton dernier trade), c’est écrit ici, avec le bon bouton.' },
     ] },
   radar: { manual:'m-radar', intro:'Évite qu’un compte financé soit fermé parce que tu n’as pas tradé à temps.',
-    points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Ta règle par défaut : <b>un trade tous les 7 jours</b>. Modifiable dans ton Profil, avec des règles par PropFirm.','<b>Pointe tes journées</b> en un clic pour plusieurs comptes, ou <b>connecte Deltalytix</b> (beta) pour qu’elles se pointent toutes seules.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
+    points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Chaque compte suit la <b>règle officielle de sa PropFirm</b> (catalogue vérifié et sourcé). Tu peux la remplacer par ta propre règle dans ton Profil.','<b>Pointe tes journées</b> en un clic pour plusieurs comptes, ou <b>connecte Deltalytix</b> (beta) pour qu’elles se pointent toutes seules.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
     actions:[{ icon:'check', label:'Pointer une journée', run:"gdCloseHelp();typeof dmOpenPointage==='function'&&dmOpenPointage()" },{ icon:'edit', label:'Indiquer mon dernier trade', run:"gdCloseHelp();dmOpenActivation(['all'])" },{ icon:'gear', label:'Régler ma règle (Profil)', run:"gdGo('profil');gdCloseHelp()" }],
     glossary:[['Délai glissant','au moins un trade (ou une journée au-dessus du seuil) tous les N jours.'],['Quota mensuel','N journées gagnantes à +X $ dans le mois calendaire.'],['Dernier trade connu','point de départ du compteur ; sans lui, la date d’activation du compte.']],
     tour:[
@@ -16644,7 +17149,7 @@ const GD_HELP = {
   ecole: { manual:'m-ecole', intro:'Le bilan réel d’une cohorte d’élèves, anonyme et consenti, calculé à partir de leurs comptes.', points:['Crée une cohorte, partage le lien d’invitation, publie le bilan.'] },
   fiscalite: { manual:'m-fiscalite', intro:'Tes seuils micro-BNC et tes échéances déclaratives, calculés depuis tes payouts.', points:['Ne remplace pas un expert-comptable : c’est un outil de suivi.'] },
   'frais-generaux': { manual:'m-frais-generaux', intro:'Tes frais hors comptes : abonnements, données de marché, VPS, formation…', points:['Ils comptent dans le Net global du Dashboard et, si tu le choisis, dans ta rentabilité réelle.'] },
-  profil: { manual:'m-profil', intro:'Tes réglages personnels, dont ta règle du Radar inactivité.', points:['Radar inactivité : délai, seuil de P&amp;L et règles par PropFirm.'] },
+  profil: { manual:'m-profil', intro:'Tes réglages personnels, dont ta règle du Radar inactivité.', points:['Radar inactivité : règles officielles du catalogue, tes règles personnelles et ta règle générale.'] },
   parametres: { manual:'m-profil', intro:'Tes notifications e-mail et préférences d’affichage.', points:['Active le résumé du lundi pour recevoir ton bilan de la semaine.'] },
   changelog: { manual:'m-nouveautes', intro:'Les dernières nouveautés et corrections de l’application.', points:['Le premier réflexe si une fonction a changé.'] },
   subscription: { manual:'m-abonnement', intro:'Ta formule actuelle et le comparatif des formules.', points:['Premium et Lifetime débloquent notamment le Radar inactivité, le Calendrier et les exports.'] },
@@ -17148,19 +17653,53 @@ function bindViewEvents(){
   if(radarAdd) radarAdd.onchange = ()=>{
     const id = radarAdd.value; if(!id) return;
     const draft = radarSyncDraftFromInputs();
-    // Apex : préréglé sur sa règle (quota mensuel, 2 journées à +50 $) — modifiable.
-    const isApex = /apex/i.test((getFirm(id)||{}).name || '');
-    draft[id] = isApex ? { mode:'MONTHLY', days:2, threshold:50 } : { mode:'ROLLING', maxDays: dmPersonalSettings().maxDays, threshold: null };
+    // Clé libre : « PA et Live » d'abord, puis PA, puis Live.
+    const key = ['ALL','PA','LIVE'].map(t=>`${id}|${t}`).find(k=>!draft[k]);
+    if(!key){ showToast('Cette PropFirm a déjà une règle personnelle pour chaque type de compte.', 'danger'); renderView(); return; }
+    // Préremplie avec la règle officielle si la PropFirm est au catalogue, sinon avec la règle générale.
+    const off = radarOfficialFor(id, key.split('|')[1]);
+    draft[key] = off.length ? { ...off[0].rule.spec } : { ...dmGeneralSpec() };
+    state.radarFocusKey = key;
     renderView();
-    const inp = document.querySelector(`[data-rf-days="${CSS.escape(id)}"]`); if(inp){ inp.focus(); inp.select(); }
   };
-  document.querySelectorAll('[data-rf-mode]').forEach(sel=>sel.onchange = ()=>{
+  document.querySelectorAll('[data-rf-custom]').forEach(b=>b.onclick = ()=>{
     const draft = radarSyncDraftFromInputs();
-    const r = draft[sel.dataset.rfMode]; if(!r) return;
-    r.mode = sel.value;
-    if(r.mode==='MONTHLY' && !r.days){ r.days = 2; if(!r.threshold) r.threshold = 50; }
-    if(r.mode!=='MONTHLY' && !r.maxDays) r.maxDays = dmPersonalSettings().maxDays;
+    const key = b.dataset.rfCustom;
+    const [id] = key.split('|');
+    const entry = dmCatalogFirm(getFirm(id));
+    const src = entry && entry.rules.find(r=>r.id===b.dataset.rfFrom);
+    if(!draft[key]) draft[key] = src ? { ...src.spec } : { ...dmGeneralSpec() };
+    state.radarFocusKey = key;
     renderView();
+    const row = document.querySelector(`[data-rf-row="${CSS.escape(key)}"]`); if(row) row.scrollIntoView({ behavior:'smooth', block:'center' });
+  });
+  const catToggle = document.getElementById('radar-cat-toggle');
+  if(catToggle) catToggle.onclick = ()=>{ radarSyncDraftFromInputs(); state.radarShowCatalog = !state.radarShowCatalog; renderView(); };
+  document.querySelectorAll('[data-rf-model]').forEach(sel=>sel.onchange = ()=>{
+    const draft = radarSyncDraftFromInputs();
+    const key = sel.dataset.rfModel; const r = draft[key]; if(!r) return;
+    draft[key] = radarDefaultSpec(sel.value, r);
+    renderView();
+  });
+  document.querySelectorAll('[data-rf-type]').forEach(sel=>sel.onchange = ()=>{
+    const draft = radarSyncDraftFromInputs();
+    const key = sel.dataset.rfType; const [id] = key.split('|');
+    const nk = `${id}|${sel.value}`;
+    if(draft[nk]){ showToast(`Il y a déjà une règle « ${DM_PERSO_TYPES[sel.value]} » pour cette PropFirm.`, 'danger'); renderView(); return; }
+    // Garde l'ordre des lignes.
+    const next = {}; Object.keys(draft).forEach(k=>{ next[k===key ? nk : k] = draft[k]; });
+    state.radarFirmDraft = next; state.radarFocusKey = nk;
+    renderView();
+  });
+  document.querySelectorAll('[data-rf-key][data-rf-f]').forEach(inp=>{
+    const refresh = ()=>{
+      const draft = radarSyncDraftFromInputs();
+      const key = inp.dataset.rfKey;
+      const hint = document.querySelector(`[data-rf-hint="${CSS.escape(key)}"]`);
+      if(hint && draft[key]) hint.innerHTML = radarDraftHintHtml(key, draft[key]);
+    };
+    inp.addEventListener('input', refresh);
+    inp.addEventListener('change', ()=>{ if(inp.dataset.rfF==='unit'){ radarSyncDraftFromInputs(); renderView(); } else refresh(); });
   });
   document.querySelectorAll('[data-rf-del]').forEach(b=>b.onclick = ()=>{
     const draft = radarSyncDraftFromInputs();
