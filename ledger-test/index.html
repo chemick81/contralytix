@@ -718,6 +718,14 @@ th.th-sort-active svg{opacity:1;}
 .radar-softer svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
 .dm-softer-note{display:flex;gap:8px;align-items:flex-start;border-color:var(--gold) !important;}
 .dm-softer-note svg{width:15px;height:15px;color:var(--gold);flex-shrink:0;margin-top:2px;}
+.adm-inact-off td{opacity:.55;}
+.field label.adm-check,.adm-check{display:inline-flex !important;white-space:nowrap;align-items:center;gap:7px;font-weight:500;font-size:13px;color:var(--text);text-transform:none;letter-spacing:0;margin:0;cursor:pointer;}
+.adm-check input[type=checkbox]{width:16px !important;height:16px;padding:0 !important;flex:0 0 auto;margin:0;accent-color:var(--accent);}
+.adm-hist{display:flex;flex-direction:column;}
+.adm-hist-row{display:flex;gap:14px;padding:10px 2px;border-bottom:1px solid var(--border-soft);}
+.adm-hist-row:last-child{border-bottom:none;}
+.dm-change-note{display:flex;gap:8px;align-items:flex-start;border-color:var(--accent) !important;}
+.dm-change-note svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;margin-top:2px;}
 @media (max-width:640px){
   .radar-cat-row{grid-template-columns:minmax(0,1fr);gap:4px;}
   .radar-cat-meta{justify-content:flex-start;}
@@ -14008,6 +14016,7 @@ const ADMIN_TABS = [
   { id:'support',     label:'Support',         icon:'mail' },
   { id:'settings',    label:'Paramètres',      icon:'layout' },
   { id:'log',         label:'Journal',         icon:'clock' },
+  { id:'inactivity',  label:'Règles d’inactivité', icon:'hourglass' },
 ];
 
 /* Admin > Utilisateurs : filtres et tri (26/09/2026). */
@@ -14433,6 +14442,7 @@ function viewAdmin(){
     settings: settingsPanel,
     log: logPanel,
     dormancy: viewAdminDormancy(),
+    inactivity: viewAdminInactivity(),
   }[state.adminTab] || dashboard;
 
   return tabBar + tabContent;
@@ -14811,14 +14821,22 @@ function radarRuleFieldsHtml(key, r){
 }
 function radarCatalogListHtml(){
   const myFirmIds = new Set((state.accounts||[]).filter(a=>isMineAccount(a) && (a.type==='PA'||a.type==='LIVE')).map(a=>String(a.propFirmId)));
-  // Entrées du catalogue reliées à une PropFirm de l'app (pour « Personnaliser »).
-  const firmOfEntry = e => sortedFirms().filter(f=>dmCatalogFirm(f)===e);
+  // Entrées : PropFirms de l'app ayant une règle (table ou code), puis, en vue complète, les entrées du
+  // catalogue du code sans PropFirm correspondante dans l'app.
   const showAll = !!state.radarShowCatalog;
-  const entries = DM_CATALOG.filter(e=>showAll || firmOfEntry(e).some(f=>myFirmIds.has(String(f.id))));
-  const rows = entries.map(e=>{
-    const firms = firmOfEntry(e);
-    const f = firms.find(x=>myFirmIds.has(String(x.id))) || firms[0] || null;
-    const logo = firmLogoHtml(f || { name:e.name, website:e.domains[0] }, 22);
+  const seen = new Set(); const list = [];
+  sortedFirms().forEach(f=>{
+    const e = dmCatalogEntry(f); if(!e || !e.rules.length) return;
+    const k = e.key; const mine = myFirmIds.has(String(f.id));
+    const prev = list.find(x=>x.e.key===k);
+    if(prev){ if(mine && !prev.mine){ prev.f = f; prev.mine = true; } return; }
+    seen.add(k); list.push({ e, f, mine });
+  });
+  if(showAll) DM_CATALOG.forEach(e=>{ if(!seen.has(e.key)) list.push({ e, f:null, mine:false }); });
+  const entries = list.filter(x=>showAll || x.mine);
+  const totalCount = new Set([...list.map(x=>x.e.key), ...DM_CATALOG.map(e=>e.key)]).size;
+  const rows = entries.map(({e, f})=>{
+    const logo = firmLogoHtml(f || { name:e.name, website:(e.domains||[])[0] }, 22);
     return e.rules.map(r=>{
       const c = DM_CONF_META[r.conf] || DM_CONF_META.unverified;
       const type = r.types.length>1 ? 'ALL' : r.types[0];
@@ -14826,12 +14844,12 @@ function radarCatalogListHtml(){
       return `<div class="radar-cat-row">
         <div class="radar-firm-name">${logo}<div style="min-width:0;line-height:1.3;"><div>${escapeHtml(e.name)}</div><div class="text-faint" style="font-weight:500;font-size:11.5px;">${escapeHtml(r.label)}</div></div></div>
         <div class="radar-cat-rule">${escapeHtml(dmSpecSentence(r.spec))}</div>
-        <div class="radar-cat-meta"><span class="badge ${c.badge}" title="${escapeHtml(c.hint)}">${c.label}</span><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="text-faint">source ↗</a>${key ? `<button type="button" class="btn btn-ghost btn-sm" data-rf-custom="${escapeHtml(key)}" data-rf-from="${escapeHtml(r.id)}" title="Créer ta propre règle à partir de celle-ci">Personnaliser</button>` : ''}</div>
+        <div class="radar-cat-meta"><span class="badge ${c.badge}" title="${escapeHtml(c.hint)}">${c.label}</span>${r.url ? `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="text-faint">source ↗</a>` : ''}${key ? `<button type="button" class="btn btn-ghost btn-sm" data-rf-custom="${escapeHtml(key)}" data-rf-from="${escapeHtml(r.id)}" title="Créer ta propre règle à partir de celle-ci">Personnaliser</button>` : ''}</div>
       </div>`;
     }).join('');
   }).join('');
   return `<div class="radar-cat-list">${rows || `<div class="text-faint" style="font-size:12.5px;padding:8px 0;">Aucune de tes PropFirms n’est encore au catalogue : ta règle générale s’applique.</div>`}</div>
-    <button type="button" class="btn btn-ghost btn-sm" id="radar-cat-toggle" style="margin-top:6px;">${showAll ? 'Seulement mes PropFirms' : `Voir tout le catalogue (${DM_CATALOG.length} PropFirms)`}</button>`;
+    <button type="button" class="btn btn-ghost btn-sm" id="radar-cat-toggle" style="margin-top:6px;">${showAll ? 'Seulement mes PropFirms' : `Voir tout le catalogue (${totalCount} PropFirms)`}</button>`;
 }
 function radarSettingsPanelHtml(){
   const premium = perms().isPremium;
@@ -14868,7 +14886,7 @@ function radarSettingsPanelHtml(){
     </div>` : ''}
     <select id="radar-firm-add" class="radar-firm-add">
       <option value="">+ Créer une règle pour une PropFirm…</option>
-      ${firmsForAdd.map(f=>{ const n = fundedCount(f.id); const cat = dmCatalogFirm(f); return `<option value="${escapeHtml(String(f.id))}">${escapeHtml(f.name)}${n ? ` · ${n} compte${n>1?'s':''} funded` : ''}${cat ? '' : ' · hors catalogue'}</option>`; }).join('')}
+      ${firmsForAdd.map(f=>{ const n = fundedCount(f.id); const cat = dmCatalogEntry(f); return `<option value="${escapeHtml(String(f.id))}">${escapeHtml(f.name)}${n ? ` · ${n} compte${n>1?'s':''} funded` : ''}${cat ? '' : ' · hors catalogue'}</option>`; }).join('')}
     </select>
 
     <div class="radar-sub" style="margin-top:18px;">Règle générale <span class="text-faint" style="font-weight:500;">· PropFirms hors catalogue</span></div>
@@ -15322,12 +15340,12 @@ function dmAccStart(a){ return a.purchaseDate || a.activationDate || (a.createdA
 const DM_CATALOG = [
   { key:'apex', name:'Apex Trader Funding', domains:['apextraderfunding.com'], keys:['apex','apextraderfunding','apextrader'],
     rules:[
-      { id:'apex-pa', types:['PA'], label:'PA acheté depuis le 01/03/2026', auto:a=>{ const d = dmAccStart(a); return !d || d >= '2026-03-01'; },
+      { id:'apex-pa', types:['PA'], label:'PA acheté depuis le 01/03/2026', autoFrom:'2026-03-01', auto:a=>{ const d = dmAccStart(a); return !d || d >= '2026-03-01'; },
         spec:{ model:'WINDOW', count:2, window:30, threshold:50, thrMode:'POS' }, dormantAfter:15,
         conf:'official', verifiedAt:'2026-10-14', url:'https://apextraderfunding.com/help-center/billing/inactivity-policy-on-performance-accounts-pa/',
         consequence:'Phase dormante après 15 jours (rappels à J15 et J20), fermeture définitive à 30 jours, sans réactivation possible.',
         notes:'Fenêtre de 30 jours calendaires (week-ends et jours fériés inclus). Pour un nouveau PA, le jour d’achat est le jour 1. Seul un gain net de 50 $ ou plus valide la journée : une perte ne compte pas.' },
-      { id:'apex-legacy', types:['PA'], label:'PA Legacy (acheté avant le 01/03/2026)', auto:a=>{ const d = dmAccStart(a); return !!d && d < '2026-03-01'; },
+      { id:'apex-legacy', types:['PA'], label:'PA Legacy (acheté avant le 01/03/2026)', autoBefore:'2026-03-01', auto:a=>{ const d = dmAccStart(a); return !!d && d < '2026-03-01'; },
         spec:{ model:'WINDOW', count:1, window:30, threshold:150, thrMode:'POS' },
         conf:'official', verifiedAt:'2026-10-14', url:'https://apextraderfunding.com/help-center/performance-accounts-pa/legacy-pa-inactivity-policy/',
         consequence:'Le compte peut être fermé à 30 jours sans journée qualifiante.' },
@@ -15437,9 +15455,63 @@ function dmCatalogFirm(firm){
       || DM_CATALOG.find(e=>e.keys.some(x=>x.length>=5 && k.startsWith(x)))
       || null;
 }
+/* Catalogue administrable (14/10/2026) : table inactivity_rules (migration_regles_inactivite.sql),
+   gérée dans Admin → Règles d'inactivité. Dès qu'une PropFirm a au moins une ligne dans la table
+   (active ou désactivée), la table fait foi pour elle ; sinon le catalogue du code (DM_CATALOG)
+   s'applique. Historique automatique dans inactivity_rule_history (trigger). */
+const DM_RULE_CHANGE_DAYS = 14;   // badge « Règle mise à jour » visible 14 jours
+async function loadInactivityRules(){
+  state.inactivityReady = false;
+  if(!SUPABASE_CONFIGURED || !state.session) return;
+  const since = new Date(Date.now() - DM_RULE_CHANGE_DAYS*86400000).toISOString();
+  const [rules, hist] = await Promise.all([
+    supabaseClient.from('inactivity_rules').select('*').order('sort', { ascending:true }),
+    supabaseClient.from('inactivity_rule_history').select('*').gte('changed_at', since).order('changed_at', { ascending:false }).limit(500),
+  ]);
+  if(rules.error){
+    if(isAdmin()) console.warn('Catalogue des règles d’inactivité : table absente, catalogue du code utilisé.', rules.error.message);
+    state.inactivityRules = []; state.inactivityRecent = [];
+    return;
+  }
+  state.inactivityRules = (rules.data||[]).map(fromRow);
+  state.inactivityRecent = hist.error ? [] : (hist.data||[]).map(fromRow);
+  state.inactivityReady = true;
+}
+function dmTableRowsForFirm(firm){
+  if(!firm || !state.inactivityReady) return [];
+  return (state.inactivityRules||[]).filter(r=>String(r.propfirmId)===String(firm.id));
+}
+function dmRowToRule(row){
+  const before = row.autoBefore ? String(row.autoBefore).slice(0,10) : null;
+  const from = row.autoFrom ? String(row.autoFrom).slice(0,10) : null;
+  return { id: row.id, types: Array.isArray(row.types) && row.types.length ? row.types : ['PA','LIVE'], label: row.label || 'Tous les comptes',
+    spec: dmNormSpec(row.spec) || { model:'NONE' }, isDefault: !!row.isDefault, dormantAfter: row.dormantAfter || null,
+    auto: (before || from) ? (a=>{ const d = dmAccStart(a); if(!d) return !before; return (!before || d < before) && (!from || d >= from); }) : null,
+    autoBefore: before, autoFrom: from,
+    conf: row.conf || 'official', verifiedAt: row.verifiedAt ? String(row.verifiedAt).slice(0,10) : null, url: row.sourceUrl || null,
+    consequence: row.consequence || null, notes: row.notes || null, active: row.active!==false, fromTable: true, updatedAt: row.updatedAt || null };
+}
+// Entrée du catalogue pour une PropFirm de l'app : table si elle a des lignes, sinon code.
+function dmCatalogEntry(firm){
+  if(!firm) return null;
+  const rows = dmTableRowsForFirm(firm);
+  if(rows.length) return { key:'db:'+firm.id, name: firm.name, fromTable:true,
+    rules: rows.filter(r=>r.active!==false).map(dmRowToRule).filter(r=>r.spec) };
+  return dmCatalogFirm(firm);
+}
 function dmCatalogRulesFor(firm, type){
-  const e = dmCatalogFirm(firm);
+  const e = dmCatalogEntry(firm);
   return e ? e.rules.filter(r=>r.types.includes(type)) : [];
+}
+// Changement récent d'une règle de la table (spec modifiée dans les 14 derniers jours).
+function dmRecentChange(catRule){
+  if(!catRule || !catRule.fromTable) return null;
+  const cur = JSON.stringify(catRule.spec);
+  const h = (state.inactivityRecent||[]).find(x=>x.ruleId===catRule.id && x.action==='update' && x.oldRow
+    && JSON.stringify(dmNormSpec(x.oldRow.spec)) !== cur);
+  if(!h) return null;
+  const old = dmNormSpec(h.oldRow.spec);
+  return { date: String(h.changedAt).slice(0,10), oldSentence: old ? dmSpecSentence(old) : '—', note: h.note || null };
 }
 // Variante choisie par le trader pour un compte (ex. FundedNext Direct), sinon détection automatique.
 function dmVariantChoices(){
@@ -15581,7 +15653,7 @@ function dmAppliedRule(a){
   const firm = getFirm(a.propFirmId);
   const cat = dmCatalogRuleFor(a);
   const perso = dmPersoSpecFor(a);
-  const entry = cat ? dmCatalogFirm(firm) : null;
+  const entry = cat ? dmCatalogEntry(firm) : null;
   const firmName = entry ? entry.name : (firm ? firm.name : 'cette PropFirm');
   let spec, origin;
   if(perso){ spec = perso; origin = 'perso'; }
@@ -15596,12 +15668,13 @@ function dmAppliedRule(a){
     catalogRule: cat || null, variants: dmCatalogRulesFor(firm, a.type),
     officialSentence: cat ? dmSpecSentence(cat.spec) : null,
     softer: (origin==='perso' && cat) ? dmSpecSofter(perso, cat.spec) : null,
-    dormantAfter: origin==='catalog' ? (cat.dormantAfter || null) : null };
+    dormantAfter: origin==='catalog' ? (cat.dormantAfter || null) : null,
+    recentChange: cat ? dmRecentChange(cat) : null };
   rule.ruleText = origin==='catalog'
     ? `${sentence}. Règle de ${firmName}${cat.label && rule.variants.length>1 ? ` (${cat.label})` : ''}.`
     : origin==='perso'
       ? `${sentence}. C’est ta règle pour ${firm ? firm.name : 'cette PropFirm'}, elle remplace ${cat ? `la règle officielle (${rule.officialSentence.charAt(0).toLowerCase() + rule.officialSentence.slice(1)})` : 'la règle générale'}.`
-      : `${sentence}. ${cat===null && dmCatalogFirm(firm) ? `Le catalogue ne couvre pas les comptes ${TYPE_LABELS[a.type]||a.type} de ${firmName} : c’est ta règle générale qui s’applique.` : `${firm ? firm.name : 'Cette PropFirm'} n’est pas encore dans le catalogue : c’est ta règle générale qui s’applique.`} Vérifie les conditions de ta prop firm.`;
+      : `${sentence}. ${cat===null && dmCatalogEntry(firm) ? `Le catalogue ne couvre pas les comptes ${TYPE_LABELS[a.type]||a.type} de ${firmName} : c’est ta règle générale qui s’applique.` : `${firm ? firm.name : 'Cette PropFirm'} n’est pas encore dans le catalogue : c’est ta règle générale qui s’applique.`} Vérifie les conditions de ta prop firm.`;
   return rule;
 }
 function dmOriginLabel(rule){
@@ -16511,7 +16584,7 @@ function dmRowHtml(a, r){
         ${firmLogoHtml(firm, 32)}
         <div style="min-width:0;">
           <div class="dm-row-title">${dmAccountName(a)} <span class="text-faint mono" style="font-weight:500;">${maskAccountNumber(a.accountNumber||'')}</span></div>
-          <div class="dm-row-sub">${trader ? escapeHtml(trader.pseudo)+' · ' : ''}${escapeHtml(r.rule && r.rule.sentence ? `${dmOriginLabel(r.rule)} · ${r.rule.sentence}` : (r.isDefault ? 'Défaut prudent · 21 jours calendaires' : DM_ENGINE_LABELS[r.engine]))}${r.dormant ? ' · <strong style="color:var(--gold)">phase dormante</strong>' : ''}${r.rule && r.rule.origin==='catalog' && r.rule.conf!=='official' ? ' ' + dmConfBadgeHtml(r.rule) : ''}${r.rule && r.rule.softer ? ` <span class="badge badge-gold" title="${escapeHtml('Plus souple que la règle officielle : ' + r.rule.softer)}">${icon('alertTriangle')}Plus souple que l’officielle</span>` : ''}</div>
+          <div class="dm-row-sub">${trader ? escapeHtml(trader.pseudo)+' · ' : ''}${escapeHtml(r.rule && r.rule.sentence ? `${dmOriginLabel(r.rule)} · ${r.rule.sentence}` : (r.isDefault ? 'Défaut prudent · 21 jours calendaires' : DM_ENGINE_LABELS[r.engine]))}${r.dormant ? ' · <strong style="color:var(--gold)">phase dormante</strong>' : ''}${r.rule && r.rule.origin==='catalog' && r.rule.conf!=='official' ? ' ' + dmConfBadgeHtml(r.rule) : ''}${r.rule && r.rule.softer ? ` <span class="badge badge-gold" title="${escapeHtml('Plus souple que la règle officielle : ' + r.rule.softer)}">${icon('alertTriangle')}Plus souple que l’officielle</span>` : ''}${r.rule && r.rule.recentChange ? ` <span class="badge badge-accent" title="${escapeHtml('Avant : ' + r.rule.recentChange.oldSentence)}">${icon('info')}Règle ${r.rule.origin==='perso' ? 'officielle ' : ''}mise à jour le ${fmtDate(r.rule.recentChange.date)}</span>` : ''}</div>
         </div>
       </div>
       <div class="dm-row-bar">
@@ -16604,6 +16677,7 @@ function dmOpenDetail(accountId){
         </div>
         <p style="margin:0;font-size:13.5px;line-height:1.55;font-weight:600;">${escapeHtml(rule.sentence || '')}</p>
         <p style="margin:4px 0 0;font-size:12.5px;line-height:1.55;color:var(--text-dim);">${escapeHtml(rule.ruleText||'')}</p>
+        ${rule.recentChange ? `<div class="dm-alert-note dm-change-note" style="margin-top:10px;">${icon('info')}<span><strong>${rule.origin==='perso' ? 'La règle officielle' : 'Cette règle'} a changé le ${fmtDate(rule.recentChange.date)}.</strong> Avant : ${escapeHtml(rule.recentChange.oldSentence.charAt(0).toLowerCase() + rule.recentChange.oldSentence.slice(1))}.${rule.recentChange.note ? ` <span class="text-dim">Motif : ${escapeHtml(rule.recentChange.note)}</span>` : ''}${rule.origin==='perso' ? ` Elle est maintenant : ${escapeHtml(rule.officialSentence.charAt(0).toLowerCase() + rule.officialSentence.slice(1))} ; ta règle personnelle reste appliquée.` : ''}</span></div>` : ''}
         ${rule.softer ? `<div class="dm-alert-note dm-softer-note" style="margin-top:10px;">${icon('alertTriangle')}<span><strong>Plus souple que la règle officielle</strong> : ${escapeHtml(rule.softer)}. Le Radar risque de te prévenir trop tard.</span></div>` : ''}
         ${rule.variants && rule.variants.length>1 ? `<div class="field" style="margin:12px 0 0;"><label>Type de compte chez ${escapeHtml(rule.firmName)}</label>
           <select id="dm-variant">${rule.variants.map(v=>`<option value="${escapeHtml(v.id)}" ${rule.catalogRule && rule.catalogRule.id===v.id ? 'selected' : ''}>${escapeHtml(v.label)} · ${escapeHtml(dmSpecSentence(v.spec))}</option>`).join('')}</select>
@@ -16813,6 +16887,279 @@ function dmOpenActivation(accountIds){
 }
 
 /* ---------- Admin : catalogue des règles ---------- */
+/* ============================================================
+   ADMIN → RÈGLES D'INACTIVITÉ (14/10/2026)
+   Catalogue officiel du Radar, table inactivity_rules (migration_regles_inactivite.sql).
+   Une ligne = une règle pour une PropFirm et un ou deux types de compte (PA / Live), avec
+   variantes possibles (attribution automatique par date d'achat, ou variante par défaut).
+   Chaque enregistrement est historisé par un trigger (inactivity_rule_history). Les traders voient
+   un badge « Règle mise à jour » pendant DM_RULE_CHANGE_DAYS jours quand la règle change.
+============================================================ */
+const ADM_STALE_DAYS = 90;
+function admInactFirmsToImport(){
+  return sortedFirms().filter(f=>!dmTableRowsForFirm(f).length && dmCatalogFirm(f));
+}
+function admInactAccCount(firmId, types){
+  return (state.accounts||[]).filter(a=>String(a.propFirmId)===String(firmId) && types.includes(a.type) && a.status==='ACTIF').length;
+}
+function viewAdminInactivity(){
+  if(!state.inactivityReady){
+    return `<div class="panel" style="padding:18px;">${emptyState('hourglass', 'Table du catalogue introuvable', 'Exécute migration_regles_inactivite.sql sur Supabase, puis recharge la page. En attendant, le Radar applique le catalogue intégré au code (vérifié le ' + fmtDate(DM_CATALOG_VERSION) + ').')}</div>`;
+  }
+  const rows = (state.inactivityRules||[]).filter(r=>getFirm(r.propfirmId));
+  const firms = sortedFirms();
+  const withRows = firms.filter(f=>dmTableRowsForFirm(f).length);
+  const without = firms.filter(f=>!dmTableRowsForFirm(f).length);
+  const toImport = admInactFirmsToImport();
+  const active = rows.filter(r=>r.active!==false);
+  const stale = active.filter(r=>!r.verifiedAt || dmDiff(String(r.verifiedAt).slice(0,10), todayISO()) > ADM_STALE_DAYS);
+  const ruleRow = (f, row) => {
+    const r = dmRowToRule(row);
+    const c = DM_CONF_META[r.conf] || DM_CONF_META.unverified;
+    const old = r.verifiedAt && dmDiff(r.verifiedAt, todayISO()) > ADM_STALE_DAYS;
+    const n = admInactAccCount(f.id, r.types);
+    const auto = r.autoBefore ? `achetés avant le ${fmtDate(r.autoBefore)}` : r.autoFrom ? `achetés depuis le ${fmtDate(r.autoFrom)}` : (r.isDefault ? 'variante par défaut' : '');
+    return `<tr class="${r.active ? '' : 'adm-inact-off'}">
+      <td><span class="firm-name-inline">${firmLogoHtml(f,16)}${escapeHtml(f.name)}</span></td>
+      <td><div style="font-weight:600;font-size:12.5px;">${escapeHtml(r.label)}</div><div class="text-faint" style="font-size:11.5px;">${r.types.map(t=>TYPE_LABELS[t]||t).join(' et ')}${auto ? ' · ' + escapeHtml(auto) : ''}</div></td>
+      <td style="font-size:12.5px;max-width:320px;">${escapeHtml(dmSpecSentence(r.spec))}</td>
+      <td><span class="badge ${c.badge}">${c.label}</span>${r.active ? '' : ' <span class="badge badge-slate">Désactivée</span>'}</td>
+      <td class="mono text-dim" style="font-size:12px;${old ? 'color:var(--gold);' : ''}">${r.verifiedAt ? fmtDate(r.verifiedAt) : '—'}${old ? ' ' + icon('alertTriangle') : ''}</td>
+      <td class="mono" style="text-align:right;">${n}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" data-adm-inact-hist="${escapeHtml(row.id)}" title="Historique des versions">${icon('clock')}</button>
+        <button class="btn btn-ghost btn-sm" data-adm-inact-toggle="${escapeHtml(row.id)}" title="${r.active ? 'Désactiver : la règle ne s’applique plus (les comptes passent sur la règle générale ou une autre variante)' : 'Réactiver'}">${r.active ? 'Désactiver' : 'Réactiver'}</button>
+        <button class="btn btn-outline btn-sm" data-adm-inact-edit="${escapeHtml(row.id)}">${icon('edit')}Modifier</button>
+      </td>
+    </tr>`;
+  };
+  return `
+    <div class="panel" style="padding:16px 18px;margin-bottom:14px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;">
+          <div class="section-title" style="margin-bottom:6px;">Catalogue des règles d’inactivité</div>
+          <div class="text-dim" style="font-size:13px;line-height:1.5;">Règles officielles appliquées par le Radar, par PropFirm et type de compte. Une PropFirm présente ici suit uniquement ces règles ; une PropFirm absente suit le catalogue intégré au code, puis la règle générale du trader. Chaque modification est historisée, et les traders concernés voient « Règle mise à jour » pendant ${DM_RULE_CHANGE_DAYS} jours.</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;">
+            <span><strong class="mono">${active.length}</strong> règle${active.length>1?'s':''} active${active.length>1?'s':''}</span>
+            <span><strong class="mono">${withRows.length}</strong> PropFirm${withRows.length>1?'s':''} couverte${withRows.length>1?'s':''}</span>
+            ${stale.length ? `<span style="color:var(--gold);font-weight:600;">${icon('alertTriangle')} ${stale.length} à revérifier (plus de ${ADM_STALE_DAYS} jours)</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${toImport.length ? `<button class="btn btn-outline btn-sm" id="adm-inact-import">${icon('download')}Importer le catalogue Contralytix (${toImport.length})</button>` : ''}
+          <button class="btn btn-primary btn-sm" data-adm-inact-new="">${icon('plus')}Ajouter une règle</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>PropFirm</th><th>Type de compte</th><th>Règle</th><th>Fiabilité</th><th>Vérifiée le</th><th style="text-align:right">Comptes actifs</th><th></th></tr></thead>
+          <tbody>
+            ${withRows.length ? withRows.map(f=>dmTableRowsForFirm(f).slice().sort((a,b)=>(a.sort||0)-(b.sort||0)).map(row=>ruleRow(f,row)).join('')).join('')
+              : `<tr><td colspan="7"><div class="empty-sub" style="padding:16px 0;">Aucune règle dans la table. ${toImport.length ? 'Commence par « Importer le catalogue Contralytix » : les règles vérifiées le ' + fmtDate(DM_CATALOG_VERSION) + ' sont copiées ici, modifiables.' : 'Ajoute une règle pour une PropFirm.'}</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    ${without.length ? `<div class="panel">
+      <div class="panel-head"><div class="section-title">PropFirms sans règle dans la table (${without.length})</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>PropFirm</th><th>Appliqué aujourd’hui</th><th style="text-align:right">PA/Live actifs</th><th></th></tr></thead>
+        <tbody>${without.map(f=>{ const e = dmCatalogFirm(f); return `<tr>
+          <td><span class="firm-name-inline">${firmLogoHtml(f,16)}${escapeHtml(f.name)}</span></td>
+          <td class="text-dim" style="font-size:12.5px;">${e ? 'Catalogue du code : ' + escapeHtml(e.rules.map(r=>dmSpecSentence(r.spec).toLowerCase()).join(' / ')) : 'Règle générale de chaque trader'}</td>
+          <td class="mono" style="text-align:right;">${admInactAccCount(f.id, ['PA','LIVE'])}</td>
+          <td style="text-align:right;"><button class="btn btn-outline btn-sm" data-adm-inact-new="${escapeHtml(f.id)}">${icon('plus')}Créer</button></td>
+        </tr>`; }).join('')}</tbody>
+      </table></div>
+    </div>` : ''}`;
+}
+async function admInactImport(){
+  const firms = admInactFirmsToImport();
+  if(!firms.length) return;
+  confirmModal(`Copier dans la table les règles du catalogue Contralytix (vérifiées le ${fmtDate(DM_CATALOG_VERSION)}) pour ${firms.length} PropFirm${firms.length>1?'s':''} : ${firms.map(f=>f.name).join(', ')} ? Elles deviennent modifiables ici ; les traders ne voient aucun changement.`, async ()=>{
+    const payload = [];
+    firms.forEach(f=>{ dmCatalogFirm(f).rules.forEach((r, i)=>payload.push({
+      id: `${f.id}__${r.id}`, propfirm_id: f.id, label: r.label, types: r.types, spec: r.spec,
+      auto_before: r.autoBefore || null, auto_from: r.autoFrom || null, is_default: !!r.isDefault, dormant_after: r.dormantAfter || null,
+      conf: r.conf, verified_at: r.verifiedAt || null, source_url: r.url || null, consequence: r.consequence || null, notes: r.notes || null,
+      change_note: `Import du catalogue Contralytix du ${fmtDate(DM_CATALOG_VERSION)}`, active: true, sort: i,
+    })); });
+    const { error } = await supabaseClient.from('inactivity_rules').insert(payload);
+    if(error){ showToast('Import impossible : ' + error.message, 'danger'); return; }
+    await logActivity('SETTINGS', 'inactivity_rules', null, `Import du catalogue d’inactivité : ${payload.length} règles, ${firms.length} PropFirms`);
+    await loadInactivityRules();
+    showToast(`${payload.length} règles importées pour ${firms.length} PropFirm${firms.length>1?'s':''}.`);
+    render();
+  }, false);
+}
+function admInactEditor(ruleId, firmId){
+  if(!isAdmin()) return;
+  const row = ruleId ? (state.inactivityRules||[]).find(r=>r.id===ruleId) : null;
+  const firm = getFirm(row ? row.propfirmId : firmId);
+  const code = !row && firm ? dmCatalogFirm(firm) : null;
+  const base = row ? dmRowToRule(row) : (code && code.rules[0]) || { label:'Tous les comptes', types:['PA','LIVE'], spec:{ model:'GAP', days:30, unit:'cal' }, conf:'official' };
+  const d = { firmId: firm ? firm.id : '', label: base.label || '', types: [...base.types], spec: { ...base.spec },
+    autoMode: base.autoBefore ? 'before' : base.autoFrom ? 'from' : 'none', autoDate: base.autoBefore || base.autoFrom || '',
+    isDefault: !!base.isDefault, dormantAfter: base.dormantAfter || '', conf: base.conf || 'official',
+    verifiedAt: row ? (base.verifiedAt || '') : todayISO(), url: base.url || '', consequence: base.consequence || '', notes: base.notes || '' };
+  const origSpec = row ? JSON.stringify(dmNormSpec(row.spec)) : null;
+  const firmsOpts = sortedFirms().map(f=>`<option value="${escapeHtml(f.id)}" ${String(f.id)===String(d.firmId)?'selected':''}>${escapeHtml(f.name)}${dmTableRowsForFirm(f).length ? '' : ' · pas encore dans la table'}</option>`).join('');
+  const fieldsHtml = () => `${radarRuleFieldsHtml('adm', d.spec)}`;
+  openModal({
+    title: row ? `Règle d’inactivité · ${escapeHtml(firm ? firm.name : '')}` : 'Nouvelle règle d’inactivité',
+    wide: true,
+    bodyHtml: `
+      <div class="grid-2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+        <div class="field" style="margin:0;"><label>PropFirm</label>${row ? `<div style="padding:8px 0;font-weight:600;">${escapeHtml(firm ? firm.name : '—')}</div>` : `<select id="adm-i-firm"><option value="">Choisir…</option>${firmsOpts}</select>`}</div>
+        <div class="field" style="margin:0;"><label>Type de compte (libellé affiché)</label><input id="adm-i-label" maxlength="80" value="${escapeHtml(d.label)}" placeholder="ex. PA, Master, Direct Funded"/></div>
+      </div>
+      <div class="field" style="margin:12px 0 0;"><label>S’applique aux comptes</label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+          <label class="adm-check"><input type="checkbox" id="adm-i-pa" ${d.types.includes('PA')?'checked':''}/>PA (financé simulé)</label>
+          <label class="adm-check"><input type="checkbox" id="adm-i-live" ${d.types.includes('LIVE')?'checked':''}/>Live</label>
+        </div></div>
+      <div class="field" style="margin:12px 0 0;"><label>Règle</label>
+        <select id="adm-i-model">${Object.keys(RADAR_MODEL_LABELS).concat('NONE').map(m=>`<option value="${m}" ${d.spec.model===m?'selected':''}>${m==='NONE' ? 'Aucune règle d’inactivité' : RADAR_MODEL_LABELS[m]}</option>`).join('')}</select>
+        <div class="radar-rule-fields" id="adm-i-fields" style="margin-top:8px;">${d.spec.model==='NONE' ? '' : fieldsHtml()}</div>
+        <div class="field-hint" id="adm-i-sentence" style="margin-top:6px;font-weight:600;color:var(--text);"></div>
+      </div>
+      <div class="grid-2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;">
+        <div class="field" style="margin:0;"><label>Attribution automatique de la variante</label>
+          <div style="display:flex;gap:8px;"><select id="adm-i-automode" style="flex:1;">
+            <option value="none" ${d.autoMode==='none'?'selected':''}>Aucune</option>
+            <option value="before" ${d.autoMode==='before'?'selected':''}>Comptes achetés avant le</option>
+            <option value="from" ${d.autoMode==='from'?'selected':''}>Comptes achetés à partir du</option></select>
+            <input type="date" id="adm-i-autodate" value="${escapeHtml(d.autoDate)}" style="flex:1;"/></div>
+          <label class="adm-check" style="margin-top:8px;font-size:12.5px;"><input type="checkbox" id="adm-i-default" ${d.isDefault?'checked':''}/>Variante par défaut si plusieurs règles pour le même type</label>
+        </div>
+        <div class="field" style="margin:0;"><label>Phase dormante après (jours, optionnel)</label><input type="number" id="adm-i-dormant" min="1" max="90" value="${escapeHtml(String(d.dormantAfter))}" placeholder="ex. 15 pour Apex"/></div>
+        <div class="field" style="margin:0;"><label>Fiabilité</label><select id="adm-i-conf">${Object.keys(DM_CONF_META).map(k=>`<option value="${k}" ${d.conf===k?'selected':''}>${DM_CONF_META[k].label}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0;"><label>Vérifiée le</label><div style="display:flex;gap:8px;"><input type="date" id="adm-i-verified" max="${todayISO()}" value="${escapeHtml(d.verifiedAt)}" style="flex:1;"/><button type="button" class="btn btn-ghost btn-sm" id="adm-i-today">Aujourd’hui</button></div></div>
+      </div>
+      <div class="field" style="margin:12px 0 0;"><label>Source</label><input id="adm-i-url" type="url" value="${escapeHtml(d.url)}" placeholder="https://… page officielle de la PropFirm"/></div>
+      <div class="field" style="margin:12px 0 0;"><label>Conséquence (affichée au trader)</label><input id="adm-i-cons" maxlength="240" value="${escapeHtml(d.consequence)}" placeholder="ex. Fermeture définitive du compte"/></div>
+      <div class="field" style="margin:12px 0 0;"><label>Bon à savoir (affiché au trader)</label><textarea id="adm-i-notes" rows="2" maxlength="600">${escapeHtml(d.notes)}</textarea></div>
+      ${row ? `<div class="field" style="margin:12px 0 0;"><label>Motif de la modification</label><input id="adm-i-note" maxlength="240" placeholder="ex. Nouvelle règle annoncée le 10/11 sur le Discord Apex"/><div class="field-hint">Obligatoire si la règle ou sa fiabilité change : affiché aux traders dans l’alerte « Règle mise à jour » et conservé dans l’historique.</div></div>` : ''}
+      <div id="adm-i-error" class="error-text"></div>`,
+    footHtml: `${row ? `<button class="btn btn-ghost" id="adm-i-del" style="margin-right:auto;color:var(--danger);">${icon('trash')}Supprimer</button>` : ''}<button class="btn btn-outline" id="adm-i-cancel">Annuler</button><button class="btn btn-primary" id="adm-i-save">${icon('check')}Enregistrer</button>`,
+    onMount(){
+      const root = document.getElementById('modal-root');
+      const readSpec = ()=>{
+        root.querySelectorAll('[data-rf-key="adm"][data-rf-f]').forEach(inp=>{ const f = inp.dataset.rfF; d.spec[f] = (f==='unit'||f==='thrMode'||f==='week') ? inp.value : (inp.value.trim()==='' ? null : inp.value); });
+      };
+      const refresh = ()=>{ readSpec(); const sp = dmNormSpec(d.spec); document.getElementById('adm-i-sentence').textContent = sp ? `Aperçu : ${dmSpecSentence(sp)}.` : 'Règle incomplète : vérifie les valeurs.'; };
+      const bindFields = ()=>{ root.querySelectorAll('[data-rf-key="adm"][data-rf-f]').forEach(inp=>{ inp.addEventListener('input', refresh); inp.addEventListener('change', ()=>{ if(inp.dataset.rfF==='unit'){ readSpec(); document.getElementById('adm-i-fields').innerHTML = fieldsHtml(); bindFields(); } refresh(); }); }); };
+      bindFields(); refresh();
+      document.getElementById('adm-i-model').onchange = (e)=>{
+        readSpec(); const m = e.target.value;
+        d.spec = m==='NONE' ? { model:'NONE' } : radarDefaultSpec(m, d.spec);
+        document.getElementById('adm-i-fields').innerHTML = m==='NONE' ? '' : fieldsHtml(); bindFields(); refresh();
+      };
+      document.getElementById('adm-i-today').onclick = ()=>{ document.getElementById('adm-i-verified').value = todayISO(); };
+      document.getElementById('adm-i-cancel').onclick = closeModal;
+      const del = document.getElementById('adm-i-del');
+      if(del) del.onclick = ()=>{ closeModal(); confirmModal(`Supprimer définitivement cette règle (${row.label}) ? Pour la suspendre, préfère « Désactiver ». La suppression reste visible dans l’historique.`, async ()=>{
+        const { error } = await supabaseClient.from('inactivity_rules').delete().eq('id', row.id);
+        if(error){ showToast('Suppression impossible : ' + error.message, 'danger'); return; }
+        await logActivity('DELETE', 'inactivity_rules', row.id, `Règle d’inactivité supprimée : ${firm ? firm.name : ''} · ${row.label}`);
+        await loadInactivityRules(); showToast('Règle supprimée.'); render();
+      }); };
+      document.getElementById('adm-i-save').onclick = async ()=>{
+        readSpec();
+        const err = document.getElementById('adm-i-error'); err.textContent = '';
+        const fid = row ? row.propfirmId : document.getElementById('adm-i-firm').value;
+        const types = [document.getElementById('adm-i-pa').checked ? 'PA' : null, document.getElementById('adm-i-live').checked ? 'LIVE' : null].filter(Boolean);
+        const spec = dmNormSpec(d.spec);
+        const label = document.getElementById('adm-i-label').value.trim();
+        const conf = document.getElementById('adm-i-conf').value;
+        const autoMode = document.getElementById('adm-i-automode').value, autoDate = document.getElementById('adm-i-autodate').value;
+        const dorm = document.getElementById('adm-i-dormant').value.trim();
+        const url = document.getElementById('adm-i-url').value.trim();
+        const noteEl = document.getElementById('adm-i-note'); const note = noteEl ? noteEl.value.trim() : '';
+        if(!fid) return err.textContent = 'Choisis une PropFirm.';
+        if(!label) return err.textContent = 'Indique le type de compte (ex. PA, Master).';
+        if(!types.length) return err.textContent = 'Coche au moins un type de compte (PA ou Live).';
+        if(!spec) return err.textContent = 'Règle incomplète : vérifie les valeurs.';
+        if(autoMode!=='none' && !autoDate) return err.textContent = 'Indique la date de l’attribution automatique.';
+        if(dorm && !(Number(dorm)>=1 && Number(dorm)<=90)) return err.textContent = 'Phase dormante : entre 1 et 90 jours, ou vide.';
+        if(url && !/^https?:\/\//i.test(url)) return err.textContent = 'La source doit être une adresse web (https://…).';
+        const changed = row && (JSON.stringify(spec)!==origSpec || conf!==(row.conf||'official'));
+        if(changed && !note) return err.textContent = 'Indique le motif de la modification : les traders concernés le verront.';
+        const payload = { propfirm_id: fid, label, types, spec,
+          auto_before: autoMode==='before' ? autoDate : null, auto_from: autoMode==='from' ? autoDate : null,
+          is_default: document.getElementById('adm-i-default').checked, dormant_after: dorm ? Number(dorm) : null,
+          conf, verified_at: document.getElementById('adm-i-verified').value || null, source_url: url || null,
+          consequence: document.getElementById('adm-i-cons').value.trim() || null, notes: document.getElementById('adm-i-notes').value.trim() || null,
+          change_note: row ? (note || null) : 'Création' };
+        const btn = document.getElementById('adm-i-save'); btn.disabled = true;
+        const res = row
+          ? await supabaseClient.from('inactivity_rules').update(payload).eq('id', row.id)
+          : await supabaseClient.from('inactivity_rules').insert({ ...payload, id: uid('ir'), active: true, sort: dmTableRowsForFirm(getFirm(fid)).length });
+        btn.disabled = false;
+        if(res.error) return err.textContent = 'Enregistrement impossible : ' + res.error.message;
+        const fName = (getFirm(fid)||{}).name || '';
+        await logActivity('SETTINGS', 'inactivity_rules', row ? row.id : null, `Règle d’inactivité ${row ? 'modifiée' : 'créée'} : ${fName} · ${label} · ${dmSpecSentence(spec)}${note ? ` (motif : ${note})` : ''}`);
+        await loadInactivityRules();
+        closeModal();
+        showToast(row ? (changed ? 'Règle modifiée : les traders concernés verront « Règle mise à jour ».' : 'Règle enregistrée.') : 'Règle créée.');
+        render();
+      };
+    }
+  });
+}
+async function admInactToggle(ruleId){
+  const row = (state.inactivityRules||[]).find(r=>r.id===ruleId); if(!row) return;
+  const firm = getFirm(row.propfirmId); const on = row.active===false;
+  const go = async ()=>{
+    const { error } = await supabaseClient.from('inactivity_rules').update({ active: on, change_note: on ? 'Règle réactivée' : 'Règle désactivée' }).eq('id', ruleId);
+    if(error){ showToast('Impossible : ' + error.message, 'danger'); return; }
+    await logActivity('SETTINGS', 'inactivity_rules', ruleId, `Règle d’inactivité ${on ? 'réactivée' : 'désactivée'} : ${firm ? firm.name : ''} · ${row.label}`);
+    await loadInactivityRules(); showToast(on ? 'Règle réactivée.' : 'Règle désactivée.'); render();
+  };
+  if(on) return go();
+  const n = admInactAccCount(row.propfirmId, dmRowToRule(row).types);
+  confirmModal(`Désactiver la règle « ${row.label} » de ${firm ? firm.name : 'cette PropFirm'} ? ${n ? `${n} compte${n>1?'s':''} actif${n>1?'s':''} passer${n>1?'ont':'a'} sur une autre variante ou sur la règle générale de leur trader.` : ''}`, go, false);
+}
+async function admInactHistory(ruleId){
+  const row = (state.inactivityRules||[]).find(r=>r.id===ruleId);
+  const firm = row ? getFirm(row.propfirmId) : null;
+  const { data, error } = await supabaseClient.from('inactivity_rule_history').select('*').eq('rule_id', ruleId).order('changed_at', { ascending:false }).limit(100);
+  const list = error ? [] : (data||[]).map(fromRow);
+  const who = id => { const p = (state.profiles||[]).find(x=>x.id===id); return p ? (p.displayName || p.email || 'admin') : 'admin'; };
+  const actLabel = { create:'Création', update:'Modification', delete:'Suppression' };
+  const line = h => {
+    const after = h.newRow ? dmNormSpec(h.newRow.spec) : null, before = h.oldRow ? dmNormSpec(h.oldRow.spec) : null;
+    const specChanged = before && after && JSON.stringify(before)!==JSON.stringify(after);
+    const bits = [];
+    if(h.action==='update' && h.oldRow && h.newRow){
+      if(specChanged) bits.push(`Règle : ${escapeHtml(dmSpecSentence(before))} → <strong>${escapeHtml(dmSpecSentence(after))}</strong>`);
+      if(h.oldRow.conf!==h.newRow.conf) bits.push(`Fiabilité : ${escapeHtml((DM_CONF_META[h.oldRow.conf]||{}).label||h.oldRow.conf)} → ${escapeHtml((DM_CONF_META[h.newRow.conf]||{}).label||h.newRow.conf)}`);
+      if(h.oldRow.active!==h.newRow.active) bits.push(h.newRow.active ? 'Réactivée' : 'Désactivée');
+      if(String(h.oldRow.verified_at||'')!==String(h.newRow.verified_at||'')) bits.push(`Vérifiée le ${h.newRow.verified_at ? fmtDate(String(h.newRow.verified_at).slice(0,10)) : '—'}`);
+      if(!bits.length) bits.push('Détails modifiés (libellé, source, textes…)');
+    } else bits.push(escapeHtml(dmSpecSentence(after || before || { model:'NONE' })));
+    return `<div class="adm-hist-row">
+      <div class="mono text-dim" style="font-size:12px;white-space:nowrap;">${fmtDate(String(h.changedAt).slice(0,10))} ${String(h.changedAt).slice(11,16)}</div>
+      <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;"><strong>${actLabel[h.action]||h.action}</strong> <span class="text-faint">· ${escapeHtml(who(h.changedBy))}</span><br/>${bits.join('<br/>')}${h.note ? `<br/><span class="text-dim">Motif : ${escapeHtml(h.note)}</span>` : ''}</div>
+    </div>`;
+  };
+  openModal({
+    title: `Historique · ${escapeHtml(firm ? firm.name : '')}${row ? ' · ' + escapeHtml(row.label) : ''}`,
+    wide: true,
+    bodyHtml: error ? `<div class="error-text">Historique indisponible : ${escapeHtml(error.message)}</div>`
+      : list.length ? `<div class="adm-hist">${list.map(line).join('')}</div>` : `<div class="empty-sub">Aucune version enregistrée.</div>`,
+    footHtml: `<button class="btn btn-primary" onclick="closeModal()">Fermer</button>`,
+  });
+}
+function admInactBind(){
+  const imp = document.getElementById('adm-inact-import'); if(imp) imp.onclick = admInactImport;
+  document.querySelectorAll('[data-adm-inact-new]').forEach(b=>b.onclick = ()=>admInactEditor(null, b.dataset.admInactNew || null));
+  document.querySelectorAll('[data-adm-inact-edit]').forEach(b=>b.onclick = ()=>admInactEditor(b.dataset.admInactEdit));
+  document.querySelectorAll('[data-adm-inact-toggle]').forEach(b=>b.onclick = ()=>admInactToggle(b.dataset.admInactToggle));
+  document.querySelectorAll('[data-adm-inact-hist]').forEach(b=>b.onclick = ()=>admInactHistory(b.dataset.admInactHist));
+}
 function viewAdminDormancy(){
   if(!state.dormancyReady){
     return `<div class="panel" style="padding:18px;">${emptyState('clock','Tables du radar inactivité introuvables','Exécute migration_dormance_dev_20261008.sql sur Supabase, puis recharge la page.')}</div>`;
@@ -17666,7 +18013,7 @@ function bindViewEvents(){
     const draft = radarSyncDraftFromInputs();
     const key = b.dataset.rfCustom;
     const [id] = key.split('|');
-    const entry = dmCatalogFirm(getFirm(id));
+    const entry = dmCatalogEntry(getFirm(id));
     const src = entry && entry.rules.find(r=>r.id===b.dataset.rfFrom);
     if(!draft[key]) draft[key] = src ? { ...src.spec } : { ...dmGeneralSpec() };
     state.radarFocusKey = key;
@@ -17937,6 +18284,7 @@ function bindViewEvents(){
   document.querySelectorAll('[data-notes]').forEach(b=>b.onclick=()=>notesModal(getAccount(b.dataset.notes)));
   document.querySelectorAll('[data-history]').forEach(b=>b.onclick=()=>statusHistoryModal(getAccount(b.dataset.history)));
   // Admin
+  admInactBind();
   document.querySelectorAll('[data-admin-tab]').forEach(b=>b.onclick=()=>{
     state.adminTab = b.dataset.adminTab;
     const root = document.getElementById('view-root');
@@ -22222,6 +22570,7 @@ function applyLandingPricing(){
     syncBrevoContact(state.session.user.email, state.profile ? state.profile.role : 'FREE', state.profile ? state.profile.notifProductAnnouncements : false);
     await loadAll();
     await loadDormancy();
+    await loadInactivityRules();
     dlxMaybeAutoSync();   // connexion Deltalytix : statut + radar automatique (sans bloquer l'affichage)
     await loadPricingSettings();
     await loadFiscalThresholds();
