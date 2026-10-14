@@ -716,6 +716,7 @@ th.th-sort-active svg{opacity:1;}
 .radar-rule-row.is-focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
 .radar-softer{display:inline-flex;align-items:flex-start;gap:5px;color:var(--gold);font-weight:600;}
 .radar-softer svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
+.dm-known-hint{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:var(--text-dim);}.dm-known-hint svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px;color:var(--accent);}
 .dm-softer-note{display:flex;gap:8px;align-items:flex-start;border-color:var(--gold) !important;}
 .dm-softer-note svg{width:15px;height:15px;color:var(--gold);flex-shrink:0;margin-top:2px;}
 .adm-inact-off td{opacity:.55;}
@@ -16782,7 +16783,8 @@ function dmOpenPointage(dayArg, accountId){
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-no">Rien tradé ce jour-là</button>
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-yes">Tous tradés (copier)</button>
       </div>`}
-      <div class="dm-pt-list">${rows}</div>`,
+      <div class="dm-pt-list">${rows}</div>
+      ${hiddenKnown ? `<p class="text-faint" style="margin:12px 0 0;font-size:12.5px;">${hiddenKnown} autre${hiddenKnown>1?'s':''} compte${hiddenKnown>1?'s':''} financé${hiddenKnown>1?'s':''} déjà suivi${hiddenKnown>1?'s':''} (Deltalytix, pointage ou saisie) ${hiddenKnown>1?'ne sont':'n’est'} pas listé${hiddenKnown>1?'s':''}. Pour en corriger un, ouvre son détail dans le Radar.</p>` : ''}`,
     footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">${single ? 'Enregistrer' : `Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}`}</button>`,
     onMount(){
       const root = document.getElementById('modal-root');
@@ -16832,8 +16834,20 @@ function dmOpenPointage(dayArg, accountId){
 function dmOpenActivation(accountIds){
   if(!dmEnabled()){ if(!perms().isPremium) openUpgradeModal('Le radar inactivité'); else { state.route='radar'; render(); } return; }
   let accounts = dmFundedAccounts();
-  if(accountIds && accountIds[0]!=='all') accounts = accounts.filter(a=>accountIds.includes(a.id));
-  else accounts = accounts.filter(a=>!dmStateFor(a)).concat(accounts.filter(a=>dmStateFor(a)));
+  // Dernier jour tradé déjà connu par les journées (Deltalytix ou pointage), hors saisie manuelle.
+  const knownLog = a => { const ls = dmLogsFor(a).filter(l=>l.traded && l.day); if(!ls.length) return null;
+    const day = dmMax(ls.map(l=>l.day)); const l = ls.find(x=>x.day===day);
+    return { day, src: l && l.source==='deltalytix' ? 'Deltalytix' : 'tes pointages' }; };
+  const single = accountIds && accountIds[0]!=='all';
+  let hiddenKnown = 0;
+  if(single) accounts = accounts.filter(a=>accountIds.includes(a.id));
+  else {
+    // « Tous » : uniquement les comptes dont le Radar ne connaît pas encore le dernier trade.
+    const missing = accounts.filter(a=>!dmStateFor(a) && !knownLog(a));
+    hiddenKnown = accounts.length - missing.length;
+    if(!missing.length){ showToast(`Le dernier trade est déjà connu pour tes ${accounts.length} compte${accounts.length>1?'s':''} financé${accounts.length>1?'s':''} (Deltalytix, pointage ou saisie). Pour corriger un compte, ouvre son détail dans le Radar.`); return; }
+    accounts = missing;
+  }
   if(!accounts.length) return;
   const today = todayISO();
   const dateInput = (cls, val, label) => `<label class="dm-start-field">${label}<input type="date" class="${cls}" max="${today}" value="${val||''}"/></label>`;
@@ -16853,7 +16867,8 @@ function dmOpenActivation(accountIds){
         ${firmLogoHtml(getFirm(a.propFirmId), 30)}
         <div style="flex:1 1 200px;min-width:0;">
           <div style="font-weight:600;font-size:13.5px;">${dmAccountName(a)} <span class="text-faint" style="font-weight:500;">N° ${maskAccountNumber(a.accountNumber||'')}</span></div>
-          <div class="text-faint" style="font-size:12px;">${escapeHtml(rule.isDefault ? 'Défaut prudent : 21 jours sans trade' : (rule.ruleText||'').slice(0,90) + ((rule.ruleText||'').length>90?'…':''))}</div>
+          <div class="text-faint" style="font-size:12px;">${escapeHtml(((rule.sentence||rule.ruleText||'')).slice(0,90) + ((rule.sentence||rule.ruleText||'').length>90?'…':''))}</div>
+          ${(()=>{ const k = knownLog(a); return k ? `<div class="dm-known-hint">${icon('check')}Connu via ${k.src} : <b style="white-space:nowrap;">${fmtDate(k.day)}</b>${st.lastTrade?'':'. Rien à saisir, sauf trade plus récent non remonté.'}</div>` : ''; })()}
         </div>
         <div class="dm-start-fields">${fields}<label class="dm-login"><input type="checkbox" class="dm-st-unknown" ${st.unknownStart?'checked':''}/>Je ne sais plus</label></div>
       </div>`;
@@ -16863,7 +16878,8 @@ function dmOpenActivation(accountIds){
     wide: 'xwide',
     bodyHtml: `
       <p class="text-dim" style="margin:0 0 12px;font-size:13px;line-height:1.5;">Uniquement pour les comptes que tu avais déjà avant d’activer le radar : indique ton dernier trade (et, pour Apex, FFN et Lucid, tes derniers jours qualifiants). Ensuite, tes pointages prennent le relais. « Je ne sais plus » : par prudence, le compteur part de la date de création du compte dans Contralytix.</p>
-      <div class="dm-pt-list">${rows}</div>`,
+      <div class="dm-pt-list">${rows}</div>
+      ${hiddenKnown ? `<p class="text-faint" style="margin:12px 0 0;font-size:12.5px;">${hiddenKnown} autre${hiddenKnown>1?'s':''} compte${hiddenKnown>1?'s':''} financé${hiddenKnown>1?'s':''} déjà suivi${hiddenKnown>1?'s':''} (Deltalytix, pointage ou saisie) ${hiddenKnown>1?'ne sont':'n’est'} pas listé${hiddenKnown>1?'s':''}. Pour en corriger un, ouvre son détail dans le Radar.</p>` : ''}`,
     footHtml: `<button class="btn btn-outline" id="dm-st-cancel">Annuler</button><button class="btn btn-primary" id="dm-st-save">Enregistrer</button>`,
     onMount(){
       const root = document.getElementById('modal-root');
