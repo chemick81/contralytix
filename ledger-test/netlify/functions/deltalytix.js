@@ -232,10 +232,13 @@ exports.handler = async (event) => {
       const now = new Date().toISOString();
       const rows = [];
       let matched = 0;
+      const matchedIds = [];
+      const missingIds = [];
       mine.forEach((a) => {
         const k = normAccNum(a.account_number);
         const fromTrades = trades.map.get(k);
-        if (!byNum.has(k) && !fromTrades) return;
+        if (!byNum.has(k) && !fromTrades) { missingIds.push(a.id); return; }
+        matchedIds.push(a.id);
         // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
         const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
         matched++;
@@ -258,7 +261,7 @@ exports.handler = async (event) => {
         if (error) throw new Error(`dormancy_logs : ${error.message}`);
       }
       await saveState({ last_sync_at: now, last_error: null });
-      return json(200, { matched, funded: mine.length, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete });
+      return json(200, { matched, funded: mine.length, matchedIds, missingIds, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete });
     }
 
     return json(400, { error: 'Action inconnue' });
