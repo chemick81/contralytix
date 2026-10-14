@@ -38,6 +38,42 @@ async function allAccounts(token, deadline) {
   return out;
 }
 
+// Journées tradées d'après les trades bruts (GET /trades, portée trades:read), par compte.
+// Pourquoi pas seulement metrics.dailyPnL : Deltalytix y écarte les trades « sous le buffer » d'un
+// compte qui a eu un payout (lib/account-metrics.ts, considerBuffer) — un compte réellement tradé
+// pouvait donc paraître inactif dans le Radar (constaté le 14/10/2026 sur un PA Bulenox).
+// Même découpage des journées que Deltalytix : date UTC de l'heure d'entrée, P&L net des commissions.
+// Renvoie { map: Map(numéro normalisé → { 'AAAA-MM-JJ': pnl }), complete } ; incomplet si le temps manque
+// ou si la portée manque (on complète alors avec dailyPnL).
+async function recentTradesDaily(token, since, deadline) {
+  const map = new Map();
+  let cursor = null;
+  let complete = false;
+  try {
+    for (let page = 0; page < 40; page++) {
+      if (deadline - Date.now() < 2500) break;   // garder du temps pour écrire les pointages
+      const q = `/trades?from=${encodeURIComponent(since)}&limit=500${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const body = await L.dltx(token, q, deadline);
+      (Array.isArray(body && body.data) ? body.data : []).forEach((t) => {
+        const n = normAccNum(t.accountNumber);
+        const d = new Date(t.entryDate);
+        if (!n || Number.isNaN(d.getTime())) return;
+        const day = d.toISOString().slice(0, 10);
+        const pnl = (Number(t.pnl) || 0) - (Number(t.commission) || 0);
+        if (!map.has(n)) map.set(n, {});
+        const m = map.get(n);
+        m[day] = (m[day] || 0) + pnl;
+      });
+      cursor = body && body.nextCursor;
+      if (!cursor) { complete = true; break; }
+    }
+  } catch (e) {
+    if (e.code === 'token_invalid') throw e;
+    // insufficient_scope, timeout, erreur ponctuelle : on garde ce qui a été lu, dailyPnL complète.
+  }
+  return { map, complete };
+}
+
 // Plateforme de chaque compte, d'après les connexions broker Deltalytix (portée connections:read).
 const SERVICE_PLATFORM = { tradovate: 'TRADOVATE', rithmic: 'RITHMIC', 'rithmic-protocol': 'RITHMIC', dxfeed: 'DXFEED', projectx: 'PROJECTX', topstepx: 'PROJECTX' };
 async function connectionsOf(token, deadline) {
@@ -67,12 +103,14 @@ const lastDayOf = (m) => {
   return days.length ? days[days.length - 1] : null;
 };
 // Santé d'un compte Contralytix actif (cartes de compte, proposition « passer en Breached »).
-function healthOf(a) {
+function healthOf(a, tradeDays) {
   const m = a.metrics || null;
   const rl = m && m.isConfigured && Number.isFinite(Number(m.remainingLoss)) ? Math.round(Number(m.remainingLoss) * 100) / 100 : null;
+  const fromTrades = tradeDays ? Object.keys(tradeDays).sort().slice(-1)[0] || null : null;
+  const fromMetrics = lastDayOf(m);
   return {
     breached: isBreached(m),
-    lastTradeDay: lastDayOf(m),
+    lastTradeDay: [fromMetrics, fromTrades].filter(Boolean).sort().slice(-1)[0] || null,
     remainingLoss: rl,
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
     hidden: a.hidden === true,
@@ -164,19 +202,21 @@ exports.handler = async (event) => {
         remoteByNum.set(n, a);
         byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
       });
+      const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
       const allMine = await userAccounts(db, user.id, user.email);
       // Connexions broker : plateforme de chaque compte + connexions en retard de synchro
       // (portée connections:read ; absente des autorisations données avant le 13/10/2026).
       const conns = await connectionsOf(token, deadline);
       const connectionsScope = conns.scope;
       const plat = platformMap(conns.list);
+      const trades = await recentTradesDaily(token, since, deadline);
       // Santé des comptes (tous types) trouvés dans Deltalytix : actifs, ou sans plateforme connue.
       const health = [];
       allMine.forEach((a) => {
         const k = normAccNum(a.account_number);
         const r = remoteByNum.get(k);
         if (!r && !plat.has(k)) return;
-        if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r), platform: plat.get(k) || null });
+        if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r, trades.map.get(k)), platform: plat.get(k) || null });
         else if (plat.has(k)) health.push({ accountId: a.id, platform: plat.get(k), inactive: a.status !== 'ACTIF' });
       });
       const stale = [];
@@ -189,13 +229,15 @@ exports.handler = async (event) => {
         if (!last || last < limit) stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length });
       });
       const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
-      const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
       const now = new Date().toISOString();
       const rows = [];
       let matched = 0;
       mine.forEach((a) => {
-        const daily = byNum.get(normAccNum(a.account_number));
-        if (!daily) return;
+        const k = normAccNum(a.account_number);
+        const fromTrades = trades.map.get(k);
+        if (!byNum.has(k) && !fromTrades) return;
+        // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
+        const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
         matched++;
         let lastOld = null;
         Object.entries(daily).forEach(([day, pnl]) => {
@@ -216,7 +258,7 @@ exports.handler = async (event) => {
         if (error) throw new Error(`dormancy_logs : ${error.message}`);
       }
       await saveState({ last_sync_at: now, last_error: null });
-      return json(200, { matched, funded: mine.length, days: rows.length, syncedAt: now, health, stale, connectionsScope });
+      return json(200, { matched, funded: mine.length, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete });
     }
 
     return json(400, { error: 'Action inconnue' });
@@ -236,4 +278,4 @@ exports.handler = async (event) => {
   }
 };
 
-exports._test = { slimAccount, normAccNum, healthOf, platformMap };
+exports._test = { slimAccount, normAccNum, healthOf, platformMap, recentTradesDaily };
