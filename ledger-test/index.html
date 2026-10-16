@@ -1739,6 +1739,15 @@ th.th-sort-active svg{opacity:1;}
 .acc-kpi--net.is-neg .acc-kpi-badge{background:var(--danger-dim);color:var(--danger);}
 .acc-kpi-bar{display:flex;height:6px;border-radius:var(--radius-pill);overflow:hidden;background:var(--surface-3);}
 .acc-kpi-bar .bar-dep{background:var(--danger);} .acc-kpi-bar .bar-pay{background:var(--accent);}
+/* Décomposition du Net réel (16/10/2026) : comptes financés + challenges sans PA/Live = Net réel. */
+.acc-kpi-split{display:flex;flex-direction:column;gap:3px;margin-top:2px;}
+.acc-kpi-split-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;color:var(--text-dim);}
+.acc-kpi-split-row b{font-family:'JetBrains Mono',monospace;font-weight:600;white-space:nowrap;}
+.acc-kpi-split-row b.is-pos{color:var(--accent);} .acc-kpi-split-row b.is-neg{color:var(--danger);} .acc-kpi-split-row b.is-zero{color:var(--text-dim);}
+.acc-totals-foot{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;font-size:12px;color:var(--text-faint);}
+.acc-totals-foot-scope{display:inline;}
+.acc-totals-link{color:var(--accent);font-weight:600;text-decoration:none;white-space:nowrap;}
+.acc-totals-link:hover{text-decoration:underline;}
 .acc-field-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;}
 .acc-field-value{font-size:13px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
 .link-parent{font-size:11px;color:var(--text-dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
@@ -2312,7 +2321,7 @@ th.th-sort-active svg{opacity:1;}
         <div class="ml-tour-visual">
           <div class="ml-browser-frame">
             <div class="ml-browser-dots"><span></span><span></span><span></span></div>
-            <img src="assets/manuel/06c-comptes-inactivite.jpg" alt="Liste des comptes prop firm avec totaux, net profit et suivi d'inactivité" loading="lazy" onerror="this.closest('.ml-tour-visual').style.display='none'"/>
+            <img src="assets/manuel/06c-comptes-inactivite.jpg" alt="Liste des comptes prop firm avec totaux, net réel et suivi d'inactivité" loading="lazy" onerror="this.closest('.ml-tour-visual').style.display='none'"/>
           </div>
         </div>
       </div>
@@ -2776,7 +2785,7 @@ const DASHBOARD_WIDGETS = [
   { id:'kpi',            label:'Indicateurs clés' },
   { id:'decisionRepurchase', label:'Puis-je racheter un compte cette semaine ?' },
   { id:'accountsByType', label:'Mes comptes (par type)' },
-  { id:'performance',    label:'Performance & rendement' },
+  { id:'performance',    label:'Performance & ROI' },
   { id:'burnVsFund',     label:'Burn vs fund' },
   { id:'delays',         label:'Délais & tendances' },
   { id:'chart',          label:'Cash flow (barres + courbe)' },
@@ -8703,10 +8712,10 @@ function viewDashboard(){
       </div>`,
     performance: `
       <div class="panel">
-        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; rendement</div></div>
+        <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('barChart')}Performance &amp; ROI</div></div>
         <div class="panel-body">
           <div class="stats-grid" style="margin-bottom:0;">
-            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">Rendement${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Net (comptes propfirm) divisé par les dépenses de comptes engagées sur la période, en %. Ex : +50% veut dire que tu as touché 1,5x ce que tu as dépensé. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'')+rendementPct+'%'}</div><div class="stat-sub">résultat net ÷ dépenses engagées</div></div>
+            <div class="stat-tile" style="--rail:${rendementPct===null?'var(--slate)':rendementPct>=0?'var(--accent)':'var(--danger)'}"><div class="stat-label">ROI${(f.dateFrom||f.dateTo)?' (période)':''}${infoTip("Net réel (comptes propfirm) ÷ dépenses de comptes engagées sur la période, en %. +50 % veut dire que tu as encaissé 1,5 fois ce que tu as dépensé. Même formule que le ROI de la page Comptes et de Rentabilité réelle. « — » s'affiche tant qu'aucune dépense n'est enregistrée.")}</div><div class="stat-value" style="color:${rendementPct===null?'inherit':rendementPct>=0?'var(--accent)':'var(--danger)'}">${rendementPct===null?'—':(rendementPct>=0?'+':'−')+Math.abs(rendementPct).toLocaleString('fr-FR')+' %'}</div><div class="stat-sub">net réel ÷ dépenses engagées</div></div>
             <div class="stat-tile" style="--rail:var(--gold)"><div class="stat-label">Coût moyen / compte financé${infoTip("Total de toutes tes dépenses (tout l'historique, pas seulement la période filtrée) divisé par le nombre de challenges réussis. Donne une idée du prix moyen réel d'un compte financé.")}</div><div class="stat-value">${coutMoyenReussi===null?'—':fmtMoneyCur(coutMoyenReussi, allExpensesMoney.currency)}</div><div class="stat-sub">${reussis>0?`sur ${reussis} challenge(s) réussi(s), tout l'historique`:"aucun challenge réussi pour l'instant"}</div></div>
             <div class="stat-tile" style="--rail:var(--slate)"><div class="stat-label">Capital actif sous gestion${infoTip("Somme des tailles de compte (25K, 50K, 100K...) de tous les PA et Live actuellement au statut Actif — le capital que les propfirms te laissent gérer aujourd'hui.")}</div><div class="stat-value">${capitalActif>0?fmtMoneyCur(capitalActif,'USD'):'—'}</div><div class="stat-sub">tailles cumulées des comptes PA/Live actifs</div></div>
             <div class="stat-tile" style="--rail:var(--danger)"><div class="stat-label">Mensualités à venir${infoTip("Somme des montants mensuels des comptes actifs facturés à l'abonnement (paiement « Mensuel »). C'est une charge récurrente, pas un montant déjà payé.")}</div><div class="stat-value">${monthlyMoney.amount>0?fmtMoneyCur(monthlyMoney.amount, monthlyMoney.currency):'—'}</div><div class="stat-sub">${monthlyAccounts.length?`${monthlyAccounts.length} compte(s) en paiement mensuel${monthlyMoney.converted?` · ${convertedLabel(monthlyMoney.converted, monthlyMoney.mixed)}`:''}`:'aucun compte en paiement mensuel'}</div></div>
@@ -10199,6 +10208,7 @@ const HELP_CATEGORIES = [
   ]},
   { id:'rentabilite', label:'Rentabilité & Mode École', icon:'trophy', questions:[
     { q:"Que montre la page Rentabilité réelle ?", a:"Ton résultat net réel : payouts reçus moins TOUTES tes dépenses (challenges, mensualités, activations, resets et, si tu le souhaites, frais généraux). Elle ajoute la courbe du net cumulé, ton entonnoir challenge → payout, le coût moyen par payout, le creux maximal et la rentabilité par PropFirm. Accessible dans toutes les formules." },
+    { q:"Pourquoi le Net réel de la page Comptes peut-il différer du Dashboard ?", a:"Le calcul est le même (payouts − dépenses, challenges ratés compris, même ROI), mais le périmètre change : la page Comptes porte sur les comptes affichés par tes filtres, depuis leur ouverture et sans frais généraux, alors que le Dashboard suit son filtre de période et propose aussi un Net global avec frais généraux. Sur chaque carte PA/Live, le « Net du parcours » est autre chose : le net de ce compte et de son challenge d'origine, sans les autres échecs." },
     { q:"Pourquoi le net de Rentabilité réelle diffère-t-il de celui du Dashboard ?", a:"Il ne devrait pas : les deux pages utilisent le même calcul et le même filtre trader. Vérifie trois choses : la case « Inclure les frais généraux » (cochée = Net global du Dashboard, décochée = Net comptes propfirm), les filtres actifs (trader, PropFirm, dates), et qu'aucun compte n'est rattaché à un autre trader que celui sélectionné." },
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
@@ -10406,7 +10416,7 @@ const MANUAL_CHAPTERS = [
     <ul>
       <li><b>Puis-je racheter un compte cette semaine ?</b> — compare ta trésorerie propfirm (payouts − dépenses, tout l'historique, en euros, avec un ajustement manuel possible) au coût de ton prochain achat prévu, plus une provision pour un reset. Réglages via l'icône engrenage.</li>
       <li><b>Burn vs fund</b> — part des dépenses du mois financée par tes payouts, et part payée de ta poche. Si tu poses un filtre de dates, la jauge suit cette période.</li>
-      <li><b>Performance &amp; rendement</b> — rendement (net ÷ dépenses), coût moyen d'un compte financé, capital actif sous gestion, mensualités à venir et régularité des payouts.</li>
+      <li><b>Performance &amp; ROI</b> — ROI (net réel ÷ dépenses), coût moyen d'un compte financé, capital actif sous gestion, mensualités à venir et régularité des payouts.</li>
       <li><b>Calendrier</b> — les échéances du mois (mensualités, échéances fiscales…) en vue calendrier.</li>
       <li><b>Payouts récents</b> — tes 6 derniers versements.</li>
       <li><b>Prochaines échéances</b> — les mensualités à venir dans les 30 prochains jours.</li>
@@ -10450,7 +10460,8 @@ const MANUAL_CHAPTERS = [
     <h3>Filtrer et rechercher</h3>
     <p>Une barre de filtres permet de rechercher un compte par trader, numéro de compte ou nom de PropFirm, et de filtrer par trader (choix multiple), PropFirm, type de compte, taille de compte, <b>plateforme</b> (Tradovate, Rithmic, DXfeed, ProjectX… — dès qu'au moins un compte en a une) et statut (choix multiple).</p>
     <h3>Totaux de la liste</h3>
-    <p>Au-dessus des filtres, quatre cartes totalisent les comptes affichés, en tenant compte de tes filtres : <b>Dépenses</b>, <b>Payouts</b>, <b>Net profit</b> (payouts − dépenses) et <b>ROI</b>. Le net profit est calculé sur les comptes PA et Live, en incluant les dépenses du Challenge dont ils sont issus ; les challenges encore en cours ou breached restent dans les Dépenses mais ne pèsent pas sur le Net. Ces totaux portent sur toute la vie des comptes, depuis leur ouverture, et n'incluent pas les frais généraux.</p>
+    <p>Au-dessus des filtres, quatre cartes totalisent les comptes affichés, en tenant compte de tes filtres : <b>Dépenses</b>, <b>Payouts</b>, <b>Net réel</b> (payouts − dépenses, challenges ratés compris) et <b>ROI</b> (net réel ÷ dépenses). Sous le Net réel, deux lignes montrent d'où il vient : ce que rapportent tes <b>comptes financés</b> (PA et Live, challenge d'origine inclus) et ce que t'ont coûté les <b>challenges en cours ou ratés</b>. Les deux additionnés donnent le Net réel.</p>
+    <p>Ces totaux portent sur toute la vie des comptes, depuis leur ouverture, et n'incluent pas les frais généraux. Sans filtre, le Net réel est le même que le « Net (comptes propfirm) » du Dashboard sans période. Pour choisir une période ou ajouter les frais généraux, utilise le lien <b>Voir ma rentabilité réelle</b> sous les cartes.</p>
     <h3>Regrouper la liste</h3>
     <p>Des onglets <b>Tous / Challenge / PA · financé / Live</b>, avec leur compteur, filtrent la liste d'un clic. Le menu « Regrouper par… » organise ensuite les cartes par PropFirm, type, taille ou statut. Le regroupement par type réorganise la liste en trois blocs — Challenges, PA, Live — chacun avec son propre en-tête et son compteur, plutôt que de mélanger tous les comptes par date d'achat. Pratique pour comparer d'un coup d'œil tous les Challenges entre eux, ou tous les PA entre eux.</p>
     <h3>Créer un compte</h3>
@@ -10483,7 +10494,7 @@ const MANUAL_CHAPTERS = [
     <h3>La carte d'un compte</h3>
     ${manualShot('06-comptes.jpg', "Liste des comptes, avec filtres et cartes détaillées par compte.")}
     <p>Chaque carte affiche le trader, le type, la PropFirm, le statut, la taille, la date d'achat, les dépenses et payouts cumulés. Le numéro de compte est masqué par défaut. Des actions rapides sont proposées selon le type et le statut : marquer réussi/breached, créer le PA, gérer les payouts, passer en Live, fermer, consulter les notes ou l'historique, modifier/supprimer.</p>
-    <p>Sur un compte PA ou Live, la colonne <b>Net profit</b> affiche payouts − dépenses, en incluant le Challenge d'origine (« dont challenge … »). Sur un Challenge, elle renvoie au PA ou Live qui en est issu. Pour les abonnés Premium, une bande <b>Inactivité</b> sous chaque compte financé montre où il en est de la règle d'inactivité (voir chapitre 7).</p>
+    <p>Sur un compte PA ou Live, la colonne <b>Net du parcours</b> affiche payouts − dépenses, en incluant le Challenge d'origine (« dont challenge … »). Sur un Challenge, elle renvoie au PA ou Live qui en est issu. Pour les abonnés Premium, une bande <b>Inactivité</b> sous chaque compte financé montre où il en est de la règle d'inactivité (voir chapitre 7).</p>
     <h3>Comptes reliés à Deltalytix</h3>
     <p>Si Deltalytix est connecté, chaque compte actif affiche la date de son <b>dernier trade</b> et sa <b>plateforme</b>. Le bouton <b>« Synchroniser »</b> en haut de la page Comptes met tout à jour (sinon, la synchronisation se fait seule à l'ouverture de l'application, au plus une fois par heure). Quand Deltalytix indique qu'un compte encore « Actif » a atteint sa limite de perte, un bandeau rouge te propose de le <b>passer en Breached</b> à la date de son dernier trade : rien ne change sans ta validation, et « Ne plus signaler ces comptes » met l'alerte de côté jusqu'à leur prochain trade.</p>
     ${manualShot('06c-comptes-inactivite.jpg', "Comptes PA avec les totaux filtrés en haut et la bande Inactivité sous chaque carte.")}
@@ -11036,7 +11047,7 @@ function fmtSignedMoney(v, currency){
   if(!v) return fmtMoneyCur(0, currency);
   return (v>0?'+':'−') + fmtMoneyCur(Math.abs(v), currency);
 }
-// Bandeau Dépenses / Payouts / Net profit / ROI calculé sur les comptes AFFICHÉS (donc tous les
+// Bandeau Dépenses / Payouts / Net réel / ROI (Net profit → Net réel le 16/10/2026) calculé sur les comptes AFFICHÉS (donc tous les
 // filtres appliqués : recherche, trader, PropFirm, taille, statut, type). Volontairement :
 //  - pas de filtre de période : tout l'historique de chaque compte, depuis son ouverture ;
 //  - pas de frais généraux : ils ne sont rattachés à aucun compte et ne réagiraient pas aux filtres
@@ -11062,24 +11073,39 @@ function accountsTotalsHtml(list, f, anyFilterActive){
   const val = it=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount||0);
   const totalExp = expAll.reduce((t,it)=>t+val(it),0);
   const netExp = expAll.filter(it=>netScopeIds.has(it.accountId)).reduce((t,it)=>t+val(it),0);
-  const outsideNet = totalExp - netExp; // challenges sans PA/Live affiché (en cours, breached…)
   const fundedIds = new Set(funded.map(a=>a.id));
   const fundedPay = payLines.filter(p=>fundedIds.has(p.accountId)).reduce((t,it)=>t+val(it),0);
   const totalPay = payLines.reduce((t,it)=>t+val(it),0);
-  const net = fundedPay - netExp;
+  // 16/10/2026 — Net réel = Payouts − Dépenses, échecs compris (même règle que le Dashboard et
+  // Rentabilité réelle, hors frais généraux et sans période). L'équation des 3 premières cartes est
+  // donc juste. Le Net des comptes financés devient une ligne de détail, à côté du coût des
+  // challenges sans PA/Live : les deux lignes additionnées donnent le Net réel.
+  const fundedNet = fundedPay - netExp;
+  const net = totalPay - totalExp;
+  const otherNet = net - fundedNet; // challenges sans PA/Live affiché (en cours, breached, réussis sans PA)
   const sym = ({USD:'$',EUR:'€',GBP:'£'})[cur] || '$';
-  const hasNet = funded.length>0;
+  const hasNet = counted.length>0 && (totalExp>0 || totalPay>0);
+  const hasFunded = funded.length>0;
   const tone = !hasNet ? 'is-zero' : (net>=0 ? 'is-pos' : 'is-neg');
-  const tot = netExp + fundedPay;
-  const barDep = tot ? (netExp/tot*100).toFixed(1) : 0;
-  const barPay = tot ? (fundedPay/tot*100).toFixed(1) : 0;
-  const roi = hasNet && netExp>0 ? net/netExp*100 : null;
+  const tot = totalExp + totalPay;
+  const barDep = tot ? (totalExp/tot*100).toFixed(1) : 0;
+  const barPay = tot ? (totalPay/tot*100).toFixed(1) : 0;
+  const roi = totalExp>0 ? net/totalExp*100 : null;
   const roiTxt = roi===null ? '—' : `${roi>=0?'+':'−'}${Math.abs(Math.round(roi)).toLocaleString('fr-FR')} %`;
   const roiSub = roi===null
-    ? (hasNet ? 'Aucune dépense' : 'Aucun PA ou Live affiché')
-    : `1 ${sym} dépensé → ${(fundedPay/netExp).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${sym} encaissés`;
+    ? 'Aucune dépense'
+    : `1 ${sym} dépensé → ${(totalPay/totalExp).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${sym} encaissés`;
+  const nFundedLbl = k=> `${k} PA/Live`;
+  const signTone = v=> Math.abs(v)<0.005 ? 'is-zero' : (v>0?'is-pos':'is-neg');
+  const showOther = hasFunded && (Math.abs(otherNet)>=0.005);
+  const splitHtml = !hasNet ? `<div class="acc-kpi-sub">Aucun mouvement</div>`
+    : (hasFunded && showOther)
+      ? `<div class="acc-kpi-split">
+           <div class="acc-kpi-split-row"><span>Comptes financés (${nFundedLbl(funded.length)})</span><b class="${signTone(fundedNet)}">${fmtSignedMoney(fundedNet, cur)}</b></div>
+           <div class="acc-kpi-split-row"><span>Challenges en cours ou ratés</span><b class="${signTone(otherNet)}">${fmtSignedMoney(otherNet, cur)}</b></div>
+         </div>`
+      : `<div class="acc-kpi-sub">${hasFunded ? `${nFundedLbl(funded.length)} · challenges d'origine inclus` : 'Payouts − dépenses · aucun PA ou Live affiché'}</div>`;
   const nPay = payLines.length;
-  const nFunded = funded.length;
 
   // Contexte lisible des filtres appliqués, pour savoir sur quoi portent les chiffres.
   const scope = [];
@@ -11099,20 +11125,20 @@ function accountsTotalsHtml(list, f, anyFilterActive){
     : '';
   const blurNote = blurred.size ? ` · hors ${blurred.size} compte${blurred.size>1?'s':''} en aperçu` : '';
   const nExtra = extraParents.length;
-  const depSub = hasNet && outsideNet>0.005
-    ? `dont ${fmtMoneyCur(outsideNet, cur)} de challenges hors Net`
-    : (nExtra ? `dont ${nExtra} challenge${nExtra>1?'s':''} d'origine masqué${nExtra>1?'s':''} par les filtres` : 'Achats, mensualités, activations, resets');
+  const depSub = nExtra
+    ? `dont ${nExtra} challenge${nExtra>1?'s':''} d'origine masqué${nExtra>1?'s':''} par les filtres`
+    : 'Achats, mensualités, activations, resets';
 
   return `
     <section class="acc-totals" aria-label="Totaux des comptes affichés">
       <div class="acc-totals-scope">
         <span class="acc-totals-chip${anyFilterActive?' is-filtered':''}">${anyFilterActive?'Filtré':'Vue par défaut'}</span>
-        <span>Totaux des <strong>${n} compte${n>1?'s':''}</strong> affiché${n>1?'s':''} · ${scope.join(' · ')} · depuis l'ouverture de chaque compte${blurNote}</span>
+        <span>Totaux des <strong>${n} compte${n>1?'s':''}</strong> affiché${n>1?'s':''} · ${scope.join(' · ')}${blurNote}</span>
         ${fxHtml}
       </div>
       <div class="acc-totals-grid">
         <div class="acc-kpi">
-          <div class="acc-kpi-label">Dépenses ${infoTip("Achats de challenges, mensualités, frais d'activation et resets des comptes affichés, plus le challenge d'origine de chaque PA/Live affiché. Les frais généraux (abonnements, VPS…) ne sont pas comptés ici. Les challenges sans PA/Live affiché (en cours, breached…) sont comptés ici mais pas dans le Net profit.")}</div>
+          <div class="acc-kpi-label">Dépenses ${infoTip("Achats de challenges, mensualités, frais d'activation et resets de tous les comptes affichés (challenges en cours ou ratés compris), plus le challenge d'origine de chaque PA/Live affiché, même s'il est masqué par un filtre.")}</div>
           <div class="acc-kpi-value ${totalExp>0?'is-neg':'is-zero'}">${totalExp>0?'−':''}${fmtMoneyCur(totalExp, cur)}</div>
           <div class="acc-kpi-sub">${depSub}</div>
         </div>
@@ -11122,16 +11148,20 @@ function accountsTotalsHtml(list, f, anyFilterActive){
           <div class="acc-kpi-sub">${nPay} payout${nPay>1?'s':''} reçu${nPay>1?'s':''}</div>
         </div>
         <div class="acc-kpi acc-kpi--net ${tone}">
-          <div class="acc-kpi-label"><span>Net profit ${infoTip("Somme des Net profit des PA et Live affichés : leurs payouts moins leurs dépenses ET celles de leur challenge d'origine. Les challenges seuls n'ont pas de Net profit.")}</span><span class="acc-kpi-badge">${!hasNet?'—':(net>=0?'Rentable':'Pas encore rentable')}</span></div>
+          <div class="acc-kpi-label"><span>Net réel ${infoTip("Payouts − Dépenses des comptes affichés, échecs compris : c'est ce que tu as vraiment gagné. Le détail sépare ce que rapportent tes comptes financés (PA/Live, challenge d'origine inclus) de ce que t'ont coûté les challenges sans PA/Live (en cours, breached, ou réussis sans PA créé). Même calcul que le Dashboard, hors frais généraux et sans filtre de période.")}</span><span class="acc-kpi-badge">${!hasNet?'—':(net>=0?'Rentable':'Pas encore rentable')}</span></div>
           <div class="acc-kpi-value ${tone}">${hasNet ? fmtSignedMoney(net, cur) : '—'}</div>
           <div class="acc-kpi-bar" aria-hidden="true"><span class="bar-dep" style="width:${barDep}%"></span><span class="bar-pay" style="width:${barPay}%"></span></div>
-          <div class="acc-kpi-sub">${hasNet ? `${nFunded} PA/Live · challenges d'origine inclus` : 'Aucun PA ou Live affiché'}</div>
+          ${splitHtml}
         </div>
         <div class="acc-kpi acc-kpi--roi">
-          <div class="acc-kpi-label">ROI</div>
+          <div class="acc-kpi-label">ROI ${infoTip("Net réel ÷ Dépenses. +50 % veut dire que tu as encaissé 1,5 fois ce que tu as dépensé. Même formule partout dans Contralytix.")}</div>
           <div class="acc-kpi-value ${roi===null?'is-zero':(roi>=0?'is-pos':'is-neg')}">${roiTxt}</div>
           <div class="acc-kpi-sub">${roiSub}</div>
         </div>
+      </div>
+      <div class="acc-totals-foot">
+        <span class="acc-totals-foot-scope">Depuis l'ouverture de chaque compte · hors frais généraux ${infoTip("Les totaux couvrent toute la vie des comptes affichés. Les frais généraux (abonnements, VPS, data…) ne sont rattachés à aucun compte : ils sont comptés dans le Net global du Dashboard et, sur option, dans Rentabilité réelle, qui permet aussi de choisir une période.")}</span>
+        <a href="#" class="acc-totals-link" data-nav="rentabilite">Voir ma rentabilité réelle →</a>
       </div>
     </section>`;
 }
@@ -11336,6 +11366,9 @@ function renderGroupedAccounts(list, keys, depth=0){
 function needsPa(a){
   return a && a.type==='CHALLENGE' && a.status==='REUSSI' && !state.accounts.some(x=>x.parentChallengeId===a.id);
 }
+// Libellé « Net du parcours » (16/10/2026, ex « Net profit ») : payouts − dépenses du PA/Live ET de son
+// challenge d'origine. Le mot « Net réel » est réservé au calcul échecs compris (bandeau, Dashboard).
+const NET_PARCOURS_TITLE = "Payouts du compte − ses dépenses et celles du challenge dont il est issu";
 // Cellule Net profit de la carte compte (08/10/2026) : PA/Live uniquement (challenge d'origine inclus),
 // avec une ligne qui dit où en est le compte sans calcul mental ; renvoi vers le PA/Live sur un Challenge.
 function accNetCellHtml(a, m, child){
@@ -11344,17 +11377,17 @@ function accNetCellHtml(a, m, child){
     const sub = child
       ? `Compté dans le ${TYPE_LABELS[child.type]||child.type} ··${escapeHtml(String(child.accountNumber||'').slice(-4))}`
       : 'Calculé sur le PA / Live';
-    return `<div class="acc-net is-zero"><div class="acc-field-label">Net profit</div><div class="acc-field-value">—</div><div class="acc-net-sub">${sub}</div></div>`;
+    return `<div class="acc-net is-zero"><div class="acc-field-label">Net du parcours</div><div class="acc-field-value">—</div><div class="acc-net-sub">${sub}</div></div>`;
   }
   const { exp, pay, net, currency } = m;
   if(!exp && !pay){
-    return `<div class="acc-net is-zero"><div class="acc-field-label">Net profit</div><div class="acc-field-value">—</div><div class="acc-net-sub">Aucun mouvement</div></div>`;
+    return `<div class="acc-net is-zero"><div class="acc-field-label" title="${NET_PARCOURS_TITLE}">Net du parcours</div><div class="acc-field-value">—</div><div class="acc-net-sub">Aucun mouvement</div></div>`;
   }
   let sub;
   if(!pay) sub = 'Aucun payout pour l’instant';
   else if(net<0) sub = 'Rentabilisé à ' + Math.floor(pay/exp*100) + ' %';
-  else sub = exp>0 ? 'ROI +' + Math.round(net/exp*100).toLocaleString('fr-FR') + ' %' : 'Aucune dépense';
-  return `<div class="acc-net ${net>=0?'is-pos':'is-neg'}"><div class="acc-field-label">Net profit</div><div class="acc-field-value">${fmtSignedMoney(net, currency)}</div><div class="acc-net-sub">${sub}</div></div>`;
+  else sub = exp>0 ? 'ROI du parcours +' + Math.round(net/exp*100).toLocaleString('fr-FR') + ' %' : 'Aucune dépense';
+  return `<div class="acc-net ${net>=0?'is-pos':'is-neg'}"><div class="acc-field-label" title="${NET_PARCOURS_TITLE}">Net du parcours</div><div class="acc-field-value">${fmtSignedMoney(net, currency)}</div><div class="acc-net-sub">${sub}</div></div>`;
 }
 function accountCard(a){
   const trader = getTrader(a.traderId), firm = getFirm(a.propFirmId);
@@ -17530,12 +17563,12 @@ const GD_HELP = {
       { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
     ] },
   accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
-    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix ou une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net profit, ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix ou une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
     actions:[{ icon:'download', label:'Importer mes comptes', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
-    glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net profit','payouts − dépenses, Challenge d’origine inclus.'],['ROI','net profit ÷ dépenses.']],
+    glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net réel','payouts − toutes les dépenses, challenges ratés compris.'],['Net du parcours','net d’un PA/Live, Challenge d’origine inclus.'],['ROI','net réel ÷ dépenses.']],
     tour:[
       { sel:'#capture-import-account', title:'Le plus rapide pour démarrer', text:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les comptes sont créés pour toi.' },
-      { sel:'.acc-totals', title:'Tes totaux', text:'Dépenses, payouts, net profit et ROI des comptes affichés. Ils suivent tes filtres.' },
+      { sel:'.acc-totals', title:'Tes totaux', text:'Dépenses, payouts, net réel et ROI des comptes affichés. Ils suivent tes filtres.' },
       { sel:'.filter-bar', title:'Filtres et regroupement', text:'Cherche un numéro, filtre par trader, PropFirm, taille ou statut, et regroupe la liste.' },
       { sel:'.type-tabs', title:'Par type de compte', text:'Challenge, PA ou Live en un clic, avec leur nombre.' },
       { sel:'.acc-card', title:'La carte d’un compte', text:'Statut, dépenses, payouts et net. Les boutons changent selon l’étape : marquer réussi, créer le PA, payouts, passer en Live…' },
@@ -17725,7 +17758,7 @@ function gdNextActionHtml(a, child){
       let noStart = false; try{ noStart = !dmResult(a).hasStart; }catch(e){}
       if(noStart) return row('<b>Radar inactivité :</b> indique la date de ton dernier trade sur ce compte pour connaître ton vrai délai avant fermeture.', `<button class="btn btn-outline btn-sm" data-dm-activate="${a.id}">${icon('edit')}Dernier trade</button>`, true);
     }
-    if(!(state.payouts||[]).some(p=>p.accountId===a.id)) return row('<b>Premier payout reçu ?</b> Enregistre-le ici : il alimente ton net profit, ta rentabilité et tes délais.', `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Ajouter un payout</button>`);
+    if(!(state.payouts||[]).some(p=>p.accountId===a.id)) return row('<b>Premier payout reçu ?</b> Enregistre-le ici : il alimente ton net, ta rentabilité et tes délais.', `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Ajouter un payout</button>`);
   }
   return '';
 }
