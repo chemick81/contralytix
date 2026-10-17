@@ -1382,6 +1382,10 @@ th.th-sort-active svg{opacity:1;}
 .cb-hero:has(.cb-watermark) .cb-text{max-width:min(720px,60%);}
 .cb-edit{position:absolute;top:12px;right:12px;z-index:2;}
 .cb-edit svg{width:14px;height:14px;}
+.cb-count-pill{display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:6px 12px;border-radius:var(--radius-pill);background:color-mix(in srgb,var(--cb-accent) 12%,var(--surface-2));border:1px solid color-mix(in srgb,var(--cb-accent) 30%,var(--border));font-size:12.5px;color:var(--text-dim);}
+.cb-count-pill strong{color:var(--text);font-weight:700;}
+.cb-count-pill svg{width:14px;height:14px;color:var(--cb-accent);}
+.cb-dot{width:3px;height:3px;border-radius:50%;background:var(--text-faint);margin:0 2px;}
 .cb-hero.cb-empty{border-style:dashed;background:var(--surface);}
 .cb-hero.cb-empty::before{display:none;}
 .field .cb-check{display:inline-flex;align-items:center;gap:8px;margin:0 0 0 4px;font-size:13px;font-weight:500;color:var(--text-dim);text-transform:none;letter-spacing:0;cursor:pointer;}
@@ -7563,9 +7567,22 @@ function cbBrandFromRow(row){
     subtitle: pick('brandSubtitle','brand_subtitle') || '',
     accent: pick('brandAccent','brand_accent') || '',
     watermark: pick('brandWatermark','brand_watermark') !== false,
+    who: CB_WHO[pick('brandMemberLabel','brand_member_label')] ? pick('brandMemberLabel','brand_member_label') : '',
   };
 }
-function cbHasBrand(b){ return !!(b && (b.logoUrl || b.title || b.kicker || b.subtitle || b.accent)); }
+// Libellé des personnes de la cohorte (17/10/2026) : choisi par le responsable dans « Personnaliser
+// le bandeau ». « membres » par défaut. Appliqué au bandeau, au bilan et à l'évolution.
+const CB_WHO = { eleves:['élève','élèves'], membres:['membre','membres'], traders:['trader','traders'] };
+let EC_WHO = 'membres';
+function cbWho(n){ const w = CB_WHO[EC_WHO] || CB_WHO.membres; return (Number(n)>1 || n==null) ? w[1] : w[0]; }
+function ecWhoApply(html){
+  if(EC_WHO==='membres' || !CB_WHO[EC_WHO]) return html;
+  const [one, many] = CB_WHO[EC_WHO];
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  return html.replace(/\bMembres\b/g, cap(many)).replace(/\bmembres\b/g, many)
+             .replace(/\bMembre\b/g, cap(one)).replace(/\bmembre\b/g, one);
+}
+function cbHasBrand(b){ return !!(b && (b.logoUrl || b.title || b.kicker || b.subtitle || b.accent || b.who)); }
 // Contraste WCAG : la couleur choisie est éclaircie (thème sombre) ou assombrie (thème clair)
 // jusqu'à 4,5:1 contre le fond du bandeau, pour que le mot accentué et le surtitre restent lisibles.
 function cbHexToRgb(h){
@@ -7609,6 +7626,7 @@ function communityBannerHtml(brand, opts){
         <div class="cb-logo">${icon('image')}</div>
         <div class="cb-text">
           <h2 class="cb-title" style="font-size:22px;">${escapeHtml(title)}</h2>
+          ${opts.count && opts.count.members!=null ? `<div class="cb-count-pill" style="margin-top:10px;">${icon('users')}<strong>${opts.count.members}</strong> ${opts.count.members>1?'membres':'membre'}</div>` : ''}
           <p class="cb-sub">Ajoute ton logo, un titre et ta couleur : tes membres et les visiteurs de ton bilan public retrouveront ton identité en haut de la page.</p>
           <div class="cb-empty-actions"><button type="button" class="btn btn-primary btn-sm" data-cb-edit>${icon('image')}Personnaliser le bandeau</button></div>
         </div>
@@ -7622,6 +7640,8 @@ function communityBannerHtml(brand, opts){
         ${b.kicker ? `<div class="cb-kicker">${escapeHtml(b.kicker)}</div>` : ''}
         <${opts.h1?'h1':'h2'} class="cb-title">${cbTitleHtml(title)}</${opts.h1?'h1':'h2'}>
         ${b.subtitle ? `<p class="cb-sub">${escapeHtml(b.subtitle)}</p>` : ''}
+        ${opts.count && opts.count.members!=null ? (()=>{ const w = CB_WHO[b.who] || CB_WHO.membres, m = Number(opts.count.members)||0, a = Number(opts.count.active);
+          return `<div class="cb-count-pill">${icon('users')}<strong>${m}</strong> ${m>1?w[1]:w[0]}${!isNaN(a) && opts.count.active!=null ? `<span class="cb-dot"></span><strong>${a}</strong> actif${a>1?'s':''}${opts.count.period?' '+escapeHtml(opts.count.period):''}` : ''}</div>`; })() : ''}
       </div>
       ${edit}
     </section>`;
@@ -7643,6 +7663,8 @@ function brandingModal(owned){
   const saved = cbBrandFromRow(owned);
   const draft = { ...saved, accent: saved.accent || '' };
   let logoFile = null, logoPreview = draft.logoUrl, removeLogo = false;
+  const esR = ecoleState().report;
+  const previewCount = { members: (esR && esR.members!=null) ? esR.members : (ecoleState().counts[owned.id]||0), active: esR ? esR.active : null };
   const field = (id, label, key, ph, hint)=>`
     <div class="field ${key==='subtitle'?'full':''}">
       <label for="${id}">${label}<span class="cb-count" id="${id}-n"></span></label>
@@ -7673,6 +7695,11 @@ function brandingModal(owned){
           ${field('cb-title','Titre','title', escapeHtml(owned.name), 'Mets un mot entre *astérisques* pour le colorer.')}
           ${field('cb-subtitle','Sous-titre (facultatif)','subtitle','Ex : Les résultats nets de nos élèves, sans capture d’écran triée.')}
           <div class="field full">
+            <label for="cb-who">Les personnes de ta communauté s’appellent</label>
+            <select id="cb-who">${Object.entries(CB_WHO).map(([k,w])=>`<option value="${k}" ${(draft.who||'membres')===k?'selected':''}>${w[1].charAt(0).toUpperCase()+w[1].slice(1)}</option>`).join('')}</select>
+            <div class="field-hint">Utilisé dans le bandeau, le bilan et l’évolution (ex. « 6 élèves · 5 actifs »).</div>
+          </div>
+          <div class="field full">
             <label>Couleur d’accent</label>
             <div class="cb-swatches" id="cb-swatches"></div>
             <div class="cb-contrast" id="cb-contrast"></div>
@@ -7685,7 +7712,7 @@ function brandingModal(owned){
       const $ = id=>document.getElementById(id);
       const refresh = ()=>{
         const b = { ...draft, logoUrl: removeLogo ? '' : logoPreview };
-        $('cb-preview').innerHTML = communityBannerHtml(b, { name: owned.name, preview:true });
+        $('cb-preview').innerHTML = communityBannerHtml(b, { name: owned.name, preview:true, count: previewCount });
         $('cb-logo-thumb').innerHTML = b.logoUrl ? `<img src="${escapeHtml(b.logoUrl)}" alt=""/>` : icon('image');
         $('cb-logo-remove').style.display = b.logoUrl ? '' : 'none';
         ['kicker','title','subtitle'].forEach(k=>{ $('cb-'+k+'-n').textContent = `${(draft[k]||'').length}/${CB_LIMITS[k]}`; });
@@ -7701,11 +7728,12 @@ function brandingModal(owned){
         $('cb-color').oninput = e=>{ draft.accent = e.target.value.toUpperCase(); refreshPreviewOnly(); };
         $('cb-color').onchange = ()=>refresh();
       };
-      const refreshPreviewOnly = ()=>{ $('cb-preview').innerHTML = communityBannerHtml({ ...draft, logoUrl: removeLogo ? '' : logoPreview }, { name: owned.name, preview:true }); };
+      const refreshPreviewOnly = ()=>{ $('cb-preview').innerHTML = communityBannerHtml({ ...draft, logoUrl: removeLogo ? '' : logoPreview }, { name: owned.name, preview:true, count: previewCount }); };
       ['kicker','title','subtitle'].forEach(k=>{
         $('cb-'+k).oninput = e=>{ draft[k] = e.target.value; refreshPreviewOnly(); $('cb-'+k+'-n').textContent = `${draft[k].length}/${CB_LIMITS[k]}`; };
       });
       $('cb-watermark').onchange = e=>{ draft.watermark = e.target.checked; refreshPreviewOnly(); };
+      $('cb-who').onchange = e=>{ draft.who = e.target.value; refreshPreviewOnly(); };
       $('cb-logo-file').onchange = e=>{
         const f = e.target.files && e.target.files[0];
         if(!f) return;
@@ -7733,9 +7761,10 @@ function brandingModal(owned){
           brand_subtitle: draft.subtitle.trim() || null,
           brand_accent: cbHexToRgb(draft.accent) ? draft.accent.toUpperCase() : null,
           brand_watermark: !!draft.watermark,
+          brand_member_label: CB_WHO[draft.who] ? draft.who : null,
         };
         const { error } = await supabaseClient.from('cohorts').update(patch).eq('id', owned.id);
-        if(error) return fail(ecoleMissingSchema(error) || /brand_/.test(error.message||'') ? 'Personnalisation pas encore activée sur cette base (migration à exécuter).' : 'Enregistrement impossible : ' + error.message);
+        if(error) return fail(/brand_member_label/.test(error.message||'') ? 'Le choix « élèves / membres / traders » demande la migration migration_communaute_libelle_20261017.sql.' : ecoleMissingSchema(error) || /brand_/.test(error.message||'') ? 'Personnalisation pas encore activée sur cette base (migration à exécuter).' : 'Enregistrement impossible : ' + error.message);
         if(oldPath && (logoFile || removeLogo)) supabaseClient.storage.from(CB_LOGO_BUCKET).remove([oldPath]).catch(()=>{});
         Object.assign(owned, fromRow(patch));
         await logActivity('UPDATE', 'cohort', owned.id, `Bandeau de la communauté personnalisé — ${owned.name}`);
@@ -7769,7 +7798,8 @@ function ecRound(n, step){ return Math.round((Number(n)||0)/step)*step; }
 // Montant arrondi signé, sans centimes (« ≈ −360 € ») : afficher « ,00 » sur un arrondi serait trompeur.
 function ecSignedRound(n){ return ecSigned(Math.round(Number(n)||0)).replace(/,00(?=\s*€)/,''); }
 function ecPeriodLabel(p){ return (!p || p==='all') ? 'depuis le début' : monthLabelFull(p).toLowerCase(); }
-function cohortReportHtml(r){
+function cohortReportHtml(r){ return ecWhoApply(cohortReportHtmlRaw(r)); }
+function cohortReportHtmlRaw(r){
   if(!r) return '';
   const period = ecPeriodLabel(r.period);
   if(r.insufficient){
@@ -8031,7 +8061,7 @@ function ecEvoHtml(){
 function ecEvoMount(){
   const slot = document.getElementById('ec-evo-slot');
   if(!slot) return;
-  slot.innerHTML = ecEvoHtml();
+  slot.innerHTML = ecWhoApply(ecEvoHtml());
   slot.querySelectorAll('[data-ev-grain]').forEach(b=>{ b.onclick = ()=>{ EC_EVO.grain = b.dataset.evGrain; ecEvoMount(); }; });
   slot.querySelectorAll('[data-ev-mode]').forEach(b=>{ b.onclick = ()=>{ EC_EVO.mode = b.dataset.evMode; ecEvoMount(); }; });
 }
@@ -8462,13 +8492,18 @@ function viewEcole(){
 
   // Bandeau de marque (17/10/2026) : responsable → sa ligne cohorts ; membre → RPC cohort_branding.
   let banner = '';
+  const rep = es.report;
+  const cnt = { members: rep && rep.members!=null ? rep.members : (owned ? (es.counts[owned.id]||0) : null), active: rep ? rep.active : null, period: rep && rep.period && rep.period!=='all' ? 'en ' + monthLabelFull(rep.period).toLowerCase() : '' };
+  let curBrand = {};
   if(owned){
-    banner = communityBannerHtml(cbBrandFromRow(owned), { name: owned.name, editable:true });
+    curBrand = cbBrandFromRow(owned);
+    banner = communityBannerHtml(curBrand, { name: owned.name, editable:true, count: cnt });
   } else if(membership){
     if(!es.brands || es.brands[membership.cohortId] === undefined) setTimeout(()=>loadCohortBranding(membership.cohortId), 0);
-    const mb = es.brands && es.brands[membership.cohortId];
-    banner = communityBannerHtml(mb || {}, { name: membership.name });
+    curBrand = (es.brands && es.brands[membership.cohortId]) || {};
+    banner = communityBannerHtml(curBrand, { name: membership.name, count: cnt });
   }
+  EC_WHO = curBrand.who || 'membres';
   let admin = '';
   if(owned){
     const n = es.counts[owned.id] || 0;
@@ -8767,6 +8802,7 @@ async function renderPublicCohortReport(token, month){
   ]);
   const { data, error } = rep;
   const brand = (!brandRes.error && brandRes.data) ? cbBrandFromRow(brandRes.data) : {};
+  EC_WHO = brand.who || 'membres';
   if(error || !data){
     root.innerHTML = `
       <div class="pub-wrap">
@@ -8786,7 +8822,7 @@ async function renderPublicCohortReport(token, month){
         <div class="pub-brand"><img src="/favicon.png" alt="" width="26" height="26" onerror="this.style.display='none'"/>Contralytix</div>
         <a class="btn btn-outline btn-sm" href="${location.origin}${location.pathname}">Suivre ma rentabilité réelle</a>
       </div>
-      ${communityBannerHtml({ ...brand, kicker: brand.kicker || 'Bilan de cohorte · net réel' }, { name: data.name, h1:true })}
+      ${communityBannerHtml({ ...brand, kicker: brand.kicker || 'Bilan de cohorte · net réel' }, { name: data.name, h1:true, count: { members: data.members, active: data.active, period: data.period && data.period!=='all' ? 'en ' + monthLabelFull(data.period).toLowerCase() : '' } })}
       <div class="pub-trust">
         <p>Résultats agrégés et anonymes des membres ayant accepté de partager leurs données, calculés automatiquement par Contralytix — pas une sélection de captures d'écran.</p>
         ${ecPeriodSelect('pub-month', data.months, month)}
