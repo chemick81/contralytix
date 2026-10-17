@@ -96,7 +96,7 @@
     {
       "@type": "Question",
       "name": "Comment une école de trading peut-elle publier le bilan réel de ses élèves ?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Avec le Mode École de Contralytix : les élèves rejoignent une cohorte avec un code et donnent leur accord ; le bilan du groupe (net total, pourcentage d'élèves rentables, médiane, entonnoir challenge vers payout) est calculé à partir de leurs vrais comptes, de façon anonyme, et peut être partagé via un lien public." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Avec l'espace Communauté de Contralytix : les élèves rejoignent une cohorte avec un code et donnent leur accord ; le bilan du groupe (net total, pourcentage d'élèves rentables, médiane, entonnoir challenge vers payout) est calculé à partir de leurs vrais comptes, de façon anonyme, et peut être partagé via un lien public." }
     },
     {
       "@type": "Question",
@@ -1360,6 +1360,63 @@ th.th-sort-active svg{opacity:1;}
 .pub-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
 .pub-head h1{font-size:32px;margin:8px 0 8px;line-height:1.15;}
 .pub-head p{margin:0;max-width:620px;color:var(--text-dim);font-size:14px;line-height:1.6;}
+/* BANDEAU DE MARQUE DE LA COMMUNAUTÉ (17/10/2026)
+   Logo + surtitre + gros titre (mot entre *astérisques* = couleur d'accent) + sous-titre.
+   La couleur d'accent de la communauté (--cb-accent) ne sert QU'AU bandeau : les couleurs
+   sémantiques de l'app (gains / pertes) ne changent jamais, pour ne rien rendre ambigu. */
+.cb-hero{--cb-accent:var(--accent);position:relative;overflow:hidden;display:flex;align-items:center;gap:24px;padding:30px 34px;margin-bottom:18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:radial-gradient(80% 160% at 100% 0%,color-mix(in srgb,var(--cb-accent) 15%,transparent),transparent 62%),var(--surface);}
+.cb-hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cb-accent);}
+.cb-logo{position:relative;z-index:1;flex:0 0 auto;width:84px;height:84px;display:grid;place-items:center;padding:12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--border);}
+.cb-logo img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
+.cb-text{position:relative;z-index:1;flex:1;min-width:0;}
+.cb-kicker{display:inline-block;margin-bottom:12px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--cb-accent) 55%,transparent);border-radius:6px;font:600 11px/1 'JetBrains Mono',monospace;letter-spacing:1.6px;text-transform:uppercase;color:var(--cb-accent);}
+.cb-title{margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,3.1vw,40px);line-height:1.1;letter-spacing:-.5px;color:var(--text);text-wrap:balance;overflow-wrap:anywhere;}
+.cb-title em{font-style:normal;color:var(--cb-accent);}
+.cb-sub{margin:12px 0 0;max-width:660px;color:var(--text-dim);font-size:14.5px;line-height:1.55;}
+.cb-watermark{position:absolute;right:-1%;top:50%;transform:translateY(-50%);height:160%;max-width:46%;object-fit:contain;opacity:.07;pointer-events:none;user-select:none;}
+:root[data-theme="light"] .cb-watermark{opacity:.045;}
+.cb-hero:has(.cb-watermark) .cb-text{max-width:min(720px,60%);}
+.cb-edit{position:absolute;top:12px;right:12px;z-index:2;}
+.cb-edit svg{width:14px;height:14px;}
+.cb-hero.cb-empty{border-style:dashed;background:var(--surface);}
+.cb-hero.cb-empty::before{display:none;}
+.field .cb-check{display:inline-flex;align-items:center;gap:8px;margin:0 0 0 4px;font-size:13px;font-weight:500;color:var(--text-dim);text-transform:none;letter-spacing:0;cursor:pointer;}
+.field .cb-check input{width:16px;height:16px;margin:0;accent-color:var(--accent);}
+.cb-hero.cb-empty .cb-logo{color:var(--text-faint);}
+.cb-hero.cb-empty .cb-logo svg{width:30px;height:30px;}
+.cb-empty-actions{margin-top:14px;}
+.cb-empty-actions svg{width:14px;height:14px;}
+/* Éditeur */
+.cb-editor{display:flex;flex-direction:column;gap:16px;}
+.cb-editor .cb-hero{margin-bottom:0;padding:22px 24px;}
+.cb-editor .cb-title{font-size:26px;}
+.cb-preview-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);margin-bottom:-8px;}
+.cb-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 16px;}
+.cb-grid .field.full{grid-column:1/-1;}
+.cb-logo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.cb-logo-thumb{width:52px;height:52px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;padding:7px;color:var(--text-faint);flex-shrink:0;}
+.cb-logo-thumb img{max-width:100%;max-height:100%;object-fit:contain;}
+.cb-logo-thumb svg{width:22px;height:22px;}
+.cb-swatches{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.cb-swatch{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);padding:0;}
+.cb-swatch.active{box-shadow:0 0 0 2px var(--text);}
+.cb-swatch-custom{position:relative;width:30px;height:30px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px var(--border);background:conic-gradient(#E10600,#F5C542,#3ED6B5,#6FA8FF,#B6A6FF,#E10600);}
+.cb-swatch-custom input{position:absolute;inset:-6px;width:42px;height:42px;opacity:0;cursor:pointer;}
+.cb-contrast{font-size:12px;color:var(--text-dim);margin-top:8px;display:flex;align-items:center;gap:6px;}
+.cb-contrast svg{width:14px;height:14px;flex-shrink:0;}
+.cb-count{float:right;font-weight:500;color:var(--text-faint);font-size:11px;}
+.pub-trust{display:flex;justify-content:space-between;align-items:center;gap:14px 20px;flex-wrap:wrap;margin-bottom:20px;}
+.pub-trust p{margin:0;max-width:640px;color:var(--text-dim);font-size:13.5px;line-height:1.6;}
+@media (max-width: 720px){
+  .cb-hero{flex-direction:column;align-items:flex-start;gap:14px;padding:20px 18px 22px 22px;}
+  .cb-logo{width:52px;height:52px;padding:8px;border-radius:12px;}
+  .cb-edit span{display:none;}
+  .cb-title{font-size:24px;}
+  .cb-sub{font-size:13.5px;}
+  .cb-watermark{display:none;}
+  .cb-hero:has(.cb-watermark) .cb-text{max-width:none;}
+  .cb-grid{grid-template-columns:1fr;}
+}
 .pub-foot{margin-top:34px;text-align:center;font-size:12px;color:var(--text-faint);}
 .pub-foot a{color:var(--accent);}
 @media (max-width:900px){
@@ -2364,7 +2421,7 @@ th.th-sort-active svg{opacity:1;}
       <div class="ml-tour-row">
         <div class="ml-tour-text">
           <h2>Écoles de trading : publiez un bilan que personne ne peut contester</h2>
-          <p>Avec le Mode École, vos élèves rejoignent une cohorte et Contralytix calcule le bilan du groupe à partir de leurs vrais comptes : net total, % d'élèves rentables, médiane, répartition, entonnoir. Anonyme, consenti, calculé côté serveur — et partageable en un lien public.</p>
+          <p>Avec l'espace Communauté, vos élèves rejoignent une cohorte et Contralytix calcule le bilan du groupe à partir de leurs vrais comptes : net total, % d'élèves rentables, médiane, répartition, entonnoir. Anonyme, consenti, calculé côté serveur — et partageable en un lien public.</p>
         </div>
         <div class="ml-tour-visual">
           <div class="ml-browser-frame">
@@ -2410,7 +2467,7 @@ th.th-sort-active svg{opacity:1;}
         </article>
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5"/></svg></div>
-          <h3>Mode École &amp; bilan public</h3>
+          <h3>Communauté &amp; bilan public</h3>
           <p>Pour les écoles et communautés : le bilan réel des élèves, anonyme et consenti, calculé à partir de leurs comptes, avec un lien public à partager sous vos vidéos.</p>
         </article>
         <article class="ml-feature-card">
@@ -2499,7 +2556,7 @@ th.th-sort-active svg{opacity:1;}
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 2 traders</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Jusqu'à 3 comptes par trader</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des payouts</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Rentabilité réelle &amp; Mode École</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Rentabilité réelle &amp; Communauté</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Import de comptes par capture</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> 5 dernières sessions live</li>
           </ul>
@@ -2556,7 +2613,7 @@ th.th-sort-active svg{opacity:1;}
         </details>
         <details class="ml-faq-item">
           <summary>Je dirige une école de trading : comment publier le bilan réel de mes élèves ?</summary>
-          <p>Avec le Mode École : tu crées une cohorte, tes élèves la rejoignent avec un code et donnent leur accord. Contralytix calcule le bilan du groupe à partir de leurs vrais comptes — net total, % d'élèves rentables, médiane, entonnoir — sans jamais te montrer leurs chiffres individuels (rien n'est affiché sous 5 membres actifs). Le bilan peut être partagé en un lien public.</p>
+          <p>Avec l'espace Communauté : tu crées une cohorte, tes élèves la rejoignent avec un code et donnent leur accord. Contralytix calcule le bilan du groupe à partir de leurs vrais comptes — net total, % d'élèves rentables, médiane, entonnoir — sans jamais te montrer leurs chiffres individuels (rien n'est affiché sous 5 membres actifs). Le bilan peut être partagé en un lien public.</p>
         </details>
         <details class="ml-faq-item">
           <summary>Puis-je importer mes comptes prop firm sans tout ressaisir ?</summary>
@@ -5924,7 +5981,7 @@ function requestPropfirmModal(){
 const BASE_NAV = [
   { id:'dashboard', label:'Dashboard', icon:'grid' },
   { id:'rentabilite', label:'Rentabilité réelle', icon:'trophy' },
-  { id:'ecole', label:'Mode École', icon:'layers' },
+  { id:'ecole', label:'Communauté', icon:'layers' },
   { id:'traders', label:'Traders', icon:'users' },
   { id:'propfirms', label:'PropFirms', icon:'building' },
   { id:'accounts', label:'Comptes', icon:'card' },
@@ -7370,7 +7427,7 @@ function bindRentabiliteEvents(){
    AGRÉGÉE, dans le bilan de la cohorte. Tous les calculs sont faits CÔTÉ SERVEUR
    (cohort_report / public_cohort_report, voir migration_ecole_justificatifs_20260926.sql) à
    partir des vraies tables : un membre n'envoie aucun « chiffre » qu'il pourrait arranger, et
-   l'école ne voit jamais ni la liste des membres ni un chiffre individuel. Aucun chiffre n'est
+   le responsable ne voit jamais ni la liste des membres ni un chiffre individuel. Aucun chiffre n'est
    affiché tant que moins de 5 membres ont de l'activité sur la période (seuil d'anonymat).
 ============================================================ */
 const ECOLE_INVITE_STORAGE_KEY = 'ctx_pending_cohort_invite';
@@ -7395,7 +7452,7 @@ async function loadEcole(){
   const err = owned.error || counts.error || mem.error;
   if(err){
     es.available = !ecoleMissingSchema(err);
-    if(es.available) showToast('Mode École : ' + err.message, 'danger');
+    if(es.available) showToast('Communauté : ' + err.message, 'danger');
     if(state.route==='ecole') renderView();
     return;
   }
@@ -7421,6 +7478,212 @@ async function loadCohortReport(){
 }
 function ecoleInviteLink(code){ return `${location.origin}${location.pathname}?ecole=${encodeURIComponent(code)}`; }
 function ecolePublicLink(token){ return `${location.origin}${location.pathname}?bilan=${encodeURIComponent(token)}`; }
+
+/* ---------- Bandeau de marque de la communauté (17/10/2026) ----------
+   Colonnes brand_* de la table cohorts (voir migration_communaute_marque_20261017.sql).
+   Responsable : lues dans sa ligne cohorts. Membre : RPC cohort_branding. Visiteur du bilan
+   public : RPC public_cohort_branding. Sans la migration, le bandeau retombe proprement sur le
+   nom de la cohorte (aucune erreur affichée). */
+const CB_LOGO_BUCKET = 'community-logos';
+const CB_LOGO_MAX = 1024*1024;
+const CB_LOGO_TYPES = { 'image/png':'png', 'image/jpeg':'jpg', 'image/webp':'webp', 'image/svg+xml':'svg' };
+const CB_LIMITS = { kicker:40, title:70, subtitle:160 };
+const CB_SWATCHES = ['#E10600','#FF6B2C','#F5C542','#3ED6B5','#2F9BFF','#7C5CFF','#E8EDF2'];
+function cbBrandFromRow(row){
+  row = row || {};
+  const pick = (a,b)=> row[a]!=null ? row[a] : row[b];
+  return {
+    logoUrl: pick('brandLogoUrl','brand_logo_url') || '',
+    kicker: pick('brandKicker','brand_kicker') || '',
+    title: pick('brandTitle','brand_title') || '',
+    subtitle: pick('brandSubtitle','brand_subtitle') || '',
+    accent: pick('brandAccent','brand_accent') || '',
+    watermark: pick('brandWatermark','brand_watermark') !== false,
+  };
+}
+function cbHasBrand(b){ return !!(b && (b.logoUrl || b.title || b.kicker || b.subtitle || b.accent)); }
+// Contraste WCAG : la couleur choisie est éclaircie (thème sombre) ou assombrie (thème clair)
+// jusqu'à 4,5:1 contre le fond du bandeau, pour que le mot accentué et le surtitre restent lisibles.
+function cbHexToRgb(h){
+  h = String(h||'').trim().replace('#','');
+  if(h.length===3) h = h.split('').map(c=>c+c).join('');
+  if(!/^[0-9a-f]{6}$/i.test(h)) return null;
+  return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+}
+function cbRgbToHex(c){ return '#' + c.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+function cbLum(c){ const f = v=>{ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); }; return 0.2126*f(c[0]) + 0.7152*f(c[1]) + 0.0722*f(c[2]); }
+function cbContrast(a, b){ const la = cbLum(a), lb = cbLum(b); return (Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05); }
+function cbSurfaceRgb(){
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--surface');
+  return cbHexToRgb(v) || [18,24,31];
+}
+function cbReadableAccent(hex){
+  const c = cbHexToRgb(hex);
+  if(!c) return { color:'', adjusted:false };
+  const bg = cbSurfaceRgb();
+  if(cbContrast(c, bg) >= 4.5) return { color:cbRgbToHex(c), adjusted:false };
+  const target = cbLum(bg) < 0.5 ? [255,255,255] : [0,0,0];
+  for(let t=0.05; t<=1; t+=0.05){
+    const m = c.map((v,i)=> v + (target[i]-v)*t);
+    if(cbContrast(m, bg) >= 4.5) return { color:cbRgbToHex(m), adjusted:true };
+  }
+  return { color:cbRgbToHex(target), adjusted:true };
+}
+// « Ce qu'il reste *vraiment* » → le mot entre astérisques prend la couleur d'accent.
+function cbTitleHtml(t){ return escapeHtml(t).replace(/\*([^*]+)\*/g, '<em>$1</em>'); }
+function cbSafeUrl(u){ return /^https:\/\//i.test(u||'') ? u : ''; }
+function communityBannerHtml(brand, opts){
+  opts = opts || {};
+  const b = brand || {};
+  const logo = cbSafeUrl(b.logoUrl);
+  const accent = cbReadableAccent(b.accent).color;
+  const title = (b.title || '').trim() || (opts.name || '');
+  const edit = opts.editable ? `<button type="button" class="btn btn-ghost btn-sm cb-edit" data-cb-edit title="Personnaliser le bandeau" aria-label="Personnaliser le bandeau">${icon('edit')}<span>Personnaliser</span></button>` : '';
+  if(opts.editable && !cbHasBrand(b) && !opts.preview){
+    return `
+      <div class="cb-hero cb-empty">
+        <div class="cb-logo">${icon('image')}</div>
+        <div class="cb-text">
+          <h2 class="cb-title" style="font-size:22px;">${escapeHtml(title)}</h2>
+          <p class="cb-sub">Ajoute ton logo, un titre et ta couleur : tes membres et les visiteurs de ton bilan public retrouveront ton identité en haut de la page.</p>
+          <div class="cb-empty-actions"><button type="button" class="btn btn-primary btn-sm" data-cb-edit>${icon('image')}Personnaliser le bandeau</button></div>
+        </div>
+      </div>`;
+  }
+  return `
+    <section class="cb-hero" ${accent?`style="--cb-accent:${accent}"`:''} aria-label="${escapeHtml(opts.name||title)}">
+      ${logo && b.watermark ? `<img class="cb-watermark" src="${escapeHtml(logo)}" alt="" aria-hidden="true"/>` : ''}
+      ${logo ? `<div class="cb-logo"><img src="${escapeHtml(logo)}" alt="Logo ${escapeHtml(opts.name||'')}" onerror="this.closest('.cb-logo').style.display='none'"/></div>` : ''}
+      <div class="cb-text">
+        ${b.kicker ? `<div class="cb-kicker">${escapeHtml(b.kicker)}</div>` : ''}
+        <${opts.h1?'h1':'h2'} class="cb-title">${cbTitleHtml(title)}</${opts.h1?'h1':'h2'}>
+        ${b.subtitle ? `<p class="cb-sub">${escapeHtml(b.subtitle)}</p>` : ''}
+      </div>
+      ${edit}
+    </section>`;
+}
+async function loadCohortBranding(cohortId){
+  const es = ecoleState();
+  if(!es.brands) es.brands = {};
+  if(!cohortId || es.brands[cohortId] !== undefined) return;
+  es.brands[cohortId] = null;
+  const { data, error } = await supabaseClient.rpc('cohort_branding', { p_cohort: cohortId });
+  es.brands[cohortId] = (!error && data) ? cbBrandFromRow(data) : {};
+  if(state.route==='ecole') renderView();
+}
+function cbLogoPathFromUrl(url){
+  const m = String(url||'').match(new RegExp('/object/public/' + CB_LOGO_BUCKET + '/(.+)$'));
+  return m ? decodeURIComponent(m[1].split('?')[0]) : null;
+}
+function brandingModal(owned){
+  const saved = cbBrandFromRow(owned);
+  const draft = { ...saved, accent: saved.accent || '' };
+  let logoFile = null, logoPreview = draft.logoUrl, removeLogo = false;
+  const field = (id, label, key, ph, hint)=>`
+    <div class="field ${key==='subtitle'?'full':''}">
+      <label for="${id}">${label}<span class="cb-count" id="${id}-n"></span></label>
+      ${key==='subtitle'
+        ? `<textarea id="${id}" rows="2" maxlength="${CB_LIMITS[key]}" placeholder="${ph}">${escapeHtml(draft[key])}</textarea>`
+        : `<input id="${id}" type="text" maxlength="${CB_LIMITS[key]}" placeholder="${ph}" value="${escapeHtml(draft[key])}"/>`}
+      ${hint?`<div class="field-hint">${hint}</div>`:''}
+    </div>`;
+  openModal({
+    title: 'Personnaliser le bandeau',
+    wide: true,
+    bodyHtml: `
+      <div class="cb-editor">
+        <div class="cb-preview-label">Aperçu</div>
+        <div id="cb-preview"></div>
+        <div class="cb-grid">
+          <div class="field full">
+            <label>Logo</label>
+            <div class="cb-logo-row">
+              <div class="cb-logo-thumb" id="cb-logo-thumb"></div>
+              <label class="btn btn-outline btn-sm" style="margin:0;">${icon('upload')}Choisir un fichier<input id="cb-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden/></label>
+              <button type="button" class="btn btn-ghost btn-sm" id="cb-logo-remove">Retirer</button>
+              <label class="cb-check"><input type="checkbox" id="cb-watermark" ${draft.watermark?'checked':''}/>Logo en filigrane</label>
+            </div>
+            <div class="field-hint">PNG transparent ou SVG conseillé, 1 Mo maximum.</div>
+          </div>
+          ${field('cb-kicker','Surtitre (facultatif)','kicker','Ex : Bilan des élèves 2026')}
+          ${field('cb-title','Titre','title', escapeHtml(owned.name), 'Mets un mot entre *astérisques* pour le colorer.')}
+          ${field('cb-subtitle','Sous-titre (facultatif)','subtitle','Ex : Les résultats nets de nos élèves, sans capture d’écran triée.')}
+          <div class="field full">
+            <label>Couleur d’accent</label>
+            <div class="cb-swatches" id="cb-swatches"></div>
+            <div class="cb-contrast" id="cb-contrast"></div>
+            <div class="field-hint">Utilisée uniquement dans le bandeau. Les gains et les pertes gardent toujours leurs couleurs.</div>
+          </div>
+        </div>
+      </div>`,
+    footHtml: `<button class="btn btn-outline" id="cb-cancel">Annuler</button><button class="btn btn-primary" id="cb-save">Enregistrer</button>`,
+    onMount(){
+      const $ = id=>document.getElementById(id);
+      const refresh = ()=>{
+        const b = { ...draft, logoUrl: removeLogo ? '' : logoPreview };
+        $('cb-preview').innerHTML = communityBannerHtml(b, { name: owned.name, preview:true });
+        $('cb-logo-thumb').innerHTML = b.logoUrl ? `<img src="${escapeHtml(b.logoUrl)}" alt=""/>` : icon('image');
+        $('cb-logo-remove').style.display = b.logoUrl ? '' : 'none';
+        ['kicker','title','subtitle'].forEach(k=>{ $('cb-'+k+'-n').textContent = `${(draft[k]||'').length}/${CB_LIMITS[k]}`; });
+        const cur = (draft.accent||'').toUpperCase();
+        $('cb-swatches').innerHTML = CB_SWATCHES.map(c=>`<button type="button" class="cb-swatch ${c===cur?'active':''}" style="background:${c}" data-cb-color="${c}" aria-label="Couleur ${c}"></button>`).join('')
+          + `<span class="cb-swatch-custom ${cur && !CB_SWATCHES.includes(cur)?'active':''}" title="Autre couleur"><input type="color" id="cb-color" value="${cbHexToRgb(cur)?cur:'#E10600'}" aria-label="Autre couleur"/></span>`
+          + (cur ? `<button type="button" class="btn btn-ghost btn-sm" data-cb-color="">Couleur Contralytix</button>` : '');
+        const r = cbReadableAccent(draft.accent);
+        $('cb-contrast').innerHTML = !draft.accent ? '' : r.adjusted
+          ? `${icon('info')}<span>Couleur légèrement ajustée pour rester lisible sur ce fond (${r.color}).</span>`
+          : `${icon('check')}<span>Contraste lisible.</span>`;
+        $('cb-swatches').querySelectorAll('[data-cb-color]').forEach(btn=>{ btn.onclick = ()=>{ draft.accent = btn.dataset.cbColor; refresh(); }; });
+        $('cb-color').oninput = e=>{ draft.accent = e.target.value.toUpperCase(); refreshPreviewOnly(); };
+        $('cb-color').onchange = ()=>refresh();
+      };
+      const refreshPreviewOnly = ()=>{ $('cb-preview').innerHTML = communityBannerHtml({ ...draft, logoUrl: removeLogo ? '' : logoPreview }, { name: owned.name, preview:true }); };
+      ['kicker','title','subtitle'].forEach(k=>{
+        $('cb-'+k).oninput = e=>{ draft[k] = e.target.value; refreshPreviewOnly(); $('cb-'+k+'-n').textContent = `${draft[k].length}/${CB_LIMITS[k]}`; };
+      });
+      $('cb-watermark').onchange = e=>{ draft.watermark = e.target.checked; refreshPreviewOnly(); };
+      $('cb-logo-file').onchange = e=>{
+        const f = e.target.files && e.target.files[0];
+        if(!f) return;
+        if(!CB_LOGO_TYPES[f.type]){ showToast('Format non pris en charge : PNG, JPG, WebP ou SVG.', 'danger'); return; }
+        if(f.size > CB_LOGO_MAX){ showToast('Logo trop lourd : 1 Mo maximum.', 'danger'); return; }
+        logoFile = f; removeLogo = false; logoPreview = URL.createObjectURL(f); refresh();
+      };
+      $('cb-logo-remove').onclick = ()=>{ logoFile = null; removeLogo = true; refresh(); };
+      $('cb-cancel').onclick = closeModal;
+      $('cb-save').onclick = async ()=>{
+        const btn = $('cb-save'); btn.disabled = true; btn.textContent = 'Enregistrement…';
+        const fail = msg=>{ showToast(msg, 'danger'); btn.disabled = false; btn.textContent = 'Enregistrer'; };
+        let logoUrl = removeLogo ? '' : saved.logoUrl;
+        const oldPath = cbLogoPathFromUrl(saved.logoUrl);
+        if(logoFile){
+          const path = `${currentUserId()}/${owned.id}/${Date.now()}.${CB_LOGO_TYPES[logoFile.type]}`;
+          const { error: upErr } = await supabaseClient.storage.from(CB_LOGO_BUCKET).upload(path, logoFile, { contentType: logoFile.type, cacheControl:'31536000', upsert:false });
+          if(upErr) return fail(ecoleMissingSchema(upErr) || /bucket/i.test(upErr.message||'') ? 'Stockage des logos pas encore activé sur cette base (migration à exécuter).' : 'Envoi du logo impossible : ' + upErr.message);
+          logoUrl = supabaseClient.storage.from(CB_LOGO_BUCKET).getPublicUrl(path).data.publicUrl;
+        }
+        const patch = {
+          brand_logo_url: logoUrl || null,
+          brand_kicker: draft.kicker.trim() || null,
+          brand_title: draft.title.trim() || null,
+          brand_subtitle: draft.subtitle.trim() || null,
+          brand_accent: cbHexToRgb(draft.accent) ? draft.accent.toUpperCase() : null,
+          brand_watermark: !!draft.watermark,
+        };
+        const { error } = await supabaseClient.from('cohorts').update(patch).eq('id', owned.id);
+        if(error) return fail(ecoleMissingSchema(error) || /brand_/.test(error.message||'') ? 'Personnalisation pas encore activée sur cette base (migration à exécuter).' : 'Enregistrement impossible : ' + error.message);
+        if(oldPath && (logoFile || removeLogo)) supabaseClient.storage.from(CB_LOGO_BUCKET).remove([oldPath]).catch(()=>{});
+        Object.assign(owned, fromRow(patch));
+        await logActivity('UPDATE', 'cohort', owned.id, `Bandeau de la communauté personnalisé — ${owned.name}`);
+        closeModal();
+        showToast('Bandeau enregistré.');
+        renderView();
+      };
+      refresh();
+      $('cb-title').focus();
+    }
+  });
+}
 async function copyToClipboard(text, okMsg){
   try{ await navigator.clipboard.writeText(text); showToast(okMsg || 'Copié.'); }
   catch(e){ showToast('Copie impossible — sélectionne le lien à la main.', 'danger'); }
@@ -7430,7 +7693,7 @@ function randomToken(len){
   return hex.slice(0, len);
 }
 
-/* ---------- Rendu du rapport (partagé : page École + bilan public) ---------- */
+/* ---------- Rendu du rapport (partagé : page Communauté + bilan public) ---------- */
 function ecSigned(n){ const v = Number(n)||0; return (v>=0?'+':'−') + fmtEur(Math.abs(v)); }
 // Accord singulier / pluriel : ecPlural(1,'membre actif','membres actifs') → « 1 membre actif ».
 function ecPlural(n, one, many){ n = Number(n)||0; return `${n} ${n>1?many:one}`; }
@@ -7644,7 +7907,7 @@ function lbRulesItems(){
     ['Égalité', 'À ROI égal, le net du mois le plus élevé passe devant.'],
     ['Meilleure progression', 'La plus forte hausse du ROI par rapport au mois précédent, en points, parmi les élèves classés les deux mois.'],
     ['Clôture', 'Le mois se termine le dernier jour à 23 h 59. Un classement passé est recalculé à partir des données actuelles : il peut encore bouger si un élève corrige une saisie ou se retire du classement.'],
-    ['Ce qui est visible', 'Pour les participants seulement : nom d’affichage (pseudo ou prénom), ROI, net du mois, capital engagé et progression, visibles par les membres de la cohorte et par l’école. Ton e-mail et le détail de tes comptes restent privés.'],
+    ['Ce qui est visible', 'Pour les participants seulement : nom d’affichage (pseudo ou prénom), ROI, net du mois, capital engagé et progression, visibles par les membres de la cohorte et par le responsable. Ton e-mail et le détail de tes comptes restent privés.'],
     ['Données', 'Calculé par Contralytix à partir des comptes, dépenses et payouts que chacun enregistre. Les payouts peuvent être appuyés par une preuve ; les dépenses sont déclarées.'],
     ['Se retirer', 'À tout moment, depuis cette page : tu disparais immédiatement du classement, mois passés compris.'],
   ];
@@ -7793,7 +8056,7 @@ function viewLeaderboard(owned, membership){
   }
   if(!lb.enabled){
     return `${head(`Classement ${lbOfMonth(month)}`, 'ROI du mois')}
-      <div class="panel ec-locked"><div class="ec-locked-icon">${icon('lock')}</div><div class="ec-locked-title">Classement désactivé</div><div class="ec-locked-sub">${owned ? 'Réactive-le avec l’interrupteur « Classement » ci-dessus.' : 'L’école a désactivé le classement de cette cohorte. Le bilan anonyme reste disponible.'}</div></div>`;
+      <div class="panel ec-locked"><div class="ec-locked-icon">${icon('lock')}</div><div class="ec-locked-title">Classement désactivé</div><div class="ec-locked-sub">${owned ? 'Réactive-le avec l’interrupteur « Classement » ci-dessus.' : 'Le responsable a désactivé le classement de cette cohorte. Le bilan anonyme reste disponible.'}</div></div>`;
   }
   const rows = lb.rows || [];
   const top = [1,2,3].map(n=>rows.find(r=>r.rank===n));
@@ -7894,7 +8157,7 @@ function lbParticipationModal(cohortName, me){
         </div>
         <div class="field" id="lb-pseudo-wrap" style="${display==='PSEUDO'?'':'display:none;'}"><label for="lb-pseudo">Pseudo</label><input id="lb-pseudo" type="text" maxlength="24" value="${escapeHtml(me.pseudo||'')}" placeholder="Ex : TigreNQ"/><div class="field-hint">2 à 24 caractères, unique dans la cohorte.</div></div>
         <ul>
-          <li>Visible par les membres et par l’école : ton nom d’affichage, ton <strong>ROI</strong>, ton <strong>net du mois</strong>, ton <strong>capital engagé</strong> et ta progression.</li>
+          <li>Visible par les membres et par le responsable : ton nom d’affichage, ton <strong>ROI</strong>, ton <strong>net du mois</strong>, ton <strong>capital engagé</strong> et ta progression.</li>
           <li>Ton e-mail et le détail de tes comptes restent <strong>privés</strong>.</li>
           <li>Tu peux te retirer <strong>à tout moment</strong> : tu disparais aussitôt du classement, mois passés compris.</li>
         </ul>
@@ -7940,7 +8203,7 @@ function lbParticipationModal(cohortName, me){
   });
 }
 
-/* ---------- Page École (connecté) ---------- */
+/* ---------- Page Communauté (connecté) ---------- */
 function viewEcole(){
   const es = ecoleState();
   if(!es.loaded){
@@ -7949,7 +8212,7 @@ function viewEcole(){
   }
   if(!es.available){
     return `<div class="panel ec-intro"><div class="ec-intro-body">
-      <div class="ec-kicker">Mode École</div>
+      <div class="ec-kicker">Communauté</div>
       <h2>Base de données pas encore prête</h2>
       <p>Exécute la migration <code>migration_ecole_justificatifs_20260926.sql</code> sur ce projet Supabase, puis recharge la page.</p>
     </div></div>`;
@@ -7957,14 +8220,14 @@ function viewEcole(){
   const hasAny = es.owned.length || es.memberships.length;
   const actions = `
     <div class="ec-actions">
-      <button class="btn btn-outline" id="ec-join">${icon('link')}Rejoindre une école</button>
+      <button class="btn btn-outline" id="ec-join">${icon('link')}Rejoindre une communauté</button>
       <button class="btn btn-primary" id="ec-create">${icon('plus')}Créer une cohorte</button>
     </div>`;
   if(!hasAny){
     return `
       <div class="panel ec-intro">
         <div class="ec-intro-body">
-          <div class="ec-kicker">Mode École</div>
+          <div class="ec-kicker">Communauté</div>
           <h2>Le bilan de tes élèves, en net réel — et vérifiable.</h2>
           <p>Crée une cohorte, partage le code à tes élèves. Contralytix calcule automatiquement, à partir de leurs vrais comptes, le résultat net du groupe, la part d'élèves rentables, la médiane, l'entonnoir challenge → payout et le taux de justificatifs.</p>
           <ul class="ec-points">
@@ -7981,19 +8244,28 @@ function viewEcole(){
   const owned = es.owned.find(c=>c.id===sel);
   const membership = es.memberships.find(m=>m.cohortId===sel);
   const pills = [
-    ...es.owned.map(c=>({ id:c.id, name:c.name, tag:'École', n:es.counts[c.id] })),
+    ...es.owned.map(c=>({ id:c.id, name:c.name, tag:'Responsable', n:es.counts[c.id] })),
     ...es.memberships.filter(m=>!es.owned.find(c=>c.id===m.cohortId)).map(m=>({ id:m.cohortId, name:m.name, tag:'Membre' })),
   ];
   const selector = `
     <div class="ec-topbar">
       <div class="ec-pills">
         ${pills.map(p=>`<button type="button" class="ec-pill ${p.id===sel?'active':''}" data-ec-select="${p.id}">
-          <span class="ec-pill-tag ${p.tag==='École'?'owner':''}">${p.tag}</span>${escapeHtml(p.name)}${p.n!=null?` <span class="ec-pill-n">${p.n}</span>`:''}
+          <span class="ec-pill-tag ${p.tag==='Responsable'?'owner':''}">${p.tag}</span>${escapeHtml(p.name)}${p.n!=null?` <span class="ec-pill-n">${p.n}</span>`:''}
         </button>`).join('')}
       </div>
       ${actions}
     </div>`;
 
+  // Bandeau de marque (17/10/2026) : responsable → sa ligne cohorts ; membre → RPC cohort_branding.
+  let banner = '';
+  if(owned){
+    banner = communityBannerHtml(cbBrandFromRow(owned), { name: owned.name, editable:true });
+  } else if(membership){
+    if(!es.brands || es.brands[membership.cohortId] === undefined) setTimeout(()=>loadCohortBranding(membership.cohortId), 0);
+    const mb = es.brands && es.brands[membership.cohortId];
+    banner = communityBannerHtml(mb || {}, { name: membership.name });
+  }
   let admin = '';
   if(owned){
     const n = es.counts[owned.id] || 0;
@@ -8041,7 +8313,7 @@ function viewEcole(){
     admin = `
       <div class="panel ec-member">
         <div>${icon('shield')}</div>
-        <div class="ec-member-txt">Tu fais partie de <strong>${escapeHtml(membership.name)}</strong> depuis le ${fmtDate((membership.joinedAt||'').slice(0,10))}. Tes chiffres sont comptés de façon anonyme dans le bilan ; l'école ne voit jamais tes données individuelles${(es.lb && es.lbKey && es.lbKey.indexOf(membership.cohortId)===0 && es.lb.me && es.lb.me.opted_in)?', sauf celles du classement auquel tu participes (nom d’affichage, ROI, net du mois, capital engagé)':''}.</div>
+        <div class="ec-member-txt">Tu fais partie de <strong>${escapeHtml(membership.name)}</strong> depuis le ${fmtDate((membership.joinedAt||'').slice(0,10))}. Tes chiffres sont comptés de façon anonyme dans le bilan ; le responsable ne voit jamais tes données individuelles${(es.lb && es.lbKey && es.lbKey.indexOf(membership.cohortId)===0 && es.lb.me && es.lb.me.opted_in)?', sauf celles du classement auquel tu participes (nom d’affichage, ROI, net du mois, capital engagé)':''}.</div>
         <button class="btn btn-outline btn-sm" data-ec-leave="${membership.cohortId}">Quitter la cohorte</button>
       </div>`;
   }
@@ -8053,7 +8325,7 @@ function viewEcole(){
       <button type="button" role="tab" aria-selected="${tab==='classement'}" class="${tab==='classement'?'active':''}" data-ec-tab="classement">${icon('trophy')}Classement</button>
     </div>`;
   if(tab==='classement'){
-    return `<div class="rt-page ec-page">${selector}${admin}${tabsHtml}${viewLeaderboard(owned, membership)}</div>`;
+    return `<div class="rt-page ec-page">${selector}${banner}${admin}${tabsHtml}${viewLeaderboard(owned, membership)}</div>`;
   }
   const r = es.report;
   const reportHead = `
@@ -8070,14 +8342,14 @@ function viewEcole(){
   const reportBody = es.reportLoading && !r ? emptyState('barChart','Calcul du bilan…','')
     : es.reportError ? `<div class="panel" style="padding:18px;color:var(--danger);font-size:13px;">${escapeHtml(es.reportError)}</div>`
     : cohortReportHtml(r);
-  return `<div class="rt-page ec-page">${selector}${admin}${tabsHtml}${reportHead}<div style="${es.reportLoading?'opacity:.55;transition:opacity .15s;':''}">${reportBody}</div></div>`;
+  return `<div class="rt-page ec-page">${selector}${banner}${admin}${tabsHtml}${reportHead}<div style="${es.reportLoading?'opacity:.55;transition:opacity .15s;':''}">${reportBody}</div></div>`;
 }
 
 function createCohortModal(){
   openModal({
     title: 'Créer une cohorte',
     bodyHtml: `
-      <div class="field"><label>Nom de l'école / du groupe</label><input id="ec-new-name" type="text" maxlength="80" placeholder="Ex : Promo Intraday — Automne 2026"/></div>
+      <div class="field"><label>Nom de la communauté</label><input id="ec-new-name" type="text" maxlength="80" placeholder="Ex : Promo Intraday — Automne 2026"/></div>
       <div class="field-hint">Tu obtiendras un code d'invitation à partager. Tu ne verras jamais qui a rejoint ni les chiffres individuels : uniquement des statistiques agrégées, à partir de 5 membres actifs. Seule exception : le classement mensuel au ROI, où n'apparaissent que les élèves qui choisissent d'y participer.</div>`,
     footHtml: `<button class="btn btn-outline" id="ec-new-cancel">Annuler</button><button class="btn btn-primary" id="ec-new-ok">Créer</button>`,
     onMount(){
@@ -8103,18 +8375,18 @@ function joinCohortModal(prefillCode){
   let preview = null;
   const renderStep = ()=>{
     openModal({
-      title: preview ? `Rejoindre « ${escapeHtml(preview.name)} »` : 'Rejoindre une école',
+      title: preview ? `Rejoindre « ${escapeHtml(preview.name)} »` : 'Rejoindre une communauté',
       bodyHtml: !preview ? `
           <div class="field"><label>Code d'invitation</label><input id="ec-join-code" type="text" maxlength="12" style="text-transform:uppercase;letter-spacing:2px;font-family:'JetBrains Mono',monospace;" value="${escapeHtml(prefillCode||'')}" placeholder="EX : 7F3A9C21"/></div>
-          <div class="field-hint">Le code t'a été donné par ton école ou ta communauté.</div>`
+          <div class="field-hint">Le code t'a été donné par le responsable de ta communauté.</div>`
         : `
           <div class="ec-consent">
             <p><strong>${escapeHtml(preview.name)}</strong> souhaite inclure tes résultats dans son bilan collectif.</p>
             <ul>
               <li>Tes dépenses, payouts et comptes Contralytix sont comptés <strong>de façon anonyme et agrégée</strong> (totaux, médiane, répartition).</li>
-              <li>L'école ne voit <strong>jamais</strong> ton identité, ton email ni tes chiffres individuels. Rien n'est affiché sous 5 membres actifs.</li>
+              <li>Le responsable ne voit <strong>jamais</strong> ton identité, ton email ni tes chiffres individuels. Rien n'est affiché sous 5 membres actifs.</li>
               <li>Le <strong>classement mensuel au ROI</strong> est à part et facultatif : tu n'y apparais que si tu t'y inscris toi-même ensuite, et tu peux t'en retirer à tout moment.</li>
-              <li>Tu peux <strong>quitter à tout moment</strong> depuis la page Mode École : tes données cessent immédiatement d'être comptées.</li>
+              <li>Tu peux <strong>quitter à tout moment</strong> depuis la page Communauté : tes données cessent immédiatement d'être comptées.</li>
             </ul>
             <label class="ec-consent-check"><input type="checkbox" id="ec-consent"/> J'accepte que mes données soient utilisées de cette façon dans le bilan de ${escapeHtml(preview.name)}.</label>
           </div>`,
@@ -8129,8 +8401,8 @@ function joinCohortModal(prefillCode){
             const code = input.value.trim().toUpperCase();
             if(!code){ showToast('Saisis le code d’invitation.', 'danger'); return; }
             const { data, error } = await supabaseClient.rpc('cohort_preview', { p_code: code });
-            if(error){ showToast(ecoleMissingSchema(error) ? 'Mode École pas encore activé sur cette base.' : 'Erreur : ' + error.message, 'danger'); return; }
-            if(!data){ showToast('Code inconnu. Vérifie-le auprès de ton école.', 'danger'); return; }
+            if(error){ showToast(ecoleMissingSchema(error) ? 'Espace Communauté pas encore activé sur cette base.' : 'Erreur : ' + error.message, 'danger'); return; }
+            if(!data){ showToast('Code inconnu. Vérifie-le auprès du responsable de ta communauté.', 'danger'); return; }
             preview = { ...data, code };
             renderStep();
           };
@@ -8171,6 +8443,7 @@ function bindEcoleEvents(){
   const owned = es.owned.find(c=>c.id===es.selectedId);
   const on = (sel, fn)=>{ const el = document.querySelector(sel); if(el) el.onclick = fn; };
   on('#ec-create', createCohortModal);
+  document.querySelectorAll('[data-cb-edit]').forEach(b=>{ b.onclick = ()=>{ if(owned) brandingModal(owned); }; });
   on('#ec-join', ()=>joinCohortModal(''));
   document.querySelectorAll('[data-ec-select]').forEach(b=>{
     b.onclick = ()=>{ es.selectedId = b.dataset.ecSelect; es.month = ''; es.report = null; es.lbMonth = ''; es.lbView = 'mois'; es.lb = null; es.lbKey = null; es.palmares = null; es.palmaresKey = null; renderView(); loadCohortReport(); };
@@ -8280,7 +8553,12 @@ async function renderPublicCohortReport(token, month){
     document.body.appendChild(root);
   }
   root.innerHTML = `<div class="pub-wrap">${emptyState('barChart','Calcul du bilan…','')}</div>`;
-  const { data, error } = await supabaseClient.rpc('public_cohort_report', { p_token: token, p_month: month || null });
+  const [rep, brandRes] = await Promise.all([
+    supabaseClient.rpc('public_cohort_report', { p_token: token, p_month: month || null }),
+    supabaseClient.rpc('public_cohort_branding', { p_token: token }),
+  ]);
+  const { data, error } = rep;
+  const brand = (!brandRes.error && brandRes.data) ? cbBrandFromRow(brandRes.data) : {};
   if(error || !data){
     root.innerHTML = `
       <div class="pub-wrap">
@@ -8288,7 +8566,7 @@ async function renderPublicCohortReport(token, month){
         <div class="panel ec-locked" style="margin-top:40px;">
           <div class="ec-locked-icon">${icon('lock')}</div>
           <div class="ec-locked-title">Bilan indisponible</div>
-          <div class="ec-locked-sub">Ce lien n'est plus actif, ou l'école a désactivé le partage public.</div>
+          <div class="ec-locked-sub">Ce lien n'est plus actif, ou le responsable a désactivé le partage public.</div>
         </div>
       </div>`;
     return;
@@ -8300,12 +8578,9 @@ async function renderPublicCohortReport(token, month){
         <div class="pub-brand"><img src="/favicon.png" alt="" width="26" height="26" onerror="this.style.display='none'"/>Contralytix</div>
         <a class="btn btn-outline btn-sm" href="${location.origin}${location.pathname}">Suivre ma rentabilité réelle</a>
       </div>
-      <div class="pub-head">
-        <div>
-          <div class="ec-kicker">Bilan de cohorte · net réel</div>
-          <h1>${escapeHtml(data.name)}</h1>
-          <p>Résultats agrégés et anonymes des membres ayant accepté de partager leurs données, calculés automatiquement par Contralytix — pas une sélection de captures d'écran.</p>
-        </div>
+      ${communityBannerHtml({ ...brand, kicker: brand.kicker || 'Bilan de cohorte · net réel' }, { name: data.name, h1:true })}
+      <div class="pub-trust">
+        <p>Résultats agrégés et anonymes des membres ayant accepté de partager leurs données, calculés automatiquement par Contralytix — pas une sélection de captures d'écran.</p>
         ${ecPeriodSelect('pub-month', data.months, month)}
       </div>
       ${cohortReportHtml(data)}
@@ -10206,17 +10481,17 @@ const HELP_CATEGORIES = [
     { q:"Comment suivre des frais qui ne sont pas liés à un compte propfirm (abonnement, données de marché...) ?", a:"La page « Frais généraux » (Premium/Lifetime) est faite pour ça : abonnement à la plateforme Contralytix elle-même, flux de données de marché (CME, CBOT...), hébergement VPS, logiciels, formation ou autre. Un frais peut être ponctuel ou récurrent (mensuel/annuel) — pour un abonnement récurrent, une seule date de première échéance suffit, les échéances suivantes sont générées automatiquement jusqu'à aujourd'hui (ou jusqu'à sa date de résiliation si tu l'indiques)." },
     { q:"Quelle est la différence entre « Net (comptes propfirm) » et « Net global (+ frais généraux) » ?", a:"Le « Net (comptes propfirm) » reste limité aux comptes/traders/propfirms filtrés, pour comparer une propfirm à une autre. Le « Net global (+ frais généraux) » y ajoute en plus tes frais généraux (abonnement plateforme, données de marché...), qui ne sont rattachés à aucun compte et donc jamais filtrés par trader ou propfirm — c'est la vue la plus réaliste de ta rentabilité globale. Les deux indicateurs apparaissent côte à côte sur le Dashboard et sur la page Comptabilité." },
   ]},
-  { id:'rentabilite', label:'Rentabilité & Mode École', icon:'trophy', questions:[
+  { id:'rentabilite', label:'Rentabilité & Communauté', icon:'trophy', questions:[
     { q:"Que montre la page Rentabilité réelle ?", a:"Ton résultat net réel : payouts reçus moins TOUTES tes dépenses (challenges, mensualités, activations, resets et, si tu le souhaites, frais généraux). Elle ajoute la courbe du net cumulé, ton entonnoir challenge → payout, le coût moyen par payout, le creux maximal et la rentabilité par PropFirm. Accessible dans toutes les formules." },
     { q:"Pourquoi le Net réel de la page Comptes peut-il différer du Dashboard ?", a:"Le calcul est le même (payouts − dépenses, challenges ratés compris, même ROI), mais le périmètre change : la page Comptes porte sur les comptes affichés par tes filtres, depuis leur ouverture et sans frais généraux, alors que le Dashboard suit son filtre de période et propose aussi un Net global avec frais généraux. Sur chaque carte PA/Live, le « Net du parcours » est autre chose : le net de ce compte et de son challenge d'origine, sans les autres échecs." },
     { q:"Pourquoi le net de Rentabilité réelle diffère-t-il de celui du Dashboard ?", a:"Il ne devrait pas : les deux pages utilisent le même calcul et le même filtre trader. Vérifie trois choses : la case « Inclure les frais généraux » (cochée = Net global du Dashboard, décochée = Net comptes propfirm), les filtres actifs (trader, PropFirm, dates), et qu'aucun compte n'est rattaché à un autre trader que celui sélectionné." },
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
-    { q:"Qu'est-ce que le Mode École ?", a:"Un bilan collectif pour une école de trading ou une communauté : l'école crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
-    { q:"L'école voit-elle mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
-    { q:"Comment fonctionne le classement de l'école ?", a:"Mode École > onglet « Classement ». Il est facultatif : clique « Participer », choisis un pseudo ou ton prénom et accepte le règlement. Les participants sont classés au ROI du mois (net du mois ÷ capital engagé), pour qu'un petit capital parte à égalité avec un gros. Le règlement complet est affiché sous le classement. Tu peux te retirer à tout moment." },
-    { q:"Comment rejoindre ou quitter une école ?", a:"Ouvre le lien d'invitation reçu (ou Mode École > « Rejoindre une école » et saisis le code), puis coche la case de consentement. Pour quitter : Mode École > « Quitter la cohorte » — tes données cessent immédiatement d'être comptées." },
-    { q:"À quoi sert le bilan public d'une cohorte ?", a:"L'école peut activer un lien consultable sans connexion (sous une vidéo, dans un Discord, sur une page de vente). Il montre le même bilan agrégé, avec les mêmes règles d'anonymat. L'école peut le désactiver ou le régénérer à tout moment." },
+    { q:"Qu'est-ce que l'espace Communauté ?", a:"Un bilan collectif pour une école de trading ou une communauté : le responsable crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
+    { q:"Le responsable de la communauté voit-il mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
+    { q:"Comment fonctionne le classement de la communauté ?", a:"Communauté > onglet « Classement ». Il est facultatif : clique « Participer », choisis un pseudo ou ton prénom et accepte le règlement. Les participants sont classés au ROI du mois (net du mois ÷ capital engagé), pour qu'un petit capital parte à égalité avec un gros. Le règlement complet est affiché sous le classement. Tu peux te retirer à tout moment." },
+    { q:"Comment rejoindre ou quitter une communauté ?", a:"Ouvre le lien d'invitation reçu (ou Communauté > « Rejoindre une communauté » et saisis le code), puis coche la case de consentement. Pour quitter : Communauté > « Quitter la cohorte » — tes données cessent immédiatement d'être comptées." },
+    { q:"À quoi sert le bilan public d'une cohorte ?", a:"Le responsable peut activer un lien consultable sans connexion (sous une vidéo, dans un Discord, sur une page de vente). Il montre le même bilan agrégé, avec les mêmes règles d'anonymat. Le responsable peut le désactiver ou le régénérer à tout moment." },
   ]},
   { id:'calendrier', label:'Calendrier & Alertes', icon:'calendar', questions:[
     { q:"Que montre le Calendrier ?", a:"Tous les événements financiers du mois — achats, mensualités dues, frais d'activation, payouts reçus, réussites et breachs de challenge — ainsi que les jours fériés France 🇫🇷 et États-Unis 🇺🇸." },
@@ -10374,7 +10649,7 @@ const MANUAL_CHAPTERS = [
     <h3>Recherche globale</h3>
     <p>L'icône de loupe en haut de l'écran ouvre une recherche globale permettant de retrouver rapidement un trader, une PropFirm ou un compte, quelle que soit la page active.</p>
     <h3>Menu de navigation</h3>
-    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Rentabilité réelle, Mode École, Traders, PropFirms, Comptes, Radar inactivité, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Abonnement — et, pour les administrateurs, Admin.</p>` },
+    <p>Le menu latéral donne accès aux sections suivantes : Dashboard, Rentabilité réelle, Communauté, Traders, PropFirms, Comptes, Radar inactivité, Calendrier, Comptabilité, Bilan Visuel, Fiscalité, Frais généraux, Sessions de Trading, Préparation séance, Comparatif, Nouveautés, Abonnement — et, pour les administrateurs, Admin.</p>` },
   { n:'3', id:'m-dashboard', title:"Dashboard", html:`
     <p>Le Dashboard donne une vue d'ensemble de l'activité : traders, comptes, dépenses, payouts et alertes.</p>
     ${manualShot('03-dashboard.jpg', "Vue Dashboard — Récap du mois, Cash flow, Répartition par PropFirm et Mes comptes. Chaque module se déplace (flèches) et se redimensionne (SM / MD / LG).")}
@@ -10619,12 +10894,12 @@ const MANUAL_CHAPTERS = [
       <li><b>Payouts sans preuve</b> — tes plus gros payouts sans justificatif ; un clic ouvre le compte pour ajouter le fichier depuis la ligne du payout.</li>
       <li><b>Rentabilité par PropFirm</b> — challenges, comptes financés, taux de payout, dépensé, reçu, net et ROI de chaque PropFirm (hors frais généraux), trié du meilleur au moins bon net.</li>
     </ul>` },
-  { n:'16', id:'m-ecole', title:"Mode École et bilan public", html:`
-    <p>Le Mode École permet à une école de trading, un formateur ou une communauté de publier le <b>bilan réel de ses élèves</b> — en net, toutes dépenses comprises — sans jamais voir leurs données individuelles. Les chiffres sont calculés par Contralytix directement à partir des comptes des élèves : personne ne saisit « son » bilan, personne ne peut l'arranger.</p>
-    ${manualShot('18-ecole.jpg', "Mode École — vue de l'école : invitation, bilan public et rapport agrégé de la cohorte.")}
-    <h3>Côté école : créer une cohorte</h3>
+  { n:'16', id:'m-ecole', title:"Communauté et bilan public", html:`
+    <p>L'espace Communauté permet à une école de trading, un formateur ou une communauté de publier le <b>bilan réel de ses élèves</b> — en net, toutes dépenses comprises — sans jamais voir leurs données individuelles. Les chiffres sont calculés par Contralytix directement à partir des comptes des élèves : personne ne saisit « son » bilan, personne ne peut l'arranger.</p>
+    ${manualShot('18-ecole.jpg', "Communauté — vue du responsable : invitation, bilan public et rapport agrégé de la cohorte.")}
+    <h3>Côté responsable : créer une cohorte</h3>
     <ol>
-      <li>Menu Performance &gt; Mode École &gt; <b>« Créer une cohorte »</b>, puis donne-lui un nom (ex. « Promo Intraday — Automne 2026 »).</li>
+      <li>Menu Performance &gt; Communauté &gt; <b>« Créer une cohorte »</b>, puis donne-lui un nom (ex. « Promo Intraday — Automne 2026 »).</li>
       <li>Partage le <b>lien d'invitation</b> (bouton « Copier le lien d'invitation ») ou le code à 8 caractères à tes élèves. « Nouveau code » invalide l'ancien lien sans retirer les membres déjà inscrits.</li>
       <li>Le rapport se remplit automatiquement au fur et à mesure que les élèves rejoignent et enregistrent leurs comptes.</li>
     </ol>
@@ -10639,17 +10914,17 @@ const MANUAL_CHAPTERS = [
     <p>Le sélecteur de période permet d'afficher le bilan d'un mois précis ou depuis le début. Les boutons crayon et corbeille renomment ou suppriment la cohorte (les données des élèves ne sont jamais touchées).</p>
     <h3>Anonymat et consentement</h3>
     <ul>
-      <li>L'école ne voit <b>jamais</b> la liste des membres, leur e-mail ni un chiffre individuel : uniquement des totaux, une médiane et une répartition. Seule exception : le classement, pour les élèves qui choisissent d'y participer (voir ci-dessous).</li>
+      <li>Le responsable ne voit <b>jamais</b> la liste des membres, leur e-mail ni un chiffre individuel : uniquement des totaux, une médiane et une répartition. Seule exception : le classement, pour les élèves qui choisissent d'y participer (voir ci-dessous).</li>
       <li><b>Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité</b> sur la période : un écran « Chiffres protégés » indique le nombre de membres actifs manquants.</li>
       <li>Chaque élève donne un consentement explicite en rejoignant, et peut quitter la cohorte à tout moment (voir ci-dessous).</li>
     </ul>
     <h3>Classement mensuel au ROI</h3>
-    <p>L'onglet <b>Classement</b> compare chaque mois les membres qui choisissent d'y participer (bouton « Participer », pseudo ou prénom, acceptation du règlement). On y trouve le podium, la meilleure progression, ta position et le classement complet ; « Palmarès » garde le podium de chaque mois terminé. L'école peut désactiver le classement avec l'interrupteur « Classement ».</p>
+    <p>L'onglet <b>Classement</b> compare chaque mois les membres qui choisissent d'y participer (bouton « Participer », pseudo ou prénom, acceptation du règlement). On y trouve le podium, la meilleure progression, ta position et le classement complet ; « Palmarès » garde le podium de chaque mois terminé. Le responsable peut désactiver le classement avec l'interrupteur « Classement ».</p>
     <p><b>Règlement :</b></p>
     <ol>${lbRulesItems().map(([t,d])=>`<li><b>${t}.</b> ${d}</li>`).join('')}</ol>
-    <h3>Côté élève : rejoindre une école</h3>
-    <p>Ouvre le lien d'invitation (après connexion, la fenêtre s'ouvre toute seule) ou va dans Mode École &gt; « Rejoindre une école » et saisis le code. Un écran explique ce qui sera partagé ; il faut cocher la case d'accord pour valider.</p>
-    ${manualShot('18c-ecole-consentement.jpg', "Écran de consentement avant de rejoindre une école.")}
+    <h3>Côté membre : rejoindre une communauté</h3>
+    <p>Ouvre le lien d'invitation (après connexion, la fenêtre s'ouvre toute seule) ou va dans Communauté &gt; « Rejoindre une communauté » et saisis le code. Un écran explique ce qui sera partagé ; il faut cocher la case d'accord pour valider.</p>
+    ${manualShot('18c-ecole-consentement.jpg', "Écran de consentement avant de rejoindre une communauté.")}
     <p>Tes chiffres sont comptés à partir de <b>tous tes comptes</b> (ceux que tu as créés et ceux rattachés à ton trader) et de tes frais généraux. Le bouton « Quitter la cohorte » retire immédiatement tes données du bilan.</p>
     <h3>Le bilan public</h3>
     <p>L'interrupteur « Bilan public » génère un lien consultable <b>sans connexion</b>, idéal sous une vidéo YouTube, dans un Discord ou sur une page de vente. Il affiche exactement le même rapport agrégé, avec les mêmes règles d'anonymat. « Nouveau lien » coupe immédiatement l'ancien ; désactiver l'interrupteur rend le lien inopérant.</p>
@@ -10704,7 +10979,7 @@ const MANUAL_CHAPTERS = [
       <li><b>Premium</b> — abonnement mensuel ou annuel (annuel avec réduction) : traders illimités, comptes illimités par trader, historique complet des sessions live, listes complètes sans flou, exports CSV, Excel et PDF, Calendrier, Bilan visuel, Radar inactivité et statistiques avancées, support prioritaire.</li>
       <li><b>Lifetime</b> — paiement unique donnant un accès à vie à toutes les fonctionnalités Premium, sans renouvellement.</li>
     </ul>
-    <p>La page <b>Rentabilité réelle</b> (chapitre 15) et le <b>Mode École</b> (chapitre 16) sont accessibles dans toutes les formules, Free comprise.</p>
+    <p>La page <b>Rentabilité réelle</b> (chapitre 15) et l'espace <b>Communauté</b> (chapitre 16) sont accessibles dans toutes les formules, Free comprise.</p>
     <p>L'import de données (PropDesk, migration) et la sauvegarde JSON complète sont des outils réservés à l'espace Admin, pas un avantage inclus dans la formule Premium — voir le chapitre « Espace Admin ».</p>
     <p>Un code promotionnel peut être saisi pour bénéficier d'une réduction, si une offre est active.</p>` },
   { n:'21', id:'m-admin', title:"Espace Admin", html:`
@@ -10802,7 +11077,7 @@ function viewConfidentialite(){
             <li><b>Connexion Deltalytix</b> (import de comptes, pointage automatique du Radar, dernier trade, comptes breached, plateforme) — exécution du contrat, à votre initiative : la connexion est facultative, se fait par une autorisation que vous donnez dans Deltalytix, et se retire à tout moment.</li>
             <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
             <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
-            <li><b>Mode École (bilan collectif d'une école ou d'une communauté)</b> — uniquement si vous rejoignez une cohorte, sur la base de votre <b>consentement explicite</b>, retirable à tout moment en quittant la cohorte (vos données cessent alors immédiatement d'être comptées). L'école ne reçoit que des statistiques agrégées calculées par Contralytix (totaux, médiane, répartition, à partir de 5 membres actifs minimum), jamais votre identité, votre e-mail ni vos chiffres individuels. Si l'école active le bilan public, ces mêmes statistiques agrégées sont consultables par toute personne disposant du lien.</li>
+            <li><b>Communauté (bilan collectif d'une école de trading ou d'une communauté)</b> — uniquement si vous rejoignez une cohorte, sur la base de votre <b>consentement explicite</b>, retirable à tout moment en quittant la cohorte (vos données cessent alors immédiatement d'être comptées). Le responsable ne reçoit que des statistiques agrégées calculées par Contralytix (totaux, médiane, répartition, à partir de 5 membres actifs minimum), jamais votre identité, votre e-mail ni vos chiffres individuels. Si le responsable active le bilan public, ces mêmes statistiques agrégées sont consultables par toute personne disposant du lien.</li>
           </ul>
         </div>
 
@@ -22754,7 +23029,7 @@ function applyLandingPricing(){
   if(session){ await enterApp(session); }
   else {
     renderAuthScreen();
-    if(inviteParam) showToast('Connecte-toi ou crée ton compte gratuit pour rejoindre ton école.');
+    if(inviteParam) showToast('Connecte-toi ou crée ton compte gratuit pour rejoindre ta communauté.');
     // Repart du haut de la landing à un chargement/F5 sans session — sauf en plein retour
     // OAuth/lien magique (jeton dans le hash ou ?code=), où l'écran de connexion n'est de toute
     // façon pas ce qui s'affiche (voir plus haut : #marketing-landing est masqué dans ce cas).
