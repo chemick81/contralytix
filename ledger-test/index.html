@@ -17349,8 +17349,7 @@ function dmOpenPointage(dayArg, accountId){
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-no">Rien tradé ce jour-là</button>
         <button type="button" class="btn btn-ghost btn-sm" id="dm-all-yes">Tous tradés (copier)</button>
       </div>`}
-      <div class="dm-pt-list">${rows}</div>
-      ${hiddenKnown ? `<p class="text-faint" style="margin:12px 0 0;font-size:12.5px;">${hiddenKnown} autre${hiddenKnown>1?'s':''} compte${hiddenKnown>1?'s':''} financé${hiddenKnown>1?'s':''} déjà suivi${hiddenKnown>1?'s':''} (Deltalytix, pointage ou saisie) ${hiddenKnown>1?'ne sont':'n’est'} pas listé${hiddenKnown>1?'s':''}. Pour en corriger un, ouvre son détail dans le Radar.</p>` : ''}`,
+      <div class="dm-pt-list">${rows}</div>`,
     footHtml: `<button class="btn btn-outline" id="dm-pt-cancel">Annuler</button><button class="btn btn-primary" id="dm-pt-save">${single ? 'Enregistrer' : `Enregistrer · ${accounts.length} compte${accounts.length>1?'s':''}`}</button>`,
     onMount(){
       const root = document.getElementById('modal-root');
