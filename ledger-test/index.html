@@ -1061,6 +1061,10 @@ th.th-sort-active svg{opacity:1;}
 .rt-step-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .3s;}
 .rt-step-n{font-size:15px;font-weight:700;text-align:right;}
 .rt-step-rate{font-size:11.5px;color:var(--text-faint);}
+.rt-step-rate strong{color:var(--text-dim);font-weight:700;}
+.rt-funnel-phases .rt-step{margin-bottom:9px;}
+.rt-funnel-phases .rt-step:last-child{margin-bottom:0;}
+.rt-funnel-phases .rt-step-bar{height:22px;}
 .rt-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
 .rt-bd-row{margin-bottom:12px;}
 .rt-bd-row:last-child{margin-bottom:0;}
@@ -7229,26 +7233,40 @@ function viewRentabilite(){
 
   const fn = d.funnel;
   const multiTrader = myTraders.length > 1;
-  const maxStep = Math.max(1, fn.challenges, fn.funded);
-  const steps = [
-    { key:'challenges', label:'Challenges achetés', n:fn.challenges, rate:null, tip:"Tous les comptes de type Challenge du périmètre." },
-    { key:'passed', label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, fn.passed+fn.failed) + (fn.inProgress?` · ${fn.inProgress} en cours`:''), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA. Le taux = réussis ÷ (réussis + breached), comme sur le Dashboard : les challenges encore en cours ne comptent pas. Avec un filtre de dates, seuls les challenges achetés sur la période sont pris en compte." },
-    { key:'funded', label:'Comptes financés', n:fn.funded, rate:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : null, tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
-    { key:'paid', label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), tip:"Comptes financés ayant versé au moins un payout." },
-    { key:'recurring', label:'Payouts récurrents (2+)', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
+  // Entonnoir en deux phases (17/10/2026, même visuel que le bilan Communauté) : « Évaluation » et
+  // « Comptes financés » ont chacune leur échelle — sinon les comptes financés en direct (sans
+  // challenge) donnent l'impression d'un bug quand il y en a plus que d'évaluations réussies.
+  // Chaque taux nomme son dénominateur. Le survol d'une étape affiche toujours la liste des comptes.
+  const decided = fn.passed + fn.failed;
+  const phases = [
+    { title:'Évaluation', icon:'sheet', steps:[
+      { key:'challenges', label:'Challenges achetés', n:fn.challenges, rate:'', of:'', tip:"Tous les comptes de type Challenge du périmètre." },
+      { key:'passed', label:'Évaluations réussies', n:fn.passed, rate:rtRate(fn.passed, decided), of:'des challenges terminés' + (fn.inProgress?` · ${fn.inProgress} en cours`:''), tip:"Challenges marqués « Réussi » ou ayant donné naissance à un PA. Le taux = réussis ÷ (réussis + breached), comme sur le Dashboard : les challenges encore en cours ne comptent pas. Avec un filtre de dates, seuls les challenges achetés sur la période sont pris en compte." },
+    ]},
+    { title:'Comptes financés', icon:'wallet', note:'Inclut les comptes financés en direct, sans challenge (funded direct).', steps:[
+      { key:'funded', label:'Comptes financés', n:fn.funded, rate:'', of:fn.fundedDirect ? `dont ${fn.fundedDirect} en accès direct` : '', tip:"Comptes PA et Live. L'accès direct = financé sans challenge rattaché (instant funding)." },
+      { key:'paid', label:'Au moins 1 payout', n:fn.paid, rate:rtRate(fn.paid, fn.funded), of:'des comptes financés', tip:"Comptes financés ayant versé au moins un payout." },
+      { key:'recurring', label:'2 payouts ou plus', n:fn.recurring, rate:rtRate(fn.recurring, fn.paid), of:'des comptes payés', tip:"Comptes financés ayant versé au moins deux payouts : le signe d'une régularité, pas d'un coup de chance." },
+    ]},
   ];
   const funnel = `
     <div class="panel">
-      <div class="panel-head"><div class="section-title">Ton entonnoir${infoTip("Où tes comptes s'arrêtent, du challenge acheté au payout régulier. Le pourcentage compare chaque étape à la précédente.")}</div></div>
-      <div class="panel-body rt-funnel">
-        ${steps.map((s,i)=>`
-          <div class="rt-step ${s.n?'has-pop':''}" data-rt-step="${s.key}" tabindex="${s.n?0:-1}">
-            <div class="rt-step-label">${s.label}${infoTip(s.tip)}</div>
-            <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/maxStep*100)}%;opacity:${1 - i*0.13}"></div></div>
-            <div class="rt-step-n mono">${s.n}</div>
-            <div class="rt-step-rate">${s.rate||''}</div>
-            ${s.n ? rtStepPopHtml(s, d, cur, multiTrader) : ''}
-          </div>`).join('')}
+      <div class="panel-head"><div class="section-title">Ton entonnoir${infoTip("Où tes comptes s'arrêtent, du challenge acheté au payout régulier. Les deux phases ont chacune leur échelle ; chaque pourcentage indique à quoi il se rapporte. Survole une étape pour voir les comptes concernés.")}</div></div>
+      <div class="panel-body ec-phases rt-funnel-phases">
+        ${phases.map(ph=>{
+          const max = Math.max(1, ...ph.steps.map(s=>s.n));
+          return `<div class="ec-phase">
+            <div class="ec-phase-title">${icon(ph.icon)}${ph.title}</div>
+            ${ph.note?`<div class="ec-phase-note">${ph.note}</div>`:''}
+            ${ph.steps.map((s,i)=>`
+            <div class="rt-step ${s.n?'has-pop':''}" data-rt-step="${s.key}" tabindex="${s.n?0:-1}">
+              <div class="rt-step-label">${s.label}${infoTip(s.tip)}</div>
+              <div class="rt-step-bar"><div class="rt-step-fill" style="width:${Math.max(s.n?3:0, s.n/max*100)}%;opacity:${1 - i*0.22}"></div></div>
+              <div class="rt-step-n mono">${s.n}</div>
+              <div class="rt-step-rate">${s.rate && s.rate!=='—'?`<strong>${s.rate}</strong> `:''}${s.of}</div>
+              ${s.n ? rtStepPopHtml(s, d, cur, multiTrader) : ''}
+            </div>`).join('')}
+          </div>`;}).join('')}
       </div>
     </div>`;
 
