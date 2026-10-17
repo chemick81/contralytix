@@ -2184,7 +2184,7 @@ th.th-sort-active svg{opacity:1;}
 .text-faint{color:var(--text-faint);}
 .mt-2{margin-top:8px}
 .flex-between{display:flex;justify-content:space-between;align-items:center;}
-.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px;color:var(--text-dim);font-size:13px;}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;box-sizing:border-box;gap:14px;color:var(--text-dim);font-size:13px;}
 
 /* MARKETING LANDING — contenu statique visible avant connexion (SEO) */
 .marketing-landing{max-width:1080px;margin:0 auto;padding:0 24px;}
@@ -2738,6 +2738,34 @@ th.th-sort-active svg{opacity:1;}
 <script>
 // Section marketing statique (SEO) : remplit l'année du footer immédiatement,
 // avant même l'initialisation de Supabase / de l'app — aucune dépendance.
+// Défilement vers le bloc de connexion, centré à l'écran (17/10/2026). Un simple scrollIntoView
+// s'arrêtait trop haut : pendant le défilement, les images « lazy » de la page d'accueil se
+// chargent et allongent la page, la cible se décale. On vise donc le bloc lui-même (centré),
+// puis on corrige la position tant que la mise en page bouge — sauf si le visiteur reprend la
+// main (molette, toucher, clavier). Le champ e-mail reçoit ensuite le focus.
+function mlScrollToAuth(){
+  const target = ()=> document.getElementById('auth-card') || document.getElementById('loading');
+  const destY = ()=>{
+    const el = target(); if(!el) return null;
+    const r = el.getBoundingClientRect();
+    const top = r.top + window.scrollY;
+    return r.height + 32 >= window.innerHeight ? Math.max(0, top - 16) : Math.max(0, top - (window.innerHeight - r.height)/2);
+  };
+  let cancelled = false;
+  const stop = ()=>{ cancelled = true; };
+  ['wheel','touchstart','keydown'].forEach(ev=>window.addEventListener(ev, stop, { once:true, passive:true }));
+  const go = (behavior)=>{ const y = destY(); if(y!=null) window.scrollTo({ top:y, behavior }); };
+  go('smooth');
+  [350, 700, 1100, 1600].forEach((t,i,arr)=>setTimeout(()=>{
+    if(cancelled) return;
+    const y = destY();
+    if(y!=null && Math.abs(window.scrollY - y) > 6) go(i===arr.length-1 ? 'auto' : 'smooth');
+    if(i===arr.length-1){
+      const inp = document.getElementById('auth-email');
+      if(inp && !inp.disabled){ try{ inp.focus({ preventScroll:true }); }catch(e){ inp.focus(); } }
+    }
+  }, t));
+}
 (function(){
   const y = document.getElementById('ml-year'); if(y) y.textContent = new Date().getFullYear();
   // Boutons "Créer un compte gratuit" / "Se connecter" de la page d'accueil publique :
@@ -2753,8 +2781,7 @@ th.th-sort-active svg{opacity:1;}
       state.authStep = 'email';
       state.authError = '';
       if(typeof renderAuthScreen === 'function') renderAuthScreen();
-      const loadingEl = document.getElementById('loading');
-      if(loadingEl) loadingEl.scrollIntoView({ behavior:'smooth', block:'start' });
+      mlScrollToAuth();
     });
   });
   // Liens légaux du pied de page de la landing publique (visiteur pas encore connecté) : mêmes
@@ -4794,7 +4821,7 @@ function renderAuthScreen(){
   document.getElementById('loading').style.display = 'flex';
   const maint = state.appSettings && state.appSettings.maintenance;
   document.getElementById('loading').innerHTML = `
-    <div style="width:100%;max-width:360px;">
+    <div id="auth-card" style="width:100%;max-width:360px;">
       ${(maint && maint.enabled) ? `
       <div style="background:var(--surface);border:1px solid var(--warning,#b8860b);border-left:4px solid var(--warning,#b8860b);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;">
         ${icon('shield')}
