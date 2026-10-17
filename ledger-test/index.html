@@ -7760,7 +7760,9 @@ function cohortReportHtml(r){
       <div class="panel ec-locked">
         <div class="ec-locked-icon">${icon('lock')}</div>
         <div class="ec-locked-title">Chiffres protégés</div>
-        <div class="ec-locked-sub">${ecPlural(r.active,'membre actif','membres actifs')} ${period} sur les ${r.threshold||5} nécessaires. Pour garantir l'anonymat, aucun chiffre n'est affiché en dessous de ce seuil.</div>
+        <div class="ec-locked-sub">${Array.isArray(r.merged_with) && r.merged_with.length>1
+          ? `Pour l'anonymat, ce mois est regroupé avec ${escapeHtml(r.merged_with.filter(m=>m!==r.period).map(monthLabelFull).join(', '))} (un des deux mois compte moins de ${r.threshold||5} membres actifs). Retrouve cette période regroupée dans l'évolution, en vue « Depuis le début ».`
+          : `${ecPlural(r.active,'membre actif','membres actifs')} ${period} sur les ${r.threshold||5} nécessaires. Pour garantir l'anonymat, aucun chiffre n'est affiché en dessous de ce seuil.`}</div>
         <div class="ec-locked-bar"><div style="width:${pct}%"></div></div>
         <div class="ec-locked-foot">${ecPlural(r.members,'membre','membres')} dans la cohorte au total</div>
       </div>`;
@@ -7880,48 +7882,48 @@ function cohortReportHtml(r){
     </div>`;
 }
 /* ---------- Évolution du bilan (17/10/2026) ----------
-   Une série par mois, chaque point venant du MÊME calcul serveur que le bilan (cohort_report /
-   public_cohort_report avec p_month) : un mois sous le seuil d'anonymat reste « protégé » et
-   n'entre dans AUCUN total trimestriel/annuel ni dans le cumul (sinon on pourrait le retrouver
-   par différence). Rien n'est calculé à partir de données individuelles côté navigateur. */
-const EC_EVO = { key:null, months:[], data:{}, loading:false, grain:'month', mode:'period' };
+   Source unique : cohort_timeline / public_cohort_timeline (migration_communaute_evolution_20261017.sql).
+   Le serveur regroupe les mois consécutifs jusqu'à 5 membres actifs distincts par groupe : un mois
+   trop calme est fusionné avec son voisin au lieu d'être masqué, la somme des périodes est égale au
+   total « depuis le début », et aucun résultat ne peut être retrouvé par différence. */
+const EC_EVO = { key:null, groups:null, loading:false, unavailable:false, grain:'month', mode:'period' };
 const EV_MONTHS_SHORT = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-function ecEvoEnsure(key, months, fetchMonth){
-  months = (months||[]).slice().sort();
-  if(EC_EVO.key===key && EC_EVO.months.join()===months.join()) return;
-  Object.assign(EC_EVO, { key, months, data:{}, loading:true });
+function ecEvoEnsure(key, fetchTimeline){
+  if(EC_EVO.key===key) return;
+  Object.assign(EC_EVO, { key, groups:null, loading:true, unavailable:false });
   (async ()=>{
-    const queue = months.slice();
-    const worker = async ()=>{
-      while(queue.length){
-        const m = queue.shift();
-        try{ const { data, error } = await fetchMonth(m); EC_EVO.data[m] = error ? { error:true } : (data || { insufficient:true }); }
-        catch(e){ EC_EVO.data[m] = { error:true }; }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(4, months.length) }, worker));
+    let res;
+    try{ res = await fetchTimeline(); }catch(e){ res = { error:e }; }
     if(EC_EVO.key!==key) return;
     EC_EVO.loading = false;
+    if(res.error || !res.data){ EC_EVO.unavailable = true; }
+    else EC_EVO.groups = Array.isArray(res.data.periods) ? res.data.periods : [];
     ecEvoMount();
   })();
 }
+function ecEvoMonthShort(m){ const [y,mm] = m.split('-').map(Number); return `${EV_MONTHS_SHORT[mm-1]} ${String(y).slice(2)}`; }
 function ecEvoPeriods(){
   const out = [], idx = {};
-  EC_EVO.months.forEach(m=>{
-    const [y, mm] = m.split('-').map(Number);
+  let mergedMonths = 0;
+  (EC_EVO.groups||[]).forEach(g=>{
+    const ms = (g.months||[]).slice().sort();
+    if(!ms.length) return;
+    if(ms.length>1) mergedMonths += ms.length - 1;
+    const last = ms[ms.length-1], [y, mm] = last.split('-').map(Number);
     let k, label, full;
     if(EC_EVO.grain==='year'){ k = String(y); label = String(y); full = 'Année ' + y; }
     else if(EC_EVO.grain==='quarter'){ const q = Math.ceil(mm/3); k = `${y}-T${q}`; label = `T${q} ${String(y).slice(2)}`; full = `${q}${q===1?'er':'e'} trimestre ${y}`; }
-    else { k = m; label = `${EV_MONTHS_SHORT[mm-1]} ${String(y).slice(2)}`; full = monthLabelFull(m); }
-    if(idx[k]===undefined){ idx[k] = out.length; out.push({ key:k, label, full, net:0, received:0, spent:0, payouts:0, visible:0, locked:0, active:null }); }
-    const p = out[idx[k]], r = EC_EVO.data[m] || {};
-    if(r.insufficient || r.error || r.net==null){ p.locked++; return; }
-    p.visible++;
-    p.net += Number(r.net)||0; p.received += Number(r.received)||0; p.spent += Number(r.spent)||0; p.payouts += Number(r.payout_count)||0;
-    if(EC_EVO.grain==='month') p.active = Number(r.active)||0;
+    else if(ms.length>1){ k = ms.join('|'); label = `${ecEvoMonthShort(ms[0])} – ${ecEvoMonthShort(last)}`; full = `${monthLabelFull(ms[0])} → ${monthLabelFull(last)}`; }
+    else { k = last; label = ecEvoMonthShort(last); full = monthLabelFull(last); }
+    if(idx[k]===undefined){ idx[k] = out.length; out.push({ key:k, label, full, net:0, received:0, spent:0, payouts:0, active:null, merged:[] }); }
+    const p = out[idx[k]];
+    p.net += Number(g.net)||0; p.received += Number(g.received)||0; p.spent += Number(g.spent)||0; p.payouts += Number(g.payout_count)||0;
+    if(EC_EVO.grain==='month') p.active = Number(g.active)||0;
+    if(ms.length>1) p.merged.push(`${monthLabelFull(ms[0])} → ${monthLabelFull(last)}`);
   });
   let cum = 0;
-  out.forEach(p=>{ if(p.visible){ cum += p.net; p.cum = cum; } else p.cum = null; });
+  out.forEach(p=>{ p.visible = 1; cum += p.net; p.cum = cum; });
+  out.mergedMonths = mergedMonths;
   return out;
 }
 function ecEvoFmtShort(v){
@@ -7930,11 +7932,11 @@ function ecEvoFmtShort(v){
   return s + Math.round(a) + ' €';
 }
 function ecEvoHtml(){
-  if(!EC_EVO.key) return '';
+  if(!EC_EVO.key || EC_EVO.unavailable) return '';
   const seg = (name, items, cur)=>`<div class="ev-seg" role="group" aria-label="${name}">${items.map(([v,l])=>`<button type="button" data-ev-${name}="${v}" class="${cur===v?'active':''}" aria-pressed="${cur===v}">${l}</button>`).join('')}</div>`;
   const head = `
     <div class="panel-head ev-head">
-      <div class="section-title">Évolution${infoTip("Résultat net des membres (payouts − dépenses) période par période, calculé avec les mêmes règles que le bilan. Une période sous le seuil d'anonymat (moins de 5 membres actifs) est protégée : elle n'apparaît pas et n'entre dans aucun total, pour qu'aucun résultat ne puisse être retrouvé par différence.")}</div>
+      <div class="section-title">Évolution${infoTip("Résultat net des membres (payouts − dépenses) période par période, calculé par Contralytix avec les mêmes règles que le bilan. Pour l'anonymat, un mois avec moins de 5 membres actifs est regroupé avec le mois suivant (ou précédent) : aucune période n'isole moins de 5 membres, et la somme des périodes est exactement égale au total depuis le début.")}</div>
       <div class="ev-tools">
         ${seg('grain', [['month','Mois'],['quarter','Trimestre'],['year','Année']], EC_EVO.grain)}
         ${seg('mode', [['period','Par période'],['cum','Cumulé']], EC_EVO.mode)}
@@ -7942,9 +7944,9 @@ function ecEvoHtml(){
     </div>`;
   if(EC_EVO.loading) return `<div class="panel ev-panel">${head}<div class="panel-body"><div class="ev-empty">Calcul de l'évolution…</div></div></div>`;
   const ps = ecEvoPeriods();
-  const shown = ps.filter(p=>p.visible);
+  const shown = ps;
   if(shown.length < 2){
-    return `<div class="panel ev-panel">${head}<div class="panel-body"><div class="ev-empty">${shown.length ? 'Une seule période avec assez de membres actifs pour l’instant.' : 'Pas encore assez de membres actifs par période pour afficher une évolution.'}<br/>Elle apparaîtra automatiquement avec plus d’historique.</div></div></div>`;
+    return `<div class="panel ev-panel">${head}<div class="panel-body"><div class="ev-empty">${shown.length ? 'Une seule période affichable pour l’instant.' : 'Pas encore assez de membres actifs pour afficher une évolution.'}<br/>Elle se construira automatiquement avec plus d’historique.</div></div></div>`;
   }
   const cumMode = EC_EVO.mode==='cum';
   const vals = shown.map(p=> cumMode ? p.cum : p.net);
@@ -7954,7 +7956,7 @@ function ecEvoHtml(){
   const zero = y(0);
   const n = ps.length;
   const step = n > 24 ? 4 : n > 12 ? 2 : 1;
-  const ticks = [hi, lo].filter((v,i,a)=>a.indexOf(v)===i && v!==0);
+  const ticks = [hi, lo].filter((v,i,a)=>a.indexOf(v)===i && v!==0 && Math.abs(y(v)-zero) > 9);   // pas de libellé collé au 0
   const cols = ps.map((p,i)=>{
     const tip = p.visible
       ? `<div class="ev-tip" role="tooltip"><b>${escapeHtml(p.full)}</b>
@@ -7963,11 +7965,10 @@ function ecEvoHtml(){
           Payouts : <span class="mono">${fmtEur(p.received)}</span> (${p.payouts})<br/>
           Dépenses : <span class="mono">${fmtEur(p.spent)}</span>
           ${p.active!=null?`<br/>${ecPlural(p.active,'membre actif','membres actifs')}`:''}
-          ${p.locked?`<br/>${ecPlural(p.locked,'mois protégé exclu','mois protégés exclus')}`:''}</div>`
+          ${p.merged.length?`<br/><span style="white-space:normal">Inclut une période regroupée (moins de 5 membres actifs sur un mois) : ${escapeHtml(p.merged.join(', '))}</span>`:''}</div>`
       : `<div class="ev-tip" role="tooltip"><b>${escapeHtml(p.full)}</b>Protégé : moins de 5 membres actifs.</div>`;
     let mark = '';
-    if(!p.visible) mark = `<div class="ev-bar lock" style="top:calc(${zero}% - 13px)"></div>`;
-    else if(cumMode) mark = `<div class="ev-dot ${p.cum<0?'neg':''}" style="top:${y(p.cum)}%"></div>`;
+    if(cumMode) mark = `<div class="ev-dot ${p.cum<0?'neg':''}" style="top:${y(p.cum)}%"></div>`;
     else {
       const top = Math.min(y(p.net), zero), h = Math.abs(y(p.net) - zero);
       mark = `<div class="ev-bar ${p.net>=0?'pos':'neg'}" style="top:${top}%;height:${h}%"></div>`;
@@ -7981,7 +7982,7 @@ function ecEvoHtml(){
     const area = `${d} L${pts[pts.length-1][0].toFixed(2)},${zero.toFixed(2)} L${pts[0][0].toFixed(2)},${zero.toFixed(2)} Z`;
     line = `<svg class="ev-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="${area}"/><path d="${d}"/></svg>`;
   }
-  const lockedMonths = ps.reduce((s,p)=>s+p.locked, 0);
+  const mergedMonths = ps.mergedMonths || 0;
   const best = shown.reduce((a,b)=> b.net>a.net?b:a), worst = shown.reduce((a,b)=> b.net<a.net?b:a);
   const unit = EC_EVO.grain==='year' ? 'année' : EC_EVO.grain==='quarter' ? 'trimestre' : 'mois';
   return `
@@ -8002,9 +8003,9 @@ function ecEvoHtml(){
           <div class="ev-legend">
             ${cumMode ? `<span><i style="background:color-mix(in srgb,var(--text-dim) 15%,transparent);border:1px solid var(--text-dim)"></i>Résultat net cumulé (point vert = positif, rouge = négatif)</span>`
                       : `<span><i style="background:var(--accent)"></i>Gain</span><span><i style="background:var(--danger)"></i>Perte</span>`}
-            ${lockedMonths?`<span><i style="background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);border:1px dashed var(--border)"></i>Protégé</span>`:''}
+
           </div>
-          <div>Meilleur ${unit} : <strong>${escapeHtml(best.full)}</strong> (${ecSigned(best.net)}) · Plus difficile : <strong>${escapeHtml(worst.full)}</strong> (${ecSigned(worst.net)})${lockedMonths?` · ${ecPlural(lockedMonths,'mois protégé exclu','mois protégés exclus')} : le cumul peut différer du total « depuis le début ».`:''}</div>
+          <div>Meilleur ${unit} : <strong>${escapeHtml(best.full)}</strong> (${ecSigned(best.net)}) · Plus difficile : <strong>${escapeHtml(worst.full)}</strong> (${ecSigned(worst.net)})${mergedMonths?` · ${ecPlural(mergedMonths,'mois regroupé','mois regroupés')} avec un voisin (moins de 5 membres actifs), pour l’anonymat.`:''}</div>
         </div>
       </div>
     </div>`;
@@ -8626,7 +8627,7 @@ function bindEcoleEvents(){
   const es = ecoleState();
   if(document.getElementById('ec-evo-slot') && es.report && es.selectedId){
     const cid = es.selectedId;
-    ecEvoEnsure('c:'+cid, es.report.months, m=>supabaseClient.rpc('cohort_report', { p_cohort: cid, p_month: m }));
+    ecEvoEnsure('c:'+cid, ()=>supabaseClient.rpc('cohort_timeline', { p_cohort: cid }));
     ecEvoMount();
   }
   const owned = es.owned.find(c=>c.id===es.selectedId);
@@ -8776,7 +8777,7 @@ async function renderPublicCohortReport(token, month){
       <div class="pub-foot">Contralytix — la gestion financière des comptes Prop Firm. <a href="${location.origin}${location.pathname}">contralytix.fr</a>${socialLinksHtml('ml-social')}</div>
     </div>`;
   if(document.getElementById('ec-evo-slot')){
-    ecEvoEnsure('p:'+token, data.months, m=>supabaseClient.rpc('public_cohort_report', { p_token: token, p_month: m }));
+    ecEvoEnsure('p:'+token, ()=>supabaseClient.rpc('public_cohort_timeline', { p_token: token }));
     ecEvoMount();
   }
   const sel = document.getElementById('pub-month');
