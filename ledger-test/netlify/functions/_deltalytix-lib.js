@@ -122,6 +122,14 @@ async function accessTokenFor(db, userId) {
   return fresh.access_token;
 }
 
+// Un autre utilisateur Contralytix a-t-il cet e-mail ? (table profiles, colonne email) → true / false / 'error'.
+async function otherUserWithEmail(db, email, userId) {
+  const esc = String(email || '').trim().replace(/([%_\\])/g, '\\$1');
+  if (!esc) return false;
+  const { data, error } = await db.from('profiles').select('id').ilike('email', esc).neq('id', userId).limit(1);
+  if (error) { console.error('otherUserWithEmail :', error.message); return 'error'; }
+  return !!(data && data.length);
+}
 async function supabaseUser(db, event) {
   const authHeader = event.headers.authorization || event.headers.Authorization;
   if (!authHeader) return null;
@@ -132,6 +140,7 @@ async function supabaseUser(db, event) {
 }
 
 module.exports = {
+  otherUserWithEmail,
   BASE_URL, CLIENT_ID, PROVIDER, SCOPES, DltxError,
   configured, redirectUri, encrypt, decrypt, b64url, dltx, tokenRequest, revokeToken, packTokens, unpackTokens, accessTokenFor, supabaseUser,
 };
