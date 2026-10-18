@@ -765,6 +765,8 @@ th.th-sort-active svg{opacity:1;}
 .dlx-health.is-danger strong{color:var(--danger);}
 .dlx-health .btn{margin-left:auto;}
 .dlx-health-g{display:block;padding:10px 12px;}
+.dlx-lock-txt{display:inline-flex;align-items:center;gap:5px;color:var(--text-faint);}
+.dlx-lock-txt svg{width:13px;height:13px;}
 .dlx-g-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;}
 .dlx-g-last{margin-left:auto;font-size:11.5px;color:var(--text-faint);}
 .dlx-g-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;}
@@ -16892,7 +16894,7 @@ async function dlxSync(opts){
     d.lastSyncAt = r.data.syncedAt; d.lastError = null;
     const byId = {};
     (r.data.health || []).forEach(h=>{ byId[h.accountId] = h; });
-    d.health = { at: r.data.syncedAt, byId, stale: r.data.stale || [], connectionsScope: r.data.connectionsScope !== false };
+    d.health = { at: r.data.syncedAt, byId, stale: r.data.stale || [], connectionsScope: r.data.connectionsScope !== false, plan: r.data.dltxPlan || null };
     dlxSaveCache('health', d.health);
     // Plateforme connue chez Deltalytix mais pas encore renseignée ici : on la complète (jamais d'écrasement).
     for(const h of (r.data.health || [])){
@@ -17130,6 +17132,16 @@ function dlxCardHealthHtml(a){
   // et objectif sur les challenges. Uniquement ce que Deltalytix connaît : un drawdown ou un objectif
   // non configuré chez lui n'est pas affiché (pas de chiffre inventé).
   const usd = v => fmtMoneyCur(v, 'USD').replace(/,00(?=\s)/,'');
+  // Accès (18/10/2026, décision de Mickael) : import Deltalytix ouvert à tous ; solde / drawdown /
+  // objectif réservés aux comptes Contralytix Premium (Beta) ET abonnés payants de Deltalytix
+  // (statut renvoyé par la synchro, dès que Deltalytix le fournit). Exception : les admins voient
+  // toujours les jauges (tests, support).
+  const dlxPaid = !!(d.health && d.health.plan && d.health.plan.known && d.health.plan.paid);
+  const isPrem = perms().isPremium;
+  if(!isAdmin() && !(isPrem && dlxPaid)){
+    const need = !isPrem && !dlxPaid ? 'avec Premium et un abonnement Deltalytix' : !isPrem ? 'avec Premium' : 'avec un abonnement Deltalytix';
+    return `<div class="dlx-health dlx-health-lock" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true"></span><span>${h.lastTradeDay?`Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong> · `:''}<span class="dlx-lock-txt">${icon('lock')}Solde, drawdown et objectif ${need}</span></span>${!isPrem ? `<button type="button" class="btn btn-ghost btn-sm" data-dlx-upsell>Voir Premium</button>` : ''}</div>`;
+  }
   const tip = `D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}. Solde calculé sur les trades clôturés (positions ouvertes non comprises).`;
   const ddKnown = h.remainingLoss!=null;
   const tgKnown = a.type==='CHALLENGE' && h.remainingToTarget!=null;
@@ -17185,6 +17197,7 @@ function dlxProfilPanelHtml(){
 function dlxBindEvents(){
   document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=dlxConnectAndRefresh);
   document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
+  document.querySelectorAll('[data-dlx-upsell]').forEach(b=>b.onclick=()=>openUpgradeModal('Le suivi du solde, du drawdown et de l’objectif'));
   document.querySelectorAll('[data-dlx-disconnect]').forEach(b=>b.onclick=dlxDisconnect);
   document.querySelectorAll('[data-dlx-breach]').forEach(b=>b.onclick=dlxBreachModal);
   document.querySelectorAll('[data-dlx-mark]').forEach(b=>b.onclick=()=>{ const a = getAccount(b.dataset.dlxMark); const h = dlxHealthOf(a.id) || {}; statusChangeModal(a, 'BREACHED', h.lastTradeDay); });
