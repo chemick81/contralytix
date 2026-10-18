@@ -1126,6 +1126,13 @@ th.th-sort-active svg{opacity:1;}
 .co-chip.mid{background:var(--gold-dim);color:var(--gold);}
 .co-chip.neg{background:var(--danger-dim);color:var(--danger);}
 .co-chip.slate{background:var(--slate-dim);color:var(--text-dim);}
+
+.co-disclaimer{display:flex;gap:12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:14px 16px;font-size:12px;line-height:1.6;color:var(--text-faint);}
+.co-disclaimer > svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--text-dim);}
+.co-disclaimer strong{display:block;color:var(--text-dim);font-size:12.5px;margin-bottom:4px;}
+.co-disclaimer p{margin:0 0 6px;}
+.co-disclaimer p:last-child{margin-bottom:0;}
+.co-disclaimer .co-link{font-size:12px;}
 .co-foot{font-size:12.5px;color:var(--text-faint);text-align:center;padding:4px 0 8px;}
 @media (max-width:1000px){
   .co-verdict{grid-template-columns:1fr;gap:16px;}
@@ -7789,8 +7796,8 @@ function coachFindings(d, ctx){
       title: `${name} te coûte plus qu'elle ne te rapporte`,
       finding: `${periodTxt.charAt(0).toUpperCase() + periodTxt.slice(1)} : ${m(f.exp)} dépensés pour ${m(f.pay)} reçus, sur ${f.n} comptes.`,
       action: f.pay > 0
-        ? `Ne rachète plus chez ${name} sans avoir identifié pourquoi tes comptes y sautent : chaque compte t'y coûte en moyenne ${m(f.net / f.n)} net.`
-        : `Mets ${name} en pause : aucun payout pour l'instant. Concentre ton budget là où tu as déjà été payé.`,
+        ? `Avant un nouvel achat chez ${name}, il pourrait être utile d'identifier pourquoi tes comptes y sautent : chaque compte t'y coûte en moyenne ${m(f.net / f.n)} net.`
+        : `Aucun payout chez ${name} pour l'instant. Tu pourrais envisager une pause et orienter ton budget là où tu as déjà été payé.`,
       cta: { label:`Voir mes comptes ${name}`, nav:'accounts', firm:f.id } });
   });
 
@@ -7805,7 +7812,7 @@ function coachFindings(d, ctx){
     out.push({ id:'tilt', sev: rebuys.length >= 3 ? 'high' : 'mid', impact: cost,
       title: 'Tu rachètes dans la foulée d’un breach',
       finding: `${rebuys.length} comptes achetés le jour même ou le lendemain d'un breach, pour ${m(cost)}${lostToo ? ` — ${lostToo} ont sauté à leur tour` : ''}.`,
-      action: 'Instaure une règle des 24 h : après un breach, aucun achat avant le lendemain soir. Écris d’abord en une phrase ce qui a causé le breach.',
+      action: 'Une règle des 24 h pourrait t’aider : après un breach, attendre le lendemain soir avant tout achat, et noter d’abord en une phrase ce qui l’a causé.',
       cta: { label:'Voir le calendrier', nav:'calendrier' } });
   }
 
@@ -7814,7 +7821,7 @@ function coachFindings(d, ctx){
     out.push({ id:'resets', sev: d.resetShare >= 35 ? 'high' : 'mid', impact: d.resetSum,
       title: 'Les resets pèsent lourd dans tes dépenses',
       finding: `${d.resetCount} resets pour ${m(d.resetSum)}, soit ${Math.round(d.resetShare)} % de tout ce que tu as dépensé ${periodTxt}.`,
-      action: 'Fixe-toi un maximum de 2 resets par compte. Au-delà, compare avec le prix d’un compte neuf : il est souvent en promotion chez la même firm.',
+      action: 'Un plafond de resets par compte (par exemple 2) peut limiter ce poste. Au-delà, compare avec le prix d’un compte neuf, souvent en promotion chez la même firm.',
       cta: { label:'Voir mes comptes', nav:'accounts' } });
   }
 
@@ -7826,7 +7833,7 @@ function coachFindings(d, ctx){
     out.push({ id:'fast', sev:'mid', impact: cost,
       title: 'Tes évaluations sautent dès les premiers jours',
       finding: `${fast.length} challenges sur ${breachedCh} perdus l'ont été en 3 jours ou moins, pour ${m(cost)} d'achats.`,
-      action: 'Les premiers jours d’une éval ne doivent pas servir à aller vite. Fixe-toi un objectif de premier jour modeste et une perte maximale par jour plus serrée que celle de la firm.',
+      action: 'Les premiers jours d’une éval semblent te coûter cher. Un objectif de premier jour plus modeste et une perte maximale quotidienne personnelle, plus serrée que celle de la firm, sont des pistes à étudier.',
       cta: { label:'Voir mes challenges', nav:'accounts' } });
   }
 
@@ -7839,7 +7846,7 @@ function coachFindings(d, ctx){
     out.push({ id:'funded-lost', sev:'high', impact: cost,
       title: 'Tes comptes financés sautent avant le premier payout',
       finding: `${fundedLost.length} comptes financés perdus sans aucun payout, sur ${d.fundedPaid + d.fundedLost} terminés. Chaque parcours perdu (challenge + activation) t'a coûté ${m(cost / fundedLost.length)} en moyenne.`,
-      action: 'Écris un plan spécifique pour la phase « avant premier payout » : objectif = seuil de retrait minimum, perte maximale par jour plafonnée. Relis-le avant chaque activation.',
+      action: 'Un plan écrit pour la phase « avant premier payout » (objectif : le seuil de retrait minimum, avec une perte quotidienne plafonnée) pourrait t’aider à protéger ces comptes.',
       cta: { label:'Voir mes comptes financés', nav:'accounts' } });
   }
 
@@ -7850,7 +7857,7 @@ function coachFindings(d, ctx){
     out.push({ id:'drag', sev: draggers.length >= 2 ? 'mid' : 'low', impact: cost,
       title: draggers.length > 1 ? `${draggers.length} challenges mensuels traînent` : 'Un challenge mensuel traîne',
       finding: `Ouverts depuis plus de 40 jours sans être validés : ${m(cost)} de mensualités payées à ce jour.`,
-      action: 'Pour chacun, décide maintenant : soit tu vises la validation ce mois-ci, soit tu résilies avant la prochaine échéance.',
+      action: 'Pour chacun, il peut être utile de trancher avant la prochaine échéance : viser la validation ce mois-ci, ou résilier.',
       cta: { label:'Voir mes comptes', nav:'accounts' } });
   }
 
@@ -7861,13 +7868,13 @@ function coachFindings(d, ctx){
       out.push({ id:'budget', sev:'high', impact: d.monthExp - b,
         title: 'Budget du mois dépassé',
         finding: `${m(d.monthExp)} dépensés ce mois-ci pour un budget de ${m(b)}.`,
-        action: 'Plus aucun achat ce mois-ci. Si un compte saute, attends le 1er du mois prochain pour en racheter un.',
+        action: 'Pour respecter le cap que tu t’es fixé, tu pourrais reporter tout nouvel achat au mois prochain.',
         cta: { label:'Modifier mes objectifs', act:'goals' } });
     } else if(d.projectedExp && d.projectedExp > b * 1.05 && d.dayOfMonth >= 7){
       out.push({ id:'budget', sev:'mid', impact: d.projectedExp - b,
         title: 'Au rythme actuel, tu dépasseras ton budget',
         finding: `Projection fin de mois : ${m(d.projectedExp)} pour un budget de ${m(b)}. Il te reste ${m(b - d.monthExp)}.`,
-        action: `Il te reste ${m(b - d.monthExp)} : décide maintenant à quoi tu les réserves, et pas plus d'un nouvel achat d'ici la fin du mois.`,
+        action: `Il te reste ${m(b - d.monthExp)} : tu pourrais décider dès maintenant à quoi les réserver d'ici la fin du mois.`,
         cta: { label:'Modifier mes objectifs', act:'goals' } });
     }
   }
@@ -7879,7 +7886,7 @@ function coachFindings(d, ctx){
     out.push({ id:'best', sev:'good', impact: best.net,
       title: `${name} est ta firm la plus rentable`,
       finding: `${m(best.pay)} reçus pour ${m(best.exp)} dépensés : ROI de ${Math.round(best.roi)} %.`,
-      action: `Oriente en priorité tes prochains achats vers ${name}, là où ton trading est déjà payé.`,
+      action: `C'est là que ton trading est le mieux rémunéré à ce jour : un élément à prendre en compte pour tes prochains achats.`,
       cta: { label:`Voir mes comptes ${name}`, nav:'accounts', firm:best.id } });
   }
 
@@ -7918,7 +7925,7 @@ function coFindingCard(f, cur){
     </div>
     <h3 class="co-card-title">${escapeHtml(f.title)}</h3>
     <p class="co-card-finding">${escapeHtml(f.finding)}</p>
-    <div class="co-card-action">${icon('bolt')}<div><strong>À faire</strong>${escapeHtml(f.action)}</div></div>
+    <div class="co-card-action">${icon('bolt')}<div><strong>Piste à envisager</strong>${escapeHtml(f.action)}</div></div>
     ${cta}
   </article>`;
 }
@@ -7955,8 +7962,8 @@ Rédige le bilan du trader, en français, en le tutoyant, ton direct et bienveil
 Structure imposée, exactement trois parties avec ces titres sur leur propre ligne, en gras :
 **Ce qui va**
 **Ce qui te coûte**
-**Ta priorité du mois**
-Règles strictes : utilise UNIQUEMENT les chiffres ci-dessous, n'en invente ni n'en calcule aucun autre. Ne donne aucun conseil d'investissement, aucun signal ni aucune stratégie de trading : tu parles de gestion du budget, du choix des prop firms et de discipline. « Ta priorité du mois » = une seule action, la plus rentable, formulée concrètement. Pas de listes à puces, pas de formule de politesse.
+**Une piste pour ce mois**
+Règles strictes : formule tout comme des suggestions (« tu pourrais », « une piste serait »), jamais comme des ordres ni des certitudes. utilise UNIQUEMENT les chiffres ci-dessous, n'en invente ni n'en calcule aucun autre. Ne donne aucun conseil d'investissement, aucun signal ni aucune stratégie de trading : tu parles de gestion du budget, du choix des prop firms et de discipline. « Une piste pour ce mois » = une seule suggestion, la plus utile au vu des chiffres, formulée concrètement. Pas de listes à puces, pas de formule de politesse.
 
 Données :
 ${facts}
@@ -7965,6 +7972,19 @@ Constats détectés :
 ${findings}`;
 }
 
+// Avertissement juridique du coach (18/10/2026) : les constats et le bilan sont des suggestions
+// informatives, pas des directives ni un conseil en investissement. Toujours visible sur la page.
+function coDisclaimerHtml(){
+  return `<aside class="co-disclaimer" role="note">
+    ${icon('info')}
+    <div>
+      <strong>Des suggestions, pas des directives</strong>
+      <p>Les constats et pistes du coach sont fournis à titre informatif et pédagogique. Ce sont des suggestions générales sur la gestion de ton budget, pas des instructions ni des recommandations personnalisées. Ils ne constituent ni un conseil en investissement, ni un conseil financier, fiscal ou juridique : Contralytix n’est pas un conseiller en investissements financiers.</p>
+      <p>Ils reposent uniquement sur les données que tu as saisies ou importées, qui peuvent être incomplètes ou inexactes. Le bilan est rédigé par une intelligence artificielle et peut contenir des erreurs. Les résultats passés ne préjugent pas des résultats futurs, et le trading de produits à effet de levier comporte un risque élevé de perte.</p>
+      <p>Tu restes seul juge et seul responsable de tes décisions, notamment d’achat ou d’arrêt de comptes auprès des prop firms. Contralytix ne saurait être tenu responsable des conséquences de leur application. <button type="button" class="co-link" data-co-nav="cgv">Voir les CGU</button></p>
+    </div>
+  </aside>`;
+}
 function viewCoach(){
   const d = computeCoachData();
   const st = d.st;
@@ -8057,7 +8077,7 @@ function viewCoach(){
   const findings = `
     <section class="co-section">
       <div class="co-section-head">
-        <div class="section-title">Ce que tu peux améliorer${infoTip('Des règles fixes analysent tes comptes et chiffrent chaque problème : ce n’est pas une estimation de l’IA. Les montants « en jeu » sont ce que le problème t’a coûté sur la période.')}</div>
+        <div class="section-title">Ce que tu peux améliorer${infoTip('Des règles fixes analysent tes comptes et chiffrent chaque problème : ce n’est pas une estimation de l’IA. Les montants « en jeu » sont ce que le problème t’a coûté sur la période. Les pistes proposées sont des suggestions, pas des directives.')}</div>
         ${premium && highCount ? `<span class="co-stake">${highCount} priorité${highCount > 1 ? 's' : ''} haute${highCount > 1 ? 's' : ''}</span>` : ''}
       </div>
       ${findingsBody}
@@ -8068,17 +8088,18 @@ function viewCoach(){
   const ai = `
     <section class="panel co-ai">
       <div class="co-section-head">
-        <div class="section-title">${icon('sparkles')}Bilan du coach${infoTip('Rédigé par l’IA à partir des chiffres et des constats ci-dessus uniquement. Il ne calcule rien lui-même et ne donne aucun conseil de trading.')}</div>
+        <div class="section-title">${icon('sparkles')}Bilan du coach${infoTip('Rédigé par l’IA à partir des chiffres et des constats ci-dessus uniquement. Il ne calcule rien lui-même, peut contenir des erreurs et ne donne aucun conseil de trading ni d’investissement.')}</div>
         ${premium && cached && !__coachAi.loading ? `<button type="button" class="co-link" data-co-act="ai">Régénérer</button>` : ''}
       </div>
-      ${!premium ? `<div class="co-ai-empty"><span>Un bilan clair, rédigé chaque mois à partir de tes chiffres : ce qui va, ce qui te coûte, ta priorité.</span><button class="btn btn-outline btn-sm upgrade-cta" onclick="openUpgradeModal('Le bilan du coach IA')">${icon('lock')}Premium</button></div>`
+      ${!premium ? `<div class="co-ai-empty"><span>Un bilan clair, rédigé chaque mois à partir de tes chiffres : ce qui va, ce qui te coûte, une piste pour le mois.</span><button class="btn btn-outline btn-sm upgrade-cta" onclick="openUpgradeModal('Le bilan du coach IA')">${icon('lock')}Premium</button></div>`
         : __coachAi.loading ? `<div class="co-ai-loading"><span class="co-spin"></span>Le coach rédige ton bilan…</div>`
-        : cached ? `<div class="co-ai-text">${coAiFormat(cached.text)}</div><div class="co-ai-meta">Généré le ${fmtDate(cached.at.slice(0,10))} · basé sur ${d.findings.length} constat(s)</div>`
-        : `<div class="co-ai-empty"><span>Ton bilan en trois parties : ce qui va, ce qui te coûte, ta priorité du mois.</span><button type="button" class="btn btn-primary btn-sm" data-co-act="ai">${icon('sparkles')}Générer mon bilan</button></div>`}
+        : cached ? `<div class="co-ai-text">${coAiFormat(cached.text)}</div><div class="co-ai-meta">Généré par IA le ${fmtDate(cached.at.slice(0,10))} à partir de tes données · simples suggestions, à vérifier avant toute décision</div>`
+        : `<div class="co-ai-empty"><span>Ton bilan en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois.</span><button type="button" class="btn btn-primary btn-sm" data-co-act="ai">${icon('sparkles')}Générer mon bilan</button></div>`}
     </section>`;
 
   if(!expert){
     return `<div class="co-page">${bar}${verdict}${goals}${findings}${ai}
+      ${coDisclaimerHtml()}
       <div class="co-foot">Envie de tous les chiffres ? <button type="button" class="co-link" data-co-mode="expert">Passer en vue experte</button> ou <button type="button" class="co-link" data-co-nav="rentabilite">ouvrir la Rentabilité réelle</button>.</div>
     </div>`;
   }
@@ -8130,6 +8151,7 @@ function viewCoach(){
     </section>` : '';
 
   return `<div class="co-page">${bar}${verdict}${goals}${kpis}${findings}<div class="co-grid-2">${history}${ai}</div>${firmsTable}
+    ${coDisclaimerHtml()}
     <div class="co-foot">Entonnoir, courbe du net cumulé et preuves de payout : <button type="button" class="co-link" data-co-nav="rentabilite">Rentabilité réelle →</button></div>
   </div>`;
 }
@@ -11449,6 +11471,11 @@ const HELP_CATEGORIES = [
     { q:"Pourquoi le net de Rentabilité réelle diffère-t-il de celui du Dashboard ?", a:"Il ne devrait pas : les deux pages utilisent le même calcul et le même filtre trader. Vérifie trois choses : la case « Inclure les frais généraux » (cochée = Net global du Dashboard, décochée = Net comptes propfirm), les filtres actifs (trader, PropFirm, dates), et qu'aucun compte n'est rattaché à un autre trader que celui sélectionné." },
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
+    { q:"Qu'est-ce que le Coach rentabilité ?", a:"Une page du menu Performance qui transforme tes chiffres en pistes concrètes : un verdict (rentable ou non), tes objectifs du mois (budget maximum, objectif de payout) et des constats chiffrés comme une prop firm qui te coûte plus qu'elle ne rapporte, des rachats juste après un breach ou des resets trop lourds. Une vue simple et une vue experte sont disponibles." },
+    { q:"Le Coach rentabilité me donne-t-il des conseils d'investissement ?", a:"Non. Ses constats, pistes et bilans sont des suggestions informatives sur la gestion de ton budget prop firm, pas des directives ni des conseils en investissement, financiers ou fiscaux. Ils reposent uniquement sur les données que tu as saisies, et le bilan rédigé par IA peut contenir des erreurs. Tu restes seul juge de tes décisions (CGU, article 9 ter)." },
+    { q:"Comment sont calculés les constats et les montants « en jeu » ?", a:"Par des règles fixes appliquées à tes comptes, pas par l'IA. Le montant « en jeu » est ce que le point concerné t'a coûté sur la période choisie (achats, activations, resets…). Un même achat peut apparaître dans deux constats (par exemple une prop firm perdante et un rachat après breach) : c'est pourquoi les montants ne sont jamais additionnés." },
+    { q:"Pourquoi le net du Coach diffère-t-il de celui de Rentabilité réelle ?", a:"Le Coach ne compte que ce que tu paies aux prop firms et ce qu'elles te versent : les frais généraux (data, plateforme, VPS…) sont exclus. Sa période (30 j, 90 j, 12 mois, tout) est aussi indépendante des filtres de Rentabilité réelle. Décoche « Inclure les frais généraux » et choisis la même période pour comparer." },
+    { q:"Qu'est-ce que l'IA reçoit pour rédiger le bilan du coach ?", a:"Uniquement des totaux (dépensé, reçu, net), des taux, les constats calculés, les noms des prop firms concernées et tes objectifs. Jamais ton nom, ton e-mail ni tes numéros de compte. Le bilan n'est généré que lorsque tu cliques sur « Générer mon bilan », et il est conservé dans ton navigateur. Fonction réservée à Premium." },
     { q:"Qu'est-ce que l'espace Communauté ?", a:"Un bilan collectif pour une école de trading ou une communauté : le responsable crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
     { q:"Le responsable de la communauté voit-il mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
     { q:"Comment fonctionne le classement de la communauté ?", a:"Communauté > onglet « Classement ». Il est facultatif : clique « Participer », choisis un pseudo ou ton prénom et accepte le règlement. Les participants sont classés au ROI du mois (net du mois ÷ capital engagé), pour qu'un petit capital parte à égalité avec un gros. Le règlement complet est affiché sous le classement. Tu peux te retirer à tout moment." },
@@ -11856,6 +11883,29 @@ const MANUAL_CHAPTERS = [
       <li><b>Payouts sans preuve</b> — tes plus gros payouts sans justificatif ; un clic ouvre le compte pour ajouter le fichier depuis la ligne du payout.</li>
       <li><b>Rentabilité par PropFirm</b> — challenges, comptes financés, taux de payout, dépensé, reçu, net et ROI de chaque PropFirm (hors frais généraux), trié du meilleur au moins bon net.</li>
     </ul>` },
+  { n:'15b', id:'m-coach', title:"Coach rentabilité", html:`
+    <p>Là où la page Rentabilité réelle fait le constat, le <b>Coach rentabilité</b> (menu Performance) t'aide à passer à l'action : où tu perds de l'argent, combien, et ce que tu pourrais changer ce mois-ci. Page en test : elle peut évoluer ou disparaître.</p>
+    <h3>Ce qui est compté</h3>
+    <p>Uniquement ce que tu paies aux prop firms et ce qu'elles te versent : achats de challenges, mensualités, frais d'activation, resets et payouts. Les frais généraux (data, plateforme, VPS…) ne sont pas pris en compte ici. Seuls tes propres comptes sont analysés.</p>
+    <h3>Période, vues et objectifs</h3>
+    <ul>
+      <li><b>Période</b> — 30 jours, 90 jours, 12 mois ou tout l'historique. Le net est comparé à la période précédente de même durée.</li>
+      <li><b>Vue simple</b> — le verdict, tes objectifs, les 3 constats les plus importants et le bilan IA.</li>
+      <li><b>Vue experte</b> — en plus : 6 indicateurs (coût par payout, réussite des évals, financés → payout, durée de vie d'un compte financé et d'une éval, poids des resets), l'histogramme des 6 derniers mois avec ta ligne de budget, et un verdict par prop firm.</li>
+      <li><b>Mes objectifs</b> — un budget mensuel maximum et un objectif de payout mensuel. La jauge du budget passe à l'orange à 80 % et au rouge à 100 %, avec une projection de fin de mois au rythme actuel.</li>
+    </ul>
+    <p>Tes réglages sont mémorisés : sur ton compte si la fonctionnalité est activée côté serveur, sinon dans ton navigateur.</p>
+    <h3>Le verdict</h3>
+    <p>Rentable, en perte ou pas encore rentable, avec ton net réel de la période et une phrase simple : combien tu as dépensé en prop firms pour chaque unité retirée.</p>
+    <h3>Ce que tu peux améliorer</h3>
+    <p>Des règles fixes analysent tes comptes et chiffrent chaque point : ce n'est pas une estimation de l'IA. Les situations repérées : une prop firm qui coûte plus qu'elle ne rapporte, des rachats le jour même ou le lendemain d'un breach, des resets qui dépassent 20 % des dépenses, des évaluations perdues en 3 jours ou moins, des comptes financés perdus avant le premier payout, des challenges mensuels ouverts depuis plus de 40 jours, un budget dépassé ou en passe de l'être, et ta prop firm la plus rentable.</p>
+    <p>Chaque carte donne le constat, le montant « en jeu » (ce que ce point t'a coûté sur la période), une <b>piste à envisager</b> et un lien vers l'endroit de l'app concerné. Plusieurs constats peuvent porter sur les mêmes dépenses : leurs montants ne s'additionnent pas.</p>
+    <h3>Bilan du coach (IA)</h3>
+    <p>Un clic sur « Générer mon bilan » fait rédiger par l'IA (Gemini) un texte en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois. Elle ne reçoit que les chiffres et constats déjà calculés, sans ton nom, ton e-mail ni tes numéros de compte, et n'en invente aucun. Le bilan est gardé dans ton navigateur et se régénère quand tes chiffres changent.</p>
+    <h3>Formules</h3>
+    <p>Free : verdict, objectifs, indicateurs et nombre de constats détectés. Premium : le détail des constats et le bilan IA.</p>
+    <h3>Important</h3>
+    <p>Les constats, pistes et bilans sont des <b>suggestions informatives</b>, pas des directives, et ne constituent pas un conseil en investissement. Ils dépendent de l'exactitude des données que tu as saisies, et le texte IA peut contenir des erreurs. Tu restes seul juge de tes décisions (voir les CGU, article 9 ter).</p>` },
   { n:'16', id:'m-ecole', title:"Communauté et bilan public", html:`
     <p>L'espace Communauté permet à une école de trading, un formateur ou une communauté de publier le <b>bilan réel de ses élèves</b> — en net, toutes dépenses comprises — sans jamais voir leurs données individuelles. Les chiffres sont calculés par Contralytix directement à partir des comptes des élèves : personne ne saisit « son » bilan, personne ne peut l'arranger.</p>
     ${manualShot('18-ecole.jpg', "Communauté — vue du responsable : invitation, bilan public et rapport agrégé de la cohorte.")}
@@ -12027,6 +12077,7 @@ function viewConfidentialite(){
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
             <tr><td>Données reçues de Deltalytix (beta)</td><td>Uniquement si vous connectez Deltalytix : numéros de vos comptes de trading, libellé de prop firm, taille, plateforme (Tradovate, Rithmic…), P&amp;L journalier (net des commissions) et jours tradés, indicateur « limite de perte atteinte », indicateur « compte masqué », date de dernière synchronisation de vos connexions broker, adresse e-mail de votre compte Deltalytix</td><td>Transmises par Deltalytix, à votre demande, après votre autorisation dans Deltalytix</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
+            <tr><td>Données envoyées au Coach IA</td><td>Totaux de la période (dépensé, reçu, net), taux et constats calculés, noms des prop firms concernées, objectifs mensuels</td><td>Calculé à partir de vos comptes, uniquement quand vous cliquez « Générer mon bilan » (page Coach rentabilité). Aucun nom, e-mail ni numéro de compte n'est transmis</td></tr>
           </table>
         </div>
 
@@ -12036,6 +12087,7 @@ function viewConfidentialite(){
             <li><b>Fourniture du service</b> (authentification, stockage et affichage de vos données PropFirm) — exécution du contrat liant l'éditeur et l'utilisateur.</li>
             <li><b>Gestion de l'abonnement et de la facturation</b> — exécution du contrat et obligations légales (comptabilité).</li>
             <li><b>Génération de la préparation de séance par IA</b> — exécution du contrat, à votre initiative, lorsque vous déclenchez cette fonctionnalité.</li>
+            <li><b>Bilan du Coach rentabilité par IA</b> — exécution du contrat, à votre initiative, lorsque vous cliquez « Générer mon bilan ». Le texte obtenu est conservé uniquement dans votre navigateur.</li>
             <li><b>Connexion Deltalytix</b> (import de comptes, pointage automatique du Radar, dernier trade, comptes breached, plateforme) — exécution du contrat, à votre initiative : la connexion est facultative, se fait par une autorisation que vous donnez dans Deltalytix, et se retire à tout moment.</li>
             <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
             <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
@@ -12052,6 +12104,7 @@ function viewConfidentialite(){
             <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Google (API Gemini)</td><td>Rédaction du bilan du Coach rentabilité (Premium, à ton initiative)</td><td>Des chiffres agrégés et les constats calculés par l'application, sans nom, e-mail ni numéro de compte</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
             <tr><td>Deltalytix (beta) — service tiers indépendant</td><td>Si tu connectes Deltalytix : import de tes comptes, P&amp;L journalier pour le Radar inactivité, dernier trade, comptes breached et plateforme de chaque compte. Contralytix ne fait que <b>lire</b> ces données (aucune écriture chez Deltalytix) ; Deltalytix les traite sous sa propre responsabilité, selon ses propres conditions</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
@@ -12188,7 +12241,7 @@ function viewCGV(){
 
         <div class="rgpd-block">
           <h2>2. Description du Service</h2>
-          <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités d'aide à la préparation de séance assistées par IA fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
+          <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités assistées par IA (préparation de séance, Coach rentabilité) fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
           <p>La page Comptabilité et les exports associés (CSV, Excel, PDF) sont des outils de suivi personnel de l'activité prop firm de l'Utilisateur ; ils ne constituent en aucun cas un document fiscal, comptable ou une aide à la déclaration d'impôts, et ne sauraient s'y substituer. Contralytix ne fournit aucun conseil fiscal ou comptable. Pour toute question relative à la déclaration de ses revenus ou à ses obligations fiscales et comptables, l'Utilisateur est invité à consulter un expert-comptable ou tout professionnel qualifié.</p>
         </div>
 
@@ -12232,6 +12285,14 @@ function viewCGV(){
           <p>Le Service peut proposer une connexion facultative à des services tiers, notamment <b>Deltalytix</b> (fonctionnalité en version beta), pour importer des comptes, pointer automatiquement le Radar inactivité, afficher le dernier trade d'un compte, signaler un compte ayant atteint sa limite de perte ou indiquer sa plateforme de trading. Ces services sont édités par des tiers <b>indépendants de l'éditeur</b> : l'éditeur n'en est ni l'auteur, ni le partenaire, ni le distributeur, et l'Utilisateur doit disposer de son propre compte auprès d'eux, soumis à leurs propres conditions.</p>
           <p>Les informations provenant d'un service tiers sont affichées telles qu'il les transmet. L'éditeur ne garantit ni leur exactitude, ni leur exhaustivité, ni la disponibilité du service tiers (retard de synchronisation, panne, évolution ou arrêt de son interface). Aucune modification n'est appliquée aux comptes de l'Utilisateur sans sa validation (création de comptes, passage en « Breached ») : il lui appartient de vérifier ces informations, en particulier auprès de sa prop firm, avant de valider ou de prendre une décision de trading. Le Radar inactivité reste un outil d'aide qui ne remplace pas les règles officielles de la prop firm.</p>
           <p>L'Utilisateur peut retirer la connexion à tout moment depuis son Profil ; l'éditeur peut suspendre ou retirer une connexion à un service tiers, notamment si celui-ci modifie ses conditions d'accès.</p>
+        </div>
+
+        <div class="rgpd-block">
+          <h2>9 ter. Outils d'analyse, Coach rentabilité et contenus générés par IA</h2>
+          <p>Le Service propose des outils d'analyse de l'activité de l'Utilisateur, notamment la page <b>Coach rentabilité</b> : indicateurs, constats chiffrés, pistes d'amélioration et bilan rédigé par une intelligence artificielle. Ces contenus sont fournis à titre <b>purement informatif et pédagogique</b>. Ce sont des suggestions générales relatives à la gestion du budget consacré aux prop firms, et non des directives, des instructions ou des recommandations personnalisées.</p>
+          <p>Ils ne constituent en aucun cas un conseil en investissement au sens des articles L321-1 et L541-1 du Code monétaire et financier, ni un conseil financier, fiscal, comptable ou juridique. L'éditeur n'est pas conseiller en investissements financiers et n'exerce aucune activité réglementée de conseil.</p>
+          <p>Ces analyses sont calculées automatiquement à partir des seules données saisies ou importées par l'Utilisateur, dont l'éditeur ne vérifie ni l'exactitude ni l'exhaustivité. Les textes générés par intelligence artificielle peuvent contenir des erreurs, des imprécisions ou des omissions. Les résultats passés ne préjugent pas des résultats futurs ; le trading de produits à effet de levier comporte un risque élevé de perte en capital.</p>
+          <p>L'Utilisateur reste seul juge de l'opportunité de suivre ou non une piste proposée, et seul responsable de ses décisions, notamment d'achat, de conservation, de reset ou d'arrêt de comptes auprès des prop firms. L'éditeur ne saurait être tenu responsable des conséquences, notamment financières, de l'utilisation de ces contenus ou de leur mise en œuvre.</p>
         </div>
 
         <div class="rgpd-block">
@@ -18883,6 +18944,8 @@ const GD_HELP = {
     points:['Le catalogue est <b>partagé</b> et tenu à jour par l’équipe.','Clique sur une PropFirm pour voir sa fiche et tes comptes chez elle.','Une PropFirm manque ? <b>Demande son ajout</b> depuis le bouton en haut à droite.'] },
   rentabilite: { manual:'m-rentabilite', intro:'Ce que tu as vraiment gagné, une fois toutes tes dépenses déduites.',
     points:['<b>Net réel</b> = payouts − achats, mensualités, activations et resets (+ frais généraux si coché).','La <b>courbe</b> descend à chaque dépense et remonte à chaque payout.','L’<b>entonnoir</b> montre combien de Challenges il faut pour un payout.'] },
+  coach: { manual:'m-coach', intro:'Où tu perds de l’argent, combien, et des pistes pour ce mois-ci.',
+    points:['Fixe un <b>budget</b> et un <b>objectif de payout</b> avec « Mes objectifs ».','Chaque constat est <b>chiffré</b> par des règles fixes, pas par l’IA.','Ce sont des <b>suggestions</b>, pas des directives : tu restes seul juge.'] },
   calendrier: { manual:'m-calendrier', intro:'Tous tes événements mois par mois : payouts, achats, mensualités, réussites et breaches.',
     points:['Clique sur une journée pour voir son détail.','Les mensualités à venir apparaissent avant leur échéance.'] },
   accounting: { manual:'m-comptabilite', intro:'Chaque dépense et chaque payout, ligne par ligne, avec filtres et exports.',
