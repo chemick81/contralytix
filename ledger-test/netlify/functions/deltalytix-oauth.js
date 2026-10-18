@@ -48,8 +48,26 @@ exports.handler = async (event) => {
     if (!st || !st.u || !st.v || !(st.exp > Date.now())) return resultPage(event, { ok: false, error: 'expired' });
     try {
       const tokens = await L.tokenRequest({ grant_type: 'authorization_code', code: String(q.code || ''), redirect_uri: L.redirectUri(event), code_verifier: st.v });
+      // Compte Deltalytix réellement autorisé (18/10/2026) : la fenêtre Deltalytix utilise le compte déjà
+      // ouvert dans le navigateur, qui peut être celui d'une autre personne. Un même compte Deltalytix
+      // ne peut être relié qu'à UN compte Contralytix : sinon un utilisateur verrait les comptes,
+      // soldes et trades d'un autre. L'e-mail Deltalytix (unique chez eux) sert d'identifiant.
       let email = null;
-      try { const me = await L.dltx(tokens.access_token, '/me', Date.now() + 6000); email = me && me.email ? String(me.email) : null; } catch (e) { /* facultatif */ }
+      for (let i = 0; i < 2 && !email; i++) {
+        try { const me = await L.dltx(tokens.access_token, '/me', Date.now() + 6000); email = me && me.email ? String(me.email).trim() : null; } catch (e) { /* nouvel essai */ }
+      }
+      if (!email) {
+        await Promise.all([L.revokeToken(tokens.refresh_token), L.revokeToken(tokens.access_token)]);
+        return resultPage(event, { ok: false, error: 'identity_unknown' });
+      }
+      const esc = email.replace(/([%_\\])/g, '\\$1');
+      const { data: others, error: oErr } = await db.from('broker_connections').select('user_id')
+        .eq('provider', L.PROVIDER).ilike('account_email', esc).neq('user_id', st.u).limit(1);
+      if (oErr && !/relation|does not exist/i.test(oErr.message)) return resultPage(event, { ok: false, error: 'db_error' });
+      if (others && others.length) {
+        await Promise.all([L.revokeToken(tokens.refresh_token), L.revokeToken(tokens.access_token)]);
+        return resultPage(event, { ok: false, error: 'already_linked', email });
+      }
       const now = new Date().toISOString();
       const { error } = await db.from('broker_connections').upsert({
         user_id: st.u, provider: L.PROVIDER, token_enc: L.packTokens(tokens), token_hint: 'oauth',
