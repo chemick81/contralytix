@@ -237,6 +237,8 @@ a{color:var(--accent);text-decoration:none;}
 .nav-item:hover{background:var(--surface-2);color:var(--text);}
 .nav-item.active{background:var(--accent-dim);color:var(--text);border-left-color:var(--accent);}
 .nav-group{display:flex;flex-direction:column;margin-bottom:10px;}
+.nav-flat{display:flex;flex-direction:column;margin:10px 0;padding-top:8px;border-top:1px solid var(--border-soft);}
+.nav-sep{height:1px;background:var(--border-soft);margin:6px 10px 10px;}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
 .nav-group-chev{display:flex;width:11px;height:11px;flex-shrink:0;transition:transform .15s;}
@@ -1025,6 +1027,13 @@ th.th-sort-active svg{opacity:1;}
 .filter-bar-spacer{flex:1 1 auto;}
 /* COACH RENTABILITÉ (route 'coach', 18/10/2026) */
 .co-page{display:flex;flex-direction:column;gap:16px;}
+.renta-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.co-page .renta-tabs{margin-bottom:0;}
+.renta-tabs button{display:inline-flex;align-items:center;gap:7px;border:none;background:transparent;color:var(--text-dim);font-size:13.5px;font-weight:600;padding:10px 14px;margin-bottom:-1px;border-bottom:2px solid transparent;cursor:pointer;}
+.renta-tabs button svg{width:15px;height:15px;}
+.renta-tabs button:hover{color:var(--text);}
+.renta-tabs button.on{color:var(--text);border-bottom-color:var(--accent);}
+.renta-tabs button.on svg{color:var(--accent);}
 .co-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
 .co-seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:3px;gap:2px;}
 .co-seg button{border:none;background:transparent;color:var(--text-dim);font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:var(--radius-pill);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;}
@@ -6238,14 +6247,23 @@ function getNav(){
 // page n'apportait rien), Calendrier rejoint les pages de suivi quotidien plutôt que « Trading »
 // (qui ne contenait en réalité que des pages de gestion/configuration), et les noms de groupes
 // décrivent directement leur contenu plutôt que d'utiliser un vocabulaire vague.
+// Arborescence revue le 18/10/2026 (par fréquence d'usage) : les pages du quotidien en haut
+// (Comptes, Performance, Comptabilité, Trading, Communauté), la configuration et l'aide en bas, séparées
+// par un trait. Traders et PropFirms sont des listes de référence remplies une fois : elles rejoignent
+// « Mon compte ». « flat » = page affichée seule, sans en-tête de groupe ; « bottom » = bloc du bas.
 const NAV_GROUPS = [
-  { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts','radar'] },
-  { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
-  { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite','frais-generaux'] },
-  { id:'perf',     label:'Performance',         items:['rentabilite','coach','ecole','comparatif'] },
-  { id:'compte',   label:'Mon compte',          items:['profil','parametres','subscription'] },
-  { id:'aide',     label:'Aide',                items:['aide-centre','manuel','changelog'] },
+  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier'] },
+  { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'] },
+  { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
+  { id:'trading',    label:'Trading',      items:['sessions','meteo'] },
+  { id:'communaute', flat:true,            items:['ecole'] },
+  { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true },
+  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true },
 ];
+// Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
+// mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
+const NAV_TAB_PARENT = { coach:'rentabilite' };
+function navRouteOwner(route){ return NAV_TAB_PARENT[route] || route; }
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
 // du menu latéral (voir LEGAL_NAV_IDS / render()), comme sur la plupart des SaaS grand public.
@@ -6496,7 +6514,7 @@ function navItemHtml(n){
   // visible sans avoir à ouvrir Admin > Support (voir aussi maybeShowNewMessagesToast()).
   const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
     ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
-  return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
+  return `<div class="nav-item ${navRouteOwner(state.route)===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
     ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}
   </div>`;
 }
@@ -6509,10 +6527,14 @@ function renderNavGroups(){
   // menu, avant les catégories repliables — voir BASE_NAV/NAV_GROUPS.
   const pinned = byId.get('dashboard');
   if(pinned){ html += navItemHtml(pinned); usedIds.add('dashboard'); }
+  Object.keys(NAV_TAB_PARENT).forEach(id=>usedIds.add(id));
+  let bottomStarted = false;
   NAV_GROUPS.forEach(g=>{
     const items = g.items.map(id=>byId.get(id)).filter(Boolean);
     if(items.length===0) return;
     items.forEach(it=>usedIds.add(it.id));
+    if(g.bottom && !bottomStarted){ bottomStarted = true; html += `<div class="nav-sep" role="separator"></div>`; }
+    if(g.flat){ html += `<div class="nav-flat">${items.map(navItemHtml).join('')}</div>`; return; }
     const isOpen = state.navOpenGroups.includes(g.id);
     html += `
       <div class="nav-group">
@@ -6552,7 +6574,7 @@ function render(){
   if(!getNav().find(n=>n.id===state.route)) state.route = 'dashboard';
   // Le groupe de menu contenant la page active est toujours ouvert, pour que
   // l'élément actif reste visible même après un rechargement de page.
-  const activeGrp = NAV_GROUPS.find(g=>g.items.includes(state.route));
+  const activeGrp = NAV_GROUPS.find(g=>!g.flat && g.items.includes(navRouteOwner(state.route)));
   if(activeGrp && !state.navOpenGroups.includes(activeGrp.id)) state.navOpenGroups.push(activeGrp.id);
   const root = document.getElementById('app-root');
   const ann = state.appSettings && state.appSettings.announcement;
@@ -6613,7 +6635,7 @@ function render(){
           ${(state.route==='sessions' && state.sessionDetailId && sessionsInScope().find(x=>x.id===state.sessionDetailId)) ? `
             <button class="btn btn-ghost btn-sm" id="session-back-btn" style="padding-left:2px;">${icon('chevLeft')}Retour aux sessions</button>
           ` : `
-            <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
+            <h1>${(getNav().find(n=>n.id===navRouteOwner(state.route))||getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
             <div class="topbar-sub">${topbarSub()}</div>
           `}
         </div>
@@ -6633,7 +6655,7 @@ function render(){
   document.querySelectorAll('.sidebar [data-nav]').forEach(el=>{
     el.onclick = ()=>{
       state.route = el.dataset.nav;
-      const grp = NAV_GROUPS.find(g=>g.items.includes(state.route));
+      const grp = NAV_GROUPS.find(g=>!g.flat && g.items.includes(navRouteOwner(state.route)));
       if(grp && !state.navOpenGroups.includes(grp.id)){
         state.navOpenGroups.push(grp.id);
         saveNavOpenGroups();
@@ -7320,6 +7342,14 @@ function rtStepPopHtml(step, d, cur, multiTrader){
     <div class="rt-pop-foot">Clique sur un compte pour l'ouvrir</div>
   </div>`;
 }
+// Onglets de la page Rentabilité réelle (18/10/2026) : « Constat » (cette page) et « Coach ».
+// L'onglet Coach disparaît si un admin a masqué la page coach (Admin > Gestion des pages).
+function rentaTabsHtml(){
+  const nav = getNav();
+  const tabs = [ { id:'rentabilite', l:'Constat', ic:'trophy' }, { id:'coach', l:'Coach', ic:'target' } ].filter(t=>nav.find(n=>n.id===t.id));
+  if(tabs.length < 2) return '';
+  return `<div class="renta-tabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" aria-selected="${state.route===t.id}" class="${state.route===t.id?'on':''}" data-nav="${t.id}">${icon(t.ic)}${t.l}</button>`).join('')}</div>`;
+}
 function viewRentabilite(){
   const f = state.filters.rentabilite;
   const restricted = !canSeeAllData();
@@ -7342,7 +7372,7 @@ function viewRentabilite(){
 
   const nothing = !d.totalExp && !d.totalPay && !d.funnel.challenges && !d.funnel.funded;
   if(nothing){
-    return filterBar + emptyState('trophy', 'Aucune donnée sur ce périmètre',
+    return rentaTabsHtml() + filterBar + emptyState('trophy', 'Aucune donnée sur ce périmètre',
       'Ajoute tes comptes (challenges, PA) et tes payouts : cette page calculera ton résultat réel, toutes dépenses comprises.');
   }
 
@@ -7522,6 +7552,7 @@ function viewRentabilite(){
 
   return `
     <div class="rt-page">
+      ${rentaTabsHtml()}
       ${filterBar}
       ${hero}
       ${tiles}
@@ -8002,7 +8033,7 @@ function viewCoach(){
     </div>`;
 
   if(d.empty){
-    return `<div class="co-page">${bar}${emptyState('trophy', 'Ton coach attend tes premiers chiffres',
+    return `<div class="co-page">${rentaTabsHtml()}${bar}${emptyState('trophy', 'Ton coach attend tes premiers chiffres',
       'Ajoute tes comptes (challenges, PA) et tes payouts : le coach calculera ce que tu gagnes vraiment et ce que tu peux améliorer.')}</div>`;
   }
 
@@ -8098,7 +8129,7 @@ function viewCoach(){
     </section>`;
 
   if(!expert){
-    return `<div class="co-page">${bar}${verdict}${goals}${findings}${ai}
+    return `<div class="co-page">${rentaTabsHtml()}${bar}${verdict}${goals}${findings}${ai}
       ${coDisclaimerHtml()}
       <div class="co-foot">Envie de tous les chiffres ? <button type="button" class="co-link" data-co-mode="expert">Passer en vue experte</button> ou <button type="button" class="co-link" data-co-nav="rentabilite">ouvrir la Rentabilité réelle</button>.</div>
     </div>`;
@@ -8150,7 +8181,7 @@ function viewCoach(){
       </table></div>
     </section>` : '';
 
-  return `<div class="co-page">${bar}${verdict}${goals}${kpis}${findings}<div class="co-grid-2">${history}${ai}</div>${firmsTable}
+  return `<div class="co-page">${rentaTabsHtml()}${bar}${verdict}${goals}${kpis}${findings}<div class="co-grid-2">${history}${ai}</div>${firmsTable}
     ${coDisclaimerHtml()}
     <div class="co-foot">Entonnoir, courbe du net cumulé et preuves de payout : <button type="button" class="co-link" data-co-nav="rentabilite">Rentabilité réelle →</button></div>
   </div>`;
@@ -11471,7 +11502,7 @@ const HELP_CATEGORIES = [
     { q:"Pourquoi le net de Rentabilité réelle diffère-t-il de celui du Dashboard ?", a:"Il ne devrait pas : les deux pages utilisent le même calcul et le même filtre trader. Vérifie trois choses : la case « Inclure les frais généraux » (cochée = Net global du Dashboard, décochée = Net comptes propfirm), les filtres actifs (trader, PropFirm, dates), et qu'aucun compte n'est rattaché à un autre trader que celui sélectionné." },
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
-    { q:"Qu'est-ce que le Coach rentabilité ?", a:"Une page du menu Performance qui transforme tes chiffres en pistes concrètes : un verdict (rentable ou non), tes objectifs du mois (budget maximum, objectif de payout) et des constats chiffrés comme une prop firm qui te coûte plus qu'elle ne rapporte, des rachats juste après un breach ou des resets trop lourds. Une vue simple et une vue experte sont disponibles." },
+    { q:"Qu'est-ce que le Coach rentabilité ?", a:"L'onglet « Coach » de la page Rentabilité réelle (menu Performance), qui transforme tes chiffres en pistes concrètes : un verdict (rentable ou non), tes objectifs du mois (budget maximum, objectif de payout) et des constats chiffrés comme une prop firm qui te coûte plus qu'elle ne rapporte, des rachats juste après un breach ou des resets trop lourds. Une vue simple et une vue experte sont disponibles." },
     { q:"Le Coach rentabilité me donne-t-il des conseils d'investissement ?", a:"Non. Ses constats, pistes et bilans sont des suggestions informatives sur la gestion de ton budget prop firm, pas des directives ni des conseils en investissement, financiers ou fiscaux. Ils reposent uniquement sur les données que tu as saisies, et le bilan rédigé par IA peut contenir des erreurs. Tu restes seul juge de tes décisions (CGU, article 9 ter)." },
     { q:"Comment sont calculés les constats et les montants « en jeu » ?", a:"Par des règles fixes appliquées à tes comptes, pas par l'IA. Le montant « en jeu » est ce que le point concerné t'a coûté sur la période choisie (achats, activations, resets…). Un même achat peut apparaître dans deux constats (par exemple une prop firm perdante et un rachat après breach) : c'est pourquoi les montants ne sont jamais additionnés." },
     { q:"Pourquoi le net du Coach diffère-t-il de celui de Rentabilité réelle ?", a:"Le Coach ne compte que ce que tu paies aux prop firms et ce qu'elles te versent : les frais généraux (data, plateforme, VPS…) sont exclus. Sa période (30 j, 90 j, 12 mois, tout) est aussi indépendante des filtres de Rentabilité réelle. Décoche « Inclure les frais généraux » et choisis la même période pour comparer." },
@@ -11772,7 +11803,7 @@ const MANUAL_CHAPTERS = [
     <h3>Droits d'édition</h3>
     <p>Un compte n'est modifiable ou supprimable que par son créateur ou un administrateur ; sinon il s'affiche en lecture seule, avec un accès conservé à la consultation des payouts.</p>` },
   { n:'7', id:'m-radar', title:"Radar inactivité", html:`
-    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes &amp; Traders, réservé aux formules Premium et Lifetime) surveille les comptes PA et Live de ton trader et te prévient avant qu'il soit trop tard.</p>
+    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes, réservé aux formules Premium et Lifetime) surveille les comptes PA et Live de ton trader et te prévient avant qu'il soit trop tard.</p>
     <h3>Un outil à ton choix</h3>
     <p>Le Radar demande de pointer tes journées tradées : il est donc <b>désactivé par défaut</b>. Active-le depuis la page Radar inactivité (« Activer le Radar ») ou depuis <b>Profil → Radar inactivité</b> (case « Utiliser le Radar inactivité »). Tu peux le désactiver à tout moment au même endroit : plus de bandeau, d'alerte, de bande sur les cartes ni de pointage. Tes réglages et ton historique de pointage sont conservés pour le jour où tu le réactives. Il suit tous les comptes financés de ton trader, y compris ceux qu'un administrateur ou un coach aurait créés pour toi.</p>
     ${manualShot('19-radar.jpg', "Radar inactivité — tuiles de synthèse, filtres et comptes triés par urgence.")}
@@ -11884,7 +11915,7 @@ const MANUAL_CHAPTERS = [
       <li><b>Rentabilité par PropFirm</b> — challenges, comptes financés, taux de payout, dépensé, reçu, net et ROI de chaque PropFirm (hors frais généraux), trié du meilleur au moins bon net.</li>
     </ul>` },
   { n:'15b', id:'m-coach', title:"Coach rentabilité", html:`
-    <p>Là où la page Rentabilité réelle fait le constat, le <b>Coach rentabilité</b> (menu Performance) t'aide à passer à l'action : où tu perds de l'argent, combien, et ce que tu pourrais changer ce mois-ci. Page en test : elle peut évoluer ou disparaître.</p>
+    <p>Là où la page Rentabilité réelle fait le constat, l'onglet <b>Coach</b> de cette même page (menu Performance › Rentabilité réelle) t'aide à passer à l'action : où tu perds de l'argent, combien, et ce que tu pourrais changer ce mois-ci. Page en test : elle peut évoluer ou disparaître.</p>
     <h3>Ce qui est compté</h3>
     <p>Uniquement ce que tu paies aux prop firms et ce qu'elles te versent : achats de challenges, mensualités, frais d'activation, resets et payouts. Les frais généraux (data, plateforme, VPS…) ne sont pas pris en compte ici. Seuls tes propres comptes sont analysés.</p>
     <h3>Période, vues et objectifs</h3>
