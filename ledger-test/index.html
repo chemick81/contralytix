@@ -237,8 +237,6 @@ a{color:var(--accent);text-decoration:none;}
 .nav-item:hover{background:var(--surface-2);color:var(--text);}
 .nav-item.active{background:var(--accent-dim);color:var(--text);border-left-color:var(--accent);}
 .nav-group{display:flex;flex-direction:column;margin-bottom:10px;}
-.nav-flat{display:flex;flex-direction:column;margin:10px 0;padding-top:8px;border-top:1px solid var(--border-soft);}
-.nav-sep{height:1px;background:var(--border-soft);margin:6px 10px 10px;}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
 .nav-group-chev{display:flex;width:11px;height:11px;flex-shrink:0;transition:transform .15s;}
@@ -766,6 +764,23 @@ th.th-sort-active svg{opacity:1;}
 .dlx-health.is-danger{box-shadow:inset 3px 0 0 var(--danger);}
 .dlx-health.is-danger strong{color:var(--danger);}
 .dlx-health .btn{margin-left:auto;}
+.dlx-health-g{display:block;padding:10px 12px;}
+.dlx-g-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;}
+.dlx-g-last{margin-left:auto;font-size:11.5px;color:var(--text-faint);}
+.dlx-g-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;}
+@media (max-width:640px){ .dlx-g-grid{grid-template-columns:1fr;} .dlx-g-last{margin-left:0;width:100%;} }
+.dlx-g-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;margin-bottom:5px;}
+.dlx-g-top strong{font-family:'JetBrains Mono',monospace;font-size:12.5px;white-space:nowrap;}
+.dlx-g-of{color:var(--text-faint);font-weight:500;}
+.dlx-g-bar{height:6px;border-radius:var(--radius-pill);background:var(--surface-3);overflow:hidden;}
+.dlx-g-bar > div{height:100%;border-radius:var(--radius-pill);background:var(--accent);transition:width .3s;}
+.dlx-g.is-warn .dlx-g-bar > div{background:var(--gold);}
+.dlx-g.is-warn .dlx-g-top strong{color:var(--gold);}
+.dlx-g.is-danger .dlx-g-bar > div{background:var(--danger);}
+.dlx-g.is-danger .dlx-g-top strong{color:var(--danger);}
+.dlx-g.is-target .dlx-g-bar > div{background:var(--type-challenge);}
+.dlx-g.is-done .dlx-g-top strong{color:var(--accent);}
+.dlx-g.is-done .dlx-g-bar > div{background:var(--accent);}
 .dlx-textbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;}
 .plat-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 5px;border:1px solid var(--border);border-radius:var(--radius-pill);font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap;line-height:1.4;}
 .plat-chip img{width:14px;height:14px;border-radius:3px;flex:none;}
@@ -1025,138 +1040,6 @@ th.th-sort-active svg{opacity:1;}
 .recap-total-row{border-top:2px solid var(--border);}
 .recap-total-row td{font-weight:700;padding-top:10px;}
 .filter-bar-spacer{flex:1 1 auto;}
-/* COACH RENTABILITÉ (route 'coach', 18/10/2026) */
-.co-page{display:flex;flex-direction:column;gap:16px;}
-.renta-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;}
-.co-page .renta-tabs{margin-bottom:0;}
-.renta-tabs button{display:inline-flex;align-items:center;gap:7px;border:none;background:transparent;color:var(--text-dim);font-size:13.5px;font-weight:600;padding:10px 14px;margin-bottom:-1px;border-bottom:2px solid transparent;cursor:pointer;}
-.renta-tabs button svg{width:15px;height:15px;}
-.renta-tabs button:hover{color:var(--text);}
-.renta-tabs button.on{color:var(--text);border-bottom-color:var(--accent);}
-.renta-tabs button.on svg{color:var(--accent);}
-.co-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
-.co-seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:3px;gap:2px;}
-.co-seg button{border:none;background:transparent;color:var(--text-dim);font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:var(--radius-pill);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;}
-.co-seg button:hover{color:var(--text);}
-.co-seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.18);}
-.co-verdict{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto;gap:28px;align-items:center;padding:24px 26px;position:relative;overflow:hidden;}
-.co-verdict::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);}
-.co-verdict.neg::before{background:var(--danger);}
-.co-state{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:var(--radius-pill);background:var(--accent-dim);color:var(--accent);}
-.co-verdict.neg .co-state{background:var(--danger-dim);color:var(--danger);}
-.co-net{font-size:42px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin-top:10px;color:var(--accent);}
-.co-verdict.neg .co-net{color:var(--danger);}
-.co-net-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);margin-top:6px;}
-.co-conv{font-size:11px;}
-.co-delta{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--text-faint);}
-.co-delta svg{width:12px;height:12px;}
-.co-delta.up{color:var(--accent);} .co-delta.down{color:var(--danger);}
-.co-sentence{margin:0;font-size:14px;line-height:1.6;color:var(--text-dim);}
-.co-sentence strong{color:var(--text);}
-.co-verdict-split{display:flex;flex-direction:column;gap:10px;padding-left:24px;border-left:1px solid var(--border-soft);min-width:150px;}
-.co-verdict-split div{display:flex;justify-content:space-between;gap:16px;font-size:12.5px;color:var(--text-faint);}
-.co-verdict-split strong{color:var(--text);font-weight:600;}
-.co-goals{padding:18px 22px;}
-.co-goals-head,.co-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
-.co-goals-head .text-faint{font-size:12px;}
-.co-section-head .section-title{display:flex;align-items:center;gap:8px;}
-.co-section-head .section-title svg{width:16px;height:16px;color:var(--accent);}
-.co-goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;}
-.co-gauge-top{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-dim);margin-bottom:7px;}
-.co-gauge-top strong{color:var(--text);}
-.co-gauge-bar{height:10px;background:var(--surface-2);border-radius:var(--radius-pill);overflow:hidden;}
-.co-gauge-bar div{height:100%;border-radius:var(--radius-pill);transition:width .4s;}
-.co-gauge-sub{font-size:12px;color:var(--text-faint);margin-top:7px;line-height:1.5;}
-.co-gauge-sub strong{color:var(--text);font-weight:600;}
-.co-goals-empty{display:flex;align-items:center;gap:16px;padding:16px 20px;border-style:dashed;}
-.co-goals-empty > div:first-child{width:38px;height:38px;flex-shrink:0;border-radius:10px;background:var(--gold-dim);color:var(--gold);display:grid;place-items:center;}
-.co-goals-empty > div:first-child svg{width:18px;height:18px;}
-.co-goals-empty > div:nth-child(2){flex:1;display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--text-dim);}
-.co-goals-empty strong{color:var(--text);font-size:13.5px;}
-.co-stake{font-size:12px;font-weight:700;color:var(--danger);background:var(--danger-dim);padding:3px 10px;border-radius:var(--radius-pill);}
-.co-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
-.co-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;display:flex;flex-direction:column;gap:9px;border-top:3px solid var(--slate);}
-.co-card.sev-high{border-top-color:var(--danger);}
-.co-card.sev-mid{border-top-color:var(--gold);}
-.co-card.sev-good{border-top-color:var(--accent);}
-.co-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
-.co-sev{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);}
-.sev-high .co-sev{color:var(--danger);} .sev-mid .co-sev{color:var(--gold);} .sev-good .co-sev{color:var(--accent);}
-.co-impact{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--text-faint);}
-.co-impact strong{font-size:15px;color:var(--text);}
-.sev-good .co-impact strong{color:var(--accent);}
-.co-card-title{margin:0;font-size:15px;font-weight:700;line-height:1.35;color:var(--text);}
-.co-card-finding{margin:0;font-size:13px;line-height:1.55;color:var(--text-dim);}
-.co-card-action{display:flex;gap:10px;background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5;color:var(--text-dim);margin-top:auto;}
-.co-card-action svg{width:15px;height:15px;flex-shrink:0;margin-top:2px;color:var(--accent);}
-.co-card-action strong{display:block;color:var(--text);font-size:11px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
-.co-link{border:none;background:transparent;padding:0;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;}
-.co-link:hover{text-decoration:underline;}
-.co-more{margin-top:12px;}
-.co-ok{display:flex;gap:12px;align-items:flex-start;background:var(--accent-dim);border-radius:var(--radius-lg);padding:14px 16px;font-size:12.5px;color:var(--text-dim);}
-.co-ok svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;}
-.co-ok div{display:flex;flex-direction:column;gap:2px;}
-.co-ok strong{color:var(--text);}
-.co-locked{position:relative;}
-.co-locked-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;filter:blur(3px);opacity:.55;pointer-events:none;user-select:none;}
-.co-ghost{min-height:150px;}
-.co-ghost-line{height:10px;border-radius:6px;background:var(--surface-3);margin-top:8px;}
-.co-ghost-line.w40{width:40%;} .co-ghost-line.w70{width:70%;} .co-ghost-line.w90{width:90%;height:14px;}
-.co-locked-over{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:16px;}
-.co-locked-n{font-size:18px;font-weight:700;color:var(--text);}
-.co-locked-sub{font-size:13px;color:var(--text-dim);margin-bottom:8px;}
-.co-locked-sub strong{color:var(--danger);}
-.co-ai{padding:18px 22px;}
-.co-ai-empty{display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:12.5px;color:var(--text-dim);line-height:1.5;flex-wrap:wrap;}
-.co-ai-text h4{margin:14px 0 4px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);}
-.co-ai-text h4:first-child{margin-top:0;}
-.co-ai-text p{margin:0 0 6px;font-size:13.5px;line-height:1.65;color:var(--text);}
-.co-ai-meta{font-size:11px;color:var(--text-faint);margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft);}
-.co-ai-loading{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-dim);padding:6px 0;}
-.co-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:co-spin .8s linear infinite;}
-@keyframes co-spin{to{transform:rotate(360deg);}}
-.co-kpis{margin:0;}
-.co-grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
-.co-history{padding:18px 22px;}
-.co-legend{display:flex;gap:12px;font-size:11px;color:var(--text-faint);}
-.co-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;}
-.co-legend i.dash{width:12px;height:0;border-top:2px dashed var(--gold);border-radius:0;vertical-align:3px;}
-.co-bars{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;height:190px;padding-bottom:40px;}
-.co-budget-line{position:absolute;left:0;right:0;border-top:2px dashed var(--gold);opacity:.8;pointer-events:none;z-index:1;}
-.co-bar-col{display:flex;flex-direction:column;align-items:center;min-width:0;position:relative;height:100%;}
-.co-bar-pair{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px;}
-.co-b{width:min(16px,40%);border-radius:4px 4px 0 0;min-height:1px;}
-.co-b.exp{background:var(--danger);opacity:.85;} .co-b.pay{background:var(--accent);}
-.co-bar-lbl{position:absolute;bottom:-20px;font-size:11px;color:var(--text-faint);text-transform:capitalize;}
-.co-bar-net{position:absolute;bottom:-36px;font-size:10px;white-space:nowrap;}
-.co-bar-net.pos{color:var(--accent);} .co-bar-net.neg{color:var(--danger);}
-.co-chip{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:var(--radius-pill);white-space:nowrap;}
-.co-chip.pos{background:var(--accent-dim);color:var(--accent);}
-.co-chip.mid{background:var(--gold-dim);color:var(--gold);}
-.co-chip.neg{background:var(--danger-dim);color:var(--danger);}
-.co-chip.slate{background:var(--slate-dim);color:var(--text-dim);}
-
-.co-disclaimer{display:flex;gap:12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:14px 16px;font-size:12px;line-height:1.6;color:var(--text-faint);}
-.co-disclaimer > svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--text-dim);}
-.co-disclaimer strong{display:block;color:var(--text-dim);font-size:12.5px;margin-bottom:4px;}
-.co-disclaimer p{margin:0 0 6px;}
-.co-disclaimer p:last-child{margin-bottom:0;}
-.co-disclaimer .co-link{font-size:12px;}
-.co-foot{font-size:12.5px;color:var(--text-faint);text-align:center;padding:4px 0 8px;}
-@media (max-width:1000px){
-  .co-verdict{grid-template-columns:1fr;gap:16px;}
-  .co-verdict-split{flex-direction:row;flex-wrap:wrap;border-left:none;padding-left:0;border-top:1px solid var(--border-soft);padding-top:14px;}
-  .co-verdict-split div{flex-direction:column;gap:2px;}
-  .co-grid-2{grid-template-columns:1fr;}
-}
-@media (max-width:600px){
-  .co-net{font-size:34px;}
-  .co-verdict{padding:20px 18px;}
-  .co-cards{grid-template-columns:1fr;}
-  .co-goals-empty{flex-wrap:wrap;}
-  .co-bar-net{display:none;}
-  .co-bars{padding-bottom:24px;}
-}
 /* RENTABILITÉ RÉELLE (route 'rentabilite', 26/09/2026) */
 .rt-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
 .rt-toggle input{accent-color:var(--accent);}
@@ -2947,7 +2830,6 @@ function mlScrollToAuth(){
    ICONS (inline SVG, minimal set)
 ============================================================ */
 const ICONS = {
-  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
   grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
   hourglass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 4.5 5 6 5 9s-5 4.5-5 9"/><path d="M17 3c0 4.5-5 6-5 9s5 4.5 5 9"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c2.8.3 4.9 2.5 4.9 5.8"/></svg>',
@@ -6204,7 +6086,6 @@ function requestPropfirmModal(){
 const BASE_NAV = [
   { id:'dashboard', label:'Dashboard', icon:'grid' },
   { id:'rentabilite', label:'Rentabilité réelle', icon:'trophy' },
-  { id:'coach', label:'Coach rentabilité', icon:'target' },
   { id:'ecole', label:'Communauté', icon:'layers' },
   { id:'traders', label:'Traders', icon:'users' },
   { id:'propfirms', label:'PropFirms', icon:'building' },
@@ -6247,23 +6128,14 @@ function getNav(){
 // page n'apportait rien), Calendrier rejoint les pages de suivi quotidien plutôt que « Trading »
 // (qui ne contenait en réalité que des pages de gestion/configuration), et les noms de groupes
 // décrivent directement leur contenu plutôt que d'utiliser un vocabulaire vague.
-// Arborescence revue le 18/10/2026 (par fréquence d'usage) : les pages du quotidien en haut
-// (Comptes, Performance, Comptabilité, Trading, Communauté), la configuration et l'aide en bas, séparées
-// par un trait. Traders et PropFirms sont des listes de référence remplies une fois : elles rejoignent
-// « Mon compte ». « flat » = page affichée seule, sans en-tête de groupe ; « bottom » = bloc du bas.
 const NAV_GROUPS = [
-  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier'] },
-  { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'] },
-  { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
-  { id:'trading',    label:'Trading',      items:['sessions','meteo'] },
-  { id:'communaute', flat:true,            items:['ecole'] },
-  { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true },
-  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true },
+  { id:'comptes',  label:'Comptes & Traders',   items:['traders','propfirms','accounts','radar'] },
+  { id:'activite', label:'Activit\u00e9',            items:['calendrier','sessions','meteo'] },
+  { id:'finance',  label:'Finances',            items:['accounting','bilan','fiscalite','frais-generaux'] },
+  { id:'perf',     label:'Performance',         items:['rentabilite','ecole','comparatif'] },
+  { id:'compte',   label:'Mon compte',          items:['profil','parametres','subscription'] },
+  { id:'aide',     label:'Aide',                items:['aide-centre','manuel','changelog'] },
 ];
-// Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
-// mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
-const NAV_TAB_PARENT = { coach:'rentabilite' };
-function navRouteOwner(route){ return NAV_TAB_PARENT[route] || route; }
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
 // du menu latéral (voir LEGAL_NAV_IDS / render()), comme sur la plupart des SaaS grand public.
@@ -6514,7 +6386,7 @@ function navItemHtml(n){
   // visible sans avoir à ouvrir Admin > Support (voir aussi maybeShowNewMessagesToast()).
   const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
     ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
-  return `<div class="nav-item ${navRouteOwner(state.route)===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
+  return `<div class="nav-item ${state.route===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
     ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}
   </div>`;
 }
@@ -6527,14 +6399,10 @@ function renderNavGroups(){
   // menu, avant les catégories repliables — voir BASE_NAV/NAV_GROUPS.
   const pinned = byId.get('dashboard');
   if(pinned){ html += navItemHtml(pinned); usedIds.add('dashboard'); }
-  Object.keys(NAV_TAB_PARENT).forEach(id=>usedIds.add(id));
-  let bottomStarted = false;
   NAV_GROUPS.forEach(g=>{
     const items = g.items.map(id=>byId.get(id)).filter(Boolean);
     if(items.length===0) return;
     items.forEach(it=>usedIds.add(it.id));
-    if(g.bottom && !bottomStarted){ bottomStarted = true; html += `<div class="nav-sep" role="separator"></div>`; }
-    if(g.flat){ html += `<div class="nav-flat">${items.map(navItemHtml).join('')}</div>`; return; }
     const isOpen = state.navOpenGroups.includes(g.id);
     html += `
       <div class="nav-group">
@@ -6574,7 +6442,7 @@ function render(){
   if(!getNav().find(n=>n.id===state.route)) state.route = 'dashboard';
   // Le groupe de menu contenant la page active est toujours ouvert, pour que
   // l'élément actif reste visible même après un rechargement de page.
-  const activeGrp = NAV_GROUPS.find(g=>!g.flat && g.items.includes(navRouteOwner(state.route)));
+  const activeGrp = NAV_GROUPS.find(g=>g.items.includes(state.route));
   if(activeGrp && !state.navOpenGroups.includes(activeGrp.id)) state.navOpenGroups.push(activeGrp.id);
   const root = document.getElementById('app-root');
   const ann = state.appSettings && state.appSettings.announcement;
@@ -6635,7 +6503,7 @@ function render(){
           ${(state.route==='sessions' && state.sessionDetailId && sessionsInScope().find(x=>x.id===state.sessionDetailId)) ? `
             <button class="btn btn-ghost btn-sm" id="session-back-btn" style="padding-left:2px;">${icon('chevLeft')}Retour aux sessions</button>
           ` : `
-            <h1>${(getNav().find(n=>n.id===navRouteOwner(state.route))||getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
+            <h1>${(getNav().find(n=>n.id===state.route)||{label:''}).label}</h1>
             <div class="topbar-sub">${topbarSub()}</div>
           `}
         </div>
@@ -6655,7 +6523,7 @@ function render(){
   document.querySelectorAll('.sidebar [data-nav]').forEach(el=>{
     el.onclick = ()=>{
       state.route = el.dataset.nav;
-      const grp = NAV_GROUPS.find(g=>!g.flat && g.items.includes(navRouteOwner(state.route)));
+      const grp = NAV_GROUPS.find(g=>g.items.includes(state.route));
       if(grp && !state.navOpenGroups.includes(grp.id)){
         state.navOpenGroups.push(grp.id);
         saveNavOpenGroups();
@@ -6717,7 +6585,6 @@ function topbarSub(){
     sessions: 'Journal de trading — replay, notes et performance de chaque session',
     comparatif: 'Performance comparée des PropFirms',
     rentabilite: 'Ce que tu as vraiment gagné, toutes dépenses comprises',
-    coach: 'Où tu perds de l’argent et quoi changer ce mois-ci',
     ecole: 'Bilans de cohorte anonymes, calculés à partir des comptes réels',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
@@ -6834,7 +6701,6 @@ function renderView(){
   else if(state.route==='sessions') el.innerHTML = viewSessions();
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='rentabilite') el.innerHTML = viewRentabilite();
-  else if(state.route==='coach') el.innerHTML = viewCoach();
   else if(state.route==='ecole') el.innerHTML = viewEcole();
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
@@ -7132,27 +6998,6 @@ function rtExpenseLabel(e){
   const kind = { ACHAT:'Achat', MENSUALITE:'Mensualité', ACTIVATION:'Activation', RESET:'Reset' }[e.type] || e.type;
   return `${kind} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${escapeHtml(firm?firm.name:'—')}</span>${a.accountNumber?` <span class="text-faint">${escapeHtml(a.accountNumber)}</span>`:''}`;
 }
-// Entonnoir Challenge → Financé → Payout : définitions uniques, partagées par l'onglet Constat
-// (computeRentabiliteData) et l'onglet Coach (computeCoachData) depuis le 18/10/2026, pour que les
-// mêmes taux affichent les mêmes chiffres partout. funnelAccounts = comptes du périmètre (déjà
-// filtrés par période d'achat si besoin) ; payCount = Map compte → nombre de payouts (tous temps).
-function computeFunnelCounts(funnelAccounts, payCount){
-  const childOf = new Set(state.accounts.filter(a=>a.parentChallengeId).map(a=>a.parentChallengeId));
-  const isPassed = (c)=> c.status==='REUSSI' || childOf.has(c.id);
-  const nPay = (a)=> payCount.get(a.id) || 0;
-  const challenges = funnelAccounts.filter(a=>a.type==='CHALLENGE');
-  const passed = challenges.filter(isPassed);
-  // Taux de réussite aligné sur le Dashboard (26/09/2026) : réussis ÷ (réussis + breached).
-  const failed = challenges.filter(c=>c.status==='BREACHED' && !isPassed(c));
-  const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
-  const fundedDirect = funded.filter(a=>!a.parentChallengeId);
-  const paid = funded.filter(a=>nPay(a)>=1);
-  const recurring = funded.filter(a=>nPay(a)>=2);
-  // Sorties de l'entonnoir (comptes terminés sans atteindre l'étape suivante), utilisées par le Coach.
-  const lostBeforePayout = funded.filter(a=>a.status==='BREACHED' && nPay(a)===0);
-  const lostAfterOnePayout = funded.filter(a=>a.status==='BREACHED' && nPay(a)===1);
-  return { challenges, passed, failed, funded, fundedDirect, paid, recurring, lostBeforePayout, lostAfterOnePayout };
-}
 function computeRentabiliteData(){
   const f = state.filters.rentabilite;
   const restricted = !canSeeAllData();
@@ -7219,8 +7064,17 @@ function computeRentabiliteData(){
   state.payouts.filter(p=>accIds.has(p.accountId)).forEach(p=>{
     allPayoutsByAcc.set(p.accountId, (allPayoutsByAcc.get(p.accountId)||0)+1);
   });
-  // Définitions communes avec le Coach : voir computeFunnelCounts().
-  const { challenges, passed, failed, funded, fundedDirect, paid, recurring } = computeFunnelCounts(funnelAccounts, allPayoutsByAcc);
+  const challenges = funnelAccounts.filter(a=>a.type==='CHALLENGE');
+  const childOf = new Map();
+  state.accounts.forEach(a=>{ if(a.parentChallengeId) childOf.set(a.parentChallengeId, true); });
+  const passed = challenges.filter(c=>c.status==='REUSSI' || childOf.has(c.id));
+  // Taux de réussite aligné sur le Dashboard (26/09/2026) : réussis ÷ (réussis + breached) — un
+  // challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul.
+  const failed = challenges.filter(c=>c.status==='BREACHED' && !(c.status==='REUSSI' || childOf.has(c.id)));
+  const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
+  const fundedDirect = funded.filter(a=>!a.parentChallengeId);
+  const paid = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=1);
+  const recurring = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=2);
   // Listes détaillées de chaque étape (popup au survol de l'entonnoir, 26/09/2026) + total des
   // payouts par compte (tous temps, dans la devise d'affichage).
   const payoutSumByAcc = new Map();
@@ -7354,14 +7208,6 @@ function rtStepPopHtml(step, d, cur, multiTrader){
     <div class="rt-pop-foot">Clique sur un compte pour l'ouvrir</div>
   </div>`;
 }
-// Onglets de la page Rentabilité réelle (18/10/2026) : « Constat » (cette page) et « Coach ».
-// L'onglet Coach disparaît si un admin a masqué la page coach (Admin > Gestion des pages).
-function rentaTabsHtml(){
-  const nav = getNav();
-  const tabs = [ { id:'rentabilite', l:'Constat', ic:'trophy' }, { id:'coach', l:'Coach', ic:'target' } ].filter(t=>nav.find(n=>n.id===t.id));
-  if(tabs.length < 2) return '';
-  return `<div class="renta-tabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" aria-selected="${state.route===t.id}" class="${state.route===t.id?'on':''}" data-nav="${t.id}">${icon(t.ic)}${t.l}</button>`).join('')}</div>`;
-}
 function viewRentabilite(){
   const f = state.filters.rentabilite;
   const restricted = !canSeeAllData();
@@ -7384,7 +7230,7 @@ function viewRentabilite(){
 
   const nothing = !d.totalExp && !d.totalPay && !d.funnel.challenges && !d.funnel.funded;
   if(nothing){
-    return rentaTabsHtml() + filterBar + emptyState('trophy', 'Aucune donnée sur ce périmètre',
+    return filterBar + emptyState('trophy', 'Aucune donnée sur ce périmètre',
       'Ajoute tes comptes (challenges, PA) et tes payouts : cette page calculera ton résultat réel, toutes dépenses comprises.');
   }
 
@@ -7564,7 +7410,6 @@ function viewRentabilite(){
 
   return `
     <div class="rt-page">
-      ${rentaTabsHtml()}
       ${filterBar}
       ${hero}
       ${tiles}
@@ -7691,598 +7536,6 @@ function bindRentabiliteEvents(){
       state.filters.accounts = { q: acc.accountNumber, trader:[], propfirm:'', type:'', size:'', status:[], statusMenuOpen:false, traderMenuOpen:false, groupBy:[], groupByMenuOpen:false };
       render();
     };
-  });
-}
-
-/* ============================================================
-   COACH RENTABILITÉ (route 'coach') — ajoutée le 18/10/2026, page expérimentale
-   But : passer du constat (page « Rentabilité réelle ») à l'action. La page répond à trois
-   questions : « Est-ce que je gagne vraiment de l'argent ? », « Où est-ce que j'en perds ? »,
-   « Qu'est-ce que je change ce mois-ci ? ».
-   - Données : UNIQUEMENT celles déjà suivies (achats, mensualités, activations, resets, payouts).
-     Les frais généraux sont volontairement exclus (décision du 18/10/2026).
-   - Conseils : des règles fixes détectent les problèmes et chiffrent leur impact (fiable, gratuit
-     en API) ; Gemini ne fait que rédiger le bilan à partir de ces constats, il ne calcule rien.
-   - Offre : verdict, objectifs et indicateurs gratuits ; conseils détaillés + bilan IA en Premium.
-   - Réglages (vue Simple/Expert, période, budget, objectif de payout) : colonne profiles.coach_settings
-     (jsonb) si elle existe, sinon localStorage — la page fonctionne sans migration.
-   - Page masquable comme les autres via Admin > Gestion des pages (elle est dans BASE_NAV).
-============================================================ */
-const COACH_LS_KEY = 'ctx_coach_settings';
-const COACH_DEFAULTS = { mode:'simple', period:'90', budget:null, payoutGoal:null };
-const COACH_PERIODS = [ { v:'30', l:'30 jours' }, { v:'90', l:'90 jours' }, { v:'365', l:'12 mois' }, { v:'all', l:'Tout' } ];
-let __coachAi = { loading:false };
-
-function coachLsKey(){ return COACH_LS_KEY + ':' + (currentUserId() || 'anon'); }
-function coachSettings(){
-  let s = null;
-  if(state.profile && state.profile.coachSettings && typeof state.profile.coachSettings === 'object') s = state.profile.coachSettings;
-  if(!s){ try{ s = JSON.parse(localStorage.getItem(coachLsKey()) || 'null'); }catch(e){ s = null; } }
-  return { ...COACH_DEFAULTS, ...(s || {}) };
-}
-async function coachSaveSettings(patch){
-  const next = { ...coachSettings(), ...patch };
-  try{ localStorage.setItem(coachLsKey(), JSON.stringify(next)); }catch(e){}
-  // La colonne n'est écrite que si elle existe (présente dans le profil chargé par select('*')).
-  if(state.profile && ('coachSettings' in state.profile) && SUPABASE_CONFIGURED && currentUserId()){
-    state.profile.coachSettings = next;
-    const { error } = await supabaseClient.from('profiles').update({ coach_settings: next }).eq('id', currentUserId());
-    if(error && isAdmin()) showToast('coach_settings non enregistré en base : ' + error.message, 'danger');
-  }
-  return next;
-}
-function coIsoAdd(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
-function coDays(a, b){ return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
-function coMonthLabel(ym){ return new Date(ym + '-15T12:00:00').toLocaleDateString('fr-FR', { month:'short' }).replace('.', ''); }
-
-function computeCoachData(){
-  const st = coachSettings();
-  const today = todayISO();
-  const restricted = !canSeeAllData();
-  const accounts = restricted ? state.accounts.filter(isMineAccount) : state.accounts.slice();
-  const accIds = new Set(accounts.map(a=>a.id));
-  const allExp = computeAllExpenses().filter(e=>accIds.has(e.accountId));
-  const allPay = state.payouts.filter(p=>accIds.has(p.accountId));
-  const { useEur, currency, mixed } = resolveDisplayCurrency([...allExp, ...allPay]);
-  const val = (it)=> useEur ? toEur(it.amount, it.fxRateToEur) : Number(it.amount || 0);
-  const sum = (arr)=> arr.reduce((s,x)=>s + val(x), 0);
-  const inRange = (d, a, b)=> !!d && (!a || d >= a) && (!b || d <= b);
-
-  const days = st.period === 'all' ? null : Number(st.period);
-  const from = days ? coIsoAdd(today, -(days - 1)) : null;
-  const exp = allExp.filter(e=>inRange(e.date, from, today));
-  const pay = allPay.filter(p=>inRange(p.date, from, today));
-  const totalExp = sum(exp), totalPay = sum(pay), net = totalPay - totalExp;
-  let prev = null;
-  if(days){
-    const pFrom = coIsoAdd(from, -days), pTo = coIsoAdd(from, -1);
-    const pe = sum(allExp.filter(e=>inRange(e.date, pFrom, pTo))), pp = sum(allPay.filter(p=>inRange(p.date, pFrom, pTo)));
-    prev = (pe || pp) ? { exp:pe, pay:pp, net:pp - pe } : null;
-  }
-
-  // Comptes « nés » dans la période (achat ou activation) : base des taux et durées.
-  const born = (a)=> a.purchaseDate || a.activationDate;
-  const periodAcc = days ? accounts.filter(a=>inRange(born(a), from, today)) : accounts;
-  const payCount = new Map();
-  allPay.forEach(p=>payCount.set(p.accountId, (payCount.get(p.accountId) || 0) + 1));
-  // Mêmes définitions que l'entonnoir de l'onglet Constat (computeFunnelCounts).
-  const fn = computeFunnelCounts(periodAcc, payCount);
-  const { challenges, passed, failed, funded } = fn;
-  const fundedPaid = fn.paid, fundedLost = fn.lostBeforePayout;
-  const lifeOf = (arr, start)=> {
-    const xs = arr.filter(a=>a.status === 'BREACHED' && a.endDate && start(a)).map(a=>coDays(start(a), a.endDate)).filter(n=>n >= 0);
-    return xs.length ? xs.reduce((s,n)=>s + n, 0) / xs.length : null;
-  };
-  const resetSum = sum(exp.filter(e=>e.type === 'RESET'));
-  const resetCount = exp.filter(e=>e.type === 'RESET').length;
-  const costOf = (a)=> sum(allExp.filter(e=>e.accountId === a.id && e.type !== 'RESET' && (e.type !== 'MENSUALITE' || e.date === a.purchaseDate)));
-
-  // Mois civil en cours + 6 derniers mois (objectifs et historique).
-  const ym = today.slice(0,7);
-  const dayOfMonth = Number(today.slice(8,10));
-  const dim = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)), 0).getDate();
-  const monthExp = sum(allExp.filter(e=>e.date && e.date.slice(0,7) === ym && e.date <= today));
-  const monthPay = sum(allPay.filter(p=>p.date && p.date.slice(0,7) === ym));
-  const projectedExp = dayOfMonth >= 5 ? monthExp / dayOfMonth * dim : null;
-  const months = [];
-  for(let i = 5; i >= 0; i--){
-    const d = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)) - 1 - i, 15);
-    const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    months.push({ ym:k, exp: sum(allExp.filter(e=>e.date && e.date.slice(0,7) === k && e.date <= today)), pay: sum(allPay.filter(p=>p.date && p.date.slice(0,7) === k)) });
-  }
-
-  // Par PropFirm, sur la période.
-  const fm = new Map();
-  const fe = (id)=>{ if(!fm.has(id)) fm.set(id, { id, exp:0, pay:0, accounts:new Set() }); return fm.get(id); };
-  exp.forEach(e=>{ const a = getAccount(e.accountId); if(a){ const x = fe(a.propFirmId); x.exp += val(e); x.accounts.add(a.id); } });
-  pay.forEach(p=>{ const a = getAccount(p.accountId); if(a){ const x = fe(a.propFirmId); x.pay += val(p); x.accounts.add(a.id); } });
-  const firms = [...fm.values()].map(x=>({ ...x, n:x.accounts.size, active:[...x.accounts].some(id=>{ const a = getAccount(id); return a && a.status === 'ACTIF'; }), net:x.pay - x.exp, roi: x.exp > 0 ? (x.pay - x.exp) / x.exp * 100 : null }))
-    .sort((a,b)=>b.net - a.net);
-
-  const d = {
-    st, today, from, days, currency, converted:useEur, mixed, val,
-    totalExp, totalPay, net, roi: totalExp > 0 ? net / totalExp * 100 : null, prev,
-    payoutCount: pay.length,
-    costPerPayout: pay.length ? totalExp / pay.length : null,
-    spendPerEuro: totalPay > 0 ? totalExp / totalPay : null,
-    challenges: challenges.length, passed: passed.length, failed: failed.length,
-    passRate: (passed.length + failed.length) ? passed.length / (passed.length + failed.length) * 100 : null,
-    funded: funded.length, fundedPaid: fundedPaid.length, fundedLost: fundedLost.length, recurring: fn.recurring.length,
-    // Taux identiques à l'entonnoir : ≥1 payout ÷ comptes financés ; ≥2 payouts ÷ comptes payés.
-    paidRate: funded.length ? fundedPaid.length / funded.length * 100 : null,
-    recurringRate: fundedPaid.length ? fn.recurring.length / fundedPaid.length * 100 : null,
-    fundedLife: lifeOf(funded, a=>a.activationDate || a.purchaseDate),
-    challengeLife: lifeOf(challenges, a=>a.purchaseDate),
-    resetSum, resetCount, resetShare: totalExp > 0 ? resetSum / totalExp * 100 : null,
-    monthExp, monthPay, projectedExp, dayOfMonth, dim, months, firms,
-    empty: !allExp.length && !allPay.length,
-  };
-  d.findings = coachFindings(d, { accounts, allExp, allPay, periodAcc, challenges, funded, fundedLost, fn, payCount, costOf, inRange, sum });
-  return d;
-}
-
-/* Règles de détection. Chaque constat : sévérité, titre, constat chiffré, impact en devise
-   d'affichage, action concrète, et un lien vers l'endroit de l'app où agir. Triés par impact. */
-function coachFindings(d, ctx){
-  const out = [];
-  const cur = d.currency;
-  const m = (n)=> fmtMoneyCur(Math.abs(n), cur);
-  const { accounts, allExp, challenges, fn, costOf, inRange, sum } = ctx;
-  const periodTxt = d.days ? `sur les ${d.days} derniers jours` : 'depuis le début';
-
-  // 1. PropFirm qui coûte plus qu'elle ne rapporte.
-  d.firms.filter(f=>f.net < 0 && f.exp >= 150 && f.n >= 2).sort((a,b)=>a.net - b.net).slice(0,2).forEach(f=>{
-    const firm = getFirm(f.id); const name = firm ? firm.name : 'Cette propfirm';
-    out.push({ id:'firm-' + f.id, sev: (-f.net >= 0.25 * d.totalExp) ? 'high' : 'mid', impact: -f.net,
-      title: `${name} te coûte plus qu'elle ne te rapporte`,
-      finding: `${periodTxt.charAt(0).toUpperCase() + periodTxt.slice(1)} : ${m(f.exp)} dépensés pour ${m(f.pay)} reçus, sur ${f.n} comptes.`,
-      action: f.pay > 0
-        ? `Avant un nouvel achat chez ${name}, il pourrait être utile d'identifier pourquoi tes comptes y sautent : chaque compte t'y coûte en moyenne ${m(f.net / f.n)} net.`
-        : `Aucun payout chez ${name} pour l'instant. Tu pourrais envisager une pause et orienter ton budget là où tu as déjà été payé.`,
-      cta: { label:`Voir mes comptes ${name}`, nav:'accounts', firm:f.id } });
-  });
-
-  // 2. Rachat dans la foulée d'un breach (achat le jour même ou le lendemain).
-  const breaches = accounts.filter(a=>a.status === 'BREACHED' && a.endDate);
-  const rebuys = accounts.filter(a=>
-    !a.parentChallengeId && a.purchaseDate && inRange(a.purchaseDate, d.from, d.today) &&
-    breaches.some(b=>b.id !== a.id && b.traderId === a.traderId && a.purchaseDate >= b.endDate && a.purchaseDate <= coIsoAdd(b.endDate, 1)));
-  if(rebuys.length >= 2){
-    const cost = rebuys.reduce((s,a)=>s + costOf(a), 0);
-    const lostToo = rebuys.filter(a=>a.status === 'BREACHED').length;
-    out.push({ id:'tilt', sev: rebuys.length >= 3 ? 'high' : 'mid', impact: cost,
-      title: 'Tu rachètes dans la foulée d’un breach',
-      finding: `${rebuys.length} comptes achetés le jour même ou le lendemain d'un breach, pour ${m(cost)}${lostToo ? ` — ${lostToo} ont sauté à leur tour` : ''}.`,
-      action: 'Une règle des 24 h pourrait t’aider : après un breach, attendre le lendemain soir avant tout achat, et noter d’abord en une phrase ce qui l’a causé.',
-      cta: { label:'Voir le calendrier', nav:'calendrier' } });
-  }
-
-  // 3. Resets trop lourds.
-  if(d.resetCount >= 3 && d.resetShare >= 20){
-    out.push({ id:'resets', sev: d.resetShare >= 35 ? 'high' : 'mid', impact: d.resetSum,
-      title: 'Les resets pèsent lourd dans tes dépenses',
-      finding: `${d.resetCount} resets pour ${m(d.resetSum)}, soit ${Math.round(d.resetShare)} % de tout ce que tu as dépensé ${periodTxt}.`,
-      action: 'Un plafond de resets par compte (par exemple 2) peut limiter ce poste. Au-delà, compare avec le prix d’un compte neuf, souvent en promotion chez la même firm.',
-      cta: { label:'Voir mes comptes', nav:'accounts' } });
-  }
-
-  // 4. Ton point de fuite (18/10/2026) : l'étape de l'entonnoir où le trader perd le plus de comptes,
-  // en proportion des comptes arrivés au bout de l'étape. Remplace les anciennes règles « évals perdues
-  // en 3 jours » et « financés perdus avant payout », qui deviennent des détails de ce constat.
-  const chainCost = (a)=>{ const parent = a.parentChallengeId ? getAccount(a.parentChallengeId) : null; return costOf(a) + (parent ? costOf(parent) : 0); };
-  const pct = (x)=> Math.round(x) + ' %';
-  const stages = [];
-  {
-    const decided = fn.passed.length + fn.failed.length;
-    if(decided >= 3){
-      const fast = fn.failed.filter(c=>c.endDate && c.purchaseDate && coDays(c.purchaseDate, c.endDate) >= 0 && coDays(c.purchaseDate, c.endDate) <= 3).length;
-      const cost = fn.failed.reduce((s,a)=>s + costOf(a), 0);
-      stages.push({ key:'eval', share: fn.failed.length / decided, cost, label:'l’évaluation',
-        finding: `Réussite des évals : ${pct(d.passRate)} (${fn.passed.length} réussie(s) sur ${decided} terminée(s)). Les ${fn.failed.length} évals perdues t'ont coûté ${m(cost)}${fast ? `, dont ${fast} perdue(s) en 3 jours ou moins` : ''}${d.challengeLife != null ? ` ; une éval perdue tient ${Math.round(d.challengeLife)} j en moyenne` : ''}.`,
-        action: fast >= 2
-          ? 'Beaucoup d’évals tombent dès les premiers jours : un objectif de premier jour plus modeste et une perte quotidienne personnelle plus serrée que celle de la firm sont des pistes à étudier.'
-          : 'Avant le prochain achat, relis les évals perdues : la cause revient-elle (même horaire, même jour de la semaine, même taille de compte) ? Une piste : ne racheter qu’une fois la cause identifiée.' });
-    }
-  }
-  {
-    const decided = fn.paid.length + fn.lostBeforePayout.length;
-    if(decided >= 3 && fn.lostBeforePayout.length){
-      const cost = fn.lostBeforePayout.reduce((s,a)=>s + chainCost(a), 0);
-      stages.push({ key:'payout', share: fn.lostBeforePayout.length / decided, cost, label:'le premier payout',
-        finding: `Au moins 1 payout : ${pct(d.paidRate)} de tes comptes financés. ${fn.lostBeforePayout.length} ont été perdus sans aucun payout, pour ${m(cost)} (challenge + activation)${d.fundedLife != null ? ` ; un financé perdu tient ${Math.round(d.fundedLife)} j en moyenne` : ''}.`,
-        action: 'Un plan écrit pour la phase « avant premier payout » (objectif : le seuil de retrait minimum, avec une perte quotidienne plafonnée) pourrait t’aider à protéger ces comptes.' });
-    }
-  }
-  {
-    const decided = fn.recurring.length + fn.lostAfterOnePayout.length;
-    if(decided >= 3 && fn.lostAfterOnePayout.length){
-      const cost = fn.lostAfterOnePayout.reduce((s,a)=>s + chainCost(a), 0);
-      stages.push({ key:'recurring', share: fn.lostAfterOnePayout.length / decided, cost, label:'la régularité des payouts',
-        finding: `2 payouts ou plus : ${pct(d.recurringRate)} de tes comptes payés. ${fn.lostAfterOnePayout.length} compte(s) ont sauté juste après leur premier payout ; il a fallu ${m(cost)} pour les obtenir.`,
-        action: 'Après un premier retrait, le compte repart souvent avec une marge réduite. Une piste : reprendre avec une taille plus prudente jusqu’à reconstituer cette marge.' });
-    }
-  }
-  const leak = stages.filter(x=>x.share >= 0.5).sort((a,b)=>(b.share - a.share) || (b.cost - a.cost))[0];
-  if(leak){
-    out.push({ id:'leak-' + leak.key, sev: leak.share >= 0.7 ? 'high' : 'mid', impact: leak.cost,
-      title: `Ton point de fuite : ${leak.label}`,
-      finding: leak.finding + ` C'est l'étape de ton entonnoir où tu perds le plus de comptes (${pct(leak.share * 100)} des comptes arrivés au bout de l'étape).`,
-      action: leak.action,
-      cta: { label:'Voir l’entonnoir', nav:'rentabilite' } });
-  }
-
-  // 6. Challenges mensuels qui traînent (la mensualité tombe sans validation).
-  const draggers = accounts.filter(a=>a.type === 'CHALLENGE' && a.paymentType === 'MENSUEL' && a.status === 'ACTIF' && a.purchaseDate && coDays(a.purchaseDate, d.today) > 40);
-  if(draggers.length){
-    const cost = sum(allExp.filter(e=>e.type === 'MENSUALITE' && draggers.some(a=>a.id === e.accountId)));
-    out.push({ id:'drag', sev: draggers.length >= 2 ? 'mid' : 'low', impact: cost,
-      title: draggers.length > 1 ? `${draggers.length} challenges mensuels traînent` : 'Un challenge mensuel traîne',
-      finding: `Ouverts depuis plus de 40 jours sans être validés : ${m(cost)} de mensualités payées à ce jour.`,
-      action: 'Pour chacun, il peut être utile de trancher avant la prochaine échéance : viser la validation ce mois-ci, ou résilier.',
-      cta: { label:'Voir mes comptes', nav:'accounts' } });
-  }
-
-  // 7. Budget mensuel.
-  if(d.st.budget > 0){
-    const b = Number(d.st.budget);
-    if(d.monthExp > b){
-      out.push({ id:'budget', sev:'high', impact: d.monthExp - b,
-        title: 'Budget du mois dépassé',
-        finding: `${m(d.monthExp)} dépensés ce mois-ci pour un budget de ${m(b)}.`,
-        action: 'Pour respecter le cap que tu t’es fixé, tu pourrais reporter tout nouvel achat au mois prochain.',
-        cta: { label:'Modifier mes objectifs', act:'goals' } });
-    } else if(d.projectedExp && d.projectedExp > b * 1.05 && d.dayOfMonth >= 7){
-      out.push({ id:'budget', sev:'mid', impact: d.projectedExp - b,
-        title: 'Au rythme actuel, tu dépasseras ton budget',
-        finding: `Projection fin de mois : ${m(d.projectedExp)} pour un budget de ${m(b)}. Il te reste ${m(b - d.monthExp)}.`,
-        action: `Il te reste ${m(b - d.monthExp)} : tu pourrais décider dès maintenant à quoi les réserver d'ici la fin du mois.`,
-        cta: { label:'Modifier mes objectifs', act:'goals' } });
-    }
-  }
-
-  // 8. Point positif : la firm qui marche (seulement s'il y a aussi une firm perdante, pour orienter).
-  const best = d.firms.filter(f=>f.pay > 0 && f.net > 0 && f.roi != null).sort((a,b)=>b.roi - a.roi)[0];
-  if(best && d.firms.some(f=>f.net < 0)){
-    const firm = getFirm(best.id); const name = firm ? firm.name : 'Ta meilleure firm';
-    out.push({ id:'best', sev:'good', impact: best.net,
-      title: `${name} est ta firm la plus rentable`,
-      finding: `${m(best.pay)} reçus pour ${m(best.exp)} dépensés : ROI de ${Math.round(best.roi)} %.`,
-      action: `C'est là que ton trading est le mieux rémunéré à ce jour : un élément à prendre en compte pour tes prochains achats.`,
-      cta: { label:`Voir mes comptes ${name}`, nav:'accounts', firm:best.id } });
-  }
-
-  const rank = { high:0, mid:1, low:2, good:3 };
-  return out.sort((a,b)=>(rank[a.sev] - rank[b.sev]) || (b.impact - a.impact));
-}
-
-/* ---------- Rendu ---------- */
-function coSeg(id, opts, current){
-  return `<div class="co-seg" role="group">${opts.map(o=>`<button type="button" class="${o.v === current ? 'on' : ''}" data-co-${id}="${o.v}">${o.l}</button>`).join('')}</div>`;
-}
-function coDelta(cur, prev, money){
-  if(prev == null) return '';
-  const diff = cur - prev;
-  if(Math.abs(diff) < 0.5) return `<span class="co-delta">= période précédente</span>`;
-  return `<span class="co-delta ${diff > 0 ? 'up' : 'down'}">${icon(diff > 0 ? 'arrowUp' : 'arrowDown')}${money(Math.abs(diff))} vs période précédente</span>`;
-}
-function coGauge(value, max, label, sub, mode){
-  // mode 'budget' : vert → orange (80 %) → rouge (100 %). mode 'goal' : toujours accent.
-  const pct = max > 0 ? value / max * 100 : 0;
-  const col = mode === 'goal' ? 'var(--accent)' : (pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--gold)' : 'var(--accent)');
-  return `<div class="co-gauge">
-    <div class="co-gauge-top"><span>${label}</span><strong class="mono">${Math.round(pct)} %</strong></div>
-    <div class="co-gauge-bar"><div style="width:${Math.min(100, pct)}%;background:${col}"></div></div>
-    <div class="co-gauge-sub">${sub}</div>
-  </div>`;
-}
-function coFindingCard(f, cur){
-  const sevLabel = { high:'Priorité haute', mid:'À corriger', low:'À surveiller', good:'Point fort' }[f.sev];
-  const imp = f.sev === 'good' ? `+${fmtMoneyCur(f.impact, cur)}` : `${fmtMoneyCur(f.impact, cur)}`;
-  const cta = f.cta ? `<button type="button" class="co-link" ${f.cta.act ? `data-co-act="${f.cta.act}"` : `data-co-nav="${f.cta.nav}" data-co-firm="${escapeHtml(f.cta.firm || '')}"`}>${escapeHtml(f.cta.label)} →</button>` : '';
-  return `<article class="co-card sev-${f.sev}">
-    <div class="co-card-head">
-      <span class="co-sev">${sevLabel}</span>
-      <span class="co-impact"><span>${f.sev === 'good' ? 'Gain' : 'En jeu'}</span><strong class="mono">${imp}</strong></span>
-    </div>
-    <h3 class="co-card-title">${escapeHtml(f.title)}</h3>
-    <p class="co-card-finding">${escapeHtml(f.finding)}</p>
-    <div class="co-card-action">${icon('bolt')}<div><strong>Piste à envisager</strong>${escapeHtml(f.action)}</div></div>
-    ${cta}
-  </article>`;
-}
-function coAiCacheKey(d){
-  const sig = [d.st.period, Math.round(d.totalExp), Math.round(d.totalPay), d.findings.map(f=>f.id).join(',')].join('|');
-  return `ctx_coach_ai:${currentUserId() || 'anon'}:${d.today.slice(0,7)}:${sig}`;
-}
-function coAiCached(d){ try{ return JSON.parse(localStorage.getItem(coAiCacheKey(d)) || 'null'); }catch(e){ return null; } }
-function coAiFormat(text){
-  return String(text || '').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
-    const h = l.match(/^(?:#+\s*)?\*\*(.+?)\*\*:?$/) || l.match(/^#+\s*(.+)$/);
-    if(h) return `<h4>${escapeHtml(h[1].replace(/\*/g, ''))}</h4>`;
-    return `<p>${escapeHtml(l.replace(/^[-•]\s*/, '').replace(/\*\*/g, ''))}</p>`;
-  }).join('');
-}
-function coAiPrompt(d){
-  const m = (n)=> fmtMoneyCur(n, d.currency);
-  const per = d.days ? `les ${d.days} derniers jours` : 'tout l’historique';
-  const facts = [
-    `Période analysée : ${per}.`,
-    `Payouts reçus : ${m(d.totalPay)} (${d.payoutCount}). Dépenses en prop firms (achats, mensualités, activations, resets) : ${m(d.totalExp)}. Net réel : ${m(d.net)}.`,
-    d.prev ? `Période précédente : net ${m(d.prev.net)}.` : '',
-    d.spendPerEuro != null ? `Dépensé pour 1 unité retirée : ${d.spendPerEuro.toFixed(2)}.` : 'Aucun payout sur la période.',
-    d.passRate != null ? `Taux de réussite des évaluations terminées : ${Math.round(d.passRate)} %.` : '',
-    d.paidRate != null ? `Comptes financés ayant versé au moins un payout : ${Math.round(d.paidRate)} %.` : '',
-    d.recurringRate != null ? `Comptes payés ayant versé au moins deux payouts : ${Math.round(d.recurringRate)} %.` : '',
-    d.st.budget ? `Budget mensuel fixé : ${m(d.st.budget)} ; dépensé ce mois : ${m(d.monthExp)}.` : '',
-    d.st.payoutGoal ? `Objectif de payout mensuel : ${m(d.st.payoutGoal)} ; reçu ce mois : ${m(d.monthPay)}.` : '',
-  ].filter(Boolean).join('\n');
-  const findings = d.findings.length
-    ? d.findings.map((f,i)=>`${i + 1}. [${f.sev === 'good' ? 'point fort' : 'problème'}] ${f.title} — ${f.finding} Montant en jeu : ${m(f.impact)}. Action prévue : ${f.action}`).join('\n')
-    : 'Aucun problème détecté par les règles.';
-  return `Tu es le coach de gestion de Contralytix, une application qui suit la rentabilité réelle des comptes de prop firms d'un trader (ce qu'il paie aux prop firms vs ce qu'il retire en payouts).
-Rédige le bilan du trader, en français, en le tutoyant, ton direct et bienveillant, 130 à 190 mots.
-Structure imposée, exactement trois parties avec ces titres sur leur propre ligne, en gras :
-**Ce qui va**
-**Ce qui te coûte**
-**Une piste pour ce mois**
-Règles strictes : formule tout comme des suggestions (« tu pourrais », « une piste serait »), jamais comme des ordres ni des certitudes. utilise UNIQUEMENT les chiffres ci-dessous, n'en invente ni n'en calcule aucun autre. Ne donne aucun conseil d'investissement, aucun signal ni aucune stratégie de trading : tu parles de gestion du budget, du choix des prop firms et de discipline. « Une piste pour ce mois » = une seule suggestion, la plus utile au vu des chiffres, formulée concrètement. Pas de listes à puces, pas de formule de politesse.
-
-Données :
-${facts}
-
-Constats détectés :
-${findings}`;
-}
-
-// Avertissement juridique du coach (18/10/2026) : les constats et le bilan sont des suggestions
-// informatives, pas des directives ni un conseil en investissement. Toujours visible sur la page.
-function coDisclaimerHtml(){
-  return `<aside class="co-disclaimer" role="note">
-    ${icon('info')}
-    <div>
-      <strong>Des suggestions, pas des directives</strong>
-      <p>Les constats et pistes du coach sont fournis à titre informatif et pédagogique. Ce sont des suggestions générales sur la gestion de ton budget, pas des instructions ni des recommandations personnalisées. Ils ne constituent ni un conseil en investissement, ni un conseil financier, fiscal ou juridique : Contralytix n’est pas un conseiller en investissements financiers.</p>
-      <p>Ils reposent uniquement sur les données que tu as saisies ou importées, qui peuvent être incomplètes ou inexactes. Le bilan est rédigé par une intelligence artificielle et peut contenir des erreurs. Les résultats passés ne préjugent pas des résultats futurs, et le trading de produits à effet de levier comporte un risque élevé de perte.</p>
-      <p>Tu restes seul juge et seul responsable de tes décisions, notamment d’achat ou d’arrêt de comptes auprès des prop firms. Contralytix ne saurait être tenu responsable des conséquences de leur application. <button type="button" class="co-link" data-co-nav="cgv">Voir les CGU</button></p>
-    </div>
-  </aside>`;
-}
-function viewCoach(){
-  const d = computeCoachData();
-  const st = d.st;
-  const cur = d.currency;
-  const m = (n)=> fmtMoneyCur(n, cur);
-  const premium = perms().isPremium;
-  const expert = st.mode === 'expert';
-
-  const bar = `
-    <div class="co-bar">
-      ${coSeg('period', COACH_PERIODS, st.period)}
-      <div class="filter-bar-spacer"></div>
-      ${coSeg('mode', [{v:'simple', l:'Vue simple'}, {v:'expert', l:'Vue experte'}], st.mode)}
-      <button type="button" class="btn btn-outline btn-sm" data-co-act="goals">${icon('edit')}Mes objectifs</button>
-    </div>`;
-
-  if(d.empty){
-    return `<div class="co-page">${rentaTabsHtml()}${bar}${emptyState('trophy', 'Ton coach attend tes premiers chiffres',
-      'Ajoute tes comptes (challenges, PA) et tes payouts : le coach calculera ce que tu gagnes vraiment et ce que tu peux améliorer.')}</div>`;
-  }
-
-  // 1. Verdict.
-  const positive = d.net >= 0;
-  const state3 = d.totalPay === 0 && d.totalExp > 0 ? { k:'neg', l:'Pas encore rentable' }
-    : positive ? { k:'pos', l:'Rentable' } : { k:'neg', l:'En perte' };
-  const perTxt = st.period === 'all' ? 'depuis le début' : `sur ${COACH_PERIODS.find(p=>p.v === st.period).l}`;
-  let sentence;
-  if(d.totalPay === 0) sentence = `Tu as investi <strong>${m(d.totalExp)}</strong> ${perTxt} sans payout pour l'instant. Le premier retrait est ton objectif n°1.`;
-  else if(positive) sentence = `Pour chaque <strong>1 ${cur === 'EUR' ? '€' : '$'}</strong> retiré, tu as dépensé <strong>${d.spendPerEuro.toFixed(2).replace('.', ',')} ${cur === 'EUR' ? '€' : '$'}</strong> en prop firms. Ton trading paie plus qu'il ne coûte.`;
-  else sentence = `Pour chaque <strong>1 ${cur === 'EUR' ? '€' : '$'}</strong> retiré, tu as dépensé <strong>${d.spendPerEuro.toFixed(2).replace('.', ',')} ${cur === 'EUR' ? '€' : '$'}</strong>. Il te manque <strong>${m(-d.net)}</strong> de payouts pour être à l'équilibre.`;
-  const convNote = d.converted ? `<span class="text-faint co-conv">${convertedLabel(true, d.mixed)}</span>` : '';
-  const verdict = `
-    <section class="panel co-verdict ${state3.k}">
-      <div>
-        <span class="co-state">${state3.l}</span>
-        <div class="co-net mono">${positive ? '+' : '−'}${m(Math.abs(d.net))}</div>
-        <div class="co-net-sub">Net réel ${perTxt}${infoTip('Payouts reçus − ce que tu as payé aux prop firms : achats, mensualités, frais d’activation et resets. Les frais généraux (data, VPS…) ne sont pas comptés ici.')} ${coDelta(d.net, d.prev ? d.prev.net : null, m)} ${convNote}</div>
-      </div>
-      <p class="co-sentence">${sentence}</p>
-      <div class="co-verdict-split">
-        <div><span>Reçu</span><strong class="mono">${m(d.totalPay)}</strong></div>
-        <div><span>Dépensé</span><strong class="mono">${m(d.totalExp)}</strong></div>
-        <div><span>ROI</span><strong class="mono">${rtPct(d.roi)}</strong></div>
-      </div>
-    </section>`;
-
-  // 2. Objectifs (mois civil en cours).
-  const monthName = new Date(d.today + 'T12:00:00').toLocaleDateString('fr-FR', { month:'long' });
-  let goals;
-  if(!st.budget && !st.payoutGoal){
-    goals = `<section class="panel co-goals-empty">
-      <div>${icon('star')}</div>
-      <div><strong>Fixe-toi un cap</strong><span>Un budget mensuel maximum et un objectif de payout : le coach te dira chaque mois si tu es dans les clous.</span></div>
-      <button type="button" class="btn btn-primary btn-sm" data-co-act="goals">Définir mes objectifs</button>
-    </section>`;
-  } else {
-    const b = Number(st.budget || 0), g = Number(st.payoutGoal || 0);
-    goals = `<section class="panel co-goals">
-      <div class="co-goals-head"><div class="section-title">Objectifs de ${monthName}</div><span class="text-faint">Jour ${d.dayOfMonth} sur ${d.dim}</span></div>
-      <div class="co-goals-grid">
-        ${b ? coGauge(d.monthExp, b, 'Budget dépensé', `${m(d.monthExp)} sur ${m(b)}${d.monthExp < b ? ` · reste <strong>${m(b - d.monthExp)}</strong>` : ` · <strong style="color:var(--danger)">dépassé de ${m(d.monthExp - b)}</strong>`}${d.projectedExp && d.monthExp < b ? ` · projection ${m(d.projectedExp)}` : ''}`, 'budget') : ''}
-        ${g ? coGauge(d.monthPay, g, 'Objectif de payout', `${m(d.monthPay)} sur ${m(g)}${d.monthPay >= g ? ' · <strong style="color:var(--accent)">atteint</strong>' : ` · il manque <strong>${m(g - d.monthPay)}</strong>`}`, 'goal') : ''}
-      </div>
-    </section>`;
-  }
-
-  // 3. Points d'amélioration.
-  const issues = d.findings.filter(f=>f.sev !== 'good');
-  // Pas de somme des impacts : plusieurs constats peuvent porter sur les mêmes dépenses (ex. une
-  // firm perdante ET des rachats après breach chez elle). On affiche le plus gros impact unitaire.
-  const atStake = issues.reduce((mx,f)=>Math.max(mx, f.impact), 0);
-  const highCount = issues.filter(f=>f.sev === 'high').length;
-  let findingsBody;
-  if(!d.findings.length){
-    findingsBody = `<div class="co-ok">${icon('check')}<div><strong>Aucun point bloquant détecté ${perTxt}.</strong><span>Continue à enregistrer tes comptes et tes payouts : le coach surveille en continu.</span></div></div>`;
-  } else if(!premium){
-    findingsBody = `<div class="co-locked">
-      <div class="co-locked-cards" aria-hidden="true">${d.findings.slice(0,3).map(f=>`<div class="co-card sev-${f.sev} co-ghost"><div class="co-ghost-line w40"></div><div class="co-ghost-line w90"></div><div class="co-ghost-line w70"></div></div>`).join('')}</div>
-      <div class="co-locked-over">
-        <div class="co-locked-n">${d.findings.length} point${d.findings.length > 1 ? 's' : ''} d’amélioration détecté${d.findings.length > 1 ? 's' : ''}</div>
-        ${atStake > 0 ? `<div class="co-locked-sub">Le plus important pèse <strong class="mono">${m(atStake)}</strong> ${perTxt}</div>` : ''}
-        <button class="btn btn-primary btn-sm upgrade-cta" onclick="openUpgradeModal('Les conseils du coach')">🚀 Voir mes conseils avec Premium</button>
-      </div>
-    </div>`;
-  } else {
-    const shown = expert ? d.findings : d.findings.slice(0,3);
-    findingsBody = `<div class="co-cards">${shown.map(f=>coFindingCard(f, cur)).join('')}</div>
-      ${!expert && d.findings.length > 3 ? `<button type="button" class="co-link co-more" data-co-mode="expert">Voir les ${d.findings.length} constats en vue experte →</button>` : ''}`;
-  }
-  const findings = `
-    <section class="co-section">
-      <div class="co-section-head">
-        <div class="section-title">Ce que tu peux améliorer${infoTip('Des règles fixes analysent tes comptes et chiffrent chaque problème : ce n’est pas une estimation de l’IA. Les montants « en jeu » sont ce que le problème t’a coûté sur la période. Les pistes proposées sont des suggestions, pas des directives.')}</div>
-        ${premium && highCount ? `<span class="co-stake">${highCount} priorité${highCount > 1 ? 's' : ''} haute${highCount > 1 ? 's' : ''}</span>` : ''}
-      </div>
-      ${findingsBody}
-    </section>`;
-
-  // 4. Bilan IA (Premium).
-  const cached = premium ? coAiCached(d) : null;
-  const ai = `
-    <section class="panel co-ai">
-      <div class="co-section-head">
-        <div class="section-title">${icon('sparkles')}Bilan du coach${infoTip('Rédigé par l’IA à partir des chiffres et des constats ci-dessus uniquement. Il ne calcule rien lui-même, peut contenir des erreurs et ne donne aucun conseil de trading ni d’investissement.')}</div>
-        ${premium && cached && !__coachAi.loading ? `<button type="button" class="co-link" data-co-act="ai">Régénérer</button>` : ''}
-      </div>
-      ${!premium ? `<div class="co-ai-empty"><span>Un bilan clair, rédigé chaque mois à partir de tes chiffres : ce qui va, ce qui te coûte, une piste pour le mois.</span><button class="btn btn-outline btn-sm upgrade-cta" onclick="openUpgradeModal('Le bilan du coach IA')">${icon('lock')}Premium</button></div>`
-        : __coachAi.loading ? `<div class="co-ai-loading"><span class="co-spin"></span>Le coach rédige ton bilan…</div>`
-        : cached ? `<div class="co-ai-text">${coAiFormat(cached.text)}</div><div class="co-ai-meta">Généré par IA le ${fmtDate(cached.at.slice(0,10))} à partir de tes données · simples suggestions, à vérifier avant toute décision</div>`
-        : `<div class="co-ai-empty"><span>Ton bilan en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois.</span><button type="button" class="btn btn-primary btn-sm" data-co-act="ai">${icon('sparkles')}Générer mon bilan</button></div>`}
-    </section>`;
-
-  if(!expert){
-    return `<div class="co-page">${rentaTabsHtml()}${bar}${verdict}${goals}${findings}${ai}
-      ${coDisclaimerHtml()}
-      <div class="co-foot">Envie de tous les chiffres ? <button type="button" class="co-link" data-co-mode="expert">Passer en vue experte</button> ou <button type="button" class="co-link" data-co-nav="rentabilite">ouvrir la Rentabilité réelle</button>.</div>
-    </div>`;
-  }
-
-  // 5. Vue experte : indicateurs, 6 derniers mois, firms.
-  const tile = (label, value, sub, tip, rail)=> `<div class="stat-tile" style="--rail:${rail || 'var(--slate)'}"><div class="stat-label">${label}${infoTip(tip)}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>`;
-  const pct = (n)=> n == null ? '—' : Math.round(n) + ' %';
-  const dd = (n)=> n == null ? '—' : Math.round(n) + ' j';
-  const kpis = `<div class="stats-grid co-kpis">
-    ${tile('Coût par payout', d.costPerPayout == null ? '—' : m(d.costPerPayout), `${d.payoutCount} payout(s) ${perTxt}`, 'Dépenses de la période ÷ nombre de payouts reçus.')}
-    ${tile('Réussite des évals', pct(d.passRate), `${d.passed} réussie(s) · ${d.failed} perdue(s)`, 'Comme dans l’entonnoir : challenges réussis ÷ (réussis + perdus), achetés sur la période. Les challenges en cours ne comptent pas.', d.passRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
-    ${tile('Au moins 1 payout', pct(d.paidRate), `${d.fundedPaid} sur ${d.funded} compte(s) financé(s)`, 'Comme dans l’entonnoir : comptes financés ayant versé au moins un payout ÷ comptes financés de la période (en cours compris).', d.paidRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
-    ${tile('2 payouts ou plus', pct(d.recurringRate), `${d.recurring} sur ${d.fundedPaid} compte(s) payé(s)`, 'Comme dans l’entonnoir : comptes ayant versé au moins deux payouts ÷ comptes ayant versé au moins un payout. Le signe d’une régularité.', d.recurringRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
-    ${tile('Durée de vie d’un financé', dd(d.fundedLife), 'Moyenne avant breach', 'Nombre moyen de jours entre l’activation et le breach, pour les comptes financés perdus sur la période.')}
-    ${tile('Poids des resets', pct(d.resetShare), `${d.resetCount} reset(s) · ${m(d.resetSum)}`, 'Part des resets dans tes dépenses de la période.', d.resetShare >= 20 ? 'var(--gold)' : 'var(--slate)')}
-  </div>`;
-
-  const maxM = Math.max(1, ...d.months.map(x=>Math.max(x.exp, x.pay)), Number(st.budget || 0));
-  const budgetY = st.budget ? (1 - Number(st.budget) / maxM) * 100 : null;
-  const history = `
-    <section class="panel co-history">
-      <div class="co-section-head"><div class="section-title">6 derniers mois</div>
-        <div class="co-legend"><span><i style="background:var(--danger)"></i>Dépensé</span><span><i style="background:var(--accent)"></i>Reçu</span>${st.budget ? `<span><i class="dash"></i>Budget</span>` : ''}</div></div>
-      <div class="co-bars">
-        ${budgetY != null ? `<div class="co-budget-line" style="top:${budgetY}%"></div>` : ''}
-        ${d.months.map(x=>`<div class="co-bar-col" title="${coMonthLabel(x.ym)} : dépensé ${m(x.exp)} · reçu ${m(x.pay)} · net ${m(x.pay - x.exp)}">
-          <div class="co-bar-pair"><div class="co-b exp" style="height:${x.exp / maxM * 100}%"></div><div class="co-b pay" style="height:${x.pay / maxM * 100}%"></div></div>
-          <div class="co-bar-lbl">${coMonthLabel(x.ym)}</div>
-          <div class="co-bar-net mono ${x.pay - x.exp >= 0 ? 'pos' : 'neg'}">${x.pay - x.exp >= 0 ? '+' : '−'}${m(Math.abs(x.pay - x.exp))}</div>
-        </div>`).join('')}
-      </div>
-    </section>`;
-
-  const verdictOf = (f)=> f.pay === 0 && f.active && f.n <= 2 ? { k:'slate', l:'En cours' }
-    : f.pay === 0 && f.exp > 0 ? { k:'neg', l:'Pas de payout' }
-    : f.net >= 0 ? { k:'pos', l:'Rentable' } : (f.roi != null && f.roi > -40 ? { k:'mid', l:'À surveiller' } : { k:'neg', l:'À stopper' });
-  const firmsTable = d.firms.length ? `
-    <section class="panel">
-      <div class="panel-head"><div class="section-title">Tes prop firms, de la plus à la moins rentable${infoTip('Sur la période choisie. « Dépensé pour 1 retiré » : combien tu as payé à la firm pour chaque unité reçue en payout.')}</div></div>
-      <div class="rt-table-wrap"><table class="rt-table">
-        <thead><tr><th>PropFirm</th><th class="num">Comptes</th><th class="num">Dépensé</th><th class="num">Reçu</th><th class="num">Net</th><th class="num">Dépensé pour 1 retiré</th><th>Verdict</th></tr></thead>
-        <tbody>${d.firms.map(f=>{ const firm = getFirm(f.id); const v = verdictOf(f); return `<tr>
-          <td style="font-weight:600;"><span class="firm-name-inline">${firmLogoHtml(firm,18)}${escapeHtml(firm ? firm.name : '—')}</span></td>
-          <td class="num">${f.n}</td><td class="num mono">${m(f.exp)}</td><td class="num mono">${m(f.pay)}</td>
-          <td class="num mono" style="color:${f.net >= 0 ? 'var(--accent)' : 'var(--danger)'};font-weight:600;">${f.net >= 0 ? '+' : '−'}${m(Math.abs(f.net))}</td>
-          <td class="num mono">${f.pay > 0 ? (f.exp / f.pay).toFixed(2).replace('.', ',') : '—'}</td>
-          <td><span class="co-chip ${v.k}">${v.l}</span></td></tr>`; }).join('')}</tbody>
-      </table></div>
-    </section>` : '';
-
-  return `<div class="co-page">${rentaTabsHtml()}${bar}${verdict}${goals}${kpis}${findings}<div class="co-grid-2">${history}${ai}</div>${firmsTable}
-    ${coDisclaimerHtml()}
-    <div class="co-foot">Entonnoir, courbe du net cumulé et preuves de payout : <button type="button" class="co-link" data-co-nav="rentabilite">Rentabilité réelle →</button></div>
-  </div>`;
-}
-
-function coachGoalsModal(){
-  const st = coachSettings();
-  const d = computeCoachData();
-  const sym = d.currency === 'EUR' ? '€' : '$';
-  const avg = d.months.slice(0,5).filter(x=>x.exp > 0);
-  const avgExp = avg.length ? avg.reduce((s,x)=>s + x.exp, 0) / avg.length : null;
-  openModal({
-    title: 'Mes objectifs mensuels',
-    bodyHtml: `
-      <p class="text-faint" style="font-size:12.5px;margin:0 0 14px;line-height:1.5;">Ils servent de repère au coach : il te prévient quand tu approches de ton budget et suit ta progression vers ton objectif de payout. Montants en ${d.currency}.</p>
-      <div class="field"><label>Budget mensuel maximum en prop firms (${sym})</label>
-        <input id="co-budget" type="number" min="0" step="10" inputmode="decimal" value="${st.budget || ''}" placeholder="Ex : 300"/>
-        <div class="field-hint">Achats, mensualités, activations et resets confondus.${avgExp ? ` Tu as dépensé ${fmtMoneyCur(avgExp, d.currency)} par mois en moyenne ces derniers mois.` : ''}</div></div>
-      <div class="field"><label>Objectif de payout mensuel (${sym})</label>
-        <input id="co-goal" type="number" min="0" step="10" inputmode="decimal" value="${st.payoutGoal || ''}" placeholder="Ex : 1000"/>
-        <div class="field-hint">Laisse vide pour ne pas suivre d’objectif.</div></div>`,
-    footHtml: `<button class="btn btn-outline" id="co-cancel">Annuler</button><button class="btn btn-primary" id="co-save">Enregistrer</button>`,
-    onMount(){
-      document.getElementById('co-cancel').onclick = closeModal;
-      document.getElementById('co-save').onclick = async ()=>{
-        const num = (id)=>{ const v = parseFloat(String(document.getElementById(id).value).replace(',', '.')); return v > 0 ? Math.round(v * 100) / 100 : null; };
-        await coachSaveSettings({ budget: num('co-budget'), payoutGoal: num('co-goal') });
-        closeModal(); showToast('Objectifs enregistrés.'); renderView();
-      };
-    }
-  });
-}
-async function coachGenerateAi(){
-  if(__coachAi.loading || !perms().isPremium) return;
-  const d = computeCoachData();
-  __coachAi.loading = true; renderView();
-  // Gemini (décision du 18/10/2026), via la même fonction que le chatbot : callAiSynthesis()
-  // passe par ai-synthesis.js (Groq), dont la clé n'est pas configurée partout.
-  let text = null;
-  try{
-    const res = await fetch('/.netlify/functions/gemini-synthesis', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: coAiPrompt(d) })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.overloaded ? 'le service IA est surchargé, réessaie dans quelques minutes' : (data.error || 'erreur ' + res.status));
-    text = (data.text || '').trim() || null;
-    if(!text) throw new Error('réponse vide');
-  } catch(e){
-    showToast('Bilan du coach indisponible : ' + e.message, 'danger');
-  }
-  __coachAi.loading = false;
-  if(text){ try{ localStorage.setItem(coAiCacheKey(d), JSON.stringify({ text, at: new Date().toISOString() })); }catch(e){} }
-  if(state.route === 'coach') renderView();
-}
-function bindCoachEvents(){
-  if(state.route !== 'coach') return;
-  const root = document.getElementById('view-root') || document;
-  root.querySelectorAll('[data-co-period]').forEach(b=> b.onclick = async ()=>{ await coachSaveSettings({ period: b.dataset.coPeriod }); renderView(); });
-  root.querySelectorAll('[data-co-mode]').forEach(b=> b.onclick = async ()=>{ await coachSaveSettings({ mode: b.dataset.coMode }); renderView(); });
-  root.querySelectorAll('[data-co-act]').forEach(b=> b.onclick = ()=>{
-    if(b.dataset.coAct === 'goals') coachGoalsModal();
-    else if(b.dataset.coAct === 'ai') coachGenerateAi();
-  });
-  root.querySelectorAll('[data-co-nav]').forEach(b=> b.onclick = ()=>{
-    const firm = b.dataset.coFirm;
-    if(b.dataset.coNav === 'accounts' && state.filters.accounts){
-      state.filters.accounts.propfirm = firm || '';
-      if(firm) state.filters.accounts.status = [];
-    }
-    state.route = b.dataset.coNav; render();
   });
 }
 
@@ -11533,11 +10786,6 @@ const HELP_CATEGORIES = [
     { q:"Pourquoi le net de Rentabilité réelle diffère-t-il de celui du Dashboard ?", a:"Il ne devrait pas : les deux pages utilisent le même calcul et le même filtre trader. Vérifie trois choses : la case « Inclure les frais généraux » (cochée = Net global du Dashboard, décochée = Net comptes propfirm), les filtres actifs (trader, PropFirm, dates), et qu'aucun compte n'est rattaché à un autre trader que celui sélectionné." },
     { q:"Comment est calculé le taux de réussite des challenges ?", a:"Réussis ÷ (réussis + breached), comme sur le Dashboard et le Comparatif : un challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul et affiché à part (« X en cours »)." },
     { q:"C'est quoi « Payouts prouvés » ?", a:"La part du montant de tes payouts appuyée par un justificatif (mail de la PropFirm, virement reçu). Ajoute les fichiers depuis la ligne du payout, dans la fiche du compte. Les dépenses, elles, restent déclaratives : c'est le gain qui se prouve." },
-    { q:"Qu'est-ce que le Coach rentabilité ?", a:"L'onglet « Coach » de la page Rentabilité réelle (menu Performance), qui transforme tes chiffres en pistes concrètes : un verdict (rentable ou non), tes objectifs du mois (budget maximum, objectif de payout) et des constats chiffrés comme une prop firm qui te coûte plus qu'elle ne rapporte, des rachats juste après un breach ou des resets trop lourds. Une vue simple et une vue experte sont disponibles." },
-    { q:"Le Coach rentabilité me donne-t-il des conseils d'investissement ?", a:"Non. Ses constats, pistes et bilans sont des suggestions informatives sur la gestion de ton budget prop firm, pas des directives ni des conseils en investissement, financiers ou fiscaux. Ils reposent uniquement sur les données que tu as saisies, et le bilan rédigé par IA peut contenir des erreurs. Tu restes seul juge de tes décisions (CGU, article 9 ter)." },
-    { q:"Comment sont calculés les constats et les montants « en jeu » ?", a:"Par des règles fixes appliquées à tes comptes, pas par l'IA. Le montant « en jeu » est ce que le point concerné t'a coûté sur la période choisie (achats, activations, resets…). Un même achat peut apparaître dans deux constats (par exemple une prop firm perdante et un rachat après breach) : c'est pourquoi les montants ne sont jamais additionnés." },
-    { q:"Pourquoi le net du Coach diffère-t-il de celui de Rentabilité réelle ?", a:"Le Coach ne compte que ce que tu paies aux prop firms et ce qu'elles te versent : les frais généraux (data, plateforme, VPS…) sont exclus. Sa période (30 j, 90 j, 12 mois, tout) est aussi indépendante des filtres de Rentabilité réelle. Décoche « Inclure les frais généraux » et choisis la même période pour comparer." },
-    { q:"Qu'est-ce que l'IA reçoit pour rédiger le bilan du coach ?", a:"Uniquement des totaux (dépensé, reçu, net), des taux, les constats calculés, les noms des prop firms concernées et tes objectifs. Jamais ton nom, ton e-mail ni tes numéros de compte. Le bilan n'est généré que lorsque tu cliques sur « Générer mon bilan », et il est conservé dans ton navigateur. Fonction réservée à Premium." },
     { q:"Qu'est-ce que l'espace Communauté ?", a:"Un bilan collectif pour une école de trading ou une communauté : le responsable crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
     { q:"Le responsable de la communauté voit-il mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
     { q:"Comment fonctionne le classement de la communauté ?", a:"Communauté > onglet « Classement ». Il est facultatif : clique « Participer », choisis un pseudo ou ton prénom et accepte le règlement. Les participants sont classés au ROI du mois (net du mois ÷ capital engagé), pour qu'un petit capital parte à égalité avec un gros. Le règlement complet est affiché sous le classement. Tu peux te retirer à tout moment." },
@@ -11834,7 +11082,7 @@ const MANUAL_CHAPTERS = [
     <h3>Droits d'édition</h3>
     <p>Un compte n'est modifiable ou supprimable que par son créateur ou un administrateur ; sinon il s'affiche en lecture seule, avec un accès conservé à la consultation des payouts.</p>` },
   { n:'7', id:'m-radar', title:"Radar inactivité", html:`
-    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes, réservé aux formules Premium et Lifetime) surveille les comptes PA et Live de ton trader et te prévient avant qu'il soit trop tard.</p>
+    <p>Beaucoup de PropFirms ferment un compte financé s'il reste trop longtemps sans trade. Le Radar inactivité (menu Comptes &amp; Traders, réservé aux formules Premium et Lifetime) surveille les comptes PA et Live de ton trader et te prévient avant qu'il soit trop tard.</p>
     <h3>Un outil à ton choix</h3>
     <p>Le Radar demande de pointer tes journées tradées : il est donc <b>désactivé par défaut</b>. Active-le depuis la page Radar inactivité (« Activer le Radar ») ou depuis <b>Profil → Radar inactivité</b> (case « Utiliser le Radar inactivité »). Tu peux le désactiver à tout moment au même endroit : plus de bandeau, d'alerte, de bande sur les cartes ni de pointage. Tes réglages et ton historique de pointage sont conservés pour le jour où tu le réactives. Il suit tous les comptes financés de ton trader, y compris ceux qu'un administrateur ou un coach aurait créés pour toi.</p>
     ${manualShot('19-radar.jpg', "Radar inactivité — tuiles de synthèse, filtres et comptes triés par urgence.")}
@@ -11945,29 +11193,6 @@ const MANUAL_CHAPTERS = [
       <li><b>Payouts sans preuve</b> — tes plus gros payouts sans justificatif ; un clic ouvre le compte pour ajouter le fichier depuis la ligne du payout.</li>
       <li><b>Rentabilité par PropFirm</b> — challenges, comptes financés, taux de payout, dépensé, reçu, net et ROI de chaque PropFirm (hors frais généraux), trié du meilleur au moins bon net.</li>
     </ul>` },
-  { n:'15b', id:'m-coach', title:"Coach rentabilité", html:`
-    <p>Là où la page Rentabilité réelle fait le constat, l'onglet <b>Coach</b> de cette même page (menu Performance › Rentabilité réelle) t'aide à passer à l'action : où tu perds de l'argent, combien, et ce que tu pourrais changer ce mois-ci. Page en test : elle peut évoluer ou disparaître.</p>
-    <h3>Ce qui est compté</h3>
-    <p>Uniquement ce que tu paies aux prop firms et ce qu'elles te versent : achats de challenges, mensualités, frais d'activation, resets et payouts. Les frais généraux (data, plateforme, VPS…) ne sont pas pris en compte ici. Seuls tes propres comptes sont analysés.</p>
-    <h3>Période, vues et objectifs</h3>
-    <ul>
-      <li><b>Période</b> — 30 jours, 90 jours, 12 mois ou tout l'historique. Le net est comparé à la période précédente de même durée.</li>
-      <li><b>Vue simple</b> — le verdict, tes objectifs, les 3 constats les plus importants et le bilan IA.</li>
-      <li><b>Vue experte</b> — en plus : 6 indicateurs (coût par payout, réussite des évals, au moins 1 payout, 2 payouts ou plus, durée de vie d'un compte financé, poids des resets), calculés exactement comme l'entonnoir de l'onglet Constat, l'histogramme des 6 derniers mois avec ta ligne de budget, et un verdict par prop firm.</li>
-      <li><b>Mes objectifs</b> — un budget mensuel maximum et un objectif de payout mensuel. La jauge du budget passe à l'orange à 80 % et au rouge à 100 %, avec une projection de fin de mois au rythme actuel.</li>
-    </ul>
-    <p>Tes réglages sont mémorisés : sur ton compte si la fonctionnalité est activée côté serveur, sinon dans ton navigateur.</p>
-    <h3>Le verdict</h3>
-    <p>Rentable, en perte ou pas encore rentable, avec ton net réel de la période et une phrase simple : combien tu as dépensé en prop firms pour chaque unité retirée.</p>
-    <h3>Ce que tu peux améliorer</h3>
-    <p>Des règles fixes analysent tes comptes et chiffrent chaque point : ce n'est pas une estimation de l'IA. Les situations repérées : une prop firm qui coûte plus qu'elle ne rapporte, des rachats le jour même ou le lendemain d'un breach, des resets qui dépassent 20 % des dépenses, ton <b>point de fuite</b> (l'étape de l'entonnoir où tu perds le plus de comptes : l'évaluation, le premier payout ou la régularité des payouts, avec son coût et un lien vers l'entonnoir), des challenges mensuels ouverts depuis plus de 40 jours, un budget dépassé ou en passe de l'être, et ta prop firm la plus rentable.</p>
-    <p>Chaque carte donne le constat, le montant « en jeu » (ce que ce point t'a coûté sur la période), une <b>piste à envisager</b> et un lien vers l'endroit de l'app concerné. Plusieurs constats peuvent porter sur les mêmes dépenses : leurs montants ne s'additionnent pas.</p>
-    <h3>Bilan du coach (IA)</h3>
-    <p>Un clic sur « Générer mon bilan » fait rédiger par l'IA (Gemini) un texte en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois. Elle ne reçoit que les chiffres et constats déjà calculés, sans ton nom, ton e-mail ni tes numéros de compte, et n'en invente aucun. Le bilan est gardé dans ton navigateur et se régénère quand tes chiffres changent.</p>
-    <h3>Formules</h3>
-    <p>Free : verdict, objectifs, indicateurs et nombre de constats détectés. Premium : le détail des constats et le bilan IA.</p>
-    <h3>Important</h3>
-    <p>Les constats, pistes et bilans sont des <b>suggestions informatives</b>, pas des directives, et ne constituent pas un conseil en investissement. Ils dépendent de l'exactitude des données que tu as saisies, et le texte IA peut contenir des erreurs. Tu restes seul juge de tes décisions (voir les CGU, article 9 ter).</p>` },
   { n:'16', id:'m-ecole', title:"Communauté et bilan public", html:`
     <p>L'espace Communauté permet à une école de trading, un formateur ou une communauté de publier le <b>bilan réel de ses élèves</b> — en net, toutes dépenses comprises — sans jamais voir leurs données individuelles. Les chiffres sont calculés par Contralytix directement à partir des comptes des élèves : personne ne saisit « son » bilan, personne ne peut l'arranger.</p>
     ${manualShot('18-ecole.jpg', "Communauté — vue du responsable : invitation, bilan public et rapport agrégé de la cohorte.")}
@@ -12139,7 +11364,6 @@ function viewConfidentialite(){
             <tr><td>Journal technique</td><td>Journal d'activité (création/modification/suppression), horodatage, auteur de l'action</td><td>Générées automatiquement par l'application</td></tr>
             <tr><td>Données reçues de Deltalytix (beta)</td><td>Uniquement si vous connectez Deltalytix : numéros de vos comptes de trading, libellé de prop firm, taille, plateforme (Tradovate, Rithmic…), P&amp;L journalier (net des commissions) et jours tradés, indicateur « limite de perte atteinte », indicateur « compte masqué », date de dernière synchronisation de vos connexions broker, adresse e-mail de votre compte Deltalytix</td><td>Transmises par Deltalytix, à votre demande, après votre autorisation dans Deltalytix</td></tr>
             <tr><td>Contenu envoyé à l'IA</td><td>Prompt de préparation de séance, biais du jour saisi manuellement</td><td>Saisi par vous, uniquement si vous utilisez la fonctionnalité « Préparation de séance »</td></tr>
-            <tr><td>Données envoyées au Coach IA</td><td>Totaux de la période (dépensé, reçu, net), taux et constats calculés, noms des prop firms concernées, objectifs mensuels</td><td>Calculé à partir de vos comptes, uniquement quand vous cliquez « Générer mon bilan » (page Coach rentabilité). Aucun nom, e-mail ni numéro de compte n'est transmis</td></tr>
           </table>
         </div>
 
@@ -12149,7 +11373,6 @@ function viewConfidentialite(){
             <li><b>Fourniture du service</b> (authentification, stockage et affichage de vos données PropFirm) — exécution du contrat liant l'éditeur et l'utilisateur.</li>
             <li><b>Gestion de l'abonnement et de la facturation</b> — exécution du contrat et obligations légales (comptabilité).</li>
             <li><b>Génération de la préparation de séance par IA</b> — exécution du contrat, à votre initiative, lorsque vous déclenchez cette fonctionnalité.</li>
-            <li><b>Bilan du Coach rentabilité par IA</b> — exécution du contrat, à votre initiative, lorsque vous cliquez « Générer mon bilan ». Le texte obtenu est conservé uniquement dans votre navigateur.</li>
             <li><b>Connexion Deltalytix</b> (import de comptes, pointage automatique du Radar, dernier trade, comptes breached, plateforme) — exécution du contrat, à votre initiative : la connexion est facultative, se fait par une autorisation que vous donnez dans Deltalytix, et se retire à tout moment.</li>
             <li><b>Sécurité et journalisation des actions</b> — intérêt légitime (prévention des erreurs, traçabilité en cas de litige sur une donnée).</li>
             <li><b>Amélioration du service</b> — intérêt légitime, sur la base de statistiques d'usage agrégées.</li>
@@ -12166,7 +11389,6 @@ function viewConfidentialite(){
             <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
             <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
-            <tr><td>Google (API Gemini)</td><td>Rédaction du bilan du Coach rentabilité (Premium, à ton initiative)</td><td>Des chiffres agrégés et les constats calculés par l'application, sans nom, e-mail ni numéro de compte</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
             <tr><td>Deltalytix (beta) — service tiers indépendant</td><td>Si tu connectes Deltalytix : import de tes comptes, P&amp;L journalier pour le Radar inactivité, dernier trade, comptes breached et plateforme de chaque compte. Contralytix ne fait que <b>lire</b> ces données (aucune écriture chez Deltalytix) ; Deltalytix les traite sous sa propre responsabilité, selon ses propres conditions</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
@@ -12303,7 +11525,7 @@ function viewCGV(){
 
         <div class="rgpd-block">
           <h2>2. Description du Service</h2>
-          <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités assistées par IA (préparation de séance, Coach rentabilité) fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
+          <p>Contralytix est un outil d'organisation et de suivi. Il ne constitue ni un conseil en investissement, ni une plateforme de trading, ni un intermédiaire financier, et n'exécute aucun ordre de bourse. Les fonctionnalités d'aide à la préparation de séance assistées par IA fournissent des synthèses informatives et ne sauraient être interprétées comme des recommandations d'investissement. L'Utilisateur reste seul responsable de ses décisions de trading.</p>
           <p>La page Comptabilité et les exports associés (CSV, Excel, PDF) sont des outils de suivi personnel de l'activité prop firm de l'Utilisateur ; ils ne constituent en aucun cas un document fiscal, comptable ou une aide à la déclaration d'impôts, et ne sauraient s'y substituer. Contralytix ne fournit aucun conseil fiscal ou comptable. Pour toute question relative à la déclaration de ses revenus ou à ses obligations fiscales et comptables, l'Utilisateur est invité à consulter un expert-comptable ou tout professionnel qualifié.</p>
         </div>
 
@@ -12347,14 +11569,6 @@ function viewCGV(){
           <p>Le Service peut proposer une connexion facultative à des services tiers, notamment <b>Deltalytix</b> (fonctionnalité en version beta), pour importer des comptes, pointer automatiquement le Radar inactivité, afficher le dernier trade d'un compte, signaler un compte ayant atteint sa limite de perte ou indiquer sa plateforme de trading. Ces services sont édités par des tiers <b>indépendants de l'éditeur</b> : l'éditeur n'en est ni l'auteur, ni le partenaire, ni le distributeur, et l'Utilisateur doit disposer de son propre compte auprès d'eux, soumis à leurs propres conditions.</p>
           <p>Les informations provenant d'un service tiers sont affichées telles qu'il les transmet. L'éditeur ne garantit ni leur exactitude, ni leur exhaustivité, ni la disponibilité du service tiers (retard de synchronisation, panne, évolution ou arrêt de son interface). Aucune modification n'est appliquée aux comptes de l'Utilisateur sans sa validation (création de comptes, passage en « Breached ») : il lui appartient de vérifier ces informations, en particulier auprès de sa prop firm, avant de valider ou de prendre une décision de trading. Le Radar inactivité reste un outil d'aide qui ne remplace pas les règles officielles de la prop firm.</p>
           <p>L'Utilisateur peut retirer la connexion à tout moment depuis son Profil ; l'éditeur peut suspendre ou retirer une connexion à un service tiers, notamment si celui-ci modifie ses conditions d'accès.</p>
-        </div>
-
-        <div class="rgpd-block">
-          <h2>9 ter. Outils d'analyse, Coach rentabilité et contenus générés par IA</h2>
-          <p>Le Service propose des outils d'analyse de l'activité de l'Utilisateur, notamment la page <b>Coach rentabilité</b> : indicateurs, constats chiffrés, pistes d'amélioration et bilan rédigé par une intelligence artificielle. Ces contenus sont fournis à titre <b>purement informatif et pédagogique</b>. Ce sont des suggestions générales relatives à la gestion du budget consacré aux prop firms, et non des directives, des instructions ou des recommandations personnalisées.</p>
-          <p>Ils ne constituent en aucun cas un conseil en investissement au sens des articles L321-1 et L541-1 du Code monétaire et financier, ni un conseil financier, fiscal, comptable ou juridique. L'éditeur n'est pas conseiller en investissements financiers et n'exerce aucune activité réglementée de conseil.</p>
-          <p>Ces analyses sont calculées automatiquement à partir des seules données saisies ou importées par l'Utilisateur, dont l'éditeur ne vérifie ni l'exactitude ni l'exhaustivité. Les textes générés par intelligence artificielle peuvent contenir des erreurs, des imprécisions ou des omissions. Les résultats passés ne préjugent pas des résultats futurs ; le trading de produits à effet de levier comporte un risque élevé de perte en capital.</p>
-          <p>L'Utilisateur reste seul juge de l'opportunité de suivre ou non une piste proposée, et seul responsable de ses décisions, notamment d'achat, de conservation, de reset ou d'arrêt de comptes auprès des prop firms. L'éditeur ne saurait être tenu responsable des conséquences, notamment financières, de l'utilisation de ces contenus ou de leur mise en œuvre.</p>
         </div>
 
         <div class="rgpd-block">
@@ -17912,9 +17126,39 @@ function dlxCardHealthHtml(a){
   if(h.breached){
     return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true"></span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
   }
-  // Marge avant drawdown et solde retirés (13/10/2026) : on garde seulement la date du dernier trade.
-  if(!h.lastTradeDay) return '';
-  return `<div class="dlx-health" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true"></span><span>Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong></span></div>`;
+  // Jauges (18/10/2026, affichées à tout trader connecté à Deltalytix) : solde, drawdown restant,
+  // et objectif sur les challenges. Uniquement ce que Deltalytix connaît : un drawdown ou un objectif
+  // non configuré chez lui n'est pas affiché (pas de chiffre inventé).
+  const usd = v => fmtMoneyCur(v, 'USD').replace(/,00(?=\s)/,'');
+  const tip = `D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}. Solde calculé sur les trades clôturés (positions ouvertes non comprises).`;
+  const ddKnown = h.remainingLoss!=null;
+  const tgKnown = a.type==='CHALLENGE' && h.remainingToTarget!=null;
+  if(!ddKnown && !tgKnown){
+    if(!h.lastTradeDay && h.balance==null) return '';
+    return `<div class="dlx-health" title="${tip}"><span class="dlx-logo xs" aria-hidden="true"></span><span>${h.balance!=null?`Solde <strong>${usd(h.balance)}</strong>${h.lastTradeDay?' · ':''}`:''}${h.lastTradeDay?`Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong>`:''}</span></div>`;
+  }
+  let gauges = '';
+  if(ddKnown){
+    const tot = h.drawdownTotal && h.drawdownTotal>0 ? h.drawdownTotal : null;
+    const ratio = tot ? Math.max(0, Math.min(1, h.remainingLoss / tot)) : null;
+    const lvl = ratio==null ? '' : ratio<=0.2 ? 'is-danger' : ratio<=0.5 ? 'is-warn' : '';
+    gauges += `<div class="dlx-g ${lvl}" title="${tot?`Drawdown : ${usd(h.remainingLoss)} restants sur ${usd(tot)}`:''}${h.drawdownLevel!=null?` · niveau de clôture ${usd(h.drawdownLevel)}`:''}">
+      <div class="dlx-g-top"><span>Drawdown restant</span><strong>${usd(h.remainingLoss)}${tot?`<span class="dlx-g-of"> / ${usd(tot)}</span>`:''}</strong></div>
+      ${ratio!=null?`<div class="dlx-g-bar"><div style="width:${(ratio*100).toFixed(1)}%"></div></div>`:''}
+    </div>`;
+  }
+  if(tgKnown){
+    const pr = h.targetProgress!=null ? Math.max(0, h.targetProgress) : null;
+    const done = h.remainingToTarget<=0 || (pr!=null && pr>=100);
+    gauges += `<div class="dlx-g is-target ${done?'is-done':''}">
+      <div class="dlx-g-top"><span>Objectif</span><strong>${done ? 'Atteint' : `${usd(h.remainingToTarget)} restants`}${pr!=null?`<span class="dlx-g-of"> · ${Math.min(999, Math.round(pr))} %</span>`:''}</strong></div>
+      ${pr!=null?`<div class="dlx-g-bar"><div style="width:${Math.min(100, pr).toFixed(1)}%"></div></div>`:''}
+    </div>`;
+  }
+  return `<div class="dlx-health dlx-health-g" title="${tip}">
+    <div class="dlx-g-head"><span class="dlx-logo xs" aria-hidden="true"></span>${h.balance!=null?`<span>Solde <strong>${usd(h.balance)}</strong></span>`:''}${h.lastTradeDay?`<span class="dlx-g-last">Dernier trade ${fmtDate(h.lastTradeDay)}</span>`:''}</div>
+    <div class="dlx-g-grid">${gauges}</div>
+  </div>`;
 }
 // Panneau du Profil
 function dlxProfilPanelHtml(){
@@ -19006,8 +18250,6 @@ const GD_HELP = {
     points:['Le catalogue est <b>partagé</b> et tenu à jour par l’équipe.','Clique sur une PropFirm pour voir sa fiche et tes comptes chez elle.','Une PropFirm manque ? <b>Demande son ajout</b> depuis le bouton en haut à droite.'] },
   rentabilite: { manual:'m-rentabilite', intro:'Ce que tu as vraiment gagné, une fois toutes tes dépenses déduites.',
     points:['<b>Net réel</b> = payouts − achats, mensualités, activations et resets (+ frais généraux si coché).','La <b>courbe</b> descend à chaque dépense et remonte à chaque payout.','L’<b>entonnoir</b> montre combien de Challenges il faut pour un payout.'] },
-  coach: { manual:'m-coach', intro:'Où tu perds de l’argent, combien, et des pistes pour ce mois-ci.',
-    points:['Fixe un <b>budget</b> et un <b>objectif de payout</b> avec « Mes objectifs ».','Chaque constat est <b>chiffré</b> par des règles fixes, pas par l’IA.','Ce sont des <b>suggestions</b>, pas des directives : tu restes seul juge.'] },
   calendrier: { manual:'m-calendrier', intro:'Tous tes événements mois par mois : payouts, achats, mensualités, réussites et breaches.',
     points:['Clique sur une journée pour voir son détail.','Les mensualités à venir apparaissent avant leur échéance.'] },
   accounting: { manual:'m-comptabilite', intro:'Chaque dépense et chaque payout, ligne par ligne, avec filtres et exports.',
@@ -19260,7 +18502,6 @@ function bindViewEvents(){
   bindFirmSelect('fd-firm', state.filters.dashboard, 'firmMenuOpen');
   bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindRentabiliteEvents();
-  bindCoachEvents();
   bindEcoleEvents();
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
   // Dashboard : glisser-déposer direct des widgets + sélecteur de taille S/M/L, sur la page elle-même
