@@ -86,6 +86,29 @@ async function connectionsOf(token, deadline) {
     return { list: [], scope: true };   // information facultative
   }
 }
+// Abonnement Deltalytix de l'utilisateur (18/10/2026). Sert à débloquer solde / drawdown / objectif
+// sur les cartes pour un compte Contralytix Free abonné chez Deltalytix (partenariat).
+// À ce jour GET /me ne renvoie que { id, email, language } : le statut est lu de façon tolérante
+// (subscription.plan / status / endDate / trialEndsAt, ou plan / isPaid / isPro) pour fonctionner dès
+// que Deltalytix l'ajoutera. Inconnu → known:false (jamais considéré comme payant par défaut).
+async function deltalytixPlanOf(token, deadline) {
+  try {
+    const me = await L.dltx(token, '/me', deadline);
+    const sub = (me && (me.subscription || me.subscriptions)) || null;
+    const plan = String((sub && sub.plan) || (me && me.plan) || '').trim();
+    const status = String((sub && sub.status) || (me && me.subscriptionStatus) || '').toUpperCase();
+    const ends = (sub && (sub.endDate || sub.trialEndsAt)) || null;
+    const flag = me && (me.isPaid ?? me.isPro ?? me.paid);
+    if (typeof flag === 'boolean') return { known: true, paid: flag, plan: plan || null };
+    if (!plan && !status) return { known: false, paid: false, plan: null };
+    const notExpired = !ends || new Date(ends).getTime() > Date.now();
+    const paid = !/^(FREE|BASIC_FREE|NONE)$/i.test(plan || 'FREE') && /^(ACTIVE|TRIAL|TRIALING|PAST_DUE)?$/.test(status) && notExpired;
+    return { known: true, paid, plan: plan || null };
+  } catch (e) {
+    if (e.code === 'token_invalid') throw e;
+    return { known: false, paid: false, plan: null };
+  }
+}
 function platformMap(conns) {
   const map = new Map();
   conns.forEach((c) => {
@@ -287,8 +310,9 @@ exports.handler = async (event) => {
         const { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
         if (error) throw new Error(`dormancy_logs : ${error.message}`);
       }
+      const dltxPlan = await deltalytixPlanOf(token, deadline);
       await saveState({ last_sync_at: now, last_error: null });
-      return json(200, { matched, funded: mine.length, matchedIds, missingIds, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete });
+      return json(200, { matched, funded: mine.length, matchedIds, missingIds, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete, dltxPlan });
     }
 
     return json(400, { error: 'Action inconnue' });
