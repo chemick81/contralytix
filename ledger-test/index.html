@@ -17752,6 +17752,32 @@ async function dlxConnectOAuth(){
     };
     return { ok:false, error: msgs[start && start.error] || (start && start.error) || 'Impossible de démarrer la connexion Deltalytix.' };
   }
+  // Écran d'avant-connexion (18/10/2026) : Deltalytix utilise le compte déjà ouvert dans ce navigateur,
+  // sans proposer d'en changer. On le dit AVANT, avec l'e-mail Contralytix, pour éviter de relier le
+  // Deltalytix d'une autre personne. Affiché dans la fenêtre elle-même (pas de blocage des pop-up).
+  const myEmail = (state.session && state.session.user && state.session.user.email) || '';
+  const proceed = await new Promise(resolve=>{
+    try{
+      const esc = t=>String(t||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      popup.document.open();
+      popup.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contralytix · Connexion Deltalytix</title></head>
+<body style="margin:0;font-family:Inter,system-ui,sans-serif;background:#0B0F14;color:#E8EDF2;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;box-sizing:border-box;">
+<div style="max-width:400px;width:100%;background:#12181F;border:1px solid #232D38;border-radius:14px;padding:26px 24px;">
+<div style="font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#3ED6B5;">Connexion Deltalytix</div>
+<h1 style="font-size:20px;line-height:1.3;margin:10px 0 12px;">Vérifie le compte Deltalytix</h1>
+<p style="font-size:14px;line-height:1.6;color:#8B98A5;margin:0 0 12px;">Deltalytix va utiliser le compte <strong style="color:#E8EDF2;">déjà connecté dans ce navigateur</strong>. Assure-toi que c’est bien le tien${myEmail ? ` (ton compte Contralytix : <strong style="color:#E8EDF2;">${esc(myEmail)}</strong>)` : ''}.</p>
+<p style="font-size:13px;line-height:1.6;color:#8B98A5;margin:0 0 20px;">Si un autre compte Deltalytix est ouvert, déconnecte-le d’abord sur <a href="https://beta.deltalytix.app" target="_blank" rel="noopener" style="color:#3ED6B5;">deltalytix.app</a>, ou ouvre Contralytix dans une fenêtre de navigation privée.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+<button id="go" style="flex:1 1 180px;padding:11px 14px;border:0;border-radius:8px;background:#3ED6B5;color:#0B0F14;font-weight:700;font-size:14px;cursor:pointer;">Continuer vers Deltalytix</button>
+<button id="no" style="flex:0 1 auto;padding:11px 14px;border:1px solid #232D38;border-radius:8px;background:transparent;color:#E8EDF2;font-weight:600;font-size:14px;cursor:pointer;">Annuler</button>
+</div></div></body></html>`);
+      popup.document.close();
+      popup.document.getElementById('go').onclick = ()=>resolve(true);
+      popup.document.getElementById('no').onclick = ()=>resolve(false);
+      const t = setInterval(()=>{ if(popup.closed){ clearInterval(t); resolve(false); } }, 600);
+    }catch(e){ resolve(true); }
+  });
+  if(!proceed){ try{ popup.close(); }catch(e){} return { ok:false, error:'Connexion Deltalytix annulée.' }; }
   popup.location.href = start.authUrl;
   const result = await new Promise(resolve=>{
     let done = false;
@@ -17769,6 +17795,8 @@ async function dlxConnectOAuth(){
       migration_missing: 'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.',
       exchange_refused: 'Deltalytix a refusé la connexion (application mal configurée ?). Réessaie, ou contacte le support.',
       scope_refused: 'Deltalytix a refusé une des autorisations demandées par Contralytix. Préviens le support.',
+      already_linked: `Ce compte Deltalytix${result.email ? ` (${result.email})` : ''} est déjà relié à un autre compte Contralytix : rien n’a été connecté. Déconnecte-toi de Deltalytix, connecte-toi avec TON compte, puis réessaie.`,
+      identity_unknown: 'Deltalytix n’a pas indiqué quel compte a été autorisé : par sécurité, rien n’a été connecté. Réessaie dans quelques minutes.',
     };
     return { ok:false, error: msgs[result.error] || 'Deltalytix n’a pas répondu comme prévu. Réessaie dans quelques minutes.' };
   }
@@ -17776,10 +17804,14 @@ async function dlxConnectOAuth(){
   await logActivity('SETTINGS', 'profile', currentUserId(), 'Connexion Deltalytix ajoutée');
   return { ok:true };
 }
+function dlxEmailMismatch(){
+  const d = dlx(); const mine = (state.session && state.session.user && state.session.user.email || '').toLowerCase();
+  return !!(d.connected && d.email && mine && d.email.toLowerCase() !== mine);
+}
 async function dlxConnectAndRefresh(){
   const r = await dlxConnectOAuth();
-  if(!r.ok){ showToast(r.error, 'danger'); return; }
-  showToast('Deltalytix connecté.');
+  if(!r.ok){ showToast(r.error, r.error==='Connexion Deltalytix annulée.' ? '' : 'danger'); return; }
+  showToast(dlxEmailMismatch() ? `Deltalytix connecté avec ${dlx().email}, différent de ton e-mail Contralytix : vérifie que c’est bien ton compte (Profil > Connexions).` : 'Deltalytix connecté.', dlxEmailMismatch() ? 'danger' : '');
   render();
   dlxSync();
 }
@@ -17987,9 +18019,10 @@ function dlxProfilPanelHtml(){
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;">Deltalytix <span class="badge badge-slate" style="margin-left:4px;">Beta</span></div>
         <div class="text-dim" style="font-size:12.5px;margin-top:2px;">${d.connected
-          ? `Connecté${d.email ? ` · ${escapeHtml(maskedEmail(d.email))}` : ''} · synchronisé ${dlxAgo(d.lastSyncAt)}`
+          ? `Connecté${d.email ? ` · ${escapeHtml(dlxEmailMismatch() ? d.email : maskedEmail(d.email))}` : ''} · synchronisé ${dlxAgo(d.lastSyncAt)}`
           : 'Non connecté'}</div>
-        ${d.connected && d.health && d.health.connectionsScope===false ? `<div class="text-faint" style="font-size:12px;margin-top:4px;">Reconnecte Deltalytix pour activer l’alerte « synchro en retard ». <button type="button" class="dlx-textbtn" data-dlx-connect>Reconnecter</button></div>` : ''}
+        ${dlxEmailMismatch() ? `<div class="dlx-alert is-warn" style="margin:8px 0 0;">${icon('alertTriangle')}<div>Ce compte Deltalytix (<strong>${escapeHtml(d.email)}</strong>) n’a pas le même e-mail que ton compte Contralytix. Si ce n’est pas le tien, déconnecte-le, déconnecte-toi de Deltalytix puis reconnecte ton propre compte.</div></div>` : ''}
+                ${d.connected && d.health && d.health.connectionsScope===false ? `<div class="text-faint" style="font-size:12px;margin-top:4px;">Reconnecte Deltalytix pour activer l’alerte « synchro en retard ». <button type="button" class="dlx-textbtn" data-dlx-connect>Reconnecter</button></div>` : ''}
       </div>
       ${d.connected
         ? `<button class="btn btn-ghost btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button><button class="btn btn-outline btn-sm" data-dlx-disconnect>Déconnecter</button>`
