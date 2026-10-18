@@ -96,8 +96,21 @@ function platformMap(conns) {
   return map;
 }
 
+// Drawdown réellement configuré dans Deltalytix (18/10/2026). `isConfigured` est vrai dès qu'un objectif
+// OU un drawdown est saisi : avec un objectif seul, Deltalytix calcule un « niveau de drawdown » égal au
+// solde de départ (ou au plus haut en trailing) et un remainingLoss sans signification. On ne retient
+// donc le drawdown que si son niveau diffère de ces deux valeurs (cf. lib/account-metrics.ts).
+const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) ? null : Number(v);
+const round2 = (v) => v == null ? null : Math.round(v * 100) / 100;
+function hasDrawdown(a, m) {
+  if (!m || !m.isConfigured || num(m.remainingLoss) == null) return false;
+  const level = num(m.drawdownLevel), start = num(a && a.startingBalance), high = num(m.highestBalance);
+  if (level == null) return true; // ancien format sans niveau : on fait confiance à isConfigured
+  const near = (x) => x != null && Math.abs(level - x) < 0.01;
+  return !(near(start) || near(high));
+}
 // Compte breached d'après Deltalytix : drawdown configuré, au moins un jour tradé, plus aucune marge.
-const isBreached = (m) => !!(m && m.isConfigured && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0);
+const isBreached = (m, a) => !!(m && hasDrawdown(a, m) && Number(m.totalTradingDays) > 0 && Number(m.remainingLoss) <= 0);
 const lastDayOf = (m) => {
   const days = m && m.dailyPnL && typeof m.dailyPnL === 'object' ? Object.keys(m.dailyPnL).map(isoDay).filter(Boolean).sort() : [];
   return days.length ? days[days.length - 1] : null;
@@ -108,11 +121,25 @@ function healthOf(a, tradeDays) {
   const rl = m && m.isConfigured && Number.isFinite(Number(m.remainingLoss)) ? Math.round(Number(m.remainingLoss) * 100) / 100 : null;
   const fromTrades = tradeDays ? Object.keys(tradeDays).sort().slice(-1)[0] || null : null;
   const fromMetrics = lastDayOf(m);
+  // Jauges des cartes de compte (18/10/2026) : drawdown restant et objectif, seulement s'ils sont
+  // configurés dans Deltalytix. Montants arrondis au centime ; jamais de valeur inventée.
+  const dd = hasDrawdown(a, m);
+  const ddUsed = dd ? num(m.drawdownProgress) : null;               // % du drawdown déjà consommé
+  const ddLeft = dd ? Math.max(0, num(m.remainingLoss)) : null;
+  const ddTotal = dd && ddUsed != null && ddUsed < 100 ? ddLeft * 100 / (100 - ddUsed) : null;
+  const toTarget = m ? num(m.remainingToTarget) : null;
+  const prog = m ? num(m.progress) : null;
+  const hasTarget = (toTarget != null && toTarget > 0) || (prog != null && prog > 0);
   return {
-    breached: isBreached(m),
+    breached: isBreached(m, a),
     lastTradeDay: [fromMetrics, fromTrades].filter(Boolean).sort().slice(-1)[0] || null,
-    remainingLoss: rl,
+    remainingLoss: dd ? round2(ddLeft) : null,
+    drawdownTotal: round2(ddTotal),
+    drawdownLevel: dd ? round2(num(m.drawdownLevel)) : null,
+    remainingToTarget: hasTarget ? round2(Math.max(0, toTarget || 0)) : null,
+    targetProgress: hasTarget && prog != null ? Math.round(prog * 10) / 10 : null,
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
+    startingBalance: num(a.startingBalance),
     hidden: a.hidden === true,
   };
 }
@@ -131,7 +158,7 @@ function slimAccount(a) {
     size: Number(a.startingBalance) > 0 ? Math.round(Number(a.startingBalance)) : null,
     balance: Number.isFinite(Number(a.balance)) ? Number(a.balance) : null,
     // Compte perdu d'après Deltalytix : drawdown configuré et plus aucune marge de perte.
-    breached: isBreached(m),
+    breached: isBreached(m, a),
     // Premier jour tradé : sert de date d'activation (PA) ou d'achat (challenge) à l'import.
     firstTradeDay: days.length ? days[0] : null,
     lastTradeDay: lastDay,
