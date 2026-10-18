@@ -17670,6 +17670,10 @@ async function dlxCall(action, extra){
     if(data.error==='not_configured') return { ok:false, data:{ error:'La connexion Deltalytix n’est pas encore activée sur Contralytix.' } };
     if(data.error==='migration_missing') return { ok:false, data:{ error:'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.' } };
     if(data.error==='not_connected') return { ok:false, data:{ error:'Deltalytix n’est pas connecté.', code:'not_connected' } };
+    if(data.error==='email_mismatch'){
+      const d = dlx(); d.connected = false; d.health = null; d.email = null; dlxSaveCache('health', null);
+      return { ok:false, data:{ error:`Connexion Deltalytix coupée : le compte relié${data.email ? ` (${data.email})` : ''} n’a pas le même e-mail que ton compte Contralytix. Reconnecte Deltalytix avec ta propre adresse.`, code:'not_connected' } };
+    }
     return { ok: res.ok && !data.error, data };
   }catch(e){
     return { ok:false, data:{ error:'Impossible de joindre le service Deltalytix. Vérifie ta connexion.' } };
@@ -17716,7 +17720,9 @@ async function dlxSync(opts){
     render();
   } else {
     d.lastError = r.data.code || 'error';
-    if(!silent) showToast(r.data.error || 'Synchronisation impossible pour le moment.', 'danger');
+    // Connexion coupée par le serveur (e-mail différent) : on prévient même pendant une synchro silencieuse.
+    if(!silent || !d.connected) showToast(r.data.error || 'Synchronisation impossible pour le moment.', 'danger');
+    if(!d.connected){ render(); return; }
     if(state.route==='radar') renderView();
     if(state.route==='accounts') renderTopbarActions();
   }
@@ -17765,7 +17771,7 @@ async function dlxConnectOAuth(){
 <div style="max-width:400px;width:100%;background:#12181F;border:1px solid #232D38;border-radius:14px;padding:26px 24px;">
 <div style="font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#3ED6B5;">Connexion Deltalytix</div>
 <h1 style="font-size:20px;line-height:1.3;margin:10px 0 12px;">Vérifie le compte Deltalytix</h1>
-<p style="font-size:14px;line-height:1.6;color:#8B98A5;margin:0 0 12px;">Deltalytix va utiliser le compte <strong style="color:#E8EDF2;">déjà connecté dans ce navigateur</strong>. Assure-toi que c’est bien le tien${myEmail ? ` (ton compte Contralytix : <strong style="color:#E8EDF2;">${esc(myEmail)}</strong>)` : ''}.</p>
+<p style="font-size:14px;line-height:1.6;color:#8B98A5;margin:0 0 12px;">Deltalytix va utiliser le compte <strong style="color:#E8EDF2;">déjà connecté dans ce navigateur</strong>. Seul un compte Deltalytix avec ${myEmail ? `l’adresse <strong style="color:#E8EDF2;">${esc(myEmail)}</strong>` : 'la même adresse que ton compte Contralytix'} sera accepté ; tout autre compte sera refusé.</p>
 <p style="font-size:13px;line-height:1.6;color:#8B98A5;margin:0 0 20px;">Si un autre compte Deltalytix est ouvert, déconnecte-le d’abord sur <a href="https://beta.deltalytix.app" target="_blank" rel="noopener" style="color:#3ED6B5;">deltalytix.app</a>, ou ouvre Contralytix dans une fenêtre de navigation privée.</p>
 <div style="display:flex;gap:10px;flex-wrap:wrap;">
 <button id="go" style="flex:1 1 180px;padding:11px 14px;border:0;border-radius:8px;background:#3ED6B5;color:#0B0F14;font-weight:700;font-size:14px;cursor:pointer;">Continuer vers Deltalytix</button>
@@ -17795,6 +17801,7 @@ async function dlxConnectOAuth(){
       migration_missing: 'La base n’est pas prête : exécute migration_deltalytix.sql sur Supabase.',
       exchange_refused: 'Deltalytix a refusé la connexion (application mal configurée ?). Réessaie, ou contacte le support.',
       scope_refused: 'Deltalytix a refusé une des autorisations demandées par Contralytix. Préviens le support.',
+      email_mismatch: `Ce compte Deltalytix${result.email ? ` (${result.email})` : ''} n’utilise pas le même e-mail que ton compte Contralytix${result.expected ? ` (${result.expected})` : ''} : la connexion est refusée. Connecte-toi à Deltalytix avec ${result.expected || 'ton adresse Contralytix'}, puis réessaie.`,
       already_linked: `Ce compte Deltalytix${result.email ? ` (${result.email})` : ''} est déjà relié à un autre compte Contralytix : rien n’a été connecté. Déconnecte-toi de Deltalytix, connecte-toi avec TON compte, puis réessaie.`,
       identity_unknown: 'Deltalytix n’a pas indiqué quel compte a été autorisé : par sécurité, rien n’a été connecté. Réessaie dans quelques minutes.',
     };
