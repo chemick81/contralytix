@@ -7132,6 +7132,27 @@ function rtExpenseLabel(e){
   const kind = { ACHAT:'Achat', MENSUALITE:'Mensualité', ACTIVATION:'Activation', RESET:'Reset' }[e.type] || e.type;
   return `${kind} · <span class="firm-name-inline">${firmLogoHtml(firm,16)}${escapeHtml(firm?firm.name:'—')}</span>${a.accountNumber?` <span class="text-faint">${escapeHtml(a.accountNumber)}</span>`:''}`;
 }
+// Entonnoir Challenge → Financé → Payout : définitions uniques, partagées par l'onglet Constat
+// (computeRentabiliteData) et l'onglet Coach (computeCoachData) depuis le 18/10/2026, pour que les
+// mêmes taux affichent les mêmes chiffres partout. funnelAccounts = comptes du périmètre (déjà
+// filtrés par période d'achat si besoin) ; payCount = Map compte → nombre de payouts (tous temps).
+function computeFunnelCounts(funnelAccounts, payCount){
+  const childOf = new Set(state.accounts.filter(a=>a.parentChallengeId).map(a=>a.parentChallengeId));
+  const isPassed = (c)=> c.status==='REUSSI' || childOf.has(c.id);
+  const nPay = (a)=> payCount.get(a.id) || 0;
+  const challenges = funnelAccounts.filter(a=>a.type==='CHALLENGE');
+  const passed = challenges.filter(isPassed);
+  // Taux de réussite aligné sur le Dashboard (26/09/2026) : réussis ÷ (réussis + breached).
+  const failed = challenges.filter(c=>c.status==='BREACHED' && !isPassed(c));
+  const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
+  const fundedDirect = funded.filter(a=>!a.parentChallengeId);
+  const paid = funded.filter(a=>nPay(a)>=1);
+  const recurring = funded.filter(a=>nPay(a)>=2);
+  // Sorties de l'entonnoir (comptes terminés sans atteindre l'étape suivante), utilisées par le Coach.
+  const lostBeforePayout = funded.filter(a=>a.status==='BREACHED' && nPay(a)===0);
+  const lostAfterOnePayout = funded.filter(a=>a.status==='BREACHED' && nPay(a)===1);
+  return { challenges, passed, failed, funded, fundedDirect, paid, recurring, lostBeforePayout, lostAfterOnePayout };
+}
 function computeRentabiliteData(){
   const f = state.filters.rentabilite;
   const restricted = !canSeeAllData();
@@ -7198,17 +7219,8 @@ function computeRentabiliteData(){
   state.payouts.filter(p=>accIds.has(p.accountId)).forEach(p=>{
     allPayoutsByAcc.set(p.accountId, (allPayoutsByAcc.get(p.accountId)||0)+1);
   });
-  const challenges = funnelAccounts.filter(a=>a.type==='CHALLENGE');
-  const childOf = new Map();
-  state.accounts.forEach(a=>{ if(a.parentChallengeId) childOf.set(a.parentChallengeId, true); });
-  const passed = challenges.filter(c=>c.status==='REUSSI' || childOf.has(c.id));
-  // Taux de réussite aligné sur le Dashboard (26/09/2026) : réussis ÷ (réussis + breached) — un
-  // challenge encore en cours n'est ni une réussite ni un échec, il est exclu du calcul.
-  const failed = challenges.filter(c=>c.status==='BREACHED' && !(c.status==='REUSSI' || childOf.has(c.id)));
-  const funded = funnelAccounts.filter(a=>a.type==='PA' || a.type==='LIVE');
-  const fundedDirect = funded.filter(a=>!a.parentChallengeId);
-  const paid = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=1);
-  const recurring = funded.filter(a=>(allPayoutsByAcc.get(a.id)||0)>=2);
+  // Définitions communes avec le Coach : voir computeFunnelCounts().
+  const { challenges, passed, failed, funded, fundedDirect, paid, recurring } = computeFunnelCounts(funnelAccounts, allPayoutsByAcc);
   // Listes détaillées de chaque étape (popup au survol de l'entonnoir, 26/09/2026) + total des
   // payouts par compte (tous temps, dans la devise d'affichage).
   const payoutSumByAcc = new Map();
@@ -7751,16 +7763,12 @@ function computeCoachData(){
   // Comptes « nés » dans la période (achat ou activation) : base des taux et durées.
   const born = (a)=> a.purchaseDate || a.activationDate;
   const periodAcc = days ? accounts.filter(a=>inRange(born(a), from, today)) : accounts;
-  const hasChild = new Set(state.accounts.filter(a=>a.parentChallengeId).map(a=>a.parentChallengeId));
   const payCount = new Map();
   allPay.forEach(p=>payCount.set(p.accountId, (payCount.get(p.accountId) || 0) + 1));
-  const isPassed = (c)=> c.status === 'REUSSI' || hasChild.has(c.id);
-  const challenges = periodAcc.filter(a=>a.type === 'CHALLENGE');
-  const passed = challenges.filter(isPassed);
-  const failed = challenges.filter(c=>c.status === 'BREACHED' && !isPassed(c));
-  const funded = periodAcc.filter(a=>a.type === 'PA' || a.type === 'LIVE');
-  const fundedPaid = funded.filter(a=>(payCount.get(a.id) || 0) >= 1);
-  const fundedLost = funded.filter(a=>a.status === 'BREACHED' && !(payCount.get(a.id) || 0));
+  // Mêmes définitions que l'entonnoir de l'onglet Constat (computeFunnelCounts).
+  const fn = computeFunnelCounts(periodAcc, payCount);
+  const { challenges, passed, failed, funded } = fn;
+  const fundedPaid = fn.paid, fundedLost = fn.lostBeforePayout;
   const lifeOf = (arr, start)=> {
     const xs = arr.filter(a=>a.status === 'BREACHED' && a.endDate && start(a)).map(a=>coDays(start(a), a.endDate)).filter(n=>n >= 0);
     return xs.length ? xs.reduce((s,n)=>s + n, 0) / xs.length : null;
@@ -7799,15 +7807,17 @@ function computeCoachData(){
     spendPerEuro: totalPay > 0 ? totalExp / totalPay : null,
     challenges: challenges.length, passed: passed.length, failed: failed.length,
     passRate: (passed.length + failed.length) ? passed.length / (passed.length + failed.length) * 100 : null,
-    funded: funded.length, fundedPaid: fundedPaid.length, fundedLost: fundedLost.length,
-    paidRate: (fundedPaid.length + fundedLost.length) ? fundedPaid.length / (fundedPaid.length + fundedLost.length) * 100 : null,
+    funded: funded.length, fundedPaid: fundedPaid.length, fundedLost: fundedLost.length, recurring: fn.recurring.length,
+    // Taux identiques à l'entonnoir : ≥1 payout ÷ comptes financés ; ≥2 payouts ÷ comptes payés.
+    paidRate: funded.length ? fundedPaid.length / funded.length * 100 : null,
+    recurringRate: fundedPaid.length ? fn.recurring.length / fundedPaid.length * 100 : null,
     fundedLife: lifeOf(funded, a=>a.activationDate || a.purchaseDate),
     challengeLife: lifeOf(challenges, a=>a.purchaseDate),
     resetSum, resetCount, resetShare: totalExp > 0 ? resetSum / totalExp * 100 : null,
     monthExp, monthPay, projectedExp, dayOfMonth, dim, months, firms,
     empty: !allExp.length && !allPay.length,
   };
-  d.findings = coachFindings(d, { accounts, allExp, allPay, periodAcc, challenges, funded, fundedLost, payCount, costOf, inRange, sum });
+  d.findings = coachFindings(d, { accounts, allExp, allPay, periodAcc, challenges, funded, fundedLost, fn, payCount, costOf, inRange, sum });
   return d;
 }
 
@@ -7817,7 +7827,7 @@ function coachFindings(d, ctx){
   const out = [];
   const cur = d.currency;
   const m = (n)=> fmtMoneyCur(Math.abs(n), cur);
-  const { accounts, allExp, challenges, funded, fundedLost, costOf, inRange, sum } = ctx;
+  const { accounts, allExp, challenges, fn, costOf, inRange, sum } = ctx;
   const periodTxt = d.days ? `sur les ${d.days} derniers jours` : 'depuis le début';
 
   // 1. PropFirm qui coûte plus qu'elle ne rapporte.
@@ -7856,29 +7866,49 @@ function coachFindings(d, ctx){
       cta: { label:'Voir mes comptes', nav:'accounts' } });
   }
 
-  // 4. Évaluations qui sautent dans les 3 premiers jours.
-  const fast = challenges.filter(c=>c.status === 'BREACHED' && c.endDate && c.purchaseDate && coDays(c.purchaseDate, c.endDate) <= 3 && coDays(c.purchaseDate, c.endDate) >= 0);
-  const breachedCh = challenges.filter(c=>c.status === 'BREACHED').length;
-  if(fast.length >= 3 && fast.length / Math.max(1, breachedCh) >= 0.4){
-    const cost = fast.reduce((s,a)=>s + costOf(a), 0);
-    out.push({ id:'fast', sev:'mid', impact: cost,
-      title: 'Tes évaluations sautent dès les premiers jours',
-      finding: `${fast.length} challenges sur ${breachedCh} perdus l'ont été en 3 jours ou moins, pour ${m(cost)} d'achats.`,
-      action: 'Les premiers jours d’une éval semblent te coûter cher. Un objectif de premier jour plus modeste et une perte maximale quotidienne personnelle, plus serrée que celle de la firm, sont des pistes à étudier.',
-      cta: { label:'Voir mes challenges', nav:'accounts' } });
+  // 4. Ton point de fuite (18/10/2026) : l'étape de l'entonnoir où le trader perd le plus de comptes,
+  // en proportion des comptes arrivés au bout de l'étape. Remplace les anciennes règles « évals perdues
+  // en 3 jours » et « financés perdus avant payout », qui deviennent des détails de ce constat.
+  const chainCost = (a)=>{ const parent = a.parentChallengeId ? getAccount(a.parentChallengeId) : null; return costOf(a) + (parent ? costOf(parent) : 0); };
+  const pct = (x)=> Math.round(x) + ' %';
+  const stages = [];
+  {
+    const decided = fn.passed.length + fn.failed.length;
+    if(decided >= 3){
+      const fast = fn.failed.filter(c=>c.endDate && c.purchaseDate && coDays(c.purchaseDate, c.endDate) >= 0 && coDays(c.purchaseDate, c.endDate) <= 3).length;
+      const cost = fn.failed.reduce((s,a)=>s + costOf(a), 0);
+      stages.push({ key:'eval', share: fn.failed.length / decided, cost, label:'l’évaluation',
+        finding: `Réussite des évals : ${pct(d.passRate)} (${fn.passed.length} réussie(s) sur ${decided} terminée(s)). Les ${fn.failed.length} évals perdues t'ont coûté ${m(cost)}${fast ? `, dont ${fast} perdue(s) en 3 jours ou moins` : ''}${d.challengeLife != null ? ` ; une éval perdue tient ${Math.round(d.challengeLife)} j en moyenne` : ''}.`,
+        action: fast >= 2
+          ? 'Beaucoup d’évals tombent dès les premiers jours : un objectif de premier jour plus modeste et une perte quotidienne personnelle plus serrée que celle de la firm sont des pistes à étudier.'
+          : 'Avant le prochain achat, relis les évals perdues : la cause revient-elle (même horaire, même jour de la semaine, même taille de compte) ? Une piste : ne racheter qu’une fois la cause identifiée.' });
+    }
   }
-
-  // 5. Comptes financés perdus avant le premier payout.
-  if(fundedLost.length >= 2 && d.paidRate != null && d.paidRate < 50){
-    const cost = fundedLost.reduce((s,a)=>{
-      const parent = a.parentChallengeId ? getAccount(a.parentChallengeId) : null;
-      return s + costOf(a) + (parent ? costOf(parent) : 0);
-    }, 0);
-    out.push({ id:'funded-lost', sev:'high', impact: cost,
-      title: 'Tes comptes financés sautent avant le premier payout',
-      finding: `${fundedLost.length} comptes financés perdus sans aucun payout, sur ${d.fundedPaid + d.fundedLost} terminés. Chaque parcours perdu (challenge + activation) t'a coûté ${m(cost / fundedLost.length)} en moyenne.`,
-      action: 'Un plan écrit pour la phase « avant premier payout » (objectif : le seuil de retrait minimum, avec une perte quotidienne plafonnée) pourrait t’aider à protéger ces comptes.',
-      cta: { label:'Voir mes comptes financés', nav:'accounts' } });
+  {
+    const decided = fn.paid.length + fn.lostBeforePayout.length;
+    if(decided >= 3 && fn.lostBeforePayout.length){
+      const cost = fn.lostBeforePayout.reduce((s,a)=>s + chainCost(a), 0);
+      stages.push({ key:'payout', share: fn.lostBeforePayout.length / decided, cost, label:'le premier payout',
+        finding: `Au moins 1 payout : ${pct(d.paidRate)} de tes comptes financés. ${fn.lostBeforePayout.length} ont été perdus sans aucun payout, pour ${m(cost)} (challenge + activation)${d.fundedLife != null ? ` ; un financé perdu tient ${Math.round(d.fundedLife)} j en moyenne` : ''}.`,
+        action: 'Un plan écrit pour la phase « avant premier payout » (objectif : le seuil de retrait minimum, avec une perte quotidienne plafonnée) pourrait t’aider à protéger ces comptes.' });
+    }
+  }
+  {
+    const decided = fn.recurring.length + fn.lostAfterOnePayout.length;
+    if(decided >= 3 && fn.lostAfterOnePayout.length){
+      const cost = fn.lostAfterOnePayout.reduce((s,a)=>s + chainCost(a), 0);
+      stages.push({ key:'recurring', share: fn.lostAfterOnePayout.length / decided, cost, label:'la régularité des payouts',
+        finding: `2 payouts ou plus : ${pct(d.recurringRate)} de tes comptes payés. ${fn.lostAfterOnePayout.length} compte(s) ont sauté juste après leur premier payout ; il a fallu ${m(cost)} pour les obtenir.`,
+        action: 'Après un premier retrait, le compte repart souvent avec une marge réduite. Une piste : reprendre avec une taille plus prudente jusqu’à reconstituer cette marge.' });
+    }
+  }
+  const leak = stages.filter(x=>x.share >= 0.5).sort((a,b)=>(b.share - a.share) || (b.cost - a.cost))[0];
+  if(leak){
+    out.push({ id:'leak-' + leak.key, sev: leak.share >= 0.7 ? 'high' : 'mid', impact: leak.cost,
+      title: `Ton point de fuite : ${leak.label}`,
+      finding: leak.finding + ` C'est l'étape de ton entonnoir où tu perds le plus de comptes (${pct(leak.share * 100)} des comptes arrivés au bout de l'étape).`,
+      action: leak.action,
+      cta: { label:'Voir l’entonnoir', nav:'rentabilite' } });
   }
 
   // 6. Challenges mensuels qui traînent (la mensualité tombe sans validation).
@@ -7981,7 +8011,8 @@ function coAiPrompt(d){
     d.prev ? `Période précédente : net ${m(d.prev.net)}.` : '',
     d.spendPerEuro != null ? `Dépensé pour 1 unité retirée : ${d.spendPerEuro.toFixed(2)}.` : 'Aucun payout sur la période.',
     d.passRate != null ? `Taux de réussite des évaluations terminées : ${Math.round(d.passRate)} %.` : '',
-    d.paidRate != null ? `Comptes financés terminés ayant payé au moins une fois : ${Math.round(d.paidRate)} %.` : '',
+    d.paidRate != null ? `Comptes financés ayant versé au moins un payout : ${Math.round(d.paidRate)} %.` : '',
+    d.recurringRate != null ? `Comptes payés ayant versé au moins deux payouts : ${Math.round(d.recurringRate)} %.` : '',
     d.st.budget ? `Budget mensuel fixé : ${m(d.st.budget)} ; dépensé ce mois : ${m(d.monthExp)}.` : '',
     d.st.payoutGoal ? `Objectif de payout mensuel : ${m(d.st.payoutGoal)} ; reçu ce mois : ${m(d.monthPay)}.` : '',
   ].filter(Boolean).join('\n');
@@ -8141,10 +8172,10 @@ function viewCoach(){
   const dd = (n)=> n == null ? '—' : Math.round(n) + ' j';
   const kpis = `<div class="stats-grid co-kpis">
     ${tile('Coût par payout', d.costPerPayout == null ? '—' : m(d.costPerPayout), `${d.payoutCount} payout(s) ${perTxt}`, 'Dépenses de la période ÷ nombre de payouts reçus.')}
-    ${tile('Réussite des évals', pct(d.passRate), `${d.passed} réussie(s) · ${d.failed} perdue(s)`, 'Challenges achetés sur la période : réussis ÷ (réussis + perdus). Les challenges en cours ne comptent pas.', d.passRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
-    ${tile('Financés → payout', pct(d.paidRate), `${d.fundedPaid} payé(s) · ${d.fundedLost} perdu(s) sans payout`, 'Comptes financés ouverts sur la période : ceux qui ont versé au moins un payout ÷ (payés + perdus sans payout).', d.paidRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
+    ${tile('Réussite des évals', pct(d.passRate), `${d.passed} réussie(s) · ${d.failed} perdue(s)`, 'Comme dans l’entonnoir : challenges réussis ÷ (réussis + perdus), achetés sur la période. Les challenges en cours ne comptent pas.', d.passRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
+    ${tile('Au moins 1 payout', pct(d.paidRate), `${d.fundedPaid} sur ${d.funded} compte(s) financé(s)`, 'Comme dans l’entonnoir : comptes financés ayant versé au moins un payout ÷ comptes financés de la période (en cours compris).', d.paidRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
+    ${tile('2 payouts ou plus', pct(d.recurringRate), `${d.recurring} sur ${d.fundedPaid} compte(s) payé(s)`, 'Comme dans l’entonnoir : comptes ayant versé au moins deux payouts ÷ comptes ayant versé au moins un payout. Le signe d’une régularité.', d.recurringRate >= 50 ? 'var(--accent)' : 'var(--slate)')}
     ${tile('Durée de vie d’un financé', dd(d.fundedLife), 'Moyenne avant breach', 'Nombre moyen de jours entre l’activation et le breach, pour les comptes financés perdus sur la période.')}
-    ${tile('Durée de vie d’une éval', dd(d.challengeLife), 'Moyenne avant breach', 'Nombre moyen de jours entre l’achat et le breach, pour les challenges perdus sur la période.')}
     ${tile('Poids des resets', pct(d.resetShare), `${d.resetCount} reset(s) · ${m(d.resetSum)}`, 'Part des resets dans tes dépenses de la période.', d.resetShare >= 20 ? 'var(--gold)' : 'var(--slate)')}
   </div>`;
 
@@ -11922,14 +11953,14 @@ const MANUAL_CHAPTERS = [
     <ul>
       <li><b>Période</b> — 30 jours, 90 jours, 12 mois ou tout l'historique. Le net est comparé à la période précédente de même durée.</li>
       <li><b>Vue simple</b> — le verdict, tes objectifs, les 3 constats les plus importants et le bilan IA.</li>
-      <li><b>Vue experte</b> — en plus : 6 indicateurs (coût par payout, réussite des évals, financés → payout, durée de vie d'un compte financé et d'une éval, poids des resets), l'histogramme des 6 derniers mois avec ta ligne de budget, et un verdict par prop firm.</li>
+      <li><b>Vue experte</b> — en plus : 6 indicateurs (coût par payout, réussite des évals, au moins 1 payout, 2 payouts ou plus, durée de vie d'un compte financé, poids des resets), calculés exactement comme l'entonnoir de l'onglet Constat, l'histogramme des 6 derniers mois avec ta ligne de budget, et un verdict par prop firm.</li>
       <li><b>Mes objectifs</b> — un budget mensuel maximum et un objectif de payout mensuel. La jauge du budget passe à l'orange à 80 % et au rouge à 100 %, avec une projection de fin de mois au rythme actuel.</li>
     </ul>
     <p>Tes réglages sont mémorisés : sur ton compte si la fonctionnalité est activée côté serveur, sinon dans ton navigateur.</p>
     <h3>Le verdict</h3>
     <p>Rentable, en perte ou pas encore rentable, avec ton net réel de la période et une phrase simple : combien tu as dépensé en prop firms pour chaque unité retirée.</p>
     <h3>Ce que tu peux améliorer</h3>
-    <p>Des règles fixes analysent tes comptes et chiffrent chaque point : ce n'est pas une estimation de l'IA. Les situations repérées : une prop firm qui coûte plus qu'elle ne rapporte, des rachats le jour même ou le lendemain d'un breach, des resets qui dépassent 20 % des dépenses, des évaluations perdues en 3 jours ou moins, des comptes financés perdus avant le premier payout, des challenges mensuels ouverts depuis plus de 40 jours, un budget dépassé ou en passe de l'être, et ta prop firm la plus rentable.</p>
+    <p>Des règles fixes analysent tes comptes et chiffrent chaque point : ce n'est pas une estimation de l'IA. Les situations repérées : une prop firm qui coûte plus qu'elle ne rapporte, des rachats le jour même ou le lendemain d'un breach, des resets qui dépassent 20 % des dépenses, ton <b>point de fuite</b> (l'étape de l'entonnoir où tu perds le plus de comptes : l'évaluation, le premier payout ou la régularité des payouts, avec son coût et un lien vers l'entonnoir), des challenges mensuels ouverts depuis plus de 40 jours, un budget dépassé ou en passe de l'être, et ta prop firm la plus rentable.</p>
     <p>Chaque carte donne le constat, le montant « en jeu » (ce que ce point t'a coûté sur la période), une <b>piste à envisager</b> et un lien vers l'endroit de l'app concerné. Plusieurs constats peuvent porter sur les mêmes dépenses : leurs montants ne s'additionnent pas.</p>
     <h3>Bilan du coach (IA)</h3>
     <p>Un clic sur « Générer mon bilan » fait rédiger par l'IA (Gemini) un texte en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois. Elle ne reçoit que les chiffres et constats déjà calculés, sans ton nom, ton e-mail ni tes numéros de compte, et n'en invente aucun. Le bilan est gardé dans ton navigateur et se régénère quand tes chiffres changent.</p>
