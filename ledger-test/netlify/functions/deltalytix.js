@@ -230,6 +230,20 @@ exports.handler = async (event) => {
       return json(200, { connected: false });
     }
 
+    // Connexion reliée avant la règle « même e-mail » (18/10/2026) : coupée si l'e-mail Deltalytix
+    // enregistré diffère de l'e-mail du compte Contralytix (jetons révoqués chez Deltalytix).
+    {
+      const { data: conn } = await db.from('broker_connections').select('account_email, token_enc')
+        .eq('user_id', user.id).eq('provider', L.PROVIDER).maybeSingle();
+      const de = conn && conn.account_email ? String(conn.account_email).trim().toLowerCase() : '';
+      const ce = String(user.email || '').trim().toLowerCase();
+      if (conn && (!de || !ce || de !== ce)) {
+        const t = L.unpackTokens(conn.token_enc);
+        if (t) await Promise.all([L.revokeToken(t.refresh_token), L.revokeToken(t.access_token)]);
+        await db.from('broker_connections').delete().eq('user_id', user.id).eq('provider', L.PROVIDER);
+        return json(409, { error: 'email_mismatch', code: 'email_mismatch', email: conn.account_email || null });
+      }
+    }
     const token = await L.accessTokenFor(db, user.id);
 
     if (action === 'accounts') {

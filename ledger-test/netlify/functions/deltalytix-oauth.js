@@ -60,6 +60,14 @@ exports.handler = async (event) => {
         await Promise.all([L.revokeToken(tokens.refresh_token), L.revokeToken(tokens.access_token)]);
         return resultPage(event, { ok: false, error: 'identity_unknown' });
       }
+      // Règle (18/10/2026, Mickael) : seul le compte Deltalytix portant le MÊME e-mail que le compte
+      // Contralytix peut être relié. Sinon : jetons révoqués, rien d'enregistré.
+      let ctxEmail = null;
+      try { const { data: u } = await db.auth.admin.getUserById(st.u); ctxEmail = u && u.user && u.user.email ? String(u.user.email).trim() : null; } catch (e) { ctxEmail = null; }
+      if (!ctxEmail || ctxEmail.toLowerCase() !== email.toLowerCase()) {
+        await Promise.all([L.revokeToken(tokens.refresh_token), L.revokeToken(tokens.access_token)]);
+        return resultPage(event, { ok: false, error: 'email_mismatch', email, expected: ctxEmail });
+      }
       const esc = email.replace(/([%_\\])/g, '\\$1');
       const { data: others, error: oErr } = await db.from('broker_connections').select('user_id')
         .eq('provider', L.PROVIDER).ilike('account_email', esc).neq('user_id', st.u).limit(1);
