@@ -8165,7 +8165,20 @@ async function coachGenerateAi(){
   if(__coachAi.loading || !perms().isPremium) return;
   const d = computeCoachData();
   __coachAi.loading = true; renderView();
-  const text = await callAiSynthesis(coAiPrompt(d));
+  // Gemini (décision du 18/10/2026), via la même fonction que le chatbot : callAiSynthesis()
+  // passe par ai-synthesis.js (Groq), dont la clé n'est pas configurée partout.
+  let text = null;
+  try{
+    const res = await fetch('/.netlify/functions/gemini-synthesis', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: coAiPrompt(d) })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.overloaded ? 'le service IA est surchargé, réessaie dans quelques minutes' : (data.error || 'erreur ' + res.status));
+    text = (data.text || '').trim() || null;
+    if(!text) throw new Error('réponse vide');
+  } catch(e){
+    showToast('Bilan du coach indisponible : ' + e.message, 'danger');
+  }
   __coachAi.loading = false;
   if(text){ try{ localStorage.setItem(coAiCacheKey(d), JSON.stringify({ text, at: new Date().toISOString() })); }catch(e){} }
   if(state.route === 'coach') renderView();
