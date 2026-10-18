@@ -2242,6 +2242,10 @@ th.th-sort-active svg{opacity:1;}
 
 /* TOASTS */
 #toast-root{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200;}
+.toast{display:flex;align-items:flex-start;gap:10px;max-width:min(440px,calc(100vw - 40px));line-height:1.45;}
+.toast-txt{flex:1;min-width:0;}
+.toast-x{flex:none;border:0;background:transparent;color:var(--text-dim);font-size:18px;line-height:1;padding:0 2px;margin:-1px -4px 0 0;cursor:pointer;}
+.toast-x:hover{color:var(--text);}
 /* CHATBOT IA — bulle flottante + panneau de discussion (assistant Contralytix) */
 .chat-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-text);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.35);z-index:150;transition:transform .12s ease;}
 .chat-fab:hover{transform:scale(1.06);}
@@ -5720,16 +5724,36 @@ function myAccountingSource(){
 // longtemps) — utilisé par ex. par maybeShowNewMessagesToast() pour amener directement sur
 // Admin > Support.
 function showToast(msg, type='', onClick){
+  // Durée de lecture (18/10/2026) : calculée sur la longueur du message (≈ 15 caractères/s), au moins
+  // 4 s (8 s pour une erreur), au plus 20 s. Le survol met le compte à rebours en pause ; une erreur
+  // a une croix pour la fermer. Clic sur un message cliquable = action habituelle.
   const root = document.getElementById('toast-root');
   const el = document.createElement('div');
-  el.className = 'toast' + (type==='danger' ? ' danger' : '');
-  el.textContent = msg;
+  const danger = type==='danger';
+  el.className = 'toast' + (danger ? ' danger' : '');
+  el.setAttribute('role', danger ? 'alert' : 'status');
+  const txt = document.createElement('span');
+  txt.className = 'toast-txt';
+  txt.textContent = msg;
+  el.appendChild(txt);
+  let gone = false;
+  const close = ()=>{ if(gone) return; gone = true; el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(()=>el.remove(),200); };
+  if(danger){
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'toast-x'; x.setAttribute('aria-label', 'Fermer'); x.textContent = '×';
+    x.addEventListener('click', (e)=>{ e.stopPropagation(); close(); });
+    el.appendChild(x);
+  }
   if(onClick){
     el.style.cursor = 'pointer';
-    el.addEventListener('click', onClick, { once:true });
+    el.addEventListener('click', (e)=>{ onClick(e); close(); }, { once:true });
   }
   root.appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .2s'; setTimeout(()=>el.remove(),200); }, onClick ? 5000 : 2600);
+  const len = String(msg||'').length;
+  let left = Math.min(20000, Math.max(danger ? 8000 : 4000, 1500 + len * 65, onClick ? 6000 : 0));
+  let start = Date.now(), timer = setTimeout(close, left);
+  el.addEventListener('mouseenter', ()=>{ clearTimeout(timer); left -= Date.now() - start; });
+  el.addEventListener('mouseleave', ()=>{ start = Date.now(); timer = setTimeout(close, Math.max(1500, left)); });
 }
 
 /* ============================================================
