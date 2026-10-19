@@ -447,6 +447,19 @@ th.th-sort-active svg{opacity:1;}
 .type-chip--pa{--tc:var(--type-pa);}
 .type-chip--live{--tc:var(--type-live);}
 .type-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px;}
+.health-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:-4px 0 14px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);}
+.health-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 520px;}
+.health-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);margin-right:4px;}
+.health-chip{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-2);color:var(--text-dim);font:500 12.5px 'Inter',sans-serif;cursor:pointer;}
+.health-chip:hover{color:var(--text);}
+.health-chip.is-on{border-color:var(--accent);background:var(--accent-dim);color:var(--text);}
+.health-dot{width:7px;height:7px;border-radius:50%;flex:none;}
+.health-n{font:500 11px 'JetBrains Mono',monospace;opacity:.8;}
+.health-sort{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);}
+.health-sort select{min-height:34px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;}
+.health-src{display:flex;align-items:center;gap:6px;width:100%;font-size:11.5px;color:var(--text-faint);}
+.health-src svg{width:13px;height:13px;}
+@media (max-width:640px){ .health-chips{flex-wrap:nowrap;overflow-x:auto;flex:1 1 100%;padding-bottom:4px;scrollbar-width:thin;} .health-chip{flex:none;white-space:nowrap;} .health-sort{width:100%;} .health-sort select{flex:1;min-width:0;} }
 .type-tab{--tc:var(--text);display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--tc);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,border-color .12s;}
 .type-tab svg{width:15px;height:15px;}
 .type-tab:hover{border-color:color-mix(in srgb, var(--tc) 55%, var(--border));}
@@ -12594,6 +12607,13 @@ function viewAccounts(){
   const typeCounts = { ALL:list.length, CHALLENGE:0, PA:0, LIVE:0 };
   list.forEach(a=>{ if(typeCounts[a.type]!=null) typeCounts[a.type]++; });
   if(f.type) list = list.filter(a=>a.type===f.type);
+  // Filtre « Santé » (19/10/2026, piste A) : drawdown restant et objectif d'après Deltalytix.
+  // Compteurs calculés sur la liste déjà filtrée (traders, firm, statut, type…), avant ce filtre.
+  // Affiché seulement si au moins un compte a un drawdown ou un objectif connu (sinon tous les compteurs seraient à 0).
+  const healthOn = dlxGaugesAllowed() && list.some(a=>{ const c = dlxHealthCat(a); return !!c && (c.dd!=null || c.prog!=null); });
+  const healthCounts = {};
+  if(healthOn){ Object.keys(ACC_HEALTH).forEach(k=>{ healthCounts[k] = list.filter(a=>ACC_HEALTH[k].test(dlxHealthCat(a))).length; }); }
+  if(healthOn && f.health && ACC_HEALTH[f.health]) list = list.filter(a=>ACC_HEALTH[f.health].test(dlxHealthCat(a)));
   const hiddenSearchHtml = (()=>{
     if(!searchMatches) return '';
     const shown = new Set(list.map(a=>a.id));
@@ -12607,6 +12627,7 @@ function viewAccounts(){
     if(f.type && hidden.some(a=>a.type!==f.type)) reasons.push('type ' + [...new Set(hidden.filter(a=>a.type!==f.type).map(a=>TYPE_LABELS[a.type]||a.type))].join(', '));
     if(f.size && hidden.some(a=>a.size!==f.size)) reasons.push('taille');
     if(f.platform) reasons.push('plateforme');
+    if(f.health) reasons.push('santé');
     if(f.propfirm && hidden.some(a=>a.propFirmId!==f.propfirm)) reasons.push('PropFirm');
     const n = hidden.length;
     return `<div class="search-hidden-note">${icon('info')}<span><strong>${n} compte${n>1?'s':''} correspondant${n>1?'s':''} à « ${escapeHtml(f.q)} » ${n>1?'sont masqués':'est masqué'}</strong> par tes filtres${reasons.length?` (${reasons.join(' · ')})`:''}.</span><button type="button" class="btn btn-outline btn-sm" id="f-show-hidden-search">Afficher</button></div>`;
@@ -12628,6 +12649,9 @@ function viewAccounts(){
       return 3;
     };
     list.sort((a,b)=>score(a)-score(b));
+  } else if(healthOn && f.healthSort && ACC_HEALTH_SORTS[f.healthSort]){
+    const key = ACC_HEALTH_SORTS[f.healthSort].key;
+    list.sort((a,b)=>{ const x = key(dlxHealthCat(a)), y = key(dlxHealthCat(b)); return (x==null) - (y==null) || (x==null ? 0 : x - y); });
   }
 
   const statusOpts = [
@@ -12638,7 +12662,7 @@ function viewAccounts(){
     : f.status.length===1 ? STATUS_LABELS[f.status[0]]
     : `${f.status.length} statuts`;
   const statusIsDefault = f.status.length===DEFAULT_ACCOUNT_STATUS_FILTER.length && DEFAULT_ACCOUNT_STATUS_FILTER.every(v=>f.status.includes(v));
-  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || f.platform || !statusIsDefault);
+  const anyFilterActive = !!(f.q || f.trader.length || f.propfirm || f.type || f.size || f.platform || f.health || !statusIsDefault);
   const platformsUsed = [...new Set(state.accounts.map(a=>a.platform).filter(p=>PLATFORMS[p]))];
 
   const filterBar = `
@@ -12678,7 +12702,21 @@ function viewAccounts(){
         const on = (f.type||'')===v;
         return `<button type="button" role="tab" aria-selected="${on}" class="type-tab type-tab--${k}${on?' is-on':''}" data-type-tab="${v}" title="${v?TYPE_TITLES[v]:'Tous les types de compte'}">${v?TYPE_ICONS[v]:''}<span>${l}</span><span class="type-tab-n">${typeCounts[v||'ALL']}</span></button>`;
       }).join('')}
-    </div>`;
+    </div>
+    ${healthOn ? `<div class="health-bar">
+      <div class="health-chips" role="group" aria-label="Filtrer par santé du compte">
+        <span class="health-label">Santé</span>
+        ${Object.entries(ACC_HEALTH).map(([k,h])=>{ const on = (f.health||'')===(k==='all'?'':k);
+          return `<button type="button" class="health-chip${on?' is-on':''}" data-health="${k==='all'?'':k}" aria-pressed="${on}" title="${escapeHtml(h.title)}"><span class="health-dot" style="background:${h.dot}"></span>${h.label}<span class="health-n">${healthCounts[k]}</span></button>`; }).join('')}
+      </div>
+      <label class="health-sort">Trier
+        <select id="f-health-sort">
+          <option value="" ${!f.healthSort?'selected':''}>Date d’achat · plus récent d’abord</option>
+          ${Object.entries(ACC_HEALTH_SORTS).map(([k,o])=>`<option value="${k}" ${f.healthSort===k?'selected':''}>${o.label}</option>`).join('')}
+        </select>
+      </label>
+      <div class="health-src">${icon('info')}D’après Deltalytix · synchro ${dlxAgo(dlx().lastSyncAt)}</div>
+    </div>` : ''}`;
 
   const totalsBar = accountsTotalsHtml(list, f, anyFilterActive);
 
@@ -17985,6 +18023,38 @@ function dlxBreachModal(){
   });
 }
 // Ligne Deltalytix sur la carte d'un compte actif : dernier trade, ou limite de perte atteinte.
+// Accès aux données de santé Deltalytix (jauges, filtre « Santé ») : admin, ou Premium ET abonné Deltalytix.
+function dlxGaugesAllowed(){
+  const d = dlx();
+  if(!d.connected || !d.health) return false;
+  const paid = !!(d.health.plan && d.health.plan.known && d.health.plan.paid);
+  return isAdmin() || (perms().isPremium && paid);
+}
+// Santé d'un compte actif d'après la dernière synchro : null si Deltalytix ne sait rien d'utile dessus.
+function dlxHealthCat(a){
+  if(!a || a.status!=='ACTIF') return null;
+  const h = dlxHealthOf(a.id);
+  if(!h) return null;
+  const dd = h.remainingLoss!=null && h.drawdownTotal>0 ? Math.max(0, Math.min(1, h.remainingLoss / h.drawdownTotal)) : null;
+  const tg = a.type==='CHALLENGE' && h.remainingToTarget!=null;
+  const prog = tg ? (h.targetProgress!=null ? h.targetProgress : (h.remainingToTarget<=0 ? 100 : null)) : null;
+  if(dd==null && prog==null && h.balance==null) return null;
+  return { dd, prog, done: tg && (h.remainingToTarget<=0 || (prog!=null && prog>=100)), balance: h.balance, last: h.lastTradeDay };
+}
+// Raccourcis du filtre « Santé » (mêmes seuils que les jauges des cartes : 20 % et 50 %).
+const ACC_HEALTH = {
+  all:   { label:'Tous', dot:'var(--text-faint)', title:'Tous les comptes', test: ()=>true },
+  crit:  { label:'Drawdown critique ≤ 20 %', dot:'var(--danger)', title:'Drawdown restant à 20 % ou moins de la limite', test: c=>!!c && c.dd!=null && c.dd<=0.2 },
+  watch: { label:'À surveiller ≤ 50 %', dot:'var(--gold)', title:'Drawdown restant à 50 % ou moins (critiques compris)', test: c=>!!c && c.dd!=null && c.dd<=0.5 },
+  near:  { label:'Proche de l’objectif ≥ 80 %', dot:'var(--type-challenge)', title:'Challenges à 80 % ou plus de l’objectif, pas encore atteint', test: c=>!!c && c.prog!=null && c.prog>=80 && !c.done },
+  done:  { label:'Objectif atteint', dot:'var(--accent)', title:'Challenges dont l’objectif est atteint : à faire valider', test: c=>!!c && c.done },
+};
+const ACC_HEALTH_SORTS = {
+  dd:   { label:'Drawdown restant · le plus faible d’abord', key: c=>c && c.dd!=null ? c.dd : null },
+  obj:  { label:'Objectif · le plus proche d’abord', key: c=>c && c.prog!=null ? -c.prog : null },
+  bal:  { label:'Solde · le plus élevé d’abord', key: c=>c && c.balance!=null ? -c.balance : null },
+  last: { label:'Dernier trade · le plus ancien d’abord', key: c=>c && c.last ? Date.parse(c.last) : null },
+};
 function dlxCardHealthHtml(a){
   if(a.status!=='ACTIF') return '';
   const d = dlx();
@@ -19790,6 +19860,8 @@ function bindViewEvents(){
   // Accounts filters
   bindFirmSelect('f-firm', state.filters.accounts, 'firmMenuOpen');
   document.querySelectorAll('[data-type-tab]').forEach(b=>b.onclick=()=>{ state.filters.accounts.type = b.dataset.typeTab; renderView(); });
+  document.querySelectorAll('[data-health]').forEach(b=>b.onclick=()=>{ state.filters.accounts.health = b.dataset.health; renderView(); });
+  { const hs = document.getElementById('f-health-sort'); if(hs) hs.onchange = ()=>{ state.filters.accounts.healthSort = hs.value; renderView(); }; }
   bindIconSelect('f-platform', (v)=>{ state.filters.accounts.platform = v; renderView(); });
   ['f-q','f-type','f-size'].forEach(id=>{
     const el = document.getElementById(id);
