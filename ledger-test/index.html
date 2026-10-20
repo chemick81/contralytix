@@ -21493,10 +21493,14 @@ function cimPrefix(num){
   const m = String(num||'').trim().toUpperCase().match(/^[A-Z]+/);
   return (m && m[0].length>=2) ? m[0] : '';
 }
+// Compte déjà enregistré PAR CET UTILISATEUR (20/10/2026). Avant, la recherche portait sur tous les
+// comptes chargés : un admin, un coach ou un Premium voit aussi des comptes d'autres traders, et un
+// numéro identique chez quelqu'un d'autre suffisait à marquer le compte « Déjà enregistré » et à le
+// décocher — un compte supprimé ne se réimportait donc plus.
 function cimExistingAccount(num){
   const key = normAccNum(num);
   if(!key) return null;
-  return state.accounts.find(a=>normAccNum(a.accountNumber)===key) || null;
+  return state.accounts.find(a=>isMineAccount(a) && normAccNum(a.accountNumber)===key) || null;
 }
 function cimMajority(values){
   const counts = new Map();
