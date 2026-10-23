@@ -2552,6 +2552,158 @@ th.th-sort-active svg{opacity:1;}
   .filter-bar{gap:8px;}
   .filter-bar input[type=text]{min-width:0;flex:1 1 100%;}
 }
+/* ============================================================
+   PLAN DE SESSION · COCKPIT · MÉTHODE (23/10/2026)
+   Couleurs des profils : Prudent (bleu ardoise), Équilibré (accent), Agressif (orange).
+   Elles se distinguent aussi par leur libellé : jamais par la couleur seule.
+============================================================ */
+:root[data-theme="dark"]{ --sp-prudent:#A9C1DB; --sp-agressif:#F5A34B; }
+:root[data-theme="light"]{ --sp-prudent:#3D6894; --sp-agressif:#B35E0C; }
+:root[data-theme="premium"]{ --sp-prudent:#B4C6DA; --sp-agressif:#FF8A5B; }
+.sp-p-off{--spc:var(--text-dim);}
+.sp-p-prudent{--spc:var(--sp-prudent);}
+.sp-p-equilibre{--spc:var(--accent);}
+.sp-p-agressif{--spc:var(--sp-agressif);}
+.sp-h{margin:0;font-size:15px;font-weight:600;}
+.sp-sub{font-size:12px;color:var(--text-dim);line-height:1.45;}
+.sp-notice{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;margin-bottom:14px;border-radius:var(--radius-md);background:var(--surface-2);border:1px solid var(--border);font-size:13px;color:var(--text-dim);line-height:1.45;}
+.sp-notice svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.sp-notice.is-danger{background:var(--danger-dim);border-color:color-mix(in srgb,var(--danger) 40%,transparent);color:var(--text);}
+.sp-notice.is-danger svg{color:var(--danger);}
+.sp-notice.is-warn{background:var(--gold-dim);border-color:color-mix(in srgb,var(--gold) 40%,transparent);color:var(--text);margin:14px 0 0;}
+.sp-notice.is-warn svg{color:var(--gold);}
+.sp-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);}
+.sp-strip-k{font-size:12px;font-weight:600;margin-right:4px;}
+.sp-chip{font-size:12px;color:var(--text-dim);background:var(--surface-2);border-radius:var(--radius-pill);padding:5px 10px;white-space:nowrap;}
+.sp-chip b{color:var(--text);font-weight:600;}
+.sp-chip.mono{color:var(--text);}
+.sp-chip.is-danger{color:var(--danger);background:var(--danger-dim);}
+.sp-strip-link{margin-left:auto;}
+.sp-strip-link svg,.sp-ck-btns svg,.sp-panel-head .btn svg,.sp-card .btn svg,.sp-banner .btn svg,.sp-mhead .btn svg{width:14px;height:14px;}
+.sp-kpis{margin-bottom:16px;}
+.sp-panel-head{flex-wrap:wrap;gap:10px;}
+.sp-table-wrap{overflow-x:auto;}
+.sp-grid{display:grid;grid-template-columns:minmax(190px,1fr) 268px var(--sp-cols) minmax(170px,1fr);column-gap:12px;align-items:center;padding:13px 18px;}
+.sp-set{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.sp-size-line{display:flex;align-items:center;gap:8px;}
+.sp-size-note{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.sp-head{padding-top:10px;padding-bottom:10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);align-items:end;}
+.sp-head .c{text-align:center;}
+.sp-head .mono{letter-spacing:0;text-transform:none;font-weight:500;color:var(--text-dim);}
+.sp-row{border-top:1px solid var(--border-soft);}
+.sp-row.is-off > div:not(:nth-child(2)){opacity:.55;}
+.sp-acc{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.sp-acc-l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sp-acc-l1 .type-chip{height:22px;padding:0 7px;font-size:10px;}
+.sp-acc-l1 .type-chip svg{width:12px;height:12px;}
+.sp-firm{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;min-width:0;}
+.sp-size-lbl{font-size:12px;color:var(--text-dim);}
+.sp-acc-l2{display:flex;gap:6px;font-size:12px;color:var(--text-dim);flex-wrap:wrap;}
+.sp-seg{display:inline-flex;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;max-width:100%;}
+.sp-seg button{height:32px;min-width:30px;padding:0 9px;border:0;border-radius:6px;background:transparent;color:var(--text-dim);font-size:12px;font-weight:500;white-space:nowrap;}
+.sp-seg button:hover{color:var(--text);background:var(--surface-2);}
+.sp-seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.sp-seg button.on{font-weight:700;color:var(--spc,var(--text));background:color-mix(in srgb,var(--spc,var(--text)) 16%,transparent);}
+.sp-seg button.sp-p-off.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
+.sp-size button{font-family:'JetBrains Mono',monospace;padding:0;width:30px;height:28px;}
+.sp-size button.nq{width:auto;padding:0 9px;margin-left:4px;}
+.sp-size button.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
+.sp-size button.nq.on{color:var(--gold);background:var(--gold-dim);}
+.sp-bias button.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
+.sp-hint{font-size:12px;color:var(--text-dim);line-height:1.4;}
+.sp-hint b{color:var(--text);font-weight:600;}
+.sp-hint.warn,.sp-hint.warn b{color:var(--gold);}
+.sp-cell{height:52px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px dashed var(--border);}
+.sp-cell b{font-size:14px;font-weight:600;color:var(--text-faint);}
+.sp-cell span{font-size:10.5px;color:var(--text-dim);white-space:nowrap;}
+.sp-cell.on{border:1px solid transparent;background:color-mix(in srgb,var(--spc) 15%,transparent);}
+.sp-cell.on b{color:var(--spc);font-size:15px;}
+.sp-risk{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.sp-risk-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;}
+.sp-risk-top span.mono{font-size:12px;font-weight:600;color:var(--spl,var(--text-dim));}
+.sp-bar{height:6px;background:var(--surface-3);border-radius:var(--radius-pill);overflow:hidden;margin:3px 0;}
+.sp-bar i{display:block;height:100%;border-radius:var(--radius-pill);background:var(--spl,var(--text-faint));}
+.sp-risk-sub{font-size:11px;color:var(--text-dim);display:inline-flex;align-items:center;gap:5px;}
+.lvl-ok{--spl:var(--accent);} .lvl-warn{--spl:var(--gold);} .lvl-crit{--spl:var(--danger);} .lvl-na{--spl:var(--border);}
+.sp-foot{border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 var(--radius-md) var(--radius-md);font-size:13px;}
+.sp-foot-sub{font-size:12px;color:var(--text-dim);}
+.sp-tot{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.sp-tot.l{align-items:flex-start;}
+.sp-tot b{font-size:15px;}
+.sp-tot span{font-size:11px;color:var(--text-dim);}
+.sp-legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:14px;font-size:12px;color:var(--text-dim);}
+.sp-legend span{display:inline-flex;align-items:center;gap:6px;}
+.sp-legend p{margin:4px 0 0;flex-basis:100%;line-height:1.5;}
+.sp-dot{width:10px;height:10px;border-radius:3px;background:var(--spc);display:inline-block;}
+/* Cockpit */
+.sp-ck{padding:18px 20px;display:flex;flex-direction:column;gap:16px;margin-bottom:14px;}
+.sp-ck-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.sp-pals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.sp-pal{min-height:116px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:6px;padding:14px 16px;border-radius:var(--radius-md);background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);text-align:left;transition:background .12s,border-color .12s;}
+.sp-pal:hover{border-color:var(--text-faint);color:var(--text);}
+.sp-pal:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.sp-pal-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 8px;width:100%;}
+.sp-pal-top b{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.02em;}
+.sp-pal-top em{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.07em;}
+.sp-pal-pts{font-size:14px;font-weight:600;}
+.sp-pal-who{font-size:12px;}
+.sp-pal.next{border:2px solid var(--accent);color:var(--text);}
+.sp-pal.next .sp-pal-top em{color:var(--accent);}
+.sp-pal.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+.sp-ck-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--text-dim);}
+.sp-ck-foot b{color:var(--text);}
+.sp-ck-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.sp-banner{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:14px;border-radius:var(--radius-md);background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);}
+.sp-banner b{color:var(--accent);font-size:14px;}
+.sp-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;align-items:start;}
+.sp-col-h{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);}
+.sp-col-h.now{color:var(--accent);}
+.sp-col-empty{margin:0;padding:14px;border:1px dashed var(--border);border-radius:var(--radius-md);font-size:13px;color:var(--text-dim);}
+.sp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px;}
+.sp-card.now{border-color:color-mix(in srgb,var(--accent) 50%,transparent);}
+.sp-card.wait{background:var(--surface-2);}
+.sp-card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;}
+.sp-card-h .type-chip{height:22px;padding:0 7px;font-size:10px;}
+.sp-card-h .type-chip svg{width:12px;height:12px;}
+.sp-num{font-size:12px;color:var(--text-dim);}
+.sp-prof-tag{margin-left:auto;font-size:11px;font-weight:700;color:var(--spc);}
+.sp-action-line{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.sp-action{font-size:24px;font-weight:600;}
+.sp-where{font-size:13px;color:var(--text-dim);}
+.sp-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.sp-mini span{font-size:11px;color:var(--text-dim);}
+.sp-mini b{display:block;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;}
+.sp-target{font-size:12px;color:var(--text-dim);padding-top:8px;border-top:1px solid var(--border-soft);line-height:1.45;}
+.sp-target b{color:var(--text);}
+.sp-wait{font-size:13px;color:var(--text);}
+.sp-empty{padding:10px 0 22px;}
+.sp-empty-cta{display:flex;justify-content:center;}
+/* Méthode */
+.sp-mhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.sp-mpanel{padding:18px 20px;margin-bottom:14px;}
+.sp-mpanel > .sp-h{margin-bottom:14px;}
+.sp-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;}
+.sp-form-grid input{font-family:'JetBrains Mono',monospace;font-weight:600;}
+.sp-result{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--text-dim);}
+.sp-mtable{min-width:620px;}
+.sp-mrow{display:grid;grid-template-columns:150px 190px 110px minmax(200px,1fr);gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--border-soft);font-size:13px;}
+.sp-mrow.sp-head{border-top:0;padding:0 0 6px;}
+.sp-prof-name{font-weight:700;color:var(--spc);}
+.sp-mrow select,.sp-rules select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;}
+.sp-rules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.sp-rules li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:11px 14px;background:var(--surface-2);border-radius:8px;font-size:13px;line-height:1.6;}
+.sp-rn{color:var(--text-faint);margin-right:4px;}
+.sp-inl{width:64px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:13px;font-weight:600;}
+.sp-inl:focus,.sp-mrow select:focus,.sp-rules select:focus{outline:2px solid var(--accent);outline-offset:0;}
+.sp-ct{color:var(--spc);}
+@media (max-width:760px){
+  .sp-strip-link{margin-left:0;}
+  .sp-ck{padding:14px;}
+  .sp-pals{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .sp-action{font-size:20px;}
+  .sp-bias{display:flex;width:100%;}
+  .sp-bias button{flex:1;white-space:normal;height:auto;min-height:38px;padding:4px 6px;line-height:1.25;}
+}
 </style>
 </head>
 <body>
@@ -4987,6 +5139,7 @@ async function signOut(){
   state.authStep = 'email';
   state.authEmail = '';
   state.authError = '';
+  state.sp = null; // Plan de session : rechargé pour le prochain utilisateur
 }
 
 /* ============================================================
@@ -6310,6 +6463,9 @@ const BASE_NAV = [
   { id:'frais-generaux', label:'Frais généraux', icon:'card' },
   { id:'sessions', label:'Sessions de Trading', icon:'video' },
   { id:'meteo', label:'Préparation séance', icon:'bolt' },
+  { id:'plan-seance', label:'Plan de session', icon:'sheet' },
+  { id:'cockpit', label:'Cockpit live', icon:'play' },
+  { id:'seance-methode', label:'Méthode de séance', icon:'gear' },
   { id:'comparatif', label:'Comparatif', icon:'barChart' },
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
   { id:'subscription', label:'Abonnement', icon:'wallet' },
@@ -6328,6 +6484,8 @@ function getNav(){
   const hidden = new Set(state.appSettings ? state.appSettings.hiddenPages : []);
   const nav = BASE_NAV
     .filter(n => !hidden.has(n.id) || isAdmin())
+    // Plan de session / Cockpit / Méthode (23/10/2026) : réservés aux admins pour l'instant.
+    .filter(n => !SP_ROUTES.includes(n.id) || isAdmin())
     .map(n => hidden.has(n.id) ? { ...n, hiddenForOthers:true } : n);
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
@@ -6348,14 +6506,14 @@ const NAV_GROUPS = [
   { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier'] },
   { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'] },
   { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
-  { id:'trading',    label:'Trading',      items:['sessions','meteo'] },
+  { id:'trading',    label:'Trading',      items:['sessions','meteo','plan-seance','cockpit'] },
   { id:'communaute', flat:true,            items:['ecole'] },
   { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true },
   { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true },
 ];
 // Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
 // mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
-const NAV_TAB_PARENT = { coach:'rentabilite' };
+const NAV_TAB_PARENT = { coach:'rentabilite', 'seance-methode':'plan-seance' };
 function navRouteOwner(route){ return NAV_TAB_PARENT[route] || route; }
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
@@ -6801,6 +6959,9 @@ function topbarSub(){
   const map = {
     dashboard: 'Vue d\u2019ensemble de l\u2019activité',
     meteo: 'Prépa de séance — niveaux, régime de marché, biais du jour',
+    'plan-seance': 'Qui entre, à quel palier et avec quelle taille',
+    cockpit: 'Clique le palier touché : l\u2019écran te dit qui entre',
+    'seance-methode': 'Paliers, profils et règles de suggestion',
     traders: state.traders.length + ' trader(s) enregistré(s)',
     propfirms: state.propfirms.length + ' propfirm(s) enregistrée(s)',
     accounts: state.accounts.length + ' compte(s) au total',
@@ -6836,6 +6997,7 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
+  else if(state.route==='plan-seance') el.innerHTML = `<button class="btn btn-primary" id="sp-open-cockpit">${icon('play')}Ouvrir le cockpit</button>`;
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
   else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
@@ -6911,6 +7073,510 @@ function renderTopbarActions(){
   };
 }
 
+/* ============================================================
+   PLAN DE SESSION · COCKPIT LIVE · MÉTHODE (23/10/2026)
+   Réservé aux admins pour l'instant (voir getNav). Trois pages reliées par des onglets :
+   - Plan de session : profil d'agressivité (Off / Prudent / Équilibré / Agressif) et taille par
+     patte (1 à 5 MNQ ou 1 NQ) de chaque compte actif ; suggestion expliquée ; perte latente au
+     stress test comparée au coussin Deltalytix (drawdown restant, dernière synchro).
+   - Cockpit live : le trader clique le palier touché (T0, T1…) ; l'écran dit qui entre, avec
+     quelle taille. État gardé en localStorage pour la journée seulement (aucun historique).
+   - Méthode : paliers, profils et règles de suggestion, modifiables (app_settings,
+     key = 'session_method', écriture admin).
+   Réglages par compte : table session_plan (migration_plan_session.sql), une ligne par compte,
+   écrasée à chaque changement : pas d'historique (décision du 23/10/2026).
+   Profil ↔ premier palier : Prudent entre tard (T2), Équilibré à T1, Agressif dès T0.
+   Chaque patte a la même taille que la première.
+============================================================ */
+const SP_ROUTES = ['plan-seance','cockpit','seance-methode'];
+const SP_RANK = { off:-1, prudent:0, equilibre:1, agressif:2 };
+const SP_PROFILES = {
+  off:       { label:'Off',       name:'Hors séance' },
+  prudent:   { label:'Prudent',   name:'Prudent' },
+  equilibre: { label:'Équilibré', name:'Équilibré' },
+  agressif:  { label:'Agressif',  name:'Agressif' },
+};
+const SP_ORDER = ['off','prudent','equilibre','agressif'];
+const SP_SIZES = [
+  { k:'1', q:1, nq:false }, { k:'2', q:2, nq:false }, { k:'3', q:3, nq:false },
+  { k:'4', q:4, nq:false }, { k:'5', q:5, nq:false }, { k:'nq', q:1, nq:true },
+];
+const SP_DEFAULT_METHOD = {
+  extMin:60, step:30, count:4, stressBeyond:30, retrace:30, maxSize:'nq',
+  starts:{ prudent:2, equilibre:1, agressif:0 },
+  rules:{ aggrMin:70, eqMin:40, fundedCap:'equilibre', riskMax:75 },
+};
+const SP_COCKPIT_KEY = 'ledger_sp_cockpit';
+
+function spNormMethod(v){
+  const d = SP_DEFAULT_METHOD, m = v || {};
+  const num = (x, def, min, max) => { const n = Number(x); return Number.isFinite(n) && x!=='' && x!=null ? Math.min(max, Math.max(min, Math.round(n))) : def; };
+  const count = num(m.count, d.count, 2, 6);
+  const st = m.starts || {}, r = m.rules || {};
+  const starts = {};
+  ['prudent','equilibre','agressif'].forEach(k=>{ starts[k] = num(st[k], Math.min(d.starts[k], count-1), 0, count-1); });
+  return {
+    extMin: num(m.extMin, d.extMin, 1, 2000), step: num(m.step, d.step, 1, 1000), count,
+    stressBeyond: num(m.stressBeyond, d.stressBeyond, 0, 1000), retrace: num(m.retrace, d.retrace, 1, 99),
+    maxSize: ['3','5','nq'].includes(m.maxSize) ? m.maxSize : d.maxSize,
+    starts,
+    rules: {
+      aggrMin: num(r.aggrMin, d.rules.aggrMin, 0, 100), eqMin: num(r.eqMin, d.rules.eqMin, 0, 100),
+      fundedCap: ['equilibre','prudent','none'].includes(r.fundedCap) ? r.fundedCap : d.rules.fundedCap,
+      riskMax: num(r.riskMax, d.rules.riskMax, 1, 200),
+    },
+  };
+}
+function spLoadCockpit(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(SP_COCKPIT_KEY) || 'null');
+    if(raw && raw.day === todayISO()) return { reached: Number.isInteger(raw.reached) ? raw.reached : -1, short: raw.short !== false, done: raw.done || {} };
+  }catch(e){}
+  return { reached:-1, short:true, done:{} };
+}
+function spSaveCockpit(){
+  const c = spState().cockpit;
+  try{ localStorage.setItem(SP_COCKPIT_KEY, JSON.stringify({ day: todayISO(), reached: c.reached, short: c.short, done: c.done })); }catch(e){}
+}
+function spState(){
+  if(!state.sp) state.sp = { loaded:false, loading:false, tableOk:true, plan:{}, method: spNormMethod(null), methodDraft:null, cockpit: spLoadCockpit() };
+  return state.sp;
+}
+async function spLoad(){
+  const s = spState();
+  if(s.loading) return;
+  s.loading = true;
+  try{
+    if(SUPABASE_CONFIGURED && state.session){
+      const [plan, meth] = await Promise.all([
+        supabaseClient.from('session_plan').select('*').eq('user_id', currentUserId()),
+        supabaseClient.from('app_settings').select('*').eq('key','session_method').maybeSingle(),
+      ]);
+      if(plan.error){ s.tableOk = false; console.warn('Plan de session : table session_plan indisponible :', plan.error.message); }
+      else { s.tableOk = true; s.plan = {}; (plan.data||[]).forEach(r=>{ s.plan[r.account_id] = { profile: r.profile || null, size: r.size || '1' }; }); }
+      if(!meth.error && meth.data && meth.data.value) s.method = spNormMethod(meth.data.value);
+    }
+  }catch(e){ console.warn('Plan de session : chargement impossible', e); }
+  s.loaded = true; s.loading = false;
+  if(SP_ROUTES.includes(state.route)) renderView();
+}
+
+/* ---------- Calculs ---------- */
+function spPaliers(m){ return Array.from({ length:m.count }, (_, i)=>({ i, id:'T'+i, pts: m.extMin + i*m.step })); }
+function spStress(m){ return m.extMin + (m.count-1)*m.step + m.stressBeyond; }
+function spSize(k){ return SP_SIZES.find(s=>s.k===k) || SP_SIZES[0]; }
+function spAllowedSizes(m){ const max = m.maxSize==='3' ? 3 : 5; return SP_SIZES.filter(s=> s.nq ? m.maxSize==='nq' : s.q<=max); }
+function spUnit(k){ return spSize(k).nq ? 'NQ' : 'MNQ'; }
+function spEq(k){ const s = spSize(k); return s.nq ? s.q*10 : s.q; }
+function spStart(p, m){ return p && p!=='off' ? m.starts[p] : 99; }
+function spRisk(p, k, m){
+  const s = spSize(k), pv = s.nq ? 20 : 2, st = spStart(p, m), stress = spStress(m);
+  return spPaliers(m).reduce((t, x)=> t + (x.i>=st ? s.q*(stress - x.pts)*pv : 0), 0);
+}
+function spAccounts(){
+  const ord = { CHALLENGE:0, PA:1, LIVE:2 };
+  return accountsInScope().filter(a=>a.status==='ACTIF').sort((a, b)=>{
+    const t = (ord[a.type] ?? 9) - (ord[b.type] ?? 9);
+    if(t) return t;
+    const fa = (getFirm(a.propFirmId)||{}).name || '', fb = (getFirm(b.propFirmId)||{}).name || '';
+    return fa.localeCompare(fb) || String(a.accountNumber||'').localeCompare(String(b.accountNumber||''));
+  });
+}
+function spCushion(a){
+  const h = dlxHealthOf(a.id);
+  if(!h || h.remainingLoss==null) return null;
+  return { left: Math.max(0, Number(h.remainingLoss)||0), total: h.drawdownTotal>0 ? Number(h.drawdownTotal) : null };
+}
+function spPlanOf(a){ const p = spState().plan[a.id]; return { profile: p ? p.profile : null, size: p && p.size ? p.size : '1' }; }
+function spMoney(n){ return (n<0 ? '−' : '') + String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' $'; }
+function spSuggest(a, k, m){
+  const c = spCushion(a), R = m.rules, why = [];
+  if(!c) return { s:'prudent', why:'coussin inconnu : synchronise Deltalytix' };
+  let s;
+  if(c.total){
+    const pct = c.left / c.total * 100;
+    s = pct>=R.aggrMin ? 'agressif' : pct>=R.eqMin ? 'equilibre' : 'prudent';
+    why.push('coussin ' + Math.round(pct) + ' %');
+  } else { s = 'agressif'; why.push('coussin ' + spMoney(c.left)); }
+  const funded = a.type==='PA' || a.type==='LIVE';
+  if(funded && R.fundedCap!=='none' && SP_RANK[s] > SP_RANK[R.fundedCap]){
+    s = R.fundedCap; why.push((a.type==='PA' ? 'PA' : 'Live') + ' plafonné à ' + SP_PROFILES[s].name);
+  }
+  let down = false;
+  while(s!=='prudent' && spRisk(s, k, m) > R.riskMax/100*c.left){ s = s==='agressif' ? 'equilibre' : 'prudent'; down = true; }
+  if(down) why.push('taille trop lourde pour le coussin');
+  return { s, why: why.join(' · ') };
+}
+function spLevel(pct){ if(pct==null) return 'na'; return pct<40 ? 'ok' : pct<spState().method.rules.riskMax ? 'warn' : 'crit'; }
+function spQtyText(list){ // list : [{ q, nq }]
+  const m = list.filter(x=>!x.nq).reduce((t, x)=>t+x.q, 0), n = list.filter(x=>x.nq).reduce((t, x)=>t+x.q, 0);
+  return [m ? m + ' MNQ' : '', n ? n + ' NQ' : ''].filter(Boolean).join(' + ') || '0';
+}
+function spAccHeadHtml(a){
+  const firm = getFirm(a.propFirmId), tr = getTrader(a.traderId);
+  return `<div class="sp-acc">
+    <div class="sp-acc-l1">${typeBadgeHtml(a.type)}<span class="sp-firm">${firmLogoHtml(firm, 16)}<b>${escapeHtml(firm ? firm.name : '—')}</b></span><span class="mono sp-size-lbl">${escapeHtml(sizeLabel(a)||'')}</span></div>
+    <div class="sp-acc-l2"><span class="mono">${escapeHtml(a.accountNumber||'')}</span>${tr ? `<span>· ${escapeHtml(tr.pseudo)}</span>` : ''}</div>
+  </div>`;
+}
+
+/* ---------- Enregistrement ---------- */
+async function spSavePlan(rows){
+  const s = spState(), prev = {};
+  rows.forEach(r=>{ prev[r.accId] = s.plan[r.accId]; s.plan[r.accId] = { profile:r.profile, size:r.size }; });
+  renderView();
+  if(!SUPABASE_CONFIGURED) return;
+  const now = new Date().toISOString();
+  const payload = rows.map(r=>({ user_id: currentUserId(), account_id: r.accId, profile: r.profile, size: r.size, updated_at: now }));
+  const { error } = await supabaseClient.from('session_plan').upsert(payload, { onConflict:'user_id,account_id' });
+  if(error){
+    rows.forEach(r=>{ if(prev[r.accId]) s.plan[r.accId] = prev[r.accId]; else delete s.plan[r.accId]; });
+    s.tableOk = false;
+    renderView();
+    showToast(isAdmin() ? 'Réglage non enregistré : exécute migration_plan_session.sql sur Supabase. (' + error.message + ')' : 'Réglage non enregistré. Réessaie dans un instant.', 'danger');
+  }
+}
+
+/* ---------- Vues ---------- */
+function spTabsHtml(){
+  const tabs = [ { id:'plan-seance', l:'Plan', ic:'sheet' }, { id:'cockpit', l:'Cockpit live', ic:'play' }, { id:'seance-methode', l:'Méthode', ic:'gear' } ];
+  return `<div class="renta-tabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" aria-selected="${state.route===t.id}" class="${state.route===t.id?'on':''}" data-nav="${t.id}">${icon(t.ic)}${t.l}</button>`).join('')}</div>`;
+}
+function spLoadingHtml(){ return spTabsHtml() + emptyState('clock', 'Chargement du plan…', ''); }
+function spNoticesHtml(){
+  const s = spState(), out = [];
+  if(!s.tableOk) out.push(`<div class="sp-notice is-danger">${icon('alertTriangle')}<span>La table <b>session_plan</b> est introuvable : exécute <b>migration_plan_session.sql</b> sur Supabase. En attendant, les réglages ne sont pas enregistrés.</span></div>`);
+  if(!dlx().connected) out.push(`<div class="sp-notice">${icon('info')}<span>Deltalytix n’est pas connecté : le coussin de chaque compte est inconnu, donc la perte latente n’est pas comparée et la suggestion reste « Prudent ».</span></div>`);
+  return out.join('');
+}
+function spStripHtml(m){
+  return `<div class="sp-strip">
+    <span class="sp-strip-k">Méthode</span>
+    <span class="sp-chip">Extension min. <b class="mono">${m.extMin}&nbsp;pts</b></span>
+    <span class="sp-chip">Pas entre paliers <b class="mono">${m.step}&nbsp;pts</b></span>
+    <span class="sp-chip">${m.count} paliers · T0 → T${m.count-1}</span>
+    <span class="sp-chip">Même taille à chaque patte</span>
+    <span class="sp-chip">Stress test <b class="mono">+${spStress(m)}&nbsp;pts</b></span>
+    <button type="button" class="btn btn-ghost btn-sm sp-strip-link" data-nav="seance-methode">${icon('gear')}Modifier la méthode</button>
+  </div>`;
+}
+function viewPlanSeance(){
+  const s = spState();
+  if(!s.loaded){ spLoad(); return spLoadingHtml(); }
+  const m = s.method, P = spPaliers(m), accs = spAccounts();
+  if(!accs.length) return spTabsHtml() + spStripHtml(m) + emptyState('card', 'Aucun compte actif', 'Le plan de session liste tes comptes au statut Actif.');
+  const perPal = P.map(()=>0);
+  let engaged = 0, unset = 0, expo = 0, riskTot = 0, gaps = 0;
+  const cols = `--sp-cols:repeat(${m.count}, 68px);min-width:${190+268+m.count*68+170+12*(m.count+3)+36}px;`;
+  const rows = accs.map(a=>{
+    const pl = spPlanOf(a), p = pl.profile || 'off', k = pl.size, sz = spSize(k);
+    const sug = spSuggest(a, k, m), st = spStart(p, m), c = spCushion(a);
+    const r = p==='off' ? 0 : spRisk(p, k, m);
+    const pct = p==='off' || !c ? null : (c.left>0 ? r/c.left*100 : 999);
+    if(!pl.profile) unset++;
+    if(p!=='off'){
+      engaged++; riskTot += r;
+      P.forEach(x=>{ if(x.i>=st){ perPal[x.i] += spEq(k); expo += spEq(k); } });
+      if(SP_RANK[p] > SP_RANK[sug.s]) gaps++;
+    }
+    let hint, hcls = '';
+    if(!pl.profile){ hint = `Pas encore réglé · suggéré : <b>${SP_PROFILES[sug.s].name}</b>`; }
+    else if(p==='off'){ hint = `En pause · suggéré : ${SP_PROFILES[sug.s].name}`; }
+    else if(p===sug.s){ hint = `Conforme à la suggestion · ${escapeHtml(sug.why)}`; }
+    else if(SP_RANK[p] > SP_RANK[sug.s]){ hint = `Plus risqué que suggéré (<b>${SP_PROFILES[sug.s].name}</b>) · ${escapeHtml(sug.why)}`; hcls = 'warn'; }
+    else { hint = `Plus prudent que suggéré (${SP_PROFILES[sug.s].name}) · ${escapeHtml(sug.why)}`; }
+    const profBtns = SP_ORDER.map(o=>`<button type="button" class="sp-p-${o} ${o===p&&pl.profile?'on':''}" aria-pressed="${o===p&&!!pl.profile}" data-sp-prof="${a.id}|${o}">${SP_PROFILES[o].label}</button>`).join('');
+    const allowed = spAllowedSizes(m);
+    const sizeBtns = allowed.map(x=>`<button type="button" class="${x.nq?'nq':''} ${x.k===k?'on':''}" aria-pressed="${x.k===k}" aria-label="${x.nq?'1 NQ':x.q+' MNQ'} par patte" data-sp-size="${a.id}|${x.k}">${x.nq?'1 NQ':x.q}</button>`).join('');
+    let cum = 0;
+    const cells = P.map(x=>{
+      const on = x.i>=st;
+      if(on) cum += sz.q;
+      return on
+        ? `<div class="sp-cell on sp-p-${p}" role="cell"><b class="mono">+${sz.q}</b><span>Σ ${cum} ${spUnit(k)}</span></div>`
+        : `<div class="sp-cell" role="cell"><b class="mono">—</b><span>${p==='off' ? 'pause' : 'n’entre pas'}</span></div>`;
+    }).join('');
+    const lvl = spLevel(pct);
+    const h = dlxHealthOf(a.id), at = dlx().health && dlx().health.at;
+    const risk = `<div class="sp-risk lvl-${p==='off'?'na':lvl}" role="cell">
+      <div class="sp-risk-top"><b class="mono">${p==='off' ? '—' : spMoney(r)}</b><span class="mono">${pct==null ? '' : (pct>=999 ? 'coussin épuisé' : Math.round(pct)+' %')}</span></div>
+      <div class="sp-bar"><i style="width:${pct==null?0:Math.min(100, Math.round(pct))}%"></i></div>
+      <span class="sp-risk-sub">${c ? `coussin ${spMoney(c.left)}${c.total ? ' / ' + spMoney(c.total) : ''}` : 'coussin inconnu'}</span>
+      ${h ? `<span class="sp-risk-sub"><span class="dlx-logo xs" aria-hidden="true"></span> Deltalytix · ${dlxAgo(at)}</span>` : ''}
+    </div>`;
+    return `<div class="sp-grid sp-row ${p==='off'?'is-off':''}" role="row" style="${cols}">
+      <div role="cell">${spAccHeadHtml(a)}</div>
+      <div role="cell" class="sp-set">
+        <div class="sp-seg" role="group" aria-label="Agressivité">${profBtns}</div>
+        <div class="sp-size-line"><div class="sp-seg sp-size" role="group" aria-label="Taille par patte">${sizeBtns}</div><span class="sp-size-note">${sz.nq ? '20 $/pt' : 'par patte'}</span></div>
+        <div class="sp-hint ${hcls}">${hint}</div>
+      </div>
+      ${cells}
+      ${risk}
+    </div>`;
+  }).join('');
+  let c2 = 0;
+  const totals = perPal.map(n=>{ c2 += n; return `<div class="sp-tot" role="cell"><b class="mono">${n ? '+'+n : '—'}</b><span>Σ ${c2}</span></div>`; }).join('');
+  const head = `<div class="sp-grid sp-head" role="row" style="${cols}">
+    <span role="columnheader">Compte</span><span role="columnheader">Agressivité · taille par patte</span>
+    ${P.map(x=>`<span role="columnheader" class="c">${x.id}<br><span class="mono">+${x.pts} pts</span></span>`).join('')}
+    <span role="columnheader">Perte latente / coussin</span>
+  </div>`;
+  const foot = `<div class="sp-grid sp-foot" role="row" style="${cols}">
+    <div role="cell"><b>Total séance</b></div>
+    <div role="cell" class="sp-foot-sub">Taille entrant à chaque palier, tous comptes, en équivalent MNQ (1 NQ = 10 MNQ)</div>
+    ${totals}
+    <div class="sp-tot l" role="cell"><b class="mono">${spMoney(riskTot)}</b><span>perte latente cumulée au stress test</span></div>
+  </div>`;
+  const kpi = (rail, label, value, sub) => `<div class="stat-tile" style="--rail:${rail};"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>`;
+  return `${spTabsHtml()}${spNoticesHtml()}${spStripHtml(m)}
+    <div class="stats-grid sp-kpis">
+      ${kpi('var(--accent)', 'Comptes engagés', `${engaged} / ${accs.length}`, unset ? `${unset} compte(s) pas encore réglé(s)` : `${accs.length-engaged} hors séance`)}
+      ${kpi('var(--type-challenge)', 'Exposition max', `${expo} MNQ`, 'si le prix atteint le dernier palier · éq. MNQ')}
+      ${kpi('var(--danger)', 'Perte latente au stress test', spMoney(riskTot), `extension à +${spStress(m)} pts, tous comptes`)}
+      ${kpi(gaps ? 'var(--gold)' : 'var(--accent)', 'Plus risqués que suggéré', String(gaps), gaps ? 'vérifie ces comptes avant la séance' : 'tout est dans les clous')}
+    </div>
+    <div class="panel sp-panel">
+      <div class="panel-head sp-panel-head">
+        <div><h3 class="sp-h">Comptes, agressivité et taille</h3><div class="sp-sub">Chaque case = taille ajoutée à ce palier (Σ = position cumulée). Tes réglages restent d’une séance à l’autre.</div></div>
+        <button type="button" class="btn btn-outline btn-sm" id="sp-apply-all" title="Applique le profil suggéré à chaque compte, sauf ceux que tu as mis en Off">${icon('check')}Appliquer les suggestions</button>
+      </div>
+      <div class="sp-table-wrap"><div role="table" aria-label="Plan d’entrée par compte">${head}${rows}${foot}</div></div>
+    </div>
+    <div class="sp-legend">
+      <span><i class="sp-dot sp-p-prudent"></i>Prudent — entre à T${m.starts.prudent}</span>
+      <span><i class="sp-dot sp-p-equilibre"></i>Équilibré — entre à T${m.starts.equilibre}</span>
+      <span><i class="sp-dot sp-p-agressif"></i>Agressif — entre à T${m.starts.agressif}</span>
+      <p>Perte latente = ce que perdrait la position complète si l’extension montait jusqu’à +${spStress(m)} pts (${m.stressBeyond} pts au-delà du dernier palier). MNQ 2 $/pt, NQ 20 $/pt. Barre verte sous 40 % du coussin, orange jusqu’à ${m.rules.riskMax} %, rouge au-delà. Les suggestions sont indicatives : la décision t’appartient.</p>
+    </div>`;
+}
+
+function spCockpitData(){
+  const s = spState(), m = s.method, P = spPaliers(m), ck = s.cockpit;
+  const r = Math.min(ck.reached, m.count-1);
+  const verb = ck.short ? 'Vendre' : 'Acheter';
+  const accs = spAccounts().map(a=>({ a, pl: spPlanOf(a) })).filter(x=>x.pl.profile && x.pl.profile!=='off');
+  const pending = [], positions = [], waiting = [], pendQty = [];
+  accs.forEach(({ a, pl })=>{
+    const p = pl.profile, k = pl.size, sz = spSize(k), st = spStart(p, m), pv = sz.nq ? 20 : 2;
+    const due = P.filter(x=>x.i>=st && x.i<=r);
+    const done = Math.min(ck.done[a.id] || 0, due.length);
+    const nPend = due.length - done;
+    const next = P.find(x=>x.i>=st && x.i>r);
+    if(nPend > 0){
+      for(let i=0;i<nPend;i++) pendQty.push(sz);
+      pending.push({ a, p, text: `${verb} ${nPend*sz.q} ${spUnit(k)}`, where: 'palier ' + due.slice(done).map(x=>x.id).join(' + '), full: due.length });
+    }
+    if(done > 0){
+      const entered = P.slice(st, st+done), c = spCushion(a);
+      const avg = entered.reduce((t, x)=>t+x.pts, 0) / entered.length;
+      const nextPts = r < m.count-1 ? P[r+1].pts : P[r].pts + m.step;
+      const lat = entered.reduce((t, x)=>t + (nextPts - x.pts)*sz.q*pv, 0);
+      const target = Math.round(P[r].pts * (1 - m.retrace/100));
+      const atTarget = entered.reduce((t, x)=>t + (x.pts - target)*sz.q*pv, 0);
+      const pct = c && c.left>0 ? lat/c.left*100 : null;
+      positions.push({ a, p, legs: `${done} / ${m.count-st}`, qty: `${done*sz.q} ${spUnit(k)}`, avg: '+' + Math.round(avg) + ' pts', lat, pct, c, target, atTarget, next });
+    } else if(nPend===0){
+      waiting.push({ a, p, text: next ? `Entre à ${next.id} (+${next.pts} pts) · ${sz.q} ${spUnit(k)}` : '—' });
+    }
+  });
+  return { m, P, r, ck, verb, accs, pending, positions, waiting, pendQty };
+}
+function viewCockpit(){
+  const s = spState();
+  if(!s.loaded){ spLoad(); return spLoadingHtml(); }
+  const d = spCockpitData(), m = d.m, P = d.P, r = d.r;
+  if(!d.accs.length) return spTabsHtml() + spNoticesHtml() + `<div class="panel sp-empty">${emptyState('play', 'Aucun compte engagé', 'Règle au moins un compte en Prudent, Équilibré ou Agressif dans le plan de session.')}<div class="sp-empty-cta"><button type="button" class="btn btn-primary" data-nav="plan-seance">Ouvrir le plan de session</button></div></div>`;
+  const pals = P.map(x=>{
+    const who = d.accs.filter(({ pl })=>x.i>=spStart(pl.profile, m));
+    const cls = x.i<=r ? 'on' : x.i===r+1 ? 'next' : '';
+    return `<button type="button" class="sp-pal ${cls}" aria-pressed="${x.i<=r}" data-sp-pal="${x.i}">
+      <span class="sp-pal-top"><b>${x.id}</b><em>${x.i<=r ? 'TOUCHÉ' : x.i===r+1 ? 'PROCHAIN' : ''}</em></span>
+      <span class="mono sp-pal-pts">+${x.pts} pts</span>
+      <span class="sp-pal-who">${who.length ? `${who.length} compte(s) · ${spQtyText(who.map(({ pl })=>spSize(pl.size)))}` : 'Aucun compte'}</span>
+    </button>`;
+  }).join('');
+  let nextLine;
+  if(r < 0) nextLine = `Aucun palier touché : T0 se déclenche après ${m.extMin} pts d’extension.`;
+  else if(r < m.count-1){
+    const np = P[r+1], who = d.accs.filter(({ pl })=>np.i>=spStart(pl.profile, m));
+    nextLine = `Prochain : <b>${np.id}</b> à +${np.pts} pts · ${who.length ? `${who.length} compte(s), ${spQtyText(who.map(({ pl })=>spSize(pl.size)))}` : 'aucun compte n’y entre'}.`;
+  } else nextLine = 'Dernier palier touché : plus d’entrée prévue, priorité au déchargement du risque.';
+  const card = (x, inner, cls) => `<article class="sp-card ${cls||''}">
+      <div class="sp-card-h">${typeBadgeHtml(x.a.type)}<b>${escapeHtml((getFirm(x.a.propFirmId)||{}).name||'—')} ${escapeHtml(sizeLabel(x.a)||'')}</b><span class="mono sp-num">${escapeHtml(x.a.accountNumber||'')}</span><span class="sp-prof-tag sp-p-${x.p}">${SP_PROFILES[x.p].name}</span></div>
+      ${inner}
+    </article>`;
+  const pendHtml = d.pending.length ? d.pending.map(x=>card(x, `
+      <div class="sp-action-line"><span class="mono sp-action">${x.text}</span><span class="sp-where">${x.where}</span></div>
+      <button type="button" class="btn btn-outline" data-sp-confirm="${x.a.id}|${x.full}">${icon('check')}Marquer entré</button>`, 'now')).join('')
+    : `<p class="sp-col-empty">Aucun compte à faire entrer pour l’instant.</p>`;
+  const posHtml = d.positions.length ? d.positions.map(x=>{
+    const lvl = spLevel(x.pct);
+    return card(x, `
+      <div class="sp-mini"><div><span>Pattes</span><b>${x.legs}</b></div><div><span>Position</span><b>${x.qty}</b></div><div><span>Entrée moy.</span><b>${x.avg}</b></div></div>
+      <div class="sp-risk lvl-${lvl}">
+        <div class="sp-risk-top"><span class="sp-risk-sub">Si le prochain palier est touché</span><b class="mono">−${spMoney(x.lat)}${x.pct!=null ? ` · ${Math.round(x.pct)} %` : ''}</b></div>
+        <div class="sp-bar"><i style="width:${x.pct==null?0:Math.min(100, Math.round(x.pct))}%"></i></div>
+        <span class="sp-risk-sub">${x.c ? `du coussin Deltalytix (${spMoney(x.c.left)})` : 'coussin inconnu'}</span>
+      </div>
+      <div class="sp-target">Sortie visée (retracement ${m.retrace} %) : +${x.target} pts → <b class="mono">${x.atTarget>=0?'+':''}${spMoney(x.atTarget)}</b>${x.next ? ` · prochaine patte à ${x.next.id}` : ' · toutes les pattes prises'}</div>`);
+  }).join('') : `<p class="sp-col-empty">Aucune position pour l’instant.</p>`;
+  const waitHtml = d.waiting.length ? d.waiting.map(x=>card(x, `<div class="sp-wait">${x.text}</div>`, 'wait')).join('') : `<p class="sp-col-empty">Personne n’attend.</p>`;
+  return `${spTabsHtml()}${spNoticesHtml()}
+    <div class="panel sp-ck">
+      <div class="sp-ck-head">
+        <div><h3 class="sp-h">Quel palier le prix vient-il de toucher ?</h3><div class="sp-sub">${r>=0 ? `Dernier palier touché : ${P[r].id} (+${P[r].pts} pts)` : 'En attente du premier signal'}</div></div>
+        <div class="sp-seg sp-bias" role="group" aria-label="Biais">
+          <button type="button" class="${d.ck.short?'on':''}" aria-pressed="${d.ck.short}" data-sp-bias="short">Short · haut de journée</button>
+          <button type="button" class="${!d.ck.short?'on':''}" aria-pressed="${!d.ck.short}" data-sp-bias="long">Long · bas de journée</button>
+        </div>
+      </div>
+      <div class="sp-pals">${pals}</div>
+      <div class="sp-ck-foot">
+        <span>${nextLine}</span>
+        <div class="sp-ck-btns">
+          <button type="button" class="btn btn-ghost btn-sm" id="sp-undo" ${r<0?'disabled':''}>${icon('reset')}Annuler le dernier palier</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="sp-new-move">Nouveau mouvement</button>
+        </div>
+      </div>
+    </div>
+    ${d.pending.length ? `<div class="sp-banner" role="status"><b>${d.pending.length} compte(s) à faire entrer · ${d.verb.toLowerCase()} ${spQtyText(d.pendQty)} au total</b><button type="button" class="btn btn-primary btn-sm" id="sp-confirm-all">${icon('check')}Tout marquer entré</button></div>` : ''}
+    <div class="sp-cols">
+      <section><h4 class="sp-col-h now">À exécuter maintenant · ${d.pending.length}</h4>${pendHtml}</section>
+      <section><h4 class="sp-col-h">En position · ${d.positions.length}</h4>${posHtml}</section>
+      <section><h4 class="sp-col-h">En attente · ${d.waiting.length}</h4>${waitHtml}</section>
+    </div>`;
+}
+
+function viewSeanceMethode(){
+  const s = spState();
+  if(!s.loaded){ spLoad(); return spLoadingHtml(); }
+  const m = s.methodDraft || s.method;
+  const dirty = !!s.methodDraft && JSON.stringify(s.methodDraft)!==JSON.stringify(s.method);
+  const P = spPaliers(m);
+  const num = (id, label, val, hint) => `<div class="field"><label for="${id}">${label}</label><input type="number" inputmode="numeric" id="${id}" data-spm="${id}" value="${val}"/>${hint ? `<div class="field-hint">${hint}</div>` : ''}</div>`;
+  const opt = (v, l, cur) => `<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`;
+  const profRow = (k, desc) => `<div class="sp-mrow" role="row">
+      <span role="cell" class="sp-prof-name sp-p-${k}">${SP_PROFILES[k].name}</span>
+      <span role="cell"><select aria-label="Premier palier ${SP_PROFILES[k].name}" data-spm="start-${k}">${P.map(x=>opt(x.i, `${x.id} · +${x.pts} pts`, m.starts[k])).join('')}</select></span>
+      <span role="cell" class="mono">${m.count - m.starts[k]}</span>
+      <span role="cell" class="sp-sub">${desc}</span>
+    </div>`;
+  const warnOrder = !(m.starts.prudent >= m.starts.equilibre && m.starts.equilibre >= m.starts.agressif);
+  const warnRules = m.rules.eqMin > m.rules.aggrMin;
+  const inl = (id, val, label) => `<input type="number" class="sp-inl mono" aria-label="${label}" data-spm="${id}" value="${val}"/>`;
+  return `${spTabsHtml()}
+    <div class="sp-mhead">
+      <div class="sp-sub">Ces règles calculent les paliers, les profils et les suggestions de tous les comptes. Réservé aux admins.</div>
+      <div class="sp-ck-btns">
+        <button type="button" class="btn btn-ghost btn-sm" id="spm-defaults">${icon('reset')}Valeurs par défaut</button>
+        <button type="button" class="btn btn-primary btn-sm" id="spm-save" ${dirty?'':'disabled'}>${icon('check')}${dirty ? 'Enregistrer' : 'Enregistré'}</button>
+      </div>
+    </div>
+    <div class="panel sp-mpanel">
+      <h3 class="sp-h">Paliers</h3>
+      <div class="sp-form-grid">
+        ${num('extMin', 'Extension minimale (T0), en pts', m.extMin)}
+        ${num('step', 'Pas entre paliers, en pts', m.step)}
+        ${num('count', 'Nombre de paliers (2 à 6)', m.count)}
+        ${num('stressBeyond', 'Marge du stress test, en pts', m.stressBeyond, 'Ajoutée au dernier palier')}
+        ${num('retrace', 'Sortie visée : retracement en %', m.retrace)}
+        <div class="field"><label for="spm-maxSize">Taille max par patte</label><select id="spm-maxSize" data-spm="maxSize">${opt('nq','1 NQ (= 10 MNQ)',m.maxSize)}${opt('5','5 MNQ',m.maxSize)}${opt('3','3 MNQ',m.maxSize)}</select></div>
+      </div>
+      <div class="sp-result">Résultat : ${P.map(x=>`<span class="sp-chip mono">${x.id} +${x.pts}</span>`).join('')}<span class="sp-chip mono is-danger">Stress +${spStress(m)}</span></div>
+    </div>
+    <div class="panel sp-mpanel">
+      <h3 class="sp-h">Profils d’agressivité</h3>
+      <div class="sp-table-wrap"><div role="table" aria-label="Profils" class="sp-mtable">
+        <div class="sp-mrow sp-head" role="row"><span role="columnheader">Profil</span><span role="columnheader">Premier palier</span><span role="columnheader">Pattes max</span><span role="columnheader">Rôle</span></div>
+        ${profRow('prudent', 'Entre tard : moins de pattes, meilleur prix moyen.')}
+        ${profRow('equilibre', 'Le réglage de référence des comptes PA et Live.')}
+        ${profRow('agressif', 'Prend toutes les pattes, dès le premier signal.')}
+      </div></div>
+      ${warnOrder ? `<div class="sp-notice is-warn">${icon('alertTriangle')}<span>Habituellement, Prudent entre au plus tard et Agressif au plus tôt. Vérifie l’ordre des premiers paliers.</span></div>` : ''}
+    </div>
+    <div class="panel sp-mpanel">
+      <h3 class="sp-h">Règles de suggestion</h3>
+      <div class="sp-sub" style="margin-bottom:12px;">Appliquées dans l’ordre, sur le coussin Deltalytix (drawdown restant). La suggestion reste indicative.</div>
+      <ol class="sp-rules">
+        <li><span class="mono sp-rn">1</span>Coussin ≥ ${inl('aggrMin', m.rules.aggrMin, 'Seuil Agressif en %')} % → <b class="sp-p-agressif sp-ct">Agressif</b> · entre ${inl('eqMin', m.rules.eqMin, 'Seuil Équilibré en %')} % et ${m.rules.aggrMin} % → <b class="sp-p-equilibre sp-ct">Équilibré</b> · en dessous → <b class="sp-p-prudent sp-ct">Prudent</b></li>
+        <li><span class="mono sp-rn">2</span>Comptes PA et Live plafonnés à <select aria-label="Plafond PA et Live" data-spm="fundedCap">${opt('equilibre','Équilibré',m.rules.fundedCap)}${opt('prudent','Prudent',m.rules.fundedCap)}${opt('none','Pas de plafond',m.rules.fundedCap)}</select></li>
+        <li><span class="mono sp-rn">3</span>Si la perte au stress test dépasse ${inl('riskMax', m.rules.riskMax, 'Seuil de risque en %')} % du coussin, descendre d’un profil</li>
+      </ol>
+      ${warnRules ? `<div class="sp-notice is-warn">${icon('alertTriangle')}<span>Le seuil Équilibré dépasse le seuil Agressif : le profil Équilibré ne sera jamais suggéré.</span></div>` : ''}
+    </div>`;
+}
+
+/* ---------- Événements ---------- */
+function spBindEvents(){
+  if(!SP_ROUTES.includes(state.route)) return;
+  const s = spState();
+  const top = document.getElementById('sp-open-cockpit');
+  if(top) top.onclick = ()=>{ state.route = 'cockpit'; render(); };
+  // Plan
+  document.querySelectorAll('[data-sp-prof]').forEach(b=>b.onclick = ()=>{
+    const [id, p] = b.dataset.spProf.split('|');
+    spSavePlan([{ accId:id, profile:p, size: spPlanOf({ id }).size }]);
+  });
+  document.querySelectorAll('[data-sp-size]').forEach(b=>b.onclick = ()=>{
+    const [id, k] = b.dataset.spSize.split('|');
+    const cur = spPlanOf({ id });
+    spSavePlan([{ accId:id, profile: cur.profile, size:k }]);
+  });
+  const apply = document.getElementById('sp-apply-all');
+  if(apply) apply.onclick = ()=>{
+    const m = s.method;
+    const rows = spAccounts().map(a=>({ a, pl: spPlanOf(a) })).filter(x=>x.pl.profile!=='off')
+      .map(x=>({ accId:x.a.id, profile: spSuggest(x.a, x.pl.size, m).s, size:x.pl.size }))
+      .filter(r=>{ const cur = s.plan[r.accId]; return !cur || cur.profile!==r.profile; });
+    if(!rows.length){ showToast('Tout est déjà conforme aux suggestions.'); return; }
+    spSavePlan(rows).then(()=>showToast(`Suggestion appliquée à ${rows.length} compte${rows.length>1?'s':''}.`));
+  };
+  // Cockpit
+  const ck = s.cockpit;
+  const save = ()=>{ spSaveCockpit(); renderView(); };
+  document.querySelectorAll('[data-sp-pal]').forEach(b=>b.onclick = ()=>{ ck.reached = Math.max(ck.reached, Number(b.dataset.spPal)); save(); });
+  document.querySelectorAll('[data-sp-bias]').forEach(b=>b.onclick = ()=>{ ck.short = b.dataset.spBias==='short'; save(); });
+  document.querySelectorAll('[data-sp-confirm]').forEach(b=>b.onclick = ()=>{ const [id, n] = b.dataset.spConfirm.split('|'); ck.done[id] = Number(n); save(); });
+  const all = document.getElementById('sp-confirm-all');
+  if(all) all.onclick = ()=>{ spCockpitData().pending.forEach(x=>{ ck.done[x.a.id] = x.full; }); save(); };
+  const undo = document.getElementById('sp-undo');
+  if(undo) undo.onclick = ()=>{
+    const m = s.method, nr = Math.max(-1, ck.reached - 1);
+    spAccounts().forEach(a=>{ const p = spPlanOf(a).profile; if(ck.done[a.id]!=null) ck.done[a.id] = Math.min(ck.done[a.id], Math.max(0, nr - spStart(p, m) + 1)); });
+    ck.reached = nr; save();
+  };
+  const nm = document.getElementById('sp-new-move');
+  if(nm) nm.onclick = ()=>{
+    const go = ()=>{ ck.reached = -1; ck.done = {}; save(); };
+    if(ck.reached>=0 || Object.keys(ck.done).length) confirmModal('Nouveau mouvement : les paliers touchés et les entrées marquées repartent de zéro.', go, false); else go();
+  };
+  // Méthode
+  document.querySelectorAll('[data-spm]').forEach(el=>el.onchange = ()=>{
+    const d = JSON.parse(JSON.stringify(s.methodDraft || s.method));
+    const key = el.dataset.spm, v = el.value;
+    if(key.startsWith('start-')) d.starts[key.slice(6)] = Number(v);
+    else if(['aggrMin','eqMin','riskMax','fundedCap'].includes(key)) d.rules[key] = key==='fundedCap' ? v : Number(v);
+    else d[key] = key==='maxSize' ? v : Number(v);
+    s.methodDraft = spNormMethod(d);
+    renderView();
+  });
+  const def = document.getElementById('spm-defaults');
+  if(def) def.onclick = ()=>{ s.methodDraft = spNormMethod(null); renderView(); };
+  const sv = document.getElementById('spm-save');
+  if(sv) sv.onclick = async ()=>{
+    if(!isAdmin() || !s.methodDraft) return;
+    sv.disabled = true;
+    const val = s.methodDraft;
+    const { error } = await supabaseClient.from('app_settings').upsert({ key:'session_method', value: val, updated_at: new Date().toISOString() }, { onConflict:'key' });
+    if(error){ sv.disabled = false; showToast('Méthode non enregistrée : ' + error.message, 'danger'); return; }
+    s.method = val; s.methodDraft = null;
+    try{ await logActivity('SETTINGS', 'app_settings', 'session_method', `Méthode de séance : ${val.count} paliers, T0 à +${val.extMin} pts, pas de ${val.step} pts`); }catch(e){}
+    showToast('Méthode enregistrée : le plan et le cockpit l’utilisent dès maintenant.');
+    renderView();
+  };
+}
+
 function renderView(){
   const el = document.getElementById('view-root');
   if(state.route==='dashboard') el.innerHTML = viewDashboard();
@@ -6928,6 +7594,9 @@ function renderView(){
   else if(state.route==='comparatif') el.innerHTML = viewComparatif();
   else if(state.route==='rentabilite') el.innerHTML = viewRentabilite();
   else if(state.route==='coach') el.innerHTML = viewCoach();
+  else if(state.route==='plan-seance') el.innerHTML = isAdmin() ? viewPlanSeance() : '';
+  else if(state.route==='cockpit') el.innerHTML = isAdmin() ? viewCockpit() : '';
+  else if(state.route==='seance-methode') el.innerHTML = isAdmin() ? viewSeanceMethode() : '';
   else if(state.route==='ecole') el.innerHTML = viewEcole();
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
@@ -19422,6 +20091,7 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
+  spBindEvents(); // Plan de session / Cockpit / Méthode
   dmBindEvents(); // Radar inactivité (page Radar, bande des cartes compte, admin)
   // Module Frais généraux : édition/suppression directement depuis la page (pas de modale de
   // liste comme les resets — un frais général n'est pas rattaché à un compte, donc il n'y a pas
