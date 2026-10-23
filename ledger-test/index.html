@@ -7177,7 +7177,13 @@ function spRisk(p, k, m){
 }
 function spAccounts(){
   const ord = { CHALLENGE:0, PA:1, LIVE:2 };
+  // Ordre d'entrée des pattes (23/10/2026, demande de Mickael) : les comptes qui entrent les premiers
+  // (premier palier le plus bas) en haut, puis les comptes pas encore réglés, puis ceux en Off.
+  const m = spState().method;
+  const entry = a => { const p = (spState().plan[a.id]||{}).profile; return !p ? 90 : p==='off' ? 99 : m.starts[p]; };
   return accountsInScope().filter(a=>a.status==='ACTIF').sort((a, b)=>{
+    const e = entry(a) - entry(b);
+    if(e) return e;
     const t = (ord[a.type] ?? 9) - (ord[b.type] ?? 9);
     if(t) return t;
     const fa = (getFirm(a.propFirmId)||{}).name || '', fb = (getFirm(b.propFirmId)||{}).name || '';
