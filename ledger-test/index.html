@@ -2583,7 +2583,7 @@ th.th-sort-active svg{opacity:1;}
 .sp-kpis{margin-bottom:16px;}
 .sp-panel-head{flex-wrap:wrap;gap:10px;}
 .sp-table-wrap{overflow-x:auto;}
-.sp-grid{display:grid;grid-template-columns:minmax(190px,1fr) 268px var(--sp-cols) minmax(170px,1fr);column-gap:12px;align-items:center;padding:13px 18px;}
+.sp-grid{display:grid;grid-template-columns:minmax(190px,1fr) 300px var(--sp-cols) minmax(170px,1fr);column-gap:12px;align-items:center;padding:13px 18px;}
 .sp-set{display:flex;flex-direction:column;gap:6px;min-width:0;}
 .sp-size-line{display:flex;align-items:center;gap:8px;}
 .sp-size-note{font-size:11px;color:var(--text-dim);white-space:nowrap;}
@@ -2606,7 +2606,9 @@ th.th-sort-active svg{opacity:1;}
 .sp-seg button.on{font-weight:700;color:var(--spc,var(--text));background:color-mix(in srgb,var(--spc,var(--text)) 16%,transparent);}
 .sp-seg button.sp-p-off.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
 .sp-size button{font-family:'JetBrains Mono',monospace;padding:0;width:30px;height:28px;}
-.sp-size button.nq{width:auto;padding:0 9px;margin-left:4px;}
+.sp-size button.nq{width:auto;padding:0 8px;}
+.sp-unit{align-self:center;font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--text-faint);padding:0 4px 0 5px;}
+.sp-sep{width:1px;align-self:stretch;margin:3px 3px;background:var(--border);}
 .sp-size button.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
 .sp-size button.nq.on{color:var(--gold);background:var(--gold-dim);}
 .sp-bias button.on{color:var(--text);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--text-faint);}
@@ -7267,7 +7269,7 @@ function viewPlanSeance(){
   if(!accs.length) return spTabsHtml() + spStripHtml(m) + emptyState('card', 'Aucun compte actif', 'Le plan de session liste tes comptes au statut Actif.');
   const perPal = P.map(()=>0);
   let engaged = 0, unset = 0, expo = 0, riskTot = 0, gaps = 0;
-  const cols = `--sp-cols:repeat(${m.count}, 68px);min-width:${190+268+m.count*68+170+12*(m.count+3)+36}px;`;
+  const cols = `--sp-cols:repeat(${m.count}, 68px);min-width:${190+300+m.count*68+170+12*(m.count+3)+36}px;`;
   const rows = accs.map(a=>{
     const pl = spPlanOf(a), p = pl.profile || 'off', k = pl.size, sz = spSize(k);
     const sug = spSuggest(a, k, m), st = spStart(p, m), c = spCushion(a);
@@ -7287,7 +7289,9 @@ function viewPlanSeance(){
     else { hint = `Plus prudent que suggéré (${SP_PROFILES[sug.s].name}) · ${escapeHtml(sug.why)}`; }
     const profBtns = SP_ORDER.map(o=>`<button type="button" class="sp-p-${o} ${o===p&&pl.profile?'on':''}" aria-pressed="${o===p&&!!pl.profile}" data-sp-prof="${a.id}|${o}">${SP_PROFILES[o].label}</button>`).join('');
     const allowed = spAllowedSizes(m);
-    const sizeBtns = allowed.map(x=>`<button type="button" class="${x.nq?'nq':''} ${x.k===k?'on':''}" aria-pressed="${x.k===k}" aria-label="${x.nq?'1 NQ':x.q+' MNQ'} par patte" data-sp-size="${a.id}|${x.k}">${x.nq?'1 NQ':x.q}</button>`).join('');
+    // Sélecteur de taille (23/10/2026) : l'unité MNQ est écrite devant les chiffres et le NQ est
+    // séparé par un trait, pour qu'on ne lise pas « 1 NQ par patte » comme la valeur choisie.
+    const sizeBtns = '<span class="sp-unit" aria-hidden="true">MNQ</span>' + allowed.map(x=>`${x.nq ? '<span class="sp-sep" aria-hidden="true"></span>' : ''}<button type="button" class="${x.nq?'nq':''} ${x.k===k?'on':''}" aria-pressed="${x.k===k}" aria-label="${x.nq?'1 NQ':x.q+' MNQ'} par patte" data-sp-size="${a.id}|${x.k}">${x.nq?'1 NQ':x.q}</button>`).join('');
     let cum = 0;
     const cells = P.map(x=>{
       const on = x.i>=st;
@@ -7308,7 +7312,7 @@ function viewPlanSeance(){
       <div role="cell">${spAccHeadHtml(a)}</div>
       <div role="cell" class="sp-set">
         <div class="sp-seg" role="group" aria-label="Agressivité">${profBtns}</div>
-        <div class="sp-size-line"><div class="sp-seg sp-size" role="group" aria-label="Taille par patte">${sizeBtns}</div><span class="sp-size-note">${sz.nq ? '20 $/pt' : 'par patte'}</span></div>
+        <div class="sp-size-line"><div class="sp-seg sp-size" role="group" aria-label="Taille par patte">${sizeBtns}</div></div>
         <div class="sp-hint ${hcls}">${hint}</div>
       </div>
       ${cells}
