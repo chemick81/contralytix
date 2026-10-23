@@ -2631,6 +2631,7 @@ th.th-sort-active svg{opacity:1;}
 .sp-maxsz b{color:var(--accent);}
 .sp-maxsz svg{width:13px;height:13px;flex-shrink:0;}
 .sp-maxsz.is-crit{color:var(--danger);}
+.sp-maxsz.is-warn{color:var(--gold);}
 .sp-maxsz-btn{border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-dim);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;border-radius:var(--radius-pill);padding:2px 9px;}
 .sp-maxsz-btn:hover{background:color-mix(in srgb,var(--accent) 24%,transparent);}
 .sp-breach{font-size:12px;color:var(--text-dim);}
@@ -7357,7 +7358,15 @@ function viewPlanSeance(){
         ${(()=>{
           const pp = p!=='off' && pl.profile ? p : sug.s, mx = spMaxGreen(pp, c ? c.left : null, m);
           if(!mx) return '';
-          if(!mx.k) return `<div class="sp-maxsz is-crit">${icon('alertTriangle')}Même ${spAllowedSizes(m)[0].q} MNQ dépasse 40 % du coussin en ${SP_PROFILES[pp].name}</div>`;
+          if(!mx.k){
+            // Aucune taille dans le vert : on ne crie pas au danger si la plus petite taille reste sous
+            // le seuil de la suggestion (riskMax, 75 % par défaut) — c'est la zone orange, que la
+            // suggestion accepte. Rouge seulement au-delà, cohérent avec « Conforme à la suggestion ».
+            const k0 = spAllowedSizes(m)[0].k, pct0 = c.left>0 ? Math.round(spRisk(pp, k0, m)/c.left*100) : 999;
+            return pct0 < m.rules.riskMax
+              ? `<div class="sp-maxsz is-warn">Aucune taille dans le vert en ${SP_PROFILES[pp].name} : ${spSize(k0).q} MNQ = ${pct0} % du coussin (zone orange, acceptée)</div>`
+              : `<div class="sp-maxsz is-crit">${icon('alertTriangle')}Même ${spSize(k0).q} MNQ dépasse ${m.rules.riskMax} % du coussin en ${SP_PROFILES[pp].name}</div>`;
+          }
           const lbl = spSize(mx.k).nq ? '1 NQ' : spSize(mx.k).q + ' MNQ';
           return mx.k===k
             ? `<div class="sp-maxsz">Taille max dans le vert : <b>${lbl}</b> · c’est ta taille</div>`
