@@ -2627,6 +2627,12 @@ th.th-sort-active svg{opacity:1;}
 .sp-bar i{display:block;height:100%;border-radius:var(--radius-pill);background:var(--spl,var(--text-faint));}
 .sp-risk-sub{font-size:11px;color:var(--text-dim);display:inline-flex;align-items:center;gap:5px;}
 .lvl-ok{--spl:var(--accent);} .lvl-warn{--spl:var(--gold);} .lvl-crit{--spl:var(--danger);} .lvl-na{--spl:var(--border);}
+.sp-maxsz{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);}
+.sp-maxsz b{color:var(--accent);}
+.sp-maxsz svg{width:13px;height:13px;flex-shrink:0;}
+.sp-maxsz.is-crit{color:var(--danger);}
+.sp-maxsz-btn{border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-dim);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;border-radius:var(--radius-pill);padding:2px 9px;}
+.sp-maxsz-btn:hover{background:color-mix(in srgb,var(--accent) 24%,transparent);}
 .sp-breach{font-size:12px;color:var(--text-dim);}
 .sp-breach b{color:var(--spl,var(--text));font-weight:700;}
 .sp-foot{border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 var(--radius-md) var(--radius-md);font-size:13px;}
@@ -7193,6 +7199,16 @@ function spBreach(p, k, m, cushion){
   }
   return null;
 }
+// Taille max suggérée (23/10/2026) : la plus grosse taille par patte qui garde la perte au stress
+// test sous 40 % du coussin (zone verte), pour le profil donné. null = coussin inconnu ;
+// { k:null } = même la plus petite taille dépasse 40 %.
+function spMaxGreen(p, cushion, m){
+  if(cushion==null || !p || p==='off') return null;
+  const ok = spAllowedSizes(m).filter(x=>spRisk(p, x.k, m) < 0.4*cushion);
+  if(!ok.length) return { k:null };
+  ok.sort((a, b)=>spEq(b.k) - spEq(a.k));
+  return { k: ok[0].k };
+}
 function spAccounts(){
   const ord = { CHALLENGE:0, PA:1, LIVE:2 };
   // Ordre d'entrée des pattes (23/10/2026, demande de Mickael) : les comptes qui entrent les premiers
@@ -7338,6 +7354,15 @@ function viewPlanSeance(){
       <div role="cell" class="sp-set">
         <div class="sp-seg" role="group" aria-label="Agressivité">${profBtns}</div>
         <div class="sp-size-line"><div class="sp-seg sp-size" role="group" aria-label="Taille par patte">${sizeBtns}</div></div>
+        ${(()=>{
+          const pp = p!=='off' && pl.profile ? p : sug.s, mx = spMaxGreen(pp, c ? c.left : null, m);
+          if(!mx) return '';
+          if(!mx.k) return `<div class="sp-maxsz is-crit">${icon('alertTriangle')}Même ${spAllowedSizes(m)[0].q} MNQ dépasse 40 % du coussin en ${SP_PROFILES[pp].name}</div>`;
+          const lbl = spSize(mx.k).nq ? '1 NQ' : spSize(mx.k).q + ' MNQ';
+          return mx.k===k
+            ? `<div class="sp-maxsz">Taille max dans le vert : <b>${lbl}</b> · c’est ta taille</div>`
+            : `<div class="sp-maxsz">Taille max dans le vert${pp!==p ? ` (en ${SP_PROFILES[pp].name})` : ''} : <button type="button" class="sp-maxsz-btn" data-sp-size="${a.id}|${mx.k}" title="Appliquer cette taille par patte">${lbl}</button></div>`;
+        })()}
         <div class="sp-hint ${hcls}">${hint}</div>
       </div>
       ${cells}
