@@ -2627,6 +2627,8 @@ th.th-sort-active svg{opacity:1;}
 .sp-bar i{display:block;height:100%;border-radius:var(--radius-pill);background:var(--spl,var(--text-faint));}
 .sp-risk-sub{font-size:11px;color:var(--text-dim);display:inline-flex;align-items:center;gap:5px;}
 .lvl-ok{--spl:var(--accent);} .lvl-warn{--spl:var(--gold);} .lvl-crit{--spl:var(--danger);} .lvl-na{--spl:var(--border);}
+.sp-breach{font-size:12px;color:var(--text-dim);}
+.sp-breach b{color:var(--spl,var(--text));font-weight:700;}
 .sp-foot{border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 var(--radius-md) var(--radius-md);font-size:13px;}
 .sp-foot-sub{font-size:12px;color:var(--text-dim);}
 .sp-tot{display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -7175,6 +7177,22 @@ function spRisk(p, k, m){
   const s = spSize(k), pv = s.nq ? 20 : 2, st = spStart(p, m), stress = spStress(m);
   return spPaliers(m).reduce((t, x)=> t + (x.i>=st ? s.q*(stress - x.pts)*pv : 0), 0);
 }
+// Niveau de breach (23/10/2026) : extension (en pts) à partir de laquelle la perte latente de la
+// position complète consomme tout le coussin, en supposant que chaque palier atteint est pris.
+// La perte est linéaire par morceaux : on cherche le segment entre deux entrées où elle atteint le coussin.
+function spBreach(p, k, m, cushion){
+  if(!p || p==='off' || cushion==null) return null;
+  if(cushion<=0) return 0;
+  const s = spSize(k), c = s.q*(s.nq ? 20 : 2), st = spStart(p, m);
+  const e = spPaliers(m).filter(x=>x.i>=st).map(x=>x.pts);
+  let sum = 0;
+  for(let j=0;j<e.length;j++){
+    sum += e[j];
+    const n = j+1, x = (cushion/c + sum)/n;
+    if(j===e.length-1 || x<=e[j+1]) return Math.ceil(x);
+  }
+  return null;
+}
 function spAccounts(){
   const ord = { CHALLENGE:0, PA:1, LIVE:2 };
   // Ordre d'entrée des pattes (23/10/2026, demande de Mickael) : les comptes qui entrent les premiers
@@ -7312,6 +7330,7 @@ function viewPlanSeance(){
       <div class="sp-risk-top"><b class="mono">${p==='off' ? '—' : spMoney(r)}</b><span class="mono">${pct==null ? '' : (pct>=999 ? 'coussin épuisé' : Math.round(pct)+' %')}</span></div>
       <div class="sp-bar"><i style="width:${pct==null?0:Math.min(100, Math.round(pct))}%"></i></div>
       <span class="sp-risk-sub">${c ? `coussin ${spMoney(c.left)}${c.total ? ' / ' + spMoney(c.total) : ''}` : 'coussin inconnu'}</span>
+      ${(()=>{ const bx = spBreach(p, k, m, c ? c.left : null); return bx==null ? '' : `<span class="sp-breach lvl-${lvl}">${bx===0 ? 'Coussin épuisé' : `Breach si l’extension atteint <b class="mono">+${bx} pts</b>`}</span>`; })()}
       ${h ? `<span class="sp-risk-sub"><span class="dlx-logo xs" aria-hidden="true"></span> Deltalytix · ${dlxAgo(at)}</span>` : ''}
     </div>`;
     return `<div class="sp-grid sp-row ${p==='off'?'is-off':''}" role="row" style="${cols}">
@@ -7357,7 +7376,7 @@ function viewPlanSeance(){
       <span><i class="sp-dot sp-p-prudent"></i>Prudent — entre à T${m.starts.prudent}</span>
       <span><i class="sp-dot sp-p-equilibre"></i>Équilibré — entre à T${m.starts.equilibre}</span>
       <span><i class="sp-dot sp-p-agressif"></i>Agressif — entre à T${m.starts.agressif}</span>
-      <p>Perte latente = ce que perdrait la position complète si l’extension montait jusqu’à +${spStress(m)} pts (${m.stressBeyond} pts au-delà du dernier palier). MNQ 2 $/pt, NQ 20 $/pt. Barre verte sous 40 % du coussin, orange jusqu’à ${m.rules.riskMax} %, rouge au-delà. Les suggestions sont indicatives : la décision t’appartient.</p>
+      <p>Perte latente = ce que perdrait la position complète si l’extension montait jusqu’à +${spStress(m)} pts (${m.stressBeyond} pts au-delà du dernier palier). Breach = extension à partir de laquelle cette perte consomme tout le coussin. MNQ 2 $/pt, NQ 20 $/pt. Barre verte sous 40 % du coussin, orange jusqu’à ${m.rules.riskMax} %, rouge au-delà. Les suggestions sont indicatives : la décision t’appartient.</p>
     </div>`;
 }
 
@@ -7385,7 +7404,7 @@ function spCockpitData(){
       const target = Math.round(P[r].pts * (1 - m.retrace/100));
       const atTarget = entered.reduce((t, x)=>t + (x.pts - target)*sz.q*pv, 0);
       const pct = c && c.left>0 ? lat/c.left*100 : null;
-      positions.push({ a, p, legs: `${done} / ${m.count-st}`, qty: `${done*sz.q} ${spUnit(k)}`, avg: '+' + Math.round(avg) + ' pts', lat, pct, c, target, atTarget, next });
+      positions.push({ a, p, breach: spBreach(p, k, m, c ? c.left : null), legs: `${done} / ${m.count-st}`, qty: `${done*sz.q} ${spUnit(k)}`, avg: '+' + Math.round(avg) + ' pts', lat, pct, c, target, atTarget, next });
     } else if(nPend===0){
       waiting.push({ a, p, text: next ? `Entre à ${next.id} (+${next.pts} pts) · ${sz.q} ${spUnit(k)}` : '—' });
     }
@@ -7428,6 +7447,7 @@ function viewCockpit(){
         <div class="sp-risk-top"><span class="sp-risk-sub">Si le prochain palier est touché</span><b class="mono">−${spMoney(x.lat)}${x.pct!=null ? ` · ${Math.round(x.pct)} %` : ''}</b></div>
         <div class="sp-bar"><i style="width:${x.pct==null?0:Math.min(100, Math.round(x.pct))}%"></i></div>
         <span class="sp-risk-sub">${x.c ? `du coussin Deltalytix (${spMoney(x.c.left)})` : 'coussin inconnu'}</span>
+        ${x.breach!=null ? `<span class="sp-breach lvl-${lvl}">${x.breach===0 ? 'Coussin épuisé' : `Breach si l’extension atteint <b class="mono">+${x.breach} pts</b> (toutes pattes prises)`}</span>` : ''}
       </div>
       <div class="sp-target">Sortie visée (retracement ${m.retrace} %) : +${x.target} pts → <b class="mono">${x.atTarget>=0?'+':''}${spMoney(x.atTarget)}</b>${x.next ? ` · prochaine patte à ${x.next.id}` : ' · toutes les pattes prises'}</div>`);
   }).join('') : `<p class="sp-col-empty">Aucune position pour l’instant.</p>`;
