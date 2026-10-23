@@ -2686,6 +2686,62 @@ th.th-sort-active svg{opacity:1;}
 .sp-mini b{display:block;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;}
 .sp-target{font-size:12px;color:var(--text-dim);padding-top:8px;border-top:1px solid var(--border-soft);line-height:1.45;}
 .sp-target b{color:var(--text);}
+.sp-target.is-short,.sp-target.is-short b{color:var(--danger);}
+.sp-mini b.pos{color:var(--accent);} .sp-mini b.neg{color:var(--danger);}
+.sp-legs{display:flex;flex-direction:column;gap:6px;}
+.sp-leg{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 6px 6px 10px;border-radius:8px;background:var(--surface-2);font-size:12.5px;min-height:40px;}
+.sp-leg > .mono{font-weight:600;min-width:78px;}
+.sp-leg-res{flex:1;color:var(--text-dim);}
+.sp-leg-res.pos b{color:var(--accent);} .sp-leg-res.neg b{color:var(--danger);}
+.sp-leg.closed{background:transparent;border:1px dashed var(--border);}
+.sp-leg small{font-family:Inter,sans-serif;font-size:10.5px;font-weight:500;color:var(--text-dim);margin-left:6px;text-decoration:none;display:inline-block;}
+.sp-leg-entry{display:inline-flex;align-items:center;gap:6px;min-width:78px;border:0;background:transparent;color:var(--text);font-size:12.5px;font-weight:600;padding:4px 6px;margin-left:-6px;border-radius:6px;}
+.sp-leg-entry svg{width:12px;height:12px;color:var(--text-faint);}
+.sp-leg-entry:hover{background:var(--surface-3);} .sp-leg-entry:hover svg{color:var(--accent);}
+.sp-ein-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px;color:var(--text-dim);}
+.sp-ein{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--text-dim);white-space:nowrap;}
+.sp-ein input{width:66px;height:28px;padding:0 6px;margin-left:2px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-weight:600;}
+.sp-banner-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.sp-qb{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.sp-qb button{min-width:36px;height:32px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;}
+.sp-qb button:hover{border-color:var(--text-faint);}
+.sp-qb button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.sp-qb button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+.sp-qb button.step{min-width:32px;color:var(--text-dim);background:var(--surface-2);font-size:14px;}
+.sp-qb button.pos{color:var(--accent);}
+.sp-qb button.neg{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent);}
+.sp-qb button.be{color:var(--text);}
+.sp-qb button.loss{font-family:Inter,sans-serif;font-weight:600;color:var(--text-dim);background:transparent;border-style:dashed;}
+.sp-qb button.loss.on{background:var(--danger-dim);color:var(--danger);border-color:var(--danger);border-style:solid;}
+.sp-exit-form .sp-qb button.loss{font-family:Inter,sans-serif;}
+.sp-exit-form .sp-qb button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+.sp-exit-form .sp-qb button.loss.on{background:var(--danger-dim);color:var(--danger);border-color:var(--danger);}
+.sp-ein-lbl{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+.sp-ein-lbl b{color:var(--text);font-size:13px;}
+.sp-ein-lbl small{margin-left:6px;font-size:10.5px;}
+.sp-banner .sp-ein-lbl{color:var(--text);}
+.sp-banner .sp-ein{color:var(--text);}
+.sp-leg.closed > .mono{color:var(--text-dim);text-decoration:line-through;}
+.sp-leg-x{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--text-dim);}
+.sp-leg-x:hover{background:var(--surface-3);color:var(--text);}
+.sp-leg-x svg{width:14px;height:14px;}
+.sp-leg.editing{background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);}
+.sp-leg.editing .sp-exit-form{flex-basis:100%;padding-bottom:2px;}
+.sp-exit-form{display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex:1;}
+.sp-exit-form button:not(.sp-leg-x){height:30px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;}
+.sp-exit-form button.ok{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-family:inherit;}
+.sp-exit-form input,.sp-gx input{width:70px;height:30px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-weight:600;}
+.sp-gx{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border);font-size:12.5px;color:var(--text-dim);}
+.sp-gx-k{font-weight:700;color:var(--text);margin-right:4px;}
+.sp-gx select{height:30px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:12.5px;}
+.sp-be.closed{background:var(--surface-2);border-color:var(--border);}
+.sp-be.closed .sp-be-k{color:var(--text-dim);}
+.sp-be{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:8px;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+.sp-be-main{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.sp-be-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);}
+.sp-be-main b{font-size:18px;color:var(--text);}
+.sp-be-sub{font-size:12px;color:var(--text-dim);line-height:1.4;}
+.sp-be-sub b{color:var(--text);}
 .sp-wait{font-size:13px;color:var(--text);}
 .sp-empty{padding:10px 0 22px;}
 .sp-empty-cta{display:flex;justify-content:center;}
@@ -7113,12 +7169,20 @@ const SP_SIZES = [
   { k:'4', q:4, nq:false }, { k:'5', q:5, nq:false }, { k:'nq', q:1, nq:true },
 ];
 const SP_DEFAULT_METHOD = {
-  extMin:60, step:30, count:4, stressBeyond:30, retrace:30, maxSize:'nq',
+  extMin:60, step:30, count:4, stressBeyond:30, retrace:30, scalp:10, maxSize:'nq',
+  entryOffsets:[0,2,3,5,8,10], exitPresets:[0,5,10,15,20,30],
   starts:{ prudent:2, equilibre:1, agressif:0 },
   rules:{ aggrMin:70, eqMin:40, fundedCap:'equilibre', riskMax:75 },
 };
 const SP_COCKPIT_KEY = 'ledger_sp_cockpit';
 
+// Liste de valeurs de boutons (« 0, 2, 3, 5 » ou tableau) : nombres positifs, uniques, triés, 8 au plus.
+function spNormList(v, def, min, max){
+  const raw = Array.isArray(v) ? v : (typeof v==='string' ? v.split(/[;,\s]+/) : null);
+  if(!raw) return def.slice();
+  const out = [...new Set(raw.map(x=>Number(String(x).replace(',', '.'))).filter(n=>Number.isFinite(n) && n>=min && n<=max).map(n=>Math.round(n*4)/4))].sort((a, b)=>a-b).slice(0, 8);
+  return out.length ? out : def.slice();
+}
 function spNormMethod(v){
   const d = SP_DEFAULT_METHOD, m = v || {};
   const num = (x, def, min, max) => { const n = Number(x); return Number.isFinite(n) && x!=='' && x!=null ? Math.min(max, Math.max(min, Math.round(n))) : def; };
@@ -7129,6 +7193,9 @@ function spNormMethod(v){
   return {
     extMin: num(m.extMin, d.extMin, 1, 2000), step: num(m.step, d.step, 1, 1000), count,
     stressBeyond: num(m.stressBeyond, d.stressBeyond, 0, 1000), retrace: num(m.retrace, d.retrace, 1, 99),
+    scalp: num(m.scalp, d.scalp, 1, 200),
+    entryOffsets: spNormList(m.entryOffsets, d.entryOffsets, 0, 100),
+    exitPresets: spNormList(m.exitPresets, d.exitPresets, 0, 300),
     maxSize: ['3','5','nq'].includes(m.maxSize) ? m.maxSize : d.maxSize,
     starts,
     rules: {
@@ -7141,13 +7208,13 @@ function spNormMethod(v){
 function spLoadCockpit(){
   try{
     const raw = JSON.parse(localStorage.getItem(SP_COCKPIT_KEY) || 'null');
-    if(raw && raw.day === todayISO()) return { reached: Number.isInteger(raw.reached) ? raw.reached : -1, short: raw.short !== false, done: raw.done || {} };
+    if(raw && raw.day === todayISO()) return { reached: Number.isInteger(raw.reached) ? raw.reached : -1, short: raw.short !== false, done: raw.done || {}, exits: raw.exits || {}, entries: raw.entries || {}, exiting:null, editingEntry:null };
   }catch(e){}
-  return { reached:-1, short:true, done:{} };
+  return { reached:-1, short:true, done:{}, exits:{}, entries:{}, exiting:null, editingEntry:null };
 }
 function spSaveCockpit(){
   const c = spState().cockpit;
-  try{ localStorage.setItem(SP_COCKPIT_KEY, JSON.stringify({ day: todayISO(), reached: c.reached, short: c.short, done: c.done })); }catch(e){}
+  try{ localStorage.setItem(SP_COCKPIT_KEY, JSON.stringify({ day: todayISO(), reached: c.reached, short: c.short, done: c.done, exits: c.exits || {}, entries: c.entries || {} })); }catch(e){}
 }
 function spState(){
   if(!state.sp) state.sp = { loaded:false, loading:false, tableOk:true, plan:{}, method: spNormMethod(null), methodDraft:null, cockpit: spLoadCockpit() };
@@ -7209,6 +7276,35 @@ function spMaxGreen(p, cushion, m){
   if(!ok.length) return { k:null };
   ok.sort((a, b)=>spEq(b.k) - spEq(a.k));
   return { k: ok[0].k };
+}
+// Breach pour une liste d'entrées (pts d'extension), à valeur par point identique (cockpit, après sorties).
+function spBreachEntries(entries, unitPv, cushion){
+  if(cushion==null || !entries.length) return null;
+  if(cushion<=0) return 0;
+  const e = [...entries].sort((a, b)=>a-b);
+  let sum = 0;
+  for(let j=0;j<e.length;j++){
+    sum += e[j];
+    const x = (cushion/unitPv + sum)/(j+1);
+    if(j===e.length-1 || x<=e[j+1]) return Math.ceil(x);
+  }
+  return null;
+}
+function spPts(n){ const v = Math.round(n*10)/10; return (v>0 ? '+' : v<0 ? '−' : '') + Math.abs(v) + ' pts'; }
+// Boutons d'entrée (23/10/2026) : écarts au palier en un clic + ajustement d'un point.
+// attr = nom de l'attribut data portant « clé|valeur » (ou « valeur » seule pour le groupe).
+function spEntryBtnsHtml(attr, keyPrefix, palPts, cur, m){
+  const v = val => keyPrefix ? `${keyPrefix}|${val}` : `${val}`;
+  const btns = m.entryOffsets.map(o=>{ const val = palPts + o; return `<button type="button" class="${cur===val?'on':''}" aria-pressed="${cur===val}" ${attr}="${v(val)}" title="Entrée à +${val} pts">${o===0 ? 'Pile' : '+'+o}</button>`; }).join('');
+  return `<div class="sp-qb" role="group" aria-label="Écart d’entrée au palier">
+    <button type="button" class="step" ${attr}="${v(cur-1)}" aria-label="Un point de moins">−</button>${btns}<button type="button" class="step" ${attr}="${v(cur+1)}" aria-label="Un point de plus">+</button>
+  </div>`;
+}
+// Boutons de sortie : un clic = sortie enregistrée. « En perte » inverse le signe des boutons.
+function spExitBtnsHtml(attr, keyPrefix, loss, m){
+  const v = val => keyPrefix ? `${keyPrefix}|${val}` : `${val}`;
+  const btns = m.exitPresets.map(o=>{ const val = o===0 ? 0 : (loss ? -o : o); return `<button type="button" class="${loss && o ? 'neg' : o===0 ? 'be' : 'pos'}" ${attr}="${v(val)}" title="${o===0 ? 'Sortie au prix d’entrée de la patte' : `Sortie à ${loss?'−':'+'}${o} pts`}">${o===0 ? 'BE' : (loss?'−':'+')+o}</button>`; }).join('');
+  return `<div class="sp-qb" role="group" aria-label="Points de sortie">${btns}<button type="button" class="loss ${loss?'on':''}" aria-pressed="${!!loss}" data-sp-loss title="Inverser : sortie en perte">En perte</button></div>`;
 }
 function spAccounts(){
   const ord = { CHALLENGE:0, PA:1, LIVE:2 };
@@ -7428,22 +7524,39 @@ function spCockpitData(){
     const next = P.find(x=>x.i>=st && x.i>r);
     if(nPend > 0){
       for(let i=0;i<nPend;i++) pendQty.push(sz);
-      pending.push({ a, p, text: `${verb} ${nPend*sz.q} ${spUnit(k)}`, where: 'palier ' + due.slice(done).map(x=>x.id).join(' + '), full: due.length });
+      pending.push({ a, p, text: `${verb} ${nPend*sz.q} ${spUnit(k)}`, where: 'palier ' + due.slice(done).map(x=>x.id).join(' + '), full: due.length, legs: due.slice(done) });
     }
     if(done > 0){
-      const entered = P.slice(st, st+done), c = spCushion(a);
-      const avg = entered.reduce((t, x)=>t+x.pts, 0) / entered.length;
-      const nextPts = r < m.count-1 ? P[r+1].pts : P[r].pts + m.step;
-      const lat = entered.reduce((t, x)=>t + (nextPts - x.pts)*sz.q*pv, 0);
-      const target = Math.round(P[r].pts * (1 - m.retrace/100));
-      const atTarget = entered.reduce((t, x)=>t + (x.pts - target)*sz.q*pv, 0);
-      const pct = c && c.left>0 ? lat/c.left*100 : null;
-      positions.push({ a, p, breach: spBreach(p, k, m, c ? c.left : null), legs: `${done} / ${m.count-st}`, qty: `${done*sz.q} ${spUnit(k)}`, avg: '+' + Math.round(avg) + ' pts', lat, pct, c, target, atTarget, next });
+      // Sorties en live (23/10/2026) : chaque patte sort seule, avec son nombre de points
+      // (positif = gain, négatif = perte, 0 = breakeven de la patte). Le réalisé, le breakeven net,
+      // le risque et le breach se recalculent sur les pattes encore ouvertes.
+      const entered = P.slice(st, st+done), c = spCushion(a), ex = (ck.exits||{})[a.id] || {};
+      const unitPv = sz.q*pv;
+      // Entrées réelles (23/10/2026) : on n'entre pas pile sur le palier ; le prix saisi (en pts
+      // d'extension) remplace celui du palier dans tous les calculs. Par défaut : le palier.
+      const en = (ck.entries||{})[a.id] || {};
+      const legs = entered.map(x=>({ x, e: en[x.i]!=null ? Number(en[x.i]) : x.pts, exit: ex[x.i]!=null ? Number(ex[x.i]) : null }));
+      const open = legs.filter(l=>l.exit==null).map(l=>({ ...l.x, pts: l.e }));
+      const realized = legs.filter(l=>l.exit!=null).reduce((t, l)=>t + l.exit*unitPv, 0);
+      const last = Math.max(P[r].pts, ...legs.map(l=>l.e));
+      const nextPts = Math.max(r < m.count-1 ? P[r+1].pts : P[r].pts + m.step, last);
+      const lat = open.reduce((t, x)=>t + (nextPts - x.pts)*unitPv, 0);
+      const pct = c && c.left>0 && open.length ? lat/c.left*100 : null;
+      const avgOpen = open.length ? open.reduce((t, x)=>t+x.pts, 0)/open.length : null;
+      // Breakeven net : réalisé + n × valeur × (moyenne ouverte − X) = 0
+      const beNet = open.length ? avgOpen + realized/(open.length*unitPv) : null;
+      const target = Math.round(last * (1 - m.retrace/100));
+      const atTarget = realized + open.reduce((t, x)=>t + (x.pts - target)*unitPv, 0);
+      const future = P.filter(x=>x.i>=st && x.i>r).map(x=>x.pts);
+      const breach = c ? spBreachEntries(open.map(x=>x.pts).concat(future), unitPv, c.left + Math.min(0, realized)) : null;
+      positions.push({ a, p, k, legs, open, realized, avgOpen, beNet, last, lat, pct, c, target, atTarget, next, breach, total: m.count-st, unit: spUnit(k), q: sz.q, unitPv });
     } else if(nPend===0){
       waiting.push({ a, p, text: next ? `Entre à ${next.id} (+${next.pts} pts) · ${sz.q} ${spUnit(k)}` : '—' });
     }
   });
-  return { m, P, r, ck, verb, accs, pending, positions, waiting, pendQty };
+  const grpVals = pending.flatMap(x=>x.legs.filter(l=>l.i===r).map(l=>((ck.entries||{})[x.a.id]||{})[r] ?? l.pts));
+  const grpEntry = grpVals.length && grpVals.every(v=>v===grpVals[0]) ? grpVals[0] : null;
+  return { m, P, r, ck, verb, accs, pending, positions, waiting, pendQty, grpEntry };
 }
 function viewCockpit(){
   const s = spState();
@@ -7471,20 +7584,53 @@ function viewCockpit(){
     </article>`;
   const pendHtml = d.pending.length ? d.pending.map(x=>card(x, `
       <div class="sp-action-line"><span class="mono sp-action">${x.text}</span><span class="sp-where">${x.where}</span></div>
+      ${x.legs.map(l=>{ const cur = ((d.ck.entries||{})[x.a.id]||{})[l.i] ?? l.pts; return `<div class="sp-ein-row"><span class="sp-ein-lbl">Entrée ${l.id} <b class="mono">+${cur}</b>${cur!==l.pts ? `<small>palier +${l.pts}</small>` : ''}</span>${spEntryBtnsHtml('data-sp-entry-set', `${x.a.id}|${l.i}`, l.pts, cur, m)}</div>`; }).join('')}
       <button type="button" class="btn btn-outline" data-sp-confirm="${x.a.id}|${x.full}">${icon('check')}Marquer entré</button>`, 'now')).join('')
     : `<p class="sp-col-empty">Aucun compte à faire entrer pour l’instant.</p>`;
   const posHtml = d.positions.length ? d.positions.map(x=>{
     const lvl = spLevel(x.pct);
-    return card(x, `
-      <div class="sp-mini"><div><span>Pattes</span><b>${x.legs}</b></div><div><span>Position</span><b>${x.qty}</b></div><div><span>Entrée moy.</span><b>${x.avg}</b></div></div>
+    const legsHtml = x.legs.map(l=>{
+      const key = `${x.a.id}|${l.x.i}`;
+      const entryLbl = `${l.x.id} · +${l.e}${l.e!==l.x.pts ? `<small title="Palier théorique">palier +${l.x.pts}</small>` : ''}`;
+      if(d.ck.editingEntry===key) return `<div class="sp-leg editing"><span class="mono">${l.x.id} · +${l.e}</span>
+          <div class="sp-exit-form">${spEntryBtnsHtml('data-sp-entry-fix', key, l.x.pts, l.e, m)}<button type="button" class="sp-leg-x" data-sp-entry-cancel aria-label="Fermer">${icon('x')}</button></div></div>`;
+      if(l.exit!=null) return `<div class="sp-leg closed"><span class="mono">${entryLbl}</span><span class="sp-leg-res ${l.exit<0?'neg':l.exit>0?'pos':''}">sortie ${spPts(l.exit)} · <b class="mono">${l.exit>=0?'+':''}${spMoney(l.exit*x.unitPv)}</b></span><button type="button" class="sp-leg-x" data-sp-exit-undo="${key}" aria-label="Annuler la sortie de ${l.x.id}" title="Annuler la sortie">${icon('x')}</button></div>`;
+      if(d.ck.exiting===key) return `<div class="sp-leg editing"><span class="mono">${entryLbl}</span>
+          <div class="sp-exit-form">${spExitBtnsHtml('data-sp-exit-q', key, d.ck.loss, m)}
+            <button type="button" class="sp-leg-x" data-sp-exit-cancel aria-label="Annuler">${icon('x')}</button>
+          </div></div>`;
+      return `<div class="sp-leg"><button type="button" class="sp-leg-entry mono" data-sp-entry-edit="${key}" title="Corriger le prix d’entrée réel">${entryLbl}${icon('edit')}</button><span class="sp-leg-res">ouverte · ${x.q} ${x.unit}</span><button type="button" class="btn btn-ghost btn-sm" data-sp-exit-open="${key}">Sortir</button></div>`;
+    }).join('');
+    const realizedHtml = `<b class="${x.realized>0?'pos':x.realized<0?'neg':''}">${x.realized>=0?'+':''}${spMoney(x.realized)}</b>`;
+    const head = `<div class="sp-mini"><div><span>Pattes ouvertes</span><b>${x.open.length} / ${x.total}</b></div><div><span>Position ouverte</span><b>${x.open.length*x.q} ${x.unit}</b></div><div><span>Réalisé</span>${realizedHtml}</div></div>
+      <div class="sp-legs">${legsHtml}</div>`;
+    if(!x.open.length) return card(x, head + `<div class="sp-be closed"><div class="sp-be-main"><span class="sp-be-k">Position fermée</span><b class="mono">${x.realized>=0?'+':''}${spMoney(x.realized)}</b></div><span class="sp-be-sub">${x.next ? `Prochaine entrée prévue à ${x.next.id} (+${x.next.pts} pts).` : 'Plus d’entrée prévue sur ce compte.'}</span></div>`);
+    const be = Math.round(x.beNet*10)/10, back = Math.round((x.last - x.beNet)*10)/10;
+    const bePct = x.last>0 ? Math.round(back/x.last*100) : 0;
+    const beSub = back>0
+      ? `le prix doit revenir de <b class="mono">${back} pts</b> depuis le point le plus étendu (${bePct} % de retracement)`
+      : `déjà en gain net au point le plus étendu : marge de <b class="mono">${Math.abs(back)} pts</b> avant de repasser à zéro`;
+    const short = x.atTarget < 0;
+    return card(x, head + `
       <div class="sp-risk lvl-${lvl}">
         <div class="sp-risk-top"><span class="sp-risk-sub">Si le prochain palier est touché</span><b class="mono">−${spMoney(x.lat)}${x.pct!=null ? ` · ${Math.round(x.pct)} %` : ''}</b></div>
         <div class="sp-bar"><i style="width:${x.pct==null?0:Math.min(100, Math.round(x.pct))}%"></i></div>
         <span class="sp-risk-sub">${x.c ? `du coussin Deltalytix (${spMoney(x.c.left)})` : 'coussin inconnu'}</span>
-        ${x.breach!=null ? `<span class="sp-breach lvl-${lvl}">${x.breach===0 ? 'Coussin épuisé' : `Breach si l’extension atteint <b class="mono">+${x.breach} pts</b> (toutes pattes prises)`}</span>` : ''}
+        ${x.breach!=null ? `<span class="sp-breach lvl-${lvl}">${x.breach===0 ? 'Coussin épuisé' : `Breach si l’extension atteint <b class="mono">+${x.breach} pts</b> (pattes ouvertes + à venir)`}</span>` : ''}
       </div>
-      <div class="sp-target">Sortie visée (retracement ${m.retrace} %) : +${x.target} pts → <b class="mono">${x.atTarget>=0?'+':''}${spMoney(x.atTarget)}</b>${x.next ? ` · prochaine patte à ${x.next.id}` : ' · toutes les pattes prises'}</div>`);
+      <div class="sp-be">
+        <div class="sp-be-main"><span class="sp-be-k">Breakeven net</span><b class="mono">+${be} pts</b></div>
+        <span class="sp-be-sub">${beSub}${x.realized ? ` · inclut ${x.realized>0?'+':''}${spMoney(x.realized)} déjà ${x.realized>0?'encaissés':'perdus'}` : ''}</span>
+      </div>
+      <div class="sp-target ${short?'is-short':''}">Retracement de ${m.retrace} % : +${x.target} pts → <b class="mono">${x.atTarget>=0?'+':''}${spMoney(x.atTarget)}</b> net${short ? ` · insuffisant : vise au moins le breakeven (+${be} pts)` : ''}${x.next ? ` · prochaine patte à ${x.next.id}` : ' · toutes les pattes prises'}</div>`);
   }).join('') : `<p class="sp-col-empty">Aucune position pour l’instant.</p>`;
+  // Sortie groupée : la même patte sur tous les comptes qui l'ont encore ouverte (copie de trades).
+  const openIdx = [...new Set(d.positions.flatMap(x=>x.open.map(o=>o.i)))].sort((a, b)=>a-b);
+  const groupHtml = openIdx.length ? `<div class="sp-gx">
+      <span class="sp-gx-k">Sortie groupée</span>
+      <select id="sp-gx-leg" aria-label="Patte à sortir">${openIdx.map(i=>`<option value="${i}">${P[i].id} · +${P[i].pts}</option>`).join('')}</select>
+      <span>sur tous les comptes à</span>${spExitBtnsHtml('data-sp-gx-q', '', d.ck.loss, m)}
+    </div>` : '';
   const waitHtml = d.waiting.length ? d.waiting.map(x=>card(x, `<div class="sp-wait">${x.text}</div>`, 'wait')).join('') : `<p class="sp-col-empty">Personne n’attend.</p>`;
   return `${spTabsHtml()}${spNoticesHtml()}
     <div class="panel sp-ck">
@@ -7504,10 +7650,10 @@ function viewCockpit(){
         </div>
       </div>
     </div>
-    ${d.pending.length ? `<div class="sp-banner" role="status"><b>${d.pending.length} compte(s) à faire entrer · ${d.verb.toLowerCase()} ${spQtyText(d.pendQty)} au total</b><button type="button" class="btn btn-primary btn-sm" id="sp-confirm-all">${icon('check')}Tout marquer entré</button></div>` : ''}
+    ${d.pending.length ? `<div class="sp-banner" role="status"><b>${d.pending.length} compte(s) à faire entrer · ${d.verb.toLowerCase()} ${spQtyText(d.pendQty)} au total</b><div class="sp-banner-r"><span class="sp-ein-lbl">Tous les comptes, entrée ${P[r].id}</span>${spEntryBtnsHtml('data-sp-entry-grp', '', P[r].pts, d.grpEntry!=null ? d.grpEntry : P[r].pts, m)}<button type="button" class="btn btn-primary btn-sm" id="sp-confirm-all">${icon('check')}Tout marquer entré</button></div></div>` : ''}
     <div class="sp-cols">
       <section><h4 class="sp-col-h now">À exécuter maintenant · ${d.pending.length}</h4>${pendHtml}</section>
-      <section><h4 class="sp-col-h">En position · ${d.positions.length}</h4>${posHtml}</section>
+      <section><h4 class="sp-col-h">En position · ${d.positions.length}</h4>${groupHtml}${posHtml}</section>
       <section><h4 class="sp-col-h">En attente · ${d.waiting.length}</h4>${waitHtml}</section>
     </div>`;
 }
@@ -7545,6 +7691,8 @@ function viewSeanceMethode(){
         ${num('count', 'Nombre de paliers (2 à 6)', m.count)}
         ${num('stressBeyond', 'Marge du stress test, en pts', m.stressBeyond, 'Ajoutée au dernier palier')}
         ${num('retrace', 'Sortie visée : retracement en %', m.retrace)}
+        <div class="field"><label for="spm-entryOffsets">Boutons d’entrée : écarts au palier, en pts</label><input type="text" id="spm-entryOffsets" data-spm="entryOffsets" value="${m.entryOffsets.join(', ')}"/><div class="field-hint">0 = pile sur le palier · 8 boutons au plus</div></div>
+        <div class="field"><label for="spm-exitPresets">Boutons de sortie, en pts</label><input type="text" id="spm-exitPresets" data-spm="exitPresets" value="${m.exitPresets.join(', ')}"/><div class="field-hint">0 = breakeven de la patte · « En perte » inverse le signe</div></div>
         <div class="field"><label for="spm-maxSize">Taille max par patte</label><select id="spm-maxSize" data-spm="maxSize">${opt('nq','1 NQ (= 10 MNQ)',m.maxSize)}${opt('5','5 MNQ',m.maxSize)}${opt('3','3 MNQ',m.maxSize)}</select></div>
       </div>
       <div class="sp-result">Résultat : ${P.map(x=>`<span class="sp-chip mono">${x.id} +${x.pts}</span>`).join('')}<span class="sp-chip mono is-danger">Stress +${spStress(m)}</span></div>
@@ -7601,19 +7749,62 @@ function spBindEvents(){
   const save = ()=>{ spSaveCockpit(); renderView(); };
   document.querySelectorAll('[data-sp-pal]').forEach(b=>b.onclick = ()=>{ ck.reached = Math.max(ck.reached, Number(b.dataset.spPal)); save(); });
   document.querySelectorAll('[data-sp-bias]').forEach(b=>b.onclick = ()=>{ ck.short = b.dataset.spBias==='short'; save(); });
+  const putEntry = (id, i, v)=>{ ck.entries = ck.entries || {}; ck.entries[id] = ck.entries[id] || {}; ck.entries[id][i] = v; };
   document.querySelectorAll('[data-sp-confirm]').forEach(b=>b.onclick = ()=>{ const [id, n] = b.dataset.spConfirm.split('|'); ck.done[id] = Number(n); save(); });
+  // Boutons d'entrée : prix réel d'une patte à venir (carte « à exécuter »)
+  document.querySelectorAll('[data-sp-entry-set]').forEach(b=>b.onclick = ()=>{ const [id, i, v] = b.dataset.spEntrySet.split('|'); putEntry(id, i, Number(v)); save(); });
+  // … d'une patte déjà entrée (correction, clic = enregistré)
+  document.querySelectorAll('[data-sp-entry-fix]').forEach(b=>b.onclick = ()=>{ const [id, i, v] = b.dataset.spEntryFix.split('|'); putEntry(id, i, Number(v)); save(); });
+  // … commun à tous les comptes qui entrent au dernier palier touché
+  document.querySelectorAll('[data-sp-entry-grp]').forEach(b=>b.onclick = ()=>{
+    const v = Number(b.dataset.spEntryGrp);
+    spCockpitData().pending.forEach(x=>x.legs.filter(l=>l.i===ck.reached).forEach(l=>putEntry(x.a.id, l.i, v)));
+    save();
+  });
+  document.querySelectorAll('[data-sp-loss]').forEach(b=>b.onclick = ()=>{ ck.loss = !ck.loss; renderView(); });
+  document.querySelectorAll('[data-sp-gx-q]').forEach(b=>b.onclick = ()=>{
+    const i = Number(document.getElementById('sp-gx-leg').value), pts = Number(b.dataset.spGxQ);
+    const targets = spCockpitData().positions.filter(x=>x.open.some(o=>o.i===i));
+    ck.exits = ck.exits || {};
+    targets.forEach(x=>{ ck.exits[x.a.id] = ck.exits[x.a.id] || {}; ck.exits[x.a.id][i] = pts; });
+    ck.exiting = null; ck.loss = false; save();
+    showToast(`Patte T${i} sortie à ${spPts(pts)} sur ${targets.length} compte${targets.length>1?'s':''}.`);
+  });
+  document.querySelectorAll('[data-sp-entry-edit]').forEach(b=>b.onclick = ()=>{ ck.editingEntry = b.dataset.spEntryEdit; ck.exiting = null; renderView(); const inp = document.getElementById('sp-entry-edit-input'); if(inp){ inp.focus(); inp.select(); } });
+  document.querySelectorAll('[data-sp-entry-cancel]').forEach(b=>b.onclick = ()=>{ ck.editingEntry = null; renderView(); });
+  const setEntry = key=>{
+    const inp = document.getElementById('sp-entry-edit-input'), v = inp && inp.value!=='' ? Number(inp.value) : NaN;
+    if(!Number.isFinite(v)){ showToast('Indique le prix d’entrée en points d’extension.', 'danger'); return; }
+    const [id, i] = key.split('|'); ck.entries = ck.entries || {}; ck.entries[id] = ck.entries[id] || {}; ck.entries[id][i] = v; ck.editingEntry = null; save();
+  };
+  document.querySelectorAll('[data-sp-entry-ok]').forEach(b=>b.onclick = ()=>setEntry(b.dataset.spEntryOk));
+  const eei = document.getElementById('sp-entry-edit-input');
+  if(eei) eei.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); setEntry(ck.editingEntry); } else if(e.key==='Escape'){ ck.editingEntry = null; renderView(); } };
   const all = document.getElementById('sp-confirm-all');
   if(all) all.onclick = ()=>{ spCockpitData().pending.forEach(x=>{ ck.done[x.a.id] = x.full; }); save(); };
+  const setExit = (key, pts)=>{
+    const [id, i] = key.split('|');
+    if(!Number.isFinite(pts)){ showToast('Indique un nombre de points (négatif pour une sortie en perte).', 'danger'); return; }
+    ck.exits = ck.exits || {}; ck.exits[id] = ck.exits[id] || {}; ck.exits[id][i] = pts; ck.exiting = null; ck.loss = false; save();
+  };
+  document.querySelectorAll('[data-sp-exit-open]').forEach(b=>b.onclick = ()=>{ ck.exiting = b.dataset.spExitOpen; ck.editingEntry = null; renderView(); const inp = document.getElementById('sp-exit-input'); if(inp){ inp.focus(); inp.select(); } });
+  document.querySelectorAll('[data-sp-exit-cancel]').forEach(b=>b.onclick = ()=>{ ck.exiting = null; renderView(); });
+  document.querySelectorAll('[data-sp-exit-q]').forEach(b=>b.onclick = ()=>{ const v = b.dataset.spExitQ.split('|'); setExit(v[0]+'|'+v[1], Number(v[2])); });
+  document.querySelectorAll('[data-sp-exit-ok]').forEach(b=>b.onclick = ()=>{ const inp = document.getElementById('sp-exit-input'); setExit(b.dataset.spExitOk, inp && inp.value!=='' ? Number(inp.value) : NaN); });
+  const exInp = document.getElementById('sp-exit-input');
+  if(exInp) exInp.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); setExit(ck.exiting, exInp.value!=='' ? Number(exInp.value) : NaN); } else if(e.key==='Escape'){ ck.exiting = null; renderView(); } };
+  document.querySelectorAll('[data-sp-exit-undo]').forEach(b=>b.onclick = ()=>{ const [id, i] = b.dataset.spExitUndo.split('|'); if(ck.exits && ck.exits[id]){ delete ck.exits[id][i]; } save(); });
   const undo = document.getElementById('sp-undo');
   if(undo) undo.onclick = ()=>{
     const m = s.method, nr = Math.max(-1, ck.reached - 1);
     spAccounts().forEach(a=>{ const p = spPlanOf(a).profile; if(ck.done[a.id]!=null) ck.done[a.id] = Math.min(ck.done[a.id], Math.max(0, nr - spStart(p, m) + 1)); });
+    ['exits','entries'].forEach(f=>Object.keys(ck[f]||{}).forEach(id=>Object.keys(ck[f][id]).forEach(i=>{ if(Number(i)>nr) delete ck[f][id][i]; })));
     ck.reached = nr; save();
   };
   const nm = document.getElementById('sp-new-move');
   if(nm) nm.onclick = ()=>{
-    const go = ()=>{ ck.reached = -1; ck.done = {}; save(); };
-    if(ck.reached>=0 || Object.keys(ck.done).length) confirmModal('Nouveau mouvement : les paliers touchés et les entrées marquées repartent de zéro.', go, false); else go();
+    const go = ()=>{ ck.reached = -1; ck.done = {}; ck.exits = {}; ck.entries = {}; ck.exiting = null; ck.editingEntry = null; save(); };
+    if(ck.reached>=0 || Object.keys(ck.done).length) confirmModal('Nouveau mouvement : les paliers touchés, les entrées et les sorties marquées repartent de zéro.', go, false); else go();
   };
   // Méthode
   document.querySelectorAll('[data-spm]').forEach(el=>el.onchange = ()=>{
@@ -7621,7 +7812,7 @@ function spBindEvents(){
     const key = el.dataset.spm, v = el.value;
     if(key.startsWith('start-')) d.starts[key.slice(6)] = Number(v);
     else if(['aggrMin','eqMin','riskMax','fundedCap'].includes(key)) d.rules[key] = key==='fundedCap' ? v : Number(v);
-    else d[key] = key==='maxSize' ? v : Number(v);
+    else d[key] = (key==='maxSize' || key==='entryOffsets' || key==='exitPresets') ? v : Number(v);
     s.methodDraft = spNormMethod(d);
     renderView();
   });
