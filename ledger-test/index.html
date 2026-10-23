@@ -18941,13 +18941,17 @@ function dlxStaleHtml(){
   const items = st.map(c=>{
     // Comptes dont Deltalytix indique la plateforme de cette connexion ; si aucun, ceux dont la
     // plateforme est inconnue (à vérifier), comme le fait dlxStaleFor par prudence.
-    const svcOf = a=>{ const h = dlxHealthOf(a.id); return h ? dlxSvcKey(h.service || h.platform) : ''; };
-    const exact = active.filter(a=>dlxHealthOf(a.id) && svcOf(a)===dlxSvcKey(c.service));
-    const unknown = exact.length ? [] : active.filter(a=>dlxHealthOf(a.id) && !svcOf(a));
-    const list = exact.length
-      ? `<div class="dlx-stale-accs">${exact.map(chip).join('')}</div>`
-      : unknown.length ? `<div class="text-dim" style="margin-top:6px;font-size:12px;">Deltalytix ne précise pas la plateforme de chaque compte : vérifie parmi ceux-ci.</div><div class="dlx-stale-accs">${unknown.map(chip).join('')}</div>` : '';
-    const n = c.accounts || exact.length || 0;
+    let cand = active.filter(a=>dlxStaleMatch(a, c));
+    // Si certains candidats sont explicitement sur cette plateforme, on écarte ceux dont elle est inconnue.
+    const known = cand.filter(a=>{ const h = dlxHealthOf(a.id); return h && dlxSvcKey(h.service || h.platform)===dlxSvcKey(c.service); });
+    if(known.length && !Array.isArray(c.accountIds)) cand = known;
+    const sure = Array.isArray(c.accountIds) || (Array.isArray(c.accountNumbers) && c.accountNumbers.length);
+    const n = c.accounts || cand.length || 0;
+    // Plus de candidats que de comptes annoncés : Deltalytix ne dit pas lequel, on le signale.
+    const doubt = !sure && cand.length > n;
+    const list = cand.length
+      ? `${doubt ? `<div class="text-dim" style="margin-top:6px;font-size:12px;">Deltalytix ne précise pas lequel : ${n>1?`${n} comptes`:'c’est un compte'} parmi ceux-ci, sans trade reçu depuis le ${fmtDate(String(c.lastSyncedAt||'').slice(0,10))}.</div>` : ''}<div class="dlx-stale-accs">${cand.map(chip).join('')}</div>`
+      : '';
     return `<div class="dlx-stale-item"><strong>${escapeHtml(DLX_SERVICE_LABELS[c.service] || c.service || 'Connexion')}</strong> ${c.lastSyncedAt ? `depuis le ${fmtDate(String(c.lastSyncedAt).slice(0,10))}` : 'jamais synchronisé'} · ${n} compte${n>1?'s':''} concerné${n>1?'s':''}${list}</div>`;
   }).join('');
   return `<div class="dlx-alert is-warn">${icon('alertTriangle')}<div style="min-width:0;"><div><strong>Deltalytix ne reçoit plus tes trades :</strong></div>${items}<div class="text-dim" style="margin-top:6px;">Tant que la synchro est arrêtée, le radar peut croire ces comptes inactifs à tort : relance la connexion dans Deltalytix, ou pointe-les à la main.</div></div></div>`;
@@ -19350,13 +19354,29 @@ function dmOpenDetail(accountId){
 /* ---------- Pointage et Deltalytix (17/10/2026) ---------- */
 const DLX_FRESH_MS = 48*3600*1000;   // au-delà, la dernière synchro est trop ancienne pour s'y fier
 function dlxSvcKey(v){ v = String(v||'').toLowerCase(); return v.indexOf('rithmic')===0 ? 'rithmic' : v; }
+// Un compte dépend-il d'une connexion broker arrêtée ? (corrigé le 23/10/2026)
+// Plusieurs connexions peuvent avoir la même plateforme (un login Rithmic par prop firm) : la plateforme
+// seule ne suffit pas. 1) Si Deltalytix donne les numéros de compte de la connexion, on s'y fie.
+// 2) Sinon : même plateforme (ou inconnue), et PAS de trade reçu après l'arrêt de la connexion
+// (un compte qui a des trades plus récents est forcément suivi par une autre connexion, active).
+function dlxNormNum(v){ return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function dlxStaleMatch(a, c){
+  // Liste exacte envoyée par le serveur (deltalytix.js, 23/10/2026) : prioritaire sur toute déduction.
+  if(Array.isArray(c.accountIds)) return c.accountIds.includes(a.id);
+  const h = dlxHealthOf(a.id); if(!h) return false;
+  if(Array.isArray(c.accountNumbers) && c.accountNumbers.length){
+    const mine = dlxNormNum(a.accountNumber), dl = dlxNormNum(h.accountNumber);
+    return c.accountNumbers.some(n=>{ const x = dlxNormNum(n); return x && (x===mine || x===dl); });
+  }
+  const k = dlxSvcKey(h.service || h.platform);
+  if(k && k!==dlxSvcKey(c.service)) return false;
+  if(h.lastTradeDay && c.lastSyncedAt && String(h.lastTradeDay).slice(0,10) > String(c.lastSyncedAt).slice(0,10)) return false;
+  return true;
+}
 function dlxStaleFor(a){
   const d = dlx(); if(!d.connected || !d.health) return null;
   const st = Array.isArray(d.health.stale) ? d.health.stale : []; if(!st.length) return null;
-  const h = dlxHealthOf(a.id); if(!h) return null;
-  const k = dlxSvcKey(h.service || h.platform);
-  // Plateforme inconnue pour ce compte alors qu'une connexion est arrêtée : on reste prudent.
-  return k ? (st.find(c=>dlxSvcKey(c.service)===k) || null) : st[0];
+  return st.find(c=>dlxStaleMatch(a, c)) || null;
 }
 function dlxIsAuto(a){
   const d = dlx();
