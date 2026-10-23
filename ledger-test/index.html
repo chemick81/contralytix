@@ -2771,6 +2771,11 @@ th.th-sort-active svg{opacity:1;}
   .sp-bias{display:flex;width:100%;}
   .sp-bias button{flex:1;white-space:normal;height:auto;min-height:38px;padding:4px 6px;line-height:1.25;}
 }
+.dlx-stale-item{margin-top:6px;}
+.dlx-stale-accs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.dlx-stale-acc{display:inline-flex;align-items:center;gap:6px;padding:3px 8px 3px 3px;border-radius:var(--radius-pill);background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text);}
+.dlx-stale-acc .type-chip{height:20px;padding:0 6px;font-size:9.5px;border-radius:999px;}
+.dlx-stale-acc .type-chip svg{width:11px;height:11px;}
 </style>
 </head>
 <body>
@@ -18766,6 +18771,9 @@ async function dlxMaybeAutoSync(){
 async function dlxConnectOAuth(){
   const popup = window.open('', 'contralytix-deltalytix', 'width=520,height=760');
   if(!popup) return { ok:false, error:'Ton navigateur a bloqué la fenêtre de connexion Deltalytix : autorise les fenêtres pop-up pour ce site, puis réessaie.' };
+  // 23/10/2026 : une fenêtre du même nom restée ouverte (connexion précédente) est réutilisée par
+  // window.open sans passer au premier plan (Firefox) : on la ramène devant, sinon « rien ne se passe ».
+  try{ popup.focus(); }catch(e){}
   try{ popup.document.write('<p style="font-family:system-ui,sans-serif;padding:24px;">Ouverture de Deltalytix…</p>'); }catch(e){}
   let start = null;
   try{
@@ -18926,8 +18934,23 @@ function dlxStaleHtml(){
   const d = dlx();
   const st = d.connected && d.health && Array.isArray(d.health.stale) ? d.health.stale : [];
   if(!st.length) return '';
-  const items = st.map(c=>`<strong>${escapeHtml(DLX_SERVICE_LABELS[c.service] || c.service || 'Connexion')}</strong> ${c.lastSyncedAt ? `depuis le ${fmtDate(String(c.lastSyncedAt).slice(0,10))}` : 'jamais synchronisé'} (${c.accounts} compte${c.accounts>1?'s':''} suivi${c.accounts>1?'s':''})`).join(' · ');
-  return `<div class="dlx-alert is-warn">${icon('alertTriangle')}<div><div><strong>Deltalytix ne reçoit plus tes trades :</strong> ${items}.</div><div class="text-dim" style="margin-top:2px;">Tant que la synchro est arrêtée, le radar peut te croire inactif à tort. Ouvre Deltalytix pour relancer la connexion.</div></div></div>`;
+  // 23/10/2026 (demande de Mickael) : on nomme les comptes concernés, retrouvés côté navigateur avec
+  // la même règle que les cartes du Radar (dlxStaleFor) ; à défaut, on garde le simple compteur.
+  const active = (typeof accountsInScope==='function' ? accountsInScope() : state.accounts).filter(a=>a.status==='ACTIF');
+  const chip = a => `<span class="dlx-stale-acc">${typeBadgeHtml(a.type)}${escapeHtml(((getFirm(a.propFirmId)||{}).name||'—') + (a.size ? ' ' + sizeLabelRaw(a) : ''))}${a.accountNumber ? ` <span class="text-dim">N° ${maskAccountNumber(a.accountNumber)}</span>` : ''}</span>`;
+  const items = st.map(c=>{
+    // Comptes dont Deltalytix indique la plateforme de cette connexion ; si aucun, ceux dont la
+    // plateforme est inconnue (à vérifier), comme le fait dlxStaleFor par prudence.
+    const svcOf = a=>{ const h = dlxHealthOf(a.id); return h ? dlxSvcKey(h.service || h.platform) : ''; };
+    const exact = active.filter(a=>dlxHealthOf(a.id) && svcOf(a)===dlxSvcKey(c.service));
+    const unknown = exact.length ? [] : active.filter(a=>dlxHealthOf(a.id) && !svcOf(a));
+    const list = exact.length
+      ? `<div class="dlx-stale-accs">${exact.map(chip).join('')}</div>`
+      : unknown.length ? `<div class="text-dim" style="margin-top:6px;font-size:12px;">Deltalytix ne précise pas la plateforme de chaque compte : vérifie parmi ceux-ci.</div><div class="dlx-stale-accs">${unknown.map(chip).join('')}</div>` : '';
+    const n = c.accounts || exact.length || 0;
+    return `<div class="dlx-stale-item"><strong>${escapeHtml(DLX_SERVICE_LABELS[c.service] || c.service || 'Connexion')}</strong> ${c.lastSyncedAt ? `depuis le ${fmtDate(String(c.lastSyncedAt).slice(0,10))}` : 'jamais synchronisé'} · ${n} compte${n>1?'s':''} concerné${n>1?'s':''}${list}</div>`;
+  }).join('');
+  return `<div class="dlx-alert is-warn">${icon('alertTriangle')}<div style="min-width:0;"><div><strong>Deltalytix ne reçoit plus tes trades :</strong></div>${items}<div class="text-dim" style="margin-top:6px;">Tant que la synchro est arrêtée, le radar peut croire ces comptes inactifs à tort : relance la connexion dans Deltalytix, ou pointe-les à la main.</div></div></div>`;
 }
 // Bandeau « comptes breached d'après Deltalytix » (page Comptes et Radar)
 function dlxBreachBannerHtml(){
