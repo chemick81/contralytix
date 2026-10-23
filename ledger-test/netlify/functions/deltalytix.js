@@ -284,14 +284,21 @@ exports.handler = async (event) => {
         if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r, trades.map.get(k)), platform: plat.get(k) || null });
         else if (plat.has(k)) health.push({ accountId: a.id, platform: plat.get(k), inactive: a.status !== 'ACTIF' });
       });
+      // Connexions en retard (corrigé le 23/10/2026) : on renvoie l'identifiant Contralytix des comptes
+      // concernés (accountIds) pour que l'alerte nomme exactement les bons. Un trader peut avoir plusieurs
+      // connexions de la même plateforme (un login Rithmic par prop firm) : la plateforme ne suffit pas.
+      // Un compte présent aussi dans une connexion À JOUR n'est pas signalé (il est bien suivi).
       const stale = [];
-      const activeNums = new Set(allMine.filter((a) => a.status === 'ACTIF').map((a) => normAccNum(a.account_number)));
+      const activeIdByNum = new Map(allMine.filter((a) => a.status === 'ACTIF').map((a) => [normAccNum(a.account_number), a.id]));
       const limit = Date.now() - STALE_DAYS * 86400000;
-      conns.list.forEach((c) => {
-        const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).filter((n) => activeNums.has(normAccNum(n)));
+      const isStale = (c) => { const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0; return !last || last < limit; };
+      const freshNums = new Set();
+      conns.list.filter((c) => !isStale(c)).forEach((c) => (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).forEach((n) => freshNums.add(normAccNum(n))));
+      conns.list.filter(isStale).forEach((c) => {
+        const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).map(normAccNum)
+          .filter((n) => activeIdByNum.has(n) && !freshNums.has(n));
         if (!nums.length) return;
-        const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0;
-        if (!last || last < limit) stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length });
+        stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length, accountIds: [...new Set(nums.map((n) => activeIdByNum.get(n)))] });
       });
       const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
       const now = new Date().toISOString();
