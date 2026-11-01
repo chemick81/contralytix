@@ -2846,6 +2846,28 @@ th.th-sort-active svg{opacity:1;}
 .chat-engine{height:28px;max-width:150px;padding:0 6px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-weight:600;}
 .chat-msg-meta{font-size:10.5px;color:var(--text-faint);margin:-6px 0 0 4px;}
 .cim-engine{margin:12px 0 0;display:flex;justify-content:flex-end;}
+/* Textes IA rendus (brief météo) — 01/11/2026 */
+.md-view{font-size:13.5px;line-height:1.6;color:var(--text);}
+.md-view > :first-child{margin-top:0;}
+.md-view h3,.md-view h4{font-family:'Space Grotesk',sans-serif;font-size:14.5px;font-weight:600;margin:14px 0 6px;color:var(--text);}
+.md-view h5,.md-view h6{font-size:13.5px;font-weight:600;margin:10px 0 4px;}
+.md-view p{margin:0 0 8px;}
+.md-view ul,.md-view ol{margin:0 0 10px;padding-left:20px;}
+.md-view li{margin:3px 0;}
+.md-view li.md-sub{margin-left:16px;list-style:circle;}
+.md-view strong{font-weight:700;color:var(--text);}
+.md-view a{color:var(--accent);word-break:break-word;}
+.md-view code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface-3);padding:1px 5px;border-radius:4px;}
+.md-view blockquote{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--gold-dim);color:var(--text);}
+.md-view hr{border:0;border-top:1px solid var(--border);margin:12px 0;}
+.md-table{overflow-x:auto;margin:0 0 12px;}
+.md-table table{border-collapse:collapse;width:100%;font-size:12.5px;}
+.md-table th,.md-table td{border:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top;}
+.md-table th{background:var(--surface-3);font-weight:600;}
+.mp-preview{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--surface-2);max-height:360px;overflow:auto;}
+.mp-preview-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
+.aik-seg-warn{flex-basis:100%;display:flex;gap:6px;align-items:flex-start;font-size:11.5px;line-height:1.4;color:var(--gold);}
+.aik-seg-warn svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
 </style>
 </head>
 <body>
@@ -7988,9 +8010,11 @@ function aikEngineSegHtml(mod){
   const M = aikMod(mod), eng = aikEngine(mod), P = aikProv(k.provider);
   const siteDis = !!(M.premium && !perms().isPremium), mineDis = !!(M.vision && !k.vision);
   const btn = (v, label, dis, title)=>`<button type="button" class="${eng===v?'on':''}" aria-pressed="${eng===v}" ${dis?'disabled':''} title="${escapeHtml(title)}" data-ai-engine="${mod}|${v}">${label}</button>`;
+  const noWeb = mod==='meteo' && eng==='mine' && k.provider!=='gemini';
   return `<div class="aik-seg" role="group" aria-label="Moteur IA">
     <span class="aik-seg-k">Moteur IA</span>
     <div class="aik-seg-btns">${btn('site', siteDis ? 'Contralytix · Premium' : 'Contralytix', siteDis, siteDis ? 'IA Contralytix incluse dans Premium' : 'IA fournie par Contralytix')}${btn('mine', 'Ma clé · ' + escapeHtml(P.name), mineDis, mineDis ? P.name + ' ne lit pas les images' : 'Ta clé ' + P.name + ', enregistrée dans Profil → Connexions')}</div>
+    ${noWeb ? `<span class="aik-seg-warn">${icon('alertTriangle')}${escapeHtml(P.name)} n’a pas accès à internet : le brief ne contiendra aucune donnée du jour. Pour l’actualité, choisis Contralytix ou une clé Gemini.</span>` : ''}
   </div>`;
 }
 function aikRefreshSegs(mod){
@@ -8014,16 +8038,24 @@ async function aikSetEngine(mod, eng){
 async function callAi(module, prompt, engine){
   const eng = engine || aikEngine(module);
   try{
-    const res = await fetch('/api/ai', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ module, prompt, engine: eng }) });
-    const data = await res.json().catch(()=>({}));
+    // Edge Function d'abord (jusqu'à ~55 s : brief météo avec recherche web) ; si elle n'est pas
+    // déployée, fonction classique /api/ai (coupée vers 10 s). L'Edge répond toujours 200 et met
+    // le vrai code dans `status`.
+    const req = { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ module, prompt, engine: eng }) };
+    let res = await fetch('/edge/ai', req).catch(()=>null);
+    // Pas de JSON (Edge non déployée : 404, ou page du site renvoyée par une redirection) → /api/ai.
+    let data = null;
+    if(res && res.status!==404 && /json/i.test(res.headers.get('content-type')||'')) data = await res.json().catch(()=>null);
+    if(!data){ res = await fetch('/api/ai', req); data = await res.json().catch(()=>({})); }
     if(res.status===404) return { ok:false, engine:eng, error:'Le service IA n’est pas déployé sur ce site.', code:'not_deployed' };
-    if(!res.ok || data.error){
+    const st = typeof data.status==='number' ? data.status : res.status;
+    if(st<200 || st>=300 || data.error){
       if(eng==='mine' && ['invalid_key','no_credit','bad_model'].includes(data.code)) aik().lastError = data.code;
-      return { ok:false, engine:eng, error: data.error || ('erreur ' + res.status), code: data.code, hasKey: !!data.hasKey };
+      return { ok:false, engine:eng, error: data.error || ('erreur ' + st), code: data.code, hasKey: !!data.hasKey };
     }
     const text = String(data.text || '').trim();
     if(!text) return { ok:false, engine:eng, error:'réponse vide', code:'empty' };
-    return { ok:true, text, engine: data.engine || eng, provider: data.provider };
+    return { ok:true, text, engine: data.engine || eng, provider: data.provider, web: !!data.web, sources: Array.isArray(data.sources) ? data.sources : [] };
   }catch(e){
     return { ok:false, engine:eng, error:'service IA injoignable', code:'unreachable' };
   }
@@ -8150,6 +8182,60 @@ function aikBindEvents(){
     showToast('Clé IA supprimée.');
     renderView();
   }));
+}
+
+/* ============================================================
+   MARKDOWN → HTML SÛR (01/11/2026) — affichage des textes rédigés par l'IA (brief météo).
+   Le texte est d'abord échappé : aucune balise de l'IA n'est jamais interprétée. Seuls sont
+   reconstruits : titres (#), gras/italique, listes à puces ou numérotées, tableaux simples,
+   citations (>), liens http(s), retours à la ligne (y compris « <br> » écrit par l'IA).
+============================================================ */
+function mdInline(t){
+  return t
+    .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
+    .replace(/\[([^\]]{1,200})\]\((https?:\/\/[^\s)]{1,500})\)/g, (_, txt, url)=>`<a href="${url.replace(/"/g,'%22')}" target="_blank" rel="noopener noreferrer">${txt}</a>`)
+    .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+?)__/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>')
+    .replace(/(^|[\s(])_([^_\n]+?)_(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>')
+    .replace(/`([^`]+?)`/g, '<code>$1</code>');
+}
+function mdToHtml(src){
+  const lines = escapeHtml(String(src || '')).replace(/\r/g, '').split('\n');
+  const out = [];
+  let list = null; // 'ul' | 'ol'
+  const closeList = ()=>{ if(list){ out.push(`</${list}>`); list = null; } };
+  const isRow = l => /^\s*\|.*\|\s*$/.test(l);
+  const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c=>mdInline(c.trim()));
+  for(let i = 0; i < lines.length; i++){
+    const l = lines[i];
+    if(isRow(l)){
+      closeList();
+      const rows = [];
+      while(i < lines.length && isRow(lines[i])){ rows.push(lines[i]); i++; }
+      i--;
+      const sep = rows.length > 1 && /^\s*\|?\s*:?-{2,}/.test(rows[1]);
+      const head = sep ? cells(rows[0]) : null;
+      const body = rows.slice(sep ? 2 : 0).map(cells);
+      out.push(`<div class="md-table"><table>${head ? `<thead><tr>${head.map(c=>`<th>${c}</th>`).join('')}</tr></thead>` : ''}<tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
+      continue;
+    }
+    let m;
+    if((m = l.match(/^\s*(#{1,4})\s+(.+)$/))){ closeList(); const n = Math.min(4, m[1].length + 2); out.push(`<h${n}>${mdInline(m[2].replace(/\*\*/g, ''))}</h${n}>`); continue; }
+    if(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(l)){ closeList(); out.push('<hr>'); continue; }
+    if((m = l.match(/^\s*&gt;\s?(.*)$/))){ closeList(); out.push(`<blockquote>${mdInline(m[1])}</blockquote>`); continue; }
+    if((m = l.match(/^(\s*)(?:[-*•–]|\d+[.)])\s+(.+)$/))){
+      const kind = /^\s*\d/.test(l) ? 'ol' : 'ul';
+      if(list !== kind){ closeList(); out.push(`<${kind}>`); list = kind; }
+      out.push(`<li${m[1].length >= 2 ? ' class="md-sub"' : ''}>${mdInline(m[2])}</li>`);
+      continue;
+    }
+    if(!l.trim()){ closeList(); continue; }
+    closeList();
+    out.push(`<p>${mdInline(l)}</p>`);
+  }
+  closeList();
+  return out.join('');
 }
 
 function renderView(){
@@ -13503,7 +13589,7 @@ function viewConfidentialite(){
             <tr><td>Supabase</td><td>Authentification et base de données</td><td>Compte, données d'activité PropFirm</td></tr>
             <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
-            <tr><td>Groq, puis Google (API Gemini) en secours</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Google (API Gemini, avec recherche Google)</td><td>Génération du brief de préparation de séance par IA, appuyée sur une recherche web du jour</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
             <tr><td>Google (API Gemini)</td><td>Assistant intégré (chatbot), à ton initiative</td><td>Tes questions et les derniers échanges de la conversation</td></tr>
             <tr><td>Google (API Gemini)</td><td>Rédaction du bilan du Coach rentabilité (Premium, à ton initiative)</td><td>Des chiffres agrégés et les constats calculés par l'application, sans nom, e-mail ni numéro de compte</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
@@ -15015,10 +15101,10 @@ function prepCardHtml(p){
         </div>
       </div>
       <div class="panel-body">
-        ${p.biasNote ? `<div class="field-hint" style="margin-top:8px;"><strong>Biais du jour :</strong> ${p.biasNote}</div>` : ''}
+        ${p.biasNote ? `<div class="field-hint" style="margin-top:8px;"><strong>Biais du jour :</strong> ${escapeHtml(p.biasNote)}</div>` : ''}
         ${p.aiSummary ? `<div style="margin-top:10px;padding:14px 16px;border-radius:10px;background:var(--surface-2);">
           <div class="section-title" style="margin-bottom:8px;">Brief météo IA</div>
-          <div style="white-space:pre-wrap;font-size:13.5px;line-height:1.65;color:var(--text);">${escapeHtml(p.aiSummary)}</div>
+          <div class="md-view">${mdToHtml(p.aiSummary)}</div>
         </div>` : ''}
       </div>
     </div>`;
@@ -16355,7 +16441,7 @@ function prepFormModal(existing){
       <div class="field">
         <label>Prompt du brief météo IA (modifiable)</label>
         <textarea id="mp-prompt" rows="8" style="line-height:1.5;font-size:12.5px;">${escapeHtml(p.aiPrompt || DEFAULT_AI_PROMPT)}</textarea>
-        <div class="field-hint">C'est le prompt envoyé à l'IA. Le texte ci-dessus est l'exemple par défaut : modifie-le si besoin avant de générer.</div>
+        <div class="field-hint">C'est le prompt envoyé à l'IA. Le texte ci-dessus est l'exemple par défaut : modifie-le si besoin avant de générer. Contralytix ajoute toujours deux consignes : une mise en page lisible, et l'interdiction d'inventer des prix, horaires ou volumes. Avec l'IA Contralytix ou une clé Gemini, le brief s'appuie sur une recherche web du jour, sources listées en bas.</div>
       </div>
       <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="10" style="line-height:1.6;" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;">
@@ -16363,6 +16449,7 @@ function prepFormModal(existing){
           <button class="btn btn-outline btn-sm" id="mp-retry-mine" type="button" style="display:none;">Réessayer avec ma clé</button>
           <div data-aik-seg="meteo" style="margin-left:auto;">${aikEngineSegHtml('meteo')}</div>
         </div>
+        <div class="mp-preview" id="mp-ai-preview" style="display:none;"><div class="mp-preview-k">Aperçu</div><div class="md-view"></div></div>
       </div>
       ${aikOldKey() ? `<div class="aik-note is-warn" style="margin-bottom:12px;">${icon('alertTriangle')}<span>Ta clé Groq personnelle est encore stockée en clair dans ce navigateur. <button type="button" class="aik-textbtn" onclick="closeModal();state.route='profil';render();">La sécuriser dans Profil → Connexions</button></span></div>` : ''}
       <div id="mp-error" class="error-text"></div>
@@ -16372,6 +16459,11 @@ function prepFormModal(existing){
       document.getElementById('mp-cancel').onclick = closeModal;
       // Brief météo (01/11/2026) : /api/ai avec le moteur choisi ; plus aucune clé saisie ni stockée ici.
       const retryMine = document.getElementById('mp-retry-mine');
+      // Aperçu mis en forme sous le texte brut (qui reste modifiable).
+      const aiArea = document.getElementById('mp-ai');
+      const updatePreview = ()=>{ const pv = document.getElementById('mp-ai-preview'); if(!pv) return; const v = aiArea.value.trim(); pv.style.display = v ? '' : 'none'; pv.querySelector('.md-view').innerHTML = mdToHtml(v); };
+      aiArea.addEventListener('input', updatePreview);
+      updatePreview();
       const generate = async (engine)=>{
         const promptText = document.getElementById('mp-prompt').value.trim();
         if(!promptText){
@@ -16381,7 +16473,14 @@ function prepFormModal(existing){
         btn.disabled = true; btn.textContent = 'Génération…'; retryMine.style.display = 'none';
         const r = await callAi('meteo', promptText, engine);
         btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer brief météo`;
-        if(r.ok){ document.getElementById('mp-ai').value = r.text; return; }
+        if(r.ok){
+          let txt = r.text;
+          if(!r.web) txt = '> ⚠️ Rédigé sans accès internet : aucune donnée du jour. Prix, horaires et annonces sont à vérifier.\n\n' + txt;
+          if(r.sources && r.sources.length) txt += '\n\n---\n**Sources** (recherche web du ' + fmtDate(todayISO()) + ')\n' + r.sources.map(x=>`- [${String(x.title).replace(/[\[\]]/g, '')}](${x.url})`).join('\n');
+          document.getElementById('mp-ai').value = txt;
+          updatePreview();
+          return;
+        }
         showToast('Brief météo indisponible : ' + r.error, 'danger');
         if(r.engine==='site' && aik().connected) retryMine.style.display = '';
       };
