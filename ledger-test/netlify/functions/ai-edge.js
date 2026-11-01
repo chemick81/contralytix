@@ -151,9 +151,12 @@ async function callProvider(provider, key, { prompt, model, search, maxTokens, d
   const p = PROVIDERS[provider];
   if (!p) throw aiError('bad_provider');
   const mdl = model || env(`AI_MODEL_${provider.toUpperCase()}`) || p.model;
-  const max = maxTokens || 2048;
+  // Pas de plafond court par défaut (01/11/2026) : sur les modèles « qui réfléchissent » (Gemini 3,
+  // gpt-oss…), la réflexion compte dans le plafond ; un plafond de 2 048 coupait le bilan du coach
+  // en pleine réflexion, et c'est ce brouillon (en anglais) qui s'affichait.
+  const max = maxTokens || 8192;
   if (provider === 'gemini') {
-    const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: max } };
+    const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { ...(maxTokens ? { maxOutputTokens: max } : {}) } };
     if (search) { body.tools = [{ google_search: {} }]; body.generationConfig.thinkingConfig = { thinkingLevel: 'low' }; }
     const send = () => fetchJson(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(mdl)}:generateContent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body),
@@ -164,7 +167,9 @@ async function callProvider(provider, key, { prompt, model, search, maxTokens, d
     }
     if (!res.ok) throw aiError(classify(res.status, data.error && data.error.message));
     const cand = (data.candidates && data.candidates[0]) || {};
-    const text = (cand.content && (cand.content.parts || []).map((x) => x.text || '').join('')) || '';
+    if (cand.finishReason === 'MAX_TOKENS') throw aiError('truncated', 'réponse coupée');
+    // Les parties « thought » sont la réflexion interne du modèle : jamais affichées.
+    const text = (cand.content && (cand.content.parts || []).filter((x) => !x.thought).map((x) => x.text || '').join('')) || '';
     const seen = new Set();
     const sources = ((cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || []).map((c) => c && c.web)
       .filter((w) => w && /^https?:\/\//.test(w.uri || ''))
@@ -178,6 +183,7 @@ async function callProvider(provider, key, { prompt, model, search, maxTokens, d
       body: JSON.stringify({ model: mdl, max_tokens: max, messages: [{ role: 'user', content: prompt }] }),
     }, deadline);
     if (!res.ok) throw aiError(classify(res.status, data.error && data.error.message));
+    if (data.stop_reason === 'max_tokens') throw aiError('truncated', 'réponse coupée');
     const text = (Array.isArray(data.content) ? data.content : []).filter((c) => c.type === 'text').map((c) => c.text).join('');
     return { text: text.trim(), model: mdl, web: false, sources: [] };
   }
@@ -186,6 +192,7 @@ async function callProvider(provider, key, { prompt, model, search, maxTokens, d
   if (provider === 'openrouter') { headers['HTTP-Referer'] = 'https://contralytix.fr'; headers['X-Title'] = 'Contralytix'; }
   const { res, data } = await fetchJson(url, { method: 'POST', headers, body: JSON.stringify({ model: mdl, messages: [{ role: 'user', content: prompt }], max_tokens: max }) }, deadline);
   if (!res.ok) throw aiError(classify(res.status, data.error && (data.error.message || data.error)));
+  if (data.choices && data.choices[0] && data.choices[0].finish_reason === 'length') throw aiError('truncated', 'réponse coupée');
   const c = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
   return { text: String(Array.isArray(c) ? c.map((x) => x.text || '').join('') : (c || '')).trim(), model: mdl, web: false, sources: [] };
 }
@@ -217,6 +224,7 @@ function userMessage(code, n) {
     overloaded: 'Le service IA est surchargé, réessaie dans quelques minutes.',
     bad_model: `Le modèle demandé n’existe pas chez ${n}.`,
     timeout: 'L’IA met trop de temps à répondre. Réessaie.',
+    truncated: 'La réponse de l’IA a été coupée avant la fin. Réessaie.',
     unreachable: `${n} est injoignable pour le moment.`,
     not_configured: 'L’IA n’est pas encore configurée sur ce site.',
     migration_missing: 'La base n’est pas prête : exécute migration_ia_cle.sql sur Supabase.',
@@ -257,10 +265,10 @@ async function handle(request) {
     if (engine === 'mine') {
       key = await decrypt(row.key_enc);
       const web = wantsWeb && row.provider === 'gemini';
-      res = await callProvider(row.provider, key, { prompt: prompt + moduleRules(module, web), model: row.model, search: web, maxTokens: wantsWeb ? 2500 : undefined, deadline });
+      res = await callProvider(row.provider, key, { prompt: prompt + moduleRules(module, web), model: row.model, search: web, deadline });
       res.provider = row.provider;
     } else {
-      res = await callSite({ prompt: prompt + moduleRules(module, wantsWeb), search: wantsWeb, maxTokens: wantsWeb ? 2500 : undefined, deadline });
+      res = await callSite({ prompt: prompt + moduleRules(module, wantsWeb), search: wantsWeb, deadline });
       res.provider = 'contralytix';
     }
     if (!res.text) throw aiError('provider_error', 'réponse vide');

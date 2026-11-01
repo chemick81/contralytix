@@ -38,6 +38,17 @@ const MODULES = {
   import: { premium: false, vision: true },
 };
 const SITE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
+// Consignes ajoutées par le serveur à la demande du trader (01/11/2026), selon le module.
+// Météo : mise en page lisible et interdiction d'inventer des données de marché.
+function moduleRules(module, web) {
+  if (module !== 'meteo') return '';
+  return `\n\n---\nRègles de réponse (prioritaires) :
+- Réponds en français, en texte lisible : un titre court par partie (## Titre), puis des puces courtes. Pas de tableau, pas de HTML, pas de balise <br>.
+- ${web ? 'Appuie-toi sur une recherche web récente pour le contexte du jour (calendrier économique, actualité, échéances).' : 'Tu n’as PAS accès à internet ni aux données de marché du jour : ne donne aucun niveau de prix, horaire, statistique ou volume précis ; décris seulement des points de vigilance généraux et indique clairement que les données du jour sont à vérifier.'}
+- N’invente jamais un niveau de prix, un horaire d’annonce, un volume ou une statistique : si tu ne l’as pas trouvé dans une source, écris « à vérifier ».
+- Tu ne vois pas le carnet d’ordres ni ATAS : ne décris jamais leur contenu, donne seulement à quoi être attentif.
+- Ne donne pas de conseil d’investissement personnalisé ; formule des points d’attention.`;
+}
 const intEnv = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : d; };
 
 function db() {
@@ -154,23 +165,45 @@ async function fetchJson(url, opts, deadline) {
 }
 
 // image : { mime, base64 } ou null. json : demande une réponse JSON stricte quand le fournisseur le permet.
-async function callProvider(provider, key, { prompt, image, model, json: wantJson, maxTokens, deadline }) {
+// search : recherche Google avant de répondre (Gemini uniquement, « grounding ») ; renvoie alors sources [{title,url}].
+async function callProvider(provider, key, { prompt, image, model, json: wantJson, maxTokens, deadline, search }) {
   const p = PROVIDERS[provider];
   if (!p) throw aiError('bad_provider', 'fournisseur inconnu');
   if (image && !p.vision) throw aiError('no_vision', `${p.name} ne lit pas les images`);
   const mdl = model || process.env[`AI_MODEL_${provider.toUpperCase()}`] || p.model;
-  const max = maxTokens || 2048;
+  // Pas de plafond court par défaut (01/11/2026) : sur les modèles « qui réfléchissent » (Gemini 3,
+  // gpt-oss…), la réflexion compte dans le plafond ; un plafond de 2 048 coupait le bilan du coach
+  // en pleine réflexion, et c'est ce brouillon (en anglais) qui s'affichait.
+  const max = maxTokens || 8192;
 
   if (provider === 'gemini') {
     const parts = [{ text: prompt }];
     if (image) parts.push({ inline_data: { mime_type: image.mime, data: image.base64 } });
-    const body = { contents: [{ parts }], generationConfig: { maxOutputTokens: max, ...(wantJson ? { responseMimeType: 'application/json' } : {}) } };
-    const { res, data } = await fetchJson(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(mdl)}:generateContent`, {
+    const body = { contents: [{ parts }], generationConfig: { ...(maxTokens ? { maxOutputTokens: max } : {}), ...(wantJson ? { responseMimeType: 'application/json' } : {}) } };
+    if (search) {
+      body.tools = [{ google_search: {} }];
+      // Réflexion réduite : la recherche prend déjà du temps et Netlify coupe vers 10 s.
+      body.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+    }
+    const send = () => fetchJson(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(mdl)}:generateContent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body),
     }, deadline);
+    let { res, data } = await send();
+    if (!res.ok && res.status === 400 && body.generationConfig.thinkingConfig && /thinking/i.test((data.error && data.error.message) || '')) {
+      delete body.generationConfig.thinkingConfig;   // modèle qui refuse ce réglage : on réessaie sans
+      ({ res, data } = await send());
+    }
     if (!res.ok) { const m = data.error && data.error.message; throw aiError(classify(res.status, m), scrub(m, [key]), res.status); }
-    const text = (data.candidates && data.candidates[0] && data.candidates[0].content && (data.candidates[0].content.parts || []).map((x) => x.text || '').join('')) || '';
-    return { text: text.trim(), model: mdl };
+    const cand = (data.candidates && data.candidates[0]) || {};
+    if (cand.finishReason === 'MAX_TOKENS') throw aiError('truncated', 'réponse coupée');
+    // Les parties « thought » sont la réflexion interne du modèle : jamais affichées.
+    const text = (cand.content && (cand.content.parts || []).filter((x) => !x.thought).map((x) => x.text || '').join('')) || '';
+    const chunks = (cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [];
+    const seen = new Set();
+    const sources = chunks.map((c) => c && c.web).filter((w) => w && /^https?:\/\//.test(w.uri || ''))
+      .filter((w) => { const k = w.title || w.uri; if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 8).map((w) => ({ title: String(w.title || w.uri).slice(0, 120), url: w.uri }));
+    return { text: text.trim(), model: mdl, web: !!search, sources };
   }
 
   if (provider === 'anthropic') {
@@ -183,6 +216,7 @@ async function callProvider(provider, key, { prompt, image, model, json: wantJso
       body: JSON.stringify({ model: mdl, max_tokens: max, messages: [{ role: 'user', content }] }),
     }, deadline);
     if (!res.ok) { const m = data.error && data.error.message; throw aiError(classify(res.status, m), scrub(m, [key]), res.status); }
+    if (data.stop_reason === 'max_tokens') throw aiError('truncated', 'réponse coupée');
     const text = (Array.isArray(data.content) ? data.content : []).filter((c) => c.type === 'text').map((c) => c.text).join('');
     return { text: text.trim(), model: mdl };
   }
@@ -196,12 +230,13 @@ async function callProvider(provider, key, { prompt, image, model, json: wantJso
   if (wantJson && provider !== 'openrouter') body.response_format = { type: 'json_object' };
   const { res, data } = await fetchJson(url, { method: 'POST', headers, body: JSON.stringify(body) }, deadline);
   if (!res.ok) { const m = data.error && (data.error.message || data.error); throw aiError(classify(res.status, m), scrub(m, [key]), res.status); }
+  if (data.choices && data.choices[0] && data.choices[0].finish_reason === 'length') throw aiError('truncated', 'réponse coupée');
   const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
   return { text: String(Array.isArray(text) ? text.map((x) => x.text || '').join('') : (text || '')).trim(), model: mdl };
 }
 
 // Moteur Contralytix : Gemini du site, avec nouvelles tentatives et modèle de repli en cas de surcharge.
-async function callSite({ prompt, image, json: wantJson, maxTokens, deadline }) {
+async function callSite({ prompt, image, json: wantJson, maxTokens, deadline, search }) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw aiError('not_configured', 'GEMINI_API_KEY absente');
   let last = null;
@@ -209,7 +244,7 @@ async function callSite({ prompt, image, json: wantJson, maxTokens, deadline }) 
     for (let attempt = 1; attempt <= 2; attempt++) {
       if (deadline && deadline - Date.now() < 1500) throw last || aiError('timeout', 'délai dépassé');
       try {
-        return await callProvider('gemini', key, { prompt, image, model, json: wantJson, maxTokens, deadline });
+        return await callProvider('gemini', key, { prompt, image, model, json: wantJson, maxTokens, deadline, search });
       } catch (e) {
         last = e;
         if (e.code === 'overloaded' && attempt < 2) { await new Promise((r) => setTimeout(r, 800)); continue; }
@@ -232,6 +267,7 @@ function userMessage(code, providerName) {
     bad_model: `Le modèle demandé n’existe pas chez ${n}.`,
     no_vision: `${n} ne lit pas les images avec cette clé.`,
     timeout: 'L’IA met trop de temps à répondre. Réessaie.',
+    truncated: 'La réponse de l’IA a été coupée avant la fin. Réessaie.',
     unreachable: `${n} est injoignable pour le moment.`,
     not_configured: 'L’IA n’est pas encore configurée sur ce site.',
     migration_missing: 'La base n’est pas prête : exécute migration_ia_cle.sql sur Supabase.',
@@ -243,6 +279,6 @@ function userMessage(code, providerName) {
 }
 
 module.exports = {
-  PROVIDERS, MODULES, db, json, encrypt, decrypt, keyHint, scrub, safeLog, userFromEvent,
+  PROVIDERS, MODULES, moduleRules, db, json, encrypt, decrypt, keyHint, scrub, safeLog, userFromEvent,
   loadUserKey, publicStatus, checkQuota, logUsage, callProvider, callSite, userMessage, aiError, parisDayStartISO,
 };

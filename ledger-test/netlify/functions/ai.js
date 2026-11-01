@@ -46,22 +46,23 @@ exports.handler = async (event) => {
     const q = await A.checkQuota(db, user, engine);
     if (!q.ok) return A.json(429, { error: A.userMessage('quota'), code: 'quota', hasKey, limit: q.limit });
 
+    // Brief météo (01/11/2026) : recherche web (Gemini) pour s'appuyer sur l'actualité du jour, au lieu de
+    // Groq qui n'a pas accès à internet et inventait des niveaux de prix. Autres fournisseurs : pas de web,
+    // la consigne leur interdit alors tout chiffre de marché et le navigateur affiche un avertissement.
+    const wantsWeb = module === 'meteo';
     let out;
     if (engine === 'mine') {
       key = A.decrypt(row.key_enc);
-      out = await A.callProvider(row.provider, key, { prompt, model: row.model, deadline });
+      const web = wantsWeb && row.provider === 'gemini';
+      out = await A.callProvider(row.provider, key, { prompt: prompt + A.moduleRules(module, web), model: row.model, deadline, search: web });
       out.provider = row.provider;
-    } else if (module === 'meteo' && process.env.GROQ_API_KEY) {
-      // Le brief météo utilisait déjà Groq côté site : on le garde, avec Gemini en secours.
-      try { out = await A.callProvider('groq', process.env.GROQ_API_KEY, { prompt, deadline }); out.provider = 'contralytix'; }
-      catch (e) { A.safeLog('ai meteo groq:', e, [process.env.GROQ_API_KEY]); out = await A.callSite({ prompt, deadline }); out.provider = 'contralytix'; }
     } else {
-      out = await A.callSite({ prompt, deadline });
+      out = await A.callSite({ prompt: prompt + A.moduleRules(module, wantsWeb), deadline, search: wantsWeb });
       out.provider = 'contralytix';
     }
     await A.logUsage(db, user, module, engine, true);
     if (engine === 'mine' && row.last_error) await db.from('user_ai_keys').update({ last_error: null }).eq('user_id', user.id);
-    return A.json(200, { text: out.text, engine, provider: out.provider, model: out.model });
+    return A.json(200, { text: out.text, engine, provider: out.provider, model: out.model, web: !!out.web, sources: out.sources || [] });
   } catch (e) {
     A.safeLog(`ai ${module}/${engine}:`, e, [key, process.env.GEMINI_API_KEY, process.env.GROQ_API_KEY]);
     const code = e.code || 'error';

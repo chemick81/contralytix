@@ -223,7 +223,7 @@ exports.handler = async (event) => {
       if (!q.ok) return json(429, { error: A.userMessage('quota'), code: 'quota' });
       mineKey = A.decrypt(row.key_enc);
       const out = await A.callProvider(row.provider, mineKey, {
-        prompt: buildPrompt(firmNames, source), image: { mime: mimeType, base64: image }, model: row.model, json: true, maxTokens: 4096, deadline: Date.now() + TIME_BUDGET_MS,
+        prompt: buildPrompt(firmNames, source), image: { mime: mimeType, base64: image }, model: row.model, json: true, maxTokens: 8192, deadline: Date.now() + TIME_BUDGET_MS,
       });
       await A.logUsage(supabaseAdmin, user, 'import', 'mine', true);
       let parsed = null;
