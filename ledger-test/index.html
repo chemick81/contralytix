@@ -2776,6 +2776,76 @@ th.th-sort-active svg{opacity:1;}
 .dlx-stale-acc{display:inline-flex;align-items:center;gap:6px;padding:3px 8px 3px 3px;border-radius:var(--radius-pill);background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text);}
 .dlx-stale-acc .type-chip{height:20px;padding:0 6px;font-size:9.5px;border-radius:999px;}
 .dlx-stale-acc .type-chip svg{width:11px;height:11px;}
+/* ============================================================
+   MA CLÉ IA (01/11/2026)
+============================================================ */
+.aik-panel{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.aik-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.aik-title{display:flex;align-items:center;gap:8px;}
+.aik-sub{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--text-dim);max-width:620px;}
+.aik-free{display:flex;gap:9px;align-items:flex-start;max-width:300px;padding:10px 12px;border-radius:9px;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);font-size:12.5px;line-height:1.45;color:var(--text-dim);}
+.aik-free b{color:var(--text);}
+.aik-free svg{width:15px;height:15px;flex-shrink:0;color:var(--accent);margin-top:1px;}
+.aik-note{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:11px 14px;border-radius:9px;background:var(--surface-2);font-size:12.5px;line-height:1.5;color:var(--text-dim);}
+.aik-note > svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.aik-note b{color:var(--text);}
+.aik-note > div{flex:1 1 320px;display:flex;flex-direction:column;gap:3px;}
+.aik-note.is-warn{background:var(--gold-dim);border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);color:var(--text);}
+.aik-note.is-warn > svg{color:var(--gold);}
+.aik-textbtn{border:0;background:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;}
+.aik-fs{border:0;margin:0;padding:0;}
+.aik-fs legend,.aik-field label{font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;padding:0;}
+.aik-provs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;}
+.aik-prov{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;min-height:70px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);text-align:left;}
+.aik-prov:hover{border-color:var(--text-faint);}
+.aik-prov.on{background:var(--accent-dim);border-color:var(--accent);}
+.aik-prov:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.aik-prov-top{display:flex;align-items:center;gap:8px;font-size:14px;}
+.aik-mono{width:26px;height:26px;border-radius:7px;background:var(--bg);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font:700 10.5px 'JetBrains Mono',monospace;color:var(--text);flex-shrink:0;}
+.aik-mono.lg{width:36px;height:36px;font-size:12px;border-radius:8px;}
+.aik-cap{font-size:12px;color:var(--text-dim);}
+.aik-cap.warn{color:var(--gold);}
+.aik-field{display:flex;flex-direction:column;gap:8px;}
+.aik-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.aik-row input{flex:1 1 320px;height:40px;padding:0 12px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font:500 13px 'JetBrains Mono',monospace;}
+.aik-row input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+.aik-row .btn{height:40px;}
+.aik-help{font-size:12.5px;align-self:flex-start;color:var(--accent);}
+.aik-key{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:10px;background:var(--surface-2);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+.aik-key.is-err{border-color:color-mix(in srgb,var(--danger) 45%,transparent);}
+.aik-key-main{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.aik-key-l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;}
+.aik-key-l1 .mono{font-size:12px;color:var(--text-dim);}
+.aik-key-l2{font-size:12.5px;color:var(--text-dim);}
+.aik-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border-radius:var(--radius-pill);padding:2px 8px;}
+.aik-chip svg{width:11px;height:11px;}
+.aik-chip.ok{color:var(--accent);background:var(--accent-dim);}
+.aik-chip.err{color:var(--danger);background:var(--danger-dim);}
+.aik-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.aik-mods{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.aik-mods-h{padding:10px 14px;font-size:13px;font-weight:600;background:var(--surface-2);}
+.aik-mods-h span{display:block;font-size:12px;font-weight:400;color:var(--text-dim);margin-top:2px;}
+.aik-mod{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--border-soft);}
+.aik-mod > div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.aik-mod b{font-size:13.5px;}
+.aik-mod span{font-size:12px;color:var(--text-dim);}
+.aik-mod .aik-seg-k{display:none;}
+/* Sélecteur de moteur (modules) */
+.aik-seg{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.aik-seg-k{font-size:12px;color:var(--text-dim);}
+.aik-seg-btns{display:inline-flex;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;}
+.aik-seg-btns button{height:30px;padding:0 11px;border:0;border-radius:6px;background:transparent;color:var(--text-dim);font-size:12px;font-weight:600;white-space:nowrap;}
+.aik-seg-btns button:hover:not(:disabled){color:var(--text);}
+.aik-seg-btns button.on{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--text-faint);}
+.aik-seg-btns button:disabled{color:var(--text-faint);cursor:not-allowed;opacity:.7;}
+.aik-seg-btns button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.aik-err{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:9px;background:var(--danger-dim);border:1px solid color-mix(in srgb,var(--danger) 40%,transparent);font-size:13px;line-height:1.5;}
+.aik-err > svg{width:16px;height:16px;color:var(--danger);flex-shrink:0;}
+.aik-err > span{flex:1 1 280px;}
+.co-ai-head-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.chat-engine{height:28px;max-width:150px;padding:0 6px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-weight:600;}
+.chat-msg-meta{font-size:10.5px;color:var(--text-faint);margin:-6px 0 0 4px;}
+.cim-engine{margin:12px 0 0;display:flex;justify-content:flex-end;}
 </style>
 </head>
 <body>
@@ -3315,14 +3385,9 @@ const supabaseClient = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL,
 const HCAPTCHA_SITE_KEY = 'df4a27b8-8fc4-48ea-83ce-bac038e4302a';
 const HCAPTCHA_CONFIGURED = !HCAPTCHA_SITE_KEY.includes('TON-SITE-KEY');
 
-// La clé API Groq n'est pas stockée en dur côté client : l'appel passe par la
-// fonction serverless Netlify /.netlify/functions/ai-synthesis, qui lit la
-// clé depuis la variable d'environnement Netlify GROQ_API_KEY. Groq tourne sur
-// du matériel dédié (LPU) et son niveau gratuit est nettement plus fiable que
-// celui de Gemini (pas de "high demand"). Si cette clé échoue quand même,
-// l'utilisateur peut saisir sa propre clé Groq dans le formulaire de prépa de
-// séance : elle est alors envoyée avec la requête (et uniquement stockée dans
-// son navigateur, via localStorage) pour servir de repli.
+// Ancien emplacement (avant le 01/11/2026) de la clé Groq personnelle, stockée EN CLAIR dans le
+// navigateur. Plus jamais écrite : elle n'est lue que pour proposer de la sécuriser (Profil → Ma clé IA,
+// chiffrement côté serveur) puis effacée. Tous les appels IA passent par /api/ai (voir callAi).
 const AI_USER_KEY_STORAGE = 'ledger_ai_user_api_key';
 const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_sessions','market_prep','propfirm_ratings','payout_receipts','account_resets','general_expenses'];
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
@@ -5212,6 +5277,7 @@ async function signOut(){
   state.authEmail = '';
   state.authError = '';
   state.sp = null; // Plan de session : rechargé pour le prochain utilisateur
+  state.aik = null; // Ma clé IA : statut rechargé pour le prochain utilisateur
 }
 
 /* ============================================================
@@ -7837,6 +7903,255 @@ function spBindEvents(){
   };
 }
 
+/* ============================================================
+   MA CLÉ IA (01/11/2026)
+   L'IA Contralytix reste le moteur par défaut. L'utilisateur peut enregistrer SA clé API
+   (Gemini, OpenAI, Anthropic, OpenRouter, Groq) dans Profil → Connexions, puis choisir module par
+   module : « Contralytix » ou « Ma clé ». Ouvert aux comptes Free : avec leur clé, le bilan du Coach
+   (réservé au Premium avec l'IA Contralytix) est débloqué.
+   Sécurité : la clé est envoyée UNE fois à /api/ai-key, qui la teste puis la chiffre côté serveur
+   (AES-256-GCM, table user_ai_keys illisible depuis le navigateur). Le navigateur ne la garde jamais
+   (ni état, ni localStorage, ni champ re-rempli) et ne reçoit qu'un indice « sk-…a1f3 ».
+   Tous les appels IA passent par /api/ai (session obligatoire, quotas) ; plus aucune clé en clair.
+   L'ancienne clé Groq de la Préparation séance (localStorage, AI_USER_KEY_STORAGE) est proposée à la
+   sécurisation, puis effacée du navigateur.
+============================================================ */
+const AIK_PROVIDERS = [
+  { id:'gemini',     name:'Gemini',     mono:'G',  cap:'Texte + images', vision:true,  ph:'AIza…',    url:'https://aistudio.google.com/apikey' },
+  { id:'openai',     name:'OpenAI',     mono:'OA', cap:'Texte + images', vision:true,  ph:'sk-…',     url:'https://platform.openai.com/api-keys' },
+  { id:'anthropic',  name:'Anthropic',  mono:'A',  cap:'Texte + images', vision:true,  ph:'sk-ant-…', url:'https://console.anthropic.com/settings/keys' },
+  { id:'openrouter', name:'OpenRouter', mono:'OR', cap:'Texte + images selon le modèle', vision:true, ph:'sk-or-…', url:'https://openrouter.ai/keys' },
+  { id:'groq',       name:'Groq',       mono:'GQ', cap:'Texte seulement', vision:false, ph:'gsk_…',   url:'https://console.groq.com/keys' },
+];
+const AIK_MODULES = [
+  { id:'coach',  name:'Coach rentabilité',  note:'Bilan rédigé par l’IA', premium:true },
+  { id:'meteo',  name:'Brief météo',        note:'Préparation séance' },
+  { id:'chat',   name:'Assistant',          note:'Aide sur l’application' },
+  { id:'import', name:'Import par capture', note:'Lecture d’images', vision:true },
+];
+function aik(){ if(!state.aik) state.aik = { loaded:false, available:true, connected:false, formProv:'gemini', busy:false, err:'', replacing:false }; return state.aik; }
+function aikProv(id){ return AIK_PROVIDERS.find(p=>p.id===id) || AIK_PROVIDERS[0]; }
+function aikMod(id){ return AIK_MODULES.find(m=>m.id===id) || { id }; }
+function aikOldKey(){ try{ return localStorage.getItem(AI_USER_KEY_STORAGE) || ''; }catch(e){ return ''; } }
+function aikDropOldKey(){ try{ localStorage.removeItem(AI_USER_KEY_STORAGE); }catch(e){} }
+
+async function aikBearer(){
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  return 'Bearer ' + (session ? session.access_token : '');
+}
+// Appel à /api/ai-key. Renvoie { ok, status, data }.
+async function aikApi(action, extra){
+  try{
+    const res = await fetch('/api/ai-key', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ action, ...(extra||{}) }) });
+    const data = await res.json().catch(()=>({}));
+    if(res.status===404) return { ok:false, status:404, data:{ error:'Le service « Ma clé IA » n’est pas encore déployé sur ce site.', code:'not_deployed' } };
+    return { ok: res.ok && !data.error, status: res.status, data };
+  }catch(e){
+    return { ok:false, status:0, data:{ error:'Impossible de joindre le service. Vérifie ta connexion.' } };
+  }
+}
+function aikApply(st){
+  const k = aik();
+  ['connected','provider','providerName','vision','hint','model','verifiedAt','lastError','engines'].forEach(f=>{ delete k[f]; });
+  Object.assign(k, st || { connected:false });
+  if(!k.engines) k.engines = {};
+}
+async function aikLoad(){
+  if(!SUPABASE_CONFIGURED || !state.session) return;
+  const r = await aikApi('status');
+  const k = aik();
+  k.loaded = true;
+  if(!r.ok){
+    // Service pas encore déployé ou base pas prête : le bloc reste masqué (sauf pour un admin, prévenu).
+    k.available = false;
+    k.adminNote = isAdmin() ? (r.data.code==='migration_missing' ? 'Exécute migration_ia_cle.sql sur Supabase.' : r.data.code==='not_configured' ? 'Ajoute la variable AI_KEY_ENC dans Netlify.' : r.data.error || '') : '';
+  } else { k.available = true; aikApply(r.data); }
+  if(state.route==='profil') renderView();
+}
+// Moteur utilisé pour un module : « site » (IA Contralytix) ou « mine » (clé de l'utilisateur).
+function aikEngine(mod){
+  const k = aik(), M = aikMod(mod);
+  if(!k.connected) return 'site';
+  if(M.vision && !k.vision) return 'site';
+  if(M.premium && !perms().isPremium) return 'mine';
+  return (k.engines||{})[mod]==='mine' ? 'mine' : 'site';
+}
+// Le module IA est-il utilisable ? (Coach : Premium, ou une clé personnelle.)
+function aikCanUse(mod){ const M = aikMod(mod); return !M.premium || perms().isPremium || aik().connected; }
+function aikEngineLabel(engine, provider){
+  if(engine==='mine') return `ta clé ${aikProv(provider || aik().provider).name}`;
+  return 'l’IA Contralytix';
+}
+// Sélecteur « Contralytix | Ma clé » d'un module. Vide si l'utilisateur n'a pas de clé.
+function aikEngineSegHtml(mod){
+  const k = aik(); if(!k.connected) return '';
+  const M = aikMod(mod), eng = aikEngine(mod), P = aikProv(k.provider);
+  const siteDis = !!(M.premium && !perms().isPremium), mineDis = !!(M.vision && !k.vision);
+  const btn = (v, label, dis, title)=>`<button type="button" class="${eng===v?'on':''}" aria-pressed="${eng===v}" ${dis?'disabled':''} title="${escapeHtml(title)}" data-ai-engine="${mod}|${v}">${label}</button>`;
+  return `<div class="aik-seg" role="group" aria-label="Moteur IA">
+    <span class="aik-seg-k">Moteur IA</span>
+    <div class="aik-seg-btns">${btn('site', siteDis ? 'Contralytix · Premium' : 'Contralytix', siteDis, siteDis ? 'IA Contralytix incluse dans Premium' : 'IA fournie par Contralytix')}${btn('mine', 'Ma clé · ' + escapeHtml(P.name), mineDis, mineDis ? P.name + ' ne lit pas les images' : 'Ta clé ' + P.name + ', enregistrée dans Profil → Connexions')}</div>
+  </div>`;
+}
+function aikRefreshSegs(mod){
+  document.querySelectorAll(`[data-aik-seg="${mod}"]`).forEach(el=>{ el.innerHTML = aikEngineSegHtml(mod); });
+}
+async function aikSetEngine(mod, eng){
+  const k = aik(); if(!k.connected) return;
+  const prev = (k.engines||{})[mod];
+  k.engines = { ...(k.engines||{}), [mod]: eng };
+  aikRefreshSegs(mod);
+  if(state.route==='profil') renderView();
+  const r = await aikApi('engines', { engines:{ [mod]: eng } });
+  if(!r.ok){
+    k.engines = { ...(k.engines||{}), [mod]: prev };
+    aikRefreshSegs(mod);
+    if(state.route==='profil') renderView();
+    showToast('Choix du moteur non enregistré : ' + (r.data.error || 'réessaie.'), 'danger');
+  }
+}
+// Appel IA texte (coach, météo, assistant). Renvoie { ok, text, engine, provider } ou { ok:false, error, code, hasKey }.
+async function callAi(module, prompt, engine){
+  const eng = engine || aikEngine(module);
+  try{
+    const res = await fetch('/api/ai', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ module, prompt, engine: eng }) });
+    const data = await res.json().catch(()=>({}));
+    if(res.status===404) return { ok:false, engine:eng, error:'Le service IA n’est pas déployé sur ce site.', code:'not_deployed' };
+    if(!res.ok || data.error){
+      if(eng==='mine' && ['invalid_key','no_credit','bad_model'].includes(data.code)) aik().lastError = data.code;
+      return { ok:false, engine:eng, error: data.error || ('erreur ' + res.status), code: data.code, hasKey: !!data.hasKey };
+    }
+    const text = String(data.text || '').trim();
+    if(!text) return { ok:false, engine:eng, error:'réponse vide', code:'empty' };
+    return { ok:true, text, engine: data.engine || eng, provider: data.provider };
+  }catch(e){
+    return { ok:false, engine:eng, error:'service IA injoignable', code:'unreachable' };
+  }
+}
+// Un seul écouteur pour tous les sélecteurs de moteur (pages, modales, assistant).
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest && e.target.closest('[data-ai-engine]');
+  if(!b || b.disabled) return;
+  const [mod, eng] = b.dataset.aiEngine.split('|');
+  if(aikEngine(mod)!==eng) aikSetEngine(mod, eng);
+});
+
+/* ---------- Profil → Connexions → Ma clé IA ---------- */
+function aikPanelHtml(){
+  const k = aik();
+  if(!k.loaded) return '';
+  if(!k.available) return k.adminNote ? `<div class="panel aik-panel"><div class="section-title">Ma clé IA</div><div class="aik-note is-warn">${icon('alertTriangle')}<span>Visible des admins seulement : le service « Ma clé IA » n’est pas prêt. ${escapeHtml(k.adminNote)}</span></div></div>` : '';
+  const free = !perms().isPremium;
+  const old = aikOldKey();
+  const head = `<div class="aik-head">
+      <div>
+        <div class="aik-title"><span class="section-title">Ma clé IA</span><span class="badge badge-slate">Facultatif</span></div>
+        <p class="aik-sub">Contralytix fournit déjà son IA. Si tu as ta propre clé, ajoute-la : tu pourras choisir, module par module, de l’utiliser à la place de la nôtre.</p>
+      </div>
+      ${free ? `<div class="aik-free">${icon('sparkles')}<span>Compte Free : avec ta clé, le <b>bilan du Coach IA</b> est débloqué.</span></div>` : ''}
+    </div>`;
+  const migr = old && !k.connected ? `<div class="aik-note is-warn" role="alert">${icon('alertTriangle')}<div><b>Une clé Groq est stockée en clair dans ce navigateur</b><span>Tu l’avais saisie dans la Préparation séance. Sécurise-la : elle sera chiffrée sur nos serveurs puis effacée de ce navigateur.</span></div><div class="aik-actions"><button type="button" class="btn btn-primary btn-sm" data-aik-migrate ${k.busy?'disabled':''}>Sécuriser ma clé</button><button type="button" class="btn btn-outline btn-sm" data-aik-drop-old>L’effacer</button></div></div>`
+    : old ? `<div class="aik-note">${icon('info')}<span>Une ancienne clé Groq est encore stockée dans ce navigateur. <button type="button" class="aik-textbtn" data-aik-drop-old>L’effacer</button></span></div>` : '';
+  if(!k.connected || k.replacing){
+    const P = aikProv(k.formProv);
+    return `<div class="panel aik-panel">${head}${migr}
+      <fieldset class="aik-fs"><legend>1. Fournisseur</legend>
+        <div class="aik-provs">${AIK_PROVIDERS.map(p=>`<button type="button" class="aik-prov ${p.id===P.id?'on':''}" aria-pressed="${p.id===P.id}" data-aik-prov="${p.id}"><span class="aik-prov-top"><span class="aik-mono">${p.mono}</span><b>${p.name}</b></span><span class="aik-cap ${p.vision?'':'warn'}">${p.cap}</span></button>`).join('')}</div>
+      </fieldset>
+      <div class="aik-field">
+        <label for="aik-key">2. Ta clé <span data-aik-pname>${P.name}</span></label>
+        <div class="aik-row">
+          <input id="aik-key" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="Colle ta clé ${P.ph}"/>
+          <button type="button" class="btn btn-primary" data-aik-save ${k.busy?'disabled':''}>${k.busy ? 'Test en cours…' : 'Tester et enregistrer'}</button>
+          ${k.replacing ? `<button type="button" class="btn btn-outline" data-aik-cancel>Annuler</button>` : ''}
+        </div>
+        ${k.err ? `<div class="error-text" role="alert">${escapeHtml(k.err)}</div>` : ''}
+        <a href="${P.url}" target="_blank" rel="noopener" class="aik-help" data-aik-help>Où créer ma clé <span data-aik-pname>${P.name}</span> ?</a>
+      </div>
+      <div class="aik-note">${icon('lock')}<span>Ta clé est testée puis <b>chiffrée sur nos serveurs</b>. Elle n’est jamais réaffichée, ni stockée dans ce navigateur, ni lisible par l’équipe Contralytix. Ce que tu envoies à l’IA avec ta clé part chez <b data-aik-pname>${P.name}</b>, à ton nom, et t’est facturé par ce fournisseur.</span></div>
+    </div>`;
+  }
+  const P = aikProv(k.provider);
+  const errTxt = { invalid_key:'Le fournisseur refuse cette clé : remplace-la.', no_credit:'Ton compte fournisseur n’a plus de crédit.', bad_model:'Le modèle demandé n’existe plus chez ce fournisseur.' }[k.lastError] || '';
+  return `<div class="panel aik-panel">${head}${migr}
+    <div class="aik-key ${errTxt?'is-err':''}">
+      <span class="aik-mono lg">${P.mono}</span>
+      <div class="aik-key-main">
+        <div class="aik-key-l1"><b>${escapeHtml(P.name)}</b><span class="mono">${escapeHtml(k.hint||'')}</span>${errTxt ? `<span class="aik-chip err">${icon('alertTriangle')}À vérifier</span>` : `<span class="aik-chip ok">${icon('check')}Vérifiée</span>`}</div>
+        <span class="aik-key-l2">${escapeHtml(P.cap)} · chiffrée${k.verifiedAt ? ` · vérifiée le ${fmtDate(String(k.verifiedAt).slice(0,10))}` : ''}${errTxt ? ` · ${errTxt}` : ''}</span>
+      </div>
+      <div class="aik-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-aik-test ${k.busy?'disabled':''}>${k.busy ? 'Test…' : 'Tester'}</button>
+        <button type="button" class="btn btn-outline btn-sm" data-aik-replace>Remplacer</button>
+        <button type="button" class="btn btn-danger btn-sm" data-aik-delete>Supprimer</button>
+      </div>
+    </div>
+    <div class="aik-mods">
+      <div class="aik-mods-h">Moteur par module <span>Le même choix est disponible directement dans chaque module.</span></div>
+      ${AIK_MODULES.map(m=>{
+        const note = [m.note, m.premium && !perms().isPremium ? 'IA Contralytix réservée au Premium' : '', m.vision && !k.vision ? `${P.name} ne lit pas les images` : ''].filter(Boolean).join(' · ');
+        return `<div class="aik-mod"><div><b>${m.name}</b><span>${escapeHtml(note)}</span></div><div data-aik-seg="${m.id}">${aikEngineSegHtml(m.id)}</div></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function aikBindEvents(){
+  const k = aik();
+  document.querySelectorAll('[data-aik-prov]').forEach(b=>b.onclick = ()=>{
+    // Mise à jour sur place (pas de nouveau rendu) : la clé déjà collée reste dans le champ.
+    k.formProv = b.dataset.aikProv; k.err = '';
+    const P = aikProv(k.formProv);
+    document.querySelectorAll('[data-aik-prov]').forEach(x=>{ const on = x.dataset.aikProv===P.id; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+    document.querySelectorAll('[data-aik-pname]').forEach(x=>{ x.textContent = P.name; });
+    const inp = document.getElementById('aik-key'); if(inp) inp.placeholder = 'Colle ta clé ' + P.ph;
+    const help = document.querySelector('[data-aik-help]'); if(help) help.href = P.url;
+  });
+  const inp = document.getElementById('aik-key');
+  const save = async (provider, keyText, fromOld)=>{
+    const key = String(keyText||'').trim();
+    if(!key){ k.err = 'Colle ta clé avant de la tester.'; renderView(); return; }
+    k.busy = true; k.err = ''; renderView();
+    const r = await aikApi('save', { provider, key });
+    k.busy = false;
+    if(!r.ok){
+      k.err = r.data.error || 'Clé non enregistrée.';
+      if(fromOld){ showToast('Ancienne clé Groq refusée : ' + k.err, 'danger'); k.err = ''; }
+      renderView(); return;
+    }
+    aikApply(r.data); k.replacing = false;
+    if(fromOld || aikOldKey()===key) aikDropOldKey();
+    try{ await logActivity('SETTINGS', 'profile', currentUserId(), `Clé IA ${aikProv(provider).name} enregistrée (chiffrée)`); }catch(e){}
+    showToast(`Clé ${aikProv(provider).name} vérifiée et enregistrée, chiffrée.`);
+    renderView();
+  };
+  document.querySelectorAll('[data-aik-save]').forEach(b=>b.onclick = ()=>{
+    const v = inp ? inp.value : '';
+    if(inp) inp.value = '';   // la clé ne reste pas dans la page
+    save(k.formProv, v, false);
+  });
+  if(inp) inp.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); const v = inp.value; inp.value = ''; save(k.formProv, v, false); } };
+  document.querySelectorAll('[data-aik-migrate]').forEach(b=>b.onclick = ()=>save('groq', aikOldKey(), true));
+  document.querySelectorAll('[data-aik-drop-old]').forEach(b=>b.onclick = ()=>{ aikDropOldKey(); showToast('Ancienne clé effacée de ce navigateur.'); renderView(); });
+  document.querySelectorAll('[data-aik-cancel]').forEach(b=>b.onclick = ()=>{ k.replacing = false; k.err = ''; renderView(); });
+  document.querySelectorAll('[data-aik-replace]').forEach(b=>b.onclick = ()=>{ k.replacing = true; k.formProv = k.provider || 'gemini'; k.err = ''; renderView(); const i = document.getElementById('aik-key'); if(i) i.focus(); });
+  document.querySelectorAll('[data-aik-test]').forEach(b=>b.onclick = async ()=>{
+    k.busy = true; renderView();
+    const r = await aikApi('test');
+    k.busy = false;
+    if(r.ok){ aikApply(r.data); showToast('Ta clé fonctionne.'); }
+    else { k.lastError = r.data.code || 'provider_error'; showToast(r.data.error || 'Test impossible.', 'danger'); }
+    renderView();
+  });
+  document.querySelectorAll('[data-aik-delete]').forEach(b=>b.onclick = ()=>confirmModal('Supprimer ta clé IA ? Elle est effacée de nos serveurs ; tous les modules repassent sur l’IA Contralytix.', async ()=>{
+    const r = await aikApi('delete');
+    if(!r.ok){ showToast(r.data.error || 'Suppression impossible.', 'danger'); return; }
+    aikApply({ connected:false }); k.replacing = false;
+    try{ await logActivity('SETTINGS', 'profile', currentUserId(), 'Clé IA supprimée'); }catch(e){}
+    showToast('Clé IA supprimée.');
+    renderView();
+  }));
+}
+
 function renderView(){
   const el = document.getElementById('view-root');
   if(state.route==='dashboard') el.innerHTML = viewDashboard();
@@ -8733,7 +9048,7 @@ function bindRentabiliteEvents(){
 const COACH_LS_KEY = 'ctx_coach_settings';
 const COACH_DEFAULTS = { mode:'simple', period:'90', budget:null, payoutGoal:null };
 const COACH_PERIODS = [ { v:'30', l:'30 jours' }, { v:'90', l:'90 jours' }, { v:'365', l:'12 mois' }, { v:'all', l:'Tout' } ];
-let __coachAi = { loading:false };
+let __coachAi = { loading:false, error:null, offerMine:false };
 
 function coachLsKey(){ return COACH_LS_KEY + ':' + (currentUserId() || 'anon'); }
 function coachSettings(){
@@ -9168,16 +9483,19 @@ function viewCoach(){
     </section>`;
 
   // 4. Bilan IA (Premium).
-  const cached = premium ? coAiCached(d) : null;
+  // Bilan IA : Premium (IA Contralytix) ou n'importe quel plan avec sa propre clé IA (01/11/2026).
+  const canAi = aikCanUse('coach');
+  const cached = canAi ? coAiCached(d) : null;
   const ai = `
     <section class="panel co-ai">
       <div class="co-section-head">
         <div class="section-title">${icon('sparkles')}Bilan du coach${infoTip('Rédigé par l’IA à partir des chiffres et des constats ci-dessus uniquement. Il ne calcule rien lui-même, peut contenir des erreurs et ne donne aucun conseil de trading ni d’investissement.')}</div>
-        ${premium && cached && !__coachAi.loading ? `<button type="button" class="co-link" data-co-act="ai">Régénérer</button>` : ''}
+        <div class="co-ai-head-r">${canAi ? `<div data-aik-seg="coach">${aikEngineSegHtml('coach')}</div>` : ''}${canAi && cached && !__coachAi.loading ? `<button type="button" class="co-link" data-co-act="ai">Régénérer</button>` : ''}</div>
       </div>
-      ${!premium ? `<div class="co-ai-empty"><span>Un bilan clair, rédigé chaque mois à partir de tes chiffres : ce qui va, ce qui te coûte, une piste pour le mois.</span><button class="btn btn-outline btn-sm upgrade-cta" onclick="openUpgradeModal('Le bilan du coach IA')">${icon('lock')}Premium</button></div>`
+      ${__coachAi.error && !__coachAi.loading ? `<div class="aik-err" role="alert">${icon('alertTriangle')}<span>${escapeHtml(__coachAi.error)}</span>${__coachAi.offerMine ? `<button type="button" class="btn btn-outline btn-sm" data-co-ai-mine>Réessayer avec ma clé</button>` : ''}</div>` : ''}
+      ${!canAi ? `<div class="co-ai-empty"><span>Un bilan clair, rédigé chaque mois à partir de tes chiffres : ce qui va, ce qui te coûte, une piste pour le mois. Inclus dans Premium, ou gratuit avec <b>ta propre clé IA</b> (Gemini, OpenAI, Anthropic…), payée à l’usage chez le fournisseur.</span><span style="display:flex;gap:8px;flex-wrap:wrap;">${aik().available ? `<button type="button" class="btn btn-primary btn-sm" data-nav="profil">${icon('link')}Ajouter ma clé IA</button>` : ''}<button class="btn btn-outline btn-sm upgrade-cta" onclick="openUpgradeModal('Le bilan du coach IA')">${icon('lock')}Premium</button></span></div>`
         : __coachAi.loading ? `<div class="co-ai-loading"><span class="co-spin"></span>Le coach rédige ton bilan…</div>`
-        : cached ? `<div class="co-ai-text">${coAiFormat(cached.text)}</div><div class="co-ai-meta">Généré par IA le ${fmtDate(cached.at.slice(0,10))} à partir de tes données · simples suggestions, à vérifier avant toute décision</div>`
+        : cached ? `<div class="co-ai-text">${coAiFormat(cached.text)}</div><div class="co-ai-meta">Généré le ${fmtDate(cached.at.slice(0,10))} par ${aikEngineLabel(cached.engine || 'site', cached.provider)}, à partir de tes données · simples suggestions, à vérifier avant toute décision</div>`
         : `<div class="co-ai-empty"><span>Ton bilan en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois.</span><button type="button" class="btn btn-primary btn-sm" data-co-act="ai">${icon('sparkles')}Générer mon bilan</button></div>`}
     </section>`;
 
@@ -9267,26 +9585,20 @@ function coachGoalsModal(){
     }
   });
 }
-async function coachGenerateAi(){
-  if(__coachAi.loading || !perms().isPremium) return;
+// Bilan du coach (01/11/2026) : via /api/ai, avec le moteur choisi (IA Contralytix ou clé de l'utilisateur).
+// Pas de bascule automatique : si l'IA Contralytix échoue et qu'une clé existe, on propose « Réessayer avec ma clé ».
+async function coachGenerateAi(engineOverride){
+  if(__coachAi.loading || !aikCanUse('coach')) return;
   const d = computeCoachData();
-  __coachAi.loading = true; renderView();
-  // Gemini (décision du 18/10/2026), via la même fonction que le chatbot : callAiSynthesis()
-  // passe par ai-synthesis.js (Groq), dont la clé n'est pas configurée partout.
-  let text = null;
-  try{
-    const res = await fetch('/.netlify/functions/gemini-synthesis', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: coAiPrompt(d) })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.overloaded ? 'le service IA est surchargé, réessaie dans quelques minutes' : (data.error || 'erreur ' + res.status));
-    text = (data.text || '').trim() || null;
-    if(!text) throw new Error('réponse vide');
-  } catch(e){
-    showToast('Bilan du coach indisponible : ' + e.message, 'danger');
-  }
+  __coachAi.loading = true; __coachAi.error = null; __coachAi.offerMine = false; renderView();
+  const r = await callAi('coach', coAiPrompt(d), engineOverride);
   __coachAi.loading = false;
-  if(text){ try{ localStorage.setItem(coAiCacheKey(d), JSON.stringify({ text, at: new Date().toISOString() })); }catch(e){} }
+  if(r.ok){
+    try{ localStorage.setItem(coAiCacheKey(d), JSON.stringify({ text: r.text, at: new Date().toISOString(), engine: r.engine, provider: r.engine==='mine' ? aik().provider : null })); }catch(e){}
+  } else {
+    __coachAi.error = 'Bilan du coach indisponible : ' + r.error;
+    __coachAi.offerMine = r.engine==='site' && aik().connected;
+  }
   if(state.route === 'coach') renderView();
 }
 function bindCoachEvents(){
@@ -9298,6 +9610,7 @@ function bindCoachEvents(){
     if(b.dataset.coAct === 'goals') coachGoalsModal();
     else if(b.dataset.coAct === 'ai') coachGenerateAi();
   });
+  root.querySelectorAll('[data-co-ai-mine]').forEach(b=> b.onclick = ()=>coachGenerateAi('mine'));
   root.querySelectorAll('[data-co-nav]').forEach(b=> b.onclick = ()=>{
     const firm = b.dataset.coFirm;
     if(b.dataset.coNav === 'accounts' && state.filters.accounts){
@@ -12559,6 +12872,7 @@ const HELP_CATEGORIES = [
     { q:"Le Coach rentabilité me donne-t-il des conseils d'investissement ?", a:"Non. Ses constats, pistes et bilans sont des suggestions informatives sur la gestion de ton budget prop firm, pas des directives ni des conseils en investissement, financiers ou fiscaux. Ils reposent uniquement sur les données que tu as saisies, et le bilan rédigé par IA peut contenir des erreurs. Tu restes seul juge de tes décisions (CGU, article 9 ter)." },
     { q:"Comment sont calculés les constats et les montants « en jeu » ?", a:"Par des règles fixes appliquées à tes comptes, pas par l'IA. Le montant « en jeu » est ce que le point concerné t'a coûté sur la période choisie (achats, activations, resets…). Un même achat peut apparaître dans deux constats (par exemple une prop firm perdante et un rachat après breach) : c'est pourquoi les montants ne sont jamais additionnés." },
     { q:"Pourquoi le net du Coach diffère-t-il de celui de Rentabilité réelle ?", a:"Le Coach ne compte que ce que tu paies aux prop firms et ce qu'elles te versent : les frais généraux (data, plateforme, VPS…) sont exclus. Sa période (30 j, 90 j, 12 mois, tout) est aussi indépendante des filtres de Rentabilité réelle. Décoche « Inclure les frais généraux » et choisis la même période pour comparer." },
+    { q:"Puis-je utiliser ma propre clé d'IA ?", a:"Oui. Dans Profil → Connexions → « Ma clé IA », choisis ton fournisseur (Gemini, OpenAI, Anthropic, OpenRouter ou Groq) et colle ta clé : elle est testée puis chiffrée sur nos serveurs, et n'est jamais réaffichée. Tu choisis ensuite, module par module, l'IA Contralytix ou ta clé. Avec ta clé, un compte Free peut aussi générer le bilan du Coach. Les requêtes faites avec ta clé te sont facturées par ton fournisseur." },
     { q:"Qu'est-ce que l'IA reçoit pour rédiger le bilan du coach ?", a:"Uniquement des totaux (dépensé, reçu, net), des taux, les constats calculés, les noms des prop firms concernées et tes objectifs. Jamais ton nom, ton e-mail ni tes numéros de compte. Le bilan n'est généré que lorsque tu cliques sur « Générer mon bilan », et il est conservé dans ton navigateur. Fonction réservée à Premium." },
     { q:"Qu'est-ce que l'espace Communauté ?", a:"Un bilan collectif pour une école de trading ou une communauté : le responsable crée une cohorte, les élèves la rejoignent avec un code, et Contralytix calcule automatiquement à partir de leurs vrais comptes le net du groupe, la part d'élèves rentables, la médiane, la répartition des résultats et l'entonnoir." },
     { q:"Le responsable de la communauté voit-il mes chiffres personnels ?", a:"Non. Elle ne voit ni ton identité, ni ton e-mail, ni tes chiffres individuels : uniquement des totaux, une médiane et une répartition. Aucun chiffre n'est affiché tant que moins de 5 membres ont de l'activité sur la période. Seule exception, si tu le choisis : le classement mensuel, où apparaissent ton nom d'affichage, ton ROI, ton net du mois et ton capital engagé." },
@@ -12892,6 +13206,8 @@ const MANUAL_CHAPTERS = [
     <p>Affiche l'adresse e-mail du compte (masquée par défaut, un bouton permet de la révéler ponctuellement), la date de création du compte, la formule en cours et le nombre de traders suivis. Un champ « Nom affiché » permet de remplacer l'adresse e-mail par un nom ou pseudonyme dans la barre latérale et les échanges avec le support — purement cosmétique, sans effet sur la connexion.</p>
     <h3>Profil — Connexions</h3>
     <p>Relie Deltalytix (beta) à Contralytix : « Connecter » ouvre la fenêtre d'autorisation Deltalytix ; une fois connecté, tu vois l'adresse du compte Deltalytix (masquée) et la date de dernière synchronisation, avec les boutons « Synchroniser » et « Déconnecter ». La déconnexion retire l'accès chez Deltalytix et dans Contralytix ; tes comptes et pointages déjà importés sont conservés.</p>
+    <h3>Profil — Ma clé IA</h3>
+    <p>Contralytix fournit son IA (bilan du Coach, brief météo, assistant, lecture des captures). Si tu as ta propre clé d'un fournisseur (Gemini, OpenAI, Anthropic, OpenRouter ou Groq), tu peux l'ajouter ici : choisis le fournisseur, colle la clé, puis « Tester et enregistrer ». La clé est vérifiée, puis <b>chiffrée sur nos serveurs</b> : seul un indice (ex. « sk-…a1f3 ») reste visible. Tu choisis ensuite, module par module, « Contralytix » ou « Ma clé » ; le même choix est disponible dans chaque module. Avec une clé, un compte Free peut aussi générer le bilan du Coach. Si l'IA Contralytix est indisponible, le module propose « Réessayer avec ma clé ». La lecture des captures n'est possible qu'avec un fournisseur qui lit les images (pas Groq).</p>
     <h3>Paramètres — Notifications</h3>
     <p>Trois préférences d'envoi d'email, chacune activable ou désactivable indépendamment :</p>
     <ul>
@@ -12985,7 +13301,7 @@ const MANUAL_CHAPTERS = [
     <p>Des règles fixes analysent tes comptes et chiffrent chaque point : ce n'est pas une estimation de l'IA. Les situations repérées : une prop firm qui coûte plus qu'elle ne rapporte, des rachats le jour même ou le lendemain d'un breach, des resets qui dépassent 20 % des dépenses, ton <b>point de fuite</b> (l'étape de l'entonnoir où tu perds le plus de comptes : l'évaluation, le premier payout ou la régularité des payouts, avec son coût et un lien vers l'entonnoir), des challenges mensuels ouverts depuis plus de 40 jours, un budget dépassé ou en passe de l'être, et ta prop firm la plus rentable.</p>
     <p>Chaque carte donne le constat, le montant « en jeu » (ce que ce point t'a coûté sur la période), une <b>piste à envisager</b> et un lien vers l'endroit de l'app concerné. Plusieurs constats peuvent porter sur les mêmes dépenses : leurs montants ne s'additionnent pas.</p>
     <h3>Bilan du coach (IA)</h3>
-    <p>Un clic sur « Générer mon bilan » fait rédiger par l'IA (Gemini) un texte en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois. Elle ne reçoit que les chiffres et constats déjà calculés, sans ton nom, ton e-mail ni tes numéros de compte, et n'en invente aucun. Le bilan est gardé dans ton navigateur et se régénère quand tes chiffres changent.</p>
+    <p>Un clic sur « Générer mon bilan » fait rédiger par l'IA (Gemini pour l'IA Contralytix, ou ton fournisseur si tu as choisi « Ma clé ») un texte en trois parties : ce qui va, ce qui te coûte, une piste pour ce mois. Elle ne reçoit que les chiffres et constats déjà calculés, sans ton nom, ton e-mail ni tes numéros de compte, et n'en invente aucun. Le bilan est gardé dans ton navigateur et se régénère quand tes chiffres changent.</p>
     <h3>Formules</h3>
     <p>Free : verdict, objectifs, indicateurs et nombre de constats détectés. Premium : le détail des constats et le bilan IA.</p>
     <h3>Important</h3>
@@ -13187,10 +13503,12 @@ function viewConfidentialite(){
             <tr><td>Supabase</td><td>Authentification et base de données</td><td>Compte, données d'activité PropFirm</td></tr>
             <tr><td>Stripe</td><td>Paiement et gestion des abonnements</td><td>E-mail, informations de facturation et de paiement (Contralytix ne stocke jamais vos coordonnées bancaires)</td></tr>
             <tr><td>Netlify</td><td>Hébergement du site et des fonctions serveur</td><td>Toutes les données transitant par l'application</td></tr>
-            <tr><td>Google (API Gemini)</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Groq, puis Google (API Gemini) en secours</td><td>Génération du brief de préparation de séance par IA</td><td>Le contenu du prompt envoyé (contexte de marché, biais du jour)</td></tr>
+            <tr><td>Google (API Gemini)</td><td>Assistant intégré (chatbot), à ton initiative</td><td>Tes questions et les derniers échanges de la conversation</td></tr>
             <tr><td>Google (API Gemini)</td><td>Rédaction du bilan du Coach rentabilité (Premium, à ton initiative)</td><td>Des chiffres agrégés et les constats calculés par l'application, sans nom, e-mail ni numéro de compte</td></tr>
             <tr><td>Google (API Gemini)</td><td>Lecture des numéros de compte sur une capture d'écran (import de comptes, à ton initiative)</td><td>L'image que tu choisis d'importer — transmise uniquement pour la lecture, jamais enregistrée par Contralytix</td></tr>
             <tr><td>Deltalytix (beta) — service tiers indépendant</td><td>Si tu connectes Deltalytix : import de tes comptes, P&amp;L journalier pour le Radar inactivité, dernier trade, comptes breached et plateforme de chaque compte. Contralytix ne fait que <b>lire</b> ces données (aucune écriture chez Deltalytix) ; Deltalytix les traite sous sa propre responsabilité, selon ses propres conditions</td><td>Connexion autorisée chez Deltalytix ; l’accès est conservé chiffré et n’est jamais affiché ; tu peux le retirer à tout moment (Profil → Connexions)</td></tr>
+            <tr><td>Le fournisseur d’IA de ta clé personnelle (Google Gemini, OpenAI, Anthropic, OpenRouter ou Groq) — uniquement si tu enregistres « Ma clé IA »</td><td>Exécution des fonctions IA pour lesquelles tu choisis « Ma clé » (bilan du coach, brief météo, assistant, lecture de capture)</td><td>Le contenu envoyé à l’IA pour cette fonction, sous ton propre compte chez ce fournisseur, qui le traite selon ses conditions. Ta clé est conservée <b>chiffrée</b> par Contralytix, n’est jamais réaffichée et peut être supprimée à tout moment (Profil → Connexions)</td></tr>
             <tr><td>jsDelivr (CDN)</td><td>Téléchargement du moteur de lecture simplifiée utilisé dans ton navigateur si Gemini est indisponible</td><td>Aucune donnée de compte ni image : la capture est lue sur ton appareil</td></tr>
             <tr><td>Nasdaq (API publique)</td><td>Calendrier des résultats d'entreprises</td><td>Aucune donnée personnelle transmise</td></tr>
           </table>
@@ -13377,6 +13695,7 @@ function viewCGV(){
           <p>Ils ne constituent en aucun cas un conseil en investissement au sens des articles L321-1 et L541-1 du Code monétaire et financier, ni un conseil financier, fiscal, comptable ou juridique. L'éditeur n'est pas conseiller en investissements financiers et n'exerce aucune activité réglementée de conseil.</p>
           <p>Ces analyses sont calculées automatiquement à partir des seules données saisies ou importées par l'Utilisateur, dont l'éditeur ne vérifie ni l'exactitude ni l'exhaustivité. Les textes générés par intelligence artificielle peuvent contenir des erreurs, des imprécisions ou des omissions. Les résultats passés ne préjugent pas des résultats futurs ; le trading de produits à effet de levier comporte un risque élevé de perte en capital.</p>
           <p>L'Utilisateur reste seul juge de l'opportunité de suivre ou non une piste proposée, et seul responsable de ses décisions, notamment d'achat, de conservation, de reset ou d'arrêt de comptes auprès des prop firms. L'éditeur ne saurait être tenu responsable des conséquences, notamment financières, de l'utilisation de ces contenus ou de leur mise en œuvre.</p>
+          <p><b>Clé IA personnelle.</b> L'Utilisateur peut enregistrer sa propre clé d'accès à un fournisseur d'intelligence artificielle (Google, OpenAI, Anthropic, OpenRouter, Groq) et l'utiliser à la place de l'IA fournie par le Service. Il agit alors sous son propre compte chez ce fournisseur : les coûts, quotas, conditions d'utilisation et traitements de données de ce fournisseur s'appliquent et relèvent de la relation entre l'Utilisateur et ce fournisseur. L'éditeur conserve la clé sous forme chiffrée, ne l'utilise que pour les demandes initiées par l'Utilisateur et ne saurait être tenu responsable de la disponibilité, du contenu des réponses ou de la facturation de ce fournisseur. L'Utilisateur peut supprimer sa clé à tout moment.</p>
         </div>
 
         <div class="rgpd-block">
@@ -15938,34 +16257,10 @@ const DEFAULT_AI_PROMPT = `Fais-moi un brief météo pour ma session de scalping
 3. LA DYNAMIQUE DU MOMENT : Quel est le comportement dominant des derniers jours à l'Open (range, tendance rectiligne, rotation sectorielle...) ?
 4. FEU VERT / FEU ROUGE : Quel est ton conseil pour mes objectifs de 50 ticks aujourd'hui ? (Taille de position normale, taille réduite, ou rester à l'écart ?)`;
 
-// apiKey est optionnel : si absent, la fonction Netlify utilise la clé du site
-// (variable d'environnement GROQ_API_KEY) ; si fourni, elle l'utilise à la
-// place (repli avec la clé personnelle de l'utilisateur).
-async function callAiSynthesis(promptText, apiKey){
-  try{
-    const res = await fetch('/.netlify/functions/ai-synthesis', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(apiKey ? { prompt: promptText, apiKey } : { prompt: promptText })
-    });
-    const data = await res.json();
-    if(!res.ok){
-      if(data.overloaded){
-        throw new Error('Le service IA est temporairement surchargé — réessaie dans quelques minutes.');
-      }
-      throw new Error(data.error || 'Erreur API');
-    }
-    return data.text || null;
-  } catch(e){
-    showToast('Erreur IA' + (apiKey ? ' (clé personnelle)' : '') + ' : ' + e.message, 'danger');
-    return null;
-  }
-}
-
 /* ============================================================
    CHATBOT IA — assistant flottant, disponible sur toutes les pages
-   une fois connecté. Réutilise la fonction serverless existante
-   /.netlify/functions/gemini-synthesis (voir plus haut) : la clé
-   Gemini reste donc côté serveur, rien de neuf à configurer sur Netlify.
+   une fois connecté. Passe par /api/ai (module « chat ») : IA Contralytix
+   ou clé personnelle de l'utilisateur, au choix (voir callAi, 01/11/2026).
    La conversation est gardée en mémoire le temps de la session
    (non persistée en base), pour rester simple.
 ============================================================ */
@@ -15988,11 +16283,11 @@ function renderChatWidget(){
           <img src="${LOGO_DATA_URI}" alt="" style="width:22px;height:22px;border-radius:6px;object-fit:cover;"/>
           <div style="font-weight:700;font-size:13.5px;">Assistant Contralytix</div>
         </div>
-        <button class="icon-btn-plain" id="chat-close" title="Fermer">${icon('x')}</button>
+        <div style="display:flex;align-items:center;gap:6px;">${aik().connected ? `<label for="chat-engine" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Moteur IA de l’assistant</label><select id="chat-engine" class="chat-engine" title="Moteur IA de l’assistant"><option value="site" ${aikEngine('chat')==='site'?'selected':''}>Contralytix</option><option value="mine" ${aikEngine('chat')==='mine'?'selected':''}>Ma clé · ${escapeHtml(aikProv(aik().provider).name)}</option></select>` : ''}<button class="icon-btn-plain" id="chat-close" title="Fermer">${icon('x')}</button></div>
       </div>
       <div class="chat-panel-body" id="chat-body">
         ${chatMessages.length===0 ? `<div class="chat-empty">Pose-moi une question sur l'utilisation de Contralytix : comptes, payouts, comptabilité, abonnement… Pour toute question précise sur ton compte, utilise plutôt le formulaire de contact.</div>` : ''}
-        ${chatMessages.map(m=>`<div class="chat-msg chat-msg-${m.role}">${escapeHtml(m.text)}</div>`).join('')}
+        ${chatMessages.map(m=>`<div class="chat-msg chat-msg-${m.role}">${escapeHtml(m.text)}</div>${m.role==='assistant' && m.engine==='mine' ? `<div class="chat-msg-meta">Répondu avec ${escapeHtml(aikEngineLabel('mine', m.provider))}</div>` : ''}`).join('')}
         ${chatLoading ? `<div class="chat-msg chat-msg-assistant chat-typing">L\u2019assistant réfléchit…</div>` : ''}
       </div>
       <div class="chat-panel-foot">
@@ -16011,6 +16306,8 @@ function renderChatWidget(){
   };
   if(chatOpen){
     document.getElementById('chat-close').onclick = ()=>{ chatOpen = false; renderChatWidget(); };
+    const chatEng = document.getElementById('chat-engine');
+    if(chatEng) chatEng.onchange = ()=>aikSetEngine('chat', chatEng.value);
     const input = document.getElementById('chat-input');
     const doSend = ()=>{
       const text = input.value.trim();
@@ -16036,15 +16333,9 @@ async function sendChatMessage(text){
   const history = chatMessages.slice(-10).map(m=>`${m.role==='user'?'Utilisateur':'Assistant'} : ${m.text}`).join('\n');
   const prompt = `${CHAT_SYSTEM_CONTEXT}\n\nConversation :\n${history}\nAssistant :`;
   try{
-    const res = await fetch('/.netlify/functions/gemini-synthesis', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || 'Erreur API');
-    chatMessages.push({ role:'assistant', text: (data.text || '').trim() || 'Désolé, je n\u2019ai pas de réponse à te proposer pour l\u2019instant.' });
-  } catch(e){
-    chatMessages.push({ role:'assistant', text: 'Je n\u2019ai pas pu obtenir de réponse (' + e.message + '). Tu peux utiliser le formulaire de contact pour nous écrire directement.' });
+    const r = await callAi('chat', prompt);
+    if(r.ok) chatMessages.push({ role:'assistant', text: r.text, engine: r.engine, provider: r.engine==='mine' ? aik().provider : null });
+    else chatMessages.push({ role:'assistant', text: 'Je n\u2019ai pas pu obtenir de réponse (' + r.error + ').' + (r.engine==='site' && aik().connected ? ' Tu peux choisir « Ma clé » en haut de l\u2019assistant et réessayer.' : ' Tu peux utiliser le formulaire de contact pour nous écrire directement.') });
   } finally {
     chatLoading = false;
     renderChatWidget();
@@ -16067,39 +16358,35 @@ function prepFormModal(existing){
         <div class="field-hint">C'est le prompt envoyé à l'IA. Le texte ci-dessus est l'exemple par défaut : modifie-le si besoin avant de générer.</div>
       </div>
       <div class="field"><label>Brief météo IA (optionnel)</label><textarea id="mp-ai" rows="10" style="line-height:1.6;" placeholder="Clique sur \u00abGénérer\u00bb pour obtenir le brief du jour.">${p.aiSummary||''}</textarea>
-        <button class="btn btn-outline btn-sm" id="mp-generate" type="button" style="margin-top:8px;">${icon('sparkles')}Générer brief météo</button>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;">
+          <button class="btn btn-outline btn-sm" id="mp-generate" type="button">${icon('sparkles')}Générer brief météo</button>
+          <button class="btn btn-outline btn-sm" id="mp-retry-mine" type="button" style="display:none;">Réessayer avec ma clé</button>
+          <div data-aik-seg="meteo" style="margin-left:auto;">${aikEngineSegHtml('meteo')}</div>
+        </div>
       </div>
-      <div class="field" id="mp-key-field">
-        <label>Clé API Groq personnelle (optionnelle)</label>
-        <input id="mp-ai-key" type="password" placeholder="Uniquement si la génération échoue avec la clé enregistrée sur le site" autocomplete="off"/>
-        <div class="field-hint">Si le brief ne se génère pas avec la clé du site (ex : clé invalide ou quota atteint), renseigne ici ta propre clé API Groq — gratuite, sans carte bancaire, à créer sur console.groq.com/keys — puis reclique sur « Générer ». Elle n'est stockée que dans ton navigateur.</div>
-      </div>
+      ${aikOldKey() ? `<div class="aik-note is-warn" style="margin-bottom:12px;">${icon('alertTriangle')}<span>Ta clé Groq personnelle est encore stockée en clair dans ce navigateur. <button type="button" class="aik-textbtn" onclick="closeModal();state.route='profil';render();">La sécuriser dans Profil → Connexions</button></span></div>` : ''}
       <div id="mp-error" class="error-text"></div>
     `,
     footHtml: `<button class="btn btn-outline" id="mp-cancel">Annuler</button><button class="btn btn-primary" id="mp-save">Enregistrer</button>`,
     onMount(){
       document.getElementById('mp-cancel').onclick = closeModal;
-      const keyInput = document.getElementById('mp-ai-key');
-      keyInput.value = localStorage.getItem(AI_USER_KEY_STORAGE) || '';
-      document.getElementById('mp-generate').onclick = async ()=>{
+      // Brief météo (01/11/2026) : /api/ai avec le moteur choisi ; plus aucune clé saisie ni stockée ici.
+      const retryMine = document.getElementById('mp-retry-mine');
+      const generate = async (engine)=>{
         const promptText = document.getElementById('mp-prompt').value.trim();
         if(!promptText){
           showToast('Le prompt ne peut pas être vide.', 'danger'); return;
         }
         const btn = document.getElementById('mp-generate');
-        const userKey = keyInput.value.trim();
-        btn.disabled = true; btn.textContent = 'Génération…';
-        let text = await callAiSynthesis(promptText);
-        if(!text && userKey){
-          btn.textContent = 'Nouvel essai avec ta clé…';
-          text = await callAiSynthesis(promptText, userKey);
-        }
+        btn.disabled = true; btn.textContent = 'Génération…'; retryMine.style.display = 'none';
+        const r = await callAi('meteo', promptText, engine);
         btn.disabled = false; btn.innerHTML = `${icon('sparkles')}Générer brief météo`;
-        if(text){
-          document.getElementById('mp-ai').value = text;
-          if(userKey) localStorage.setItem(AI_USER_KEY_STORAGE, userKey);
-        }
+        if(r.ok){ document.getElementById('mp-ai').value = r.text; return; }
+        showToast('Brief météo indisponible : ' + r.error, 'danger');
+        if(r.engine==='site' && aik().connected) retryMine.style.display = '';
       };
+      document.getElementById('mp-generate').onclick = ()=>generate();
+      retryMine.onclick = ()=>generate('mine');
       document.getElementById('mp-save').onclick = async ()=>{
         const date = document.getElementById('mp-date').value;
         if(!date){
@@ -17450,6 +17737,7 @@ function viewProfil(){
 
         ${radarSettingsPanelHtml()}
         ${dlxProfilPanelHtml()}
+        ${aikPanelHtml()}
 
         <div class="panel" style="padding:20px;">
           <div class="section-title" style="margin-bottom:14px;color:var(--danger,#e5484d);">Zone de danger</div>
@@ -20389,7 +20677,8 @@ function emptyState(iconName, title, sub){
    EVENT BINDING (delegated per-view)
 ============================================================ */
 function bindViewEvents(){
-  spBindEvents(); // Plan de session / Cockpit / Méthode
+  spBindEvents();
+  aikBindEvents(); // Profil → Ma clé IA // Plan de session / Cockpit / Méthode
   dmBindEvents(); // Radar inactivité (page Radar, bande des cartes compte, admin)
   // Module Frais généraux : édition/suppression directement depuis la page (pas de modale de
   // liste comme les resets — un frais général n'est pas rattaché à un compte, donc il n'y a pas
@@ -22743,6 +23032,7 @@ function captureImportModal(){
           : `<span class="cim-kbd">Ctrl</span> + <span class="cim-kbd">V</span> après ta capture, glisse tes images ici (plusieurs d’un coup si tu veux), ou clique pour les choisir.`}</div>
         <div class="cim-drop-sub" style="color:var(--text-faint);">Tu pourras ajouter d’autres captures ensuite pour compléter la liste.</div>
       </div>
+      ${aik().connected ? `<div class="cim-engine" data-aik-seg="import">${aikEngineSegHtml('import')}</div>` : ''}
       <input type="file" id="cim-file" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
       <div class="cim-or"><span>ou</span></div>
       <button type="button" class="cim-tv-btn" id="cim-dlx">
@@ -22751,7 +23041,7 @@ function captureImportModal(){
         ${icon('chevRight')}
       </button>
       ${errorMsg ? `<div class="error-text" style="margin-top:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par Gemini (Google) pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si Gemini est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 10 lectures Gemini par jour.</span></div>`;
+      <div class="cim-privacy">${icon('shield')}<span>Chaque capture est lue automatiquement par l’IA (Gemini de Google pour l’IA Contralytix, ou ton fournisseur si tu choisis « Ma clé ») pour en extraire les comptes, puis oubliée : elle n’est jamais enregistrée. Si l’IA Contralytix est indisponible, une lecture simplifiée se fait directement dans ton navigateur, sans rien envoyer. Rien n’est créé tant que tu n’as pas validé. 10 lectures par jour avec l’IA Contralytix.</span></div>`;
     setFoot(`<button class="btn btn-outline" id="cim-cancel">Annuler</button>`);
     const drop = document.getElementById('cim-drop');
     const input = document.getElementById('cim-file');
@@ -22915,18 +23205,20 @@ function captureImportModal(){
     };
     // Résultat de la lecture par Gemini (serveur) ; null si on doit passer au secours local.
     let server = null, serverError = '', fallbackReason = '';
+    const readEngine = aikEngine('import');
     try{
       const { data:{ session } } = await supabaseClient.auth.getSession();
       const req = {
         method:'POST',
         headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
         // Les noms des PropFirms du catalogue : Gemini ne peut répondre que l'un d'eux.
-        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean), source: source==='other' ? '' : source }),
+        body: JSON.stringify({ image: prepared.dataUrl, mimeType: prepared.mimeType, firms: state.propfirms.map(f=>f.name).filter(Boolean), source: source==='other' ? '' : source, engine: readEngine }),
       };
       // Edge Function d'abord (pas de coupure à 10 s) ; si elle n'est pas déployée, fonction classique.
+      // Avec la clé de l'utilisateur (01/11/2026) : directement la fonction classique, seule à savoir la déchiffrer.
       const t0 = Date.now();
-      let via = 'edge';
-      let res = await fetch('/edge/read-accounts-screenshot', req).catch(()=>null);
+      let via = readEngine==='mine' ? 'api' : 'edge';
+      let res = readEngine==='mine' ? null : await fetch('/edge/read-accounts-screenshot', req).catch(()=>null);
       if(!res || res.status===404){ via = 'api'; res = await fetch('/api/read-accounts-screenshot', req).catch(()=>null); }
       if(!isOpen()) return; // modale fermée pendant la lecture
       if(!res){
@@ -25304,6 +25596,7 @@ function applyLandingPricing(){
     await loadAll();
     await loadDormancy();
     await loadInactivityRules();
+    aikLoad();            // Ma clé IA : statut (jamais la clé elle-même)
     dlxMaybeAutoSync();   // connexion Deltalytix : statut + radar automatique (sans bloquer l'affichage)
     await loadPricingSettings();
     await loadFiscalThresholds();
