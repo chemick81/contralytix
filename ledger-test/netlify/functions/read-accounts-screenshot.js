@@ -19,8 +19,16 @@
 //
 // Variables d'environnement Netlify requises (déjà utilisées par les autres fonctions) :
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY
+//
+// Ma clé IA (01/11/2026) : avec { engine: 'mine' }, la capture est lue avec la clé personnelle de
+// l'utilisateur (déchiffrée le temps de l'appel, voir _ai-lib.js), si son fournisseur lit les images.
+// Le compteur screenshot_reads et le budget du site ne s'appliquent alors pas (c'est sa clé) ; le quota
+// anti-abus AI_MINE_DAILY_LIMIT s'applique. Le navigateur appelle directement cette fonction dans ce cas
+// (l'Edge Function ne lit qu'avec la clé du site).
+// Sécurité des clés : clé du site passée en en-tête (x-goog-api-key), jamais dans l'URL ; journaux nettoyés.
 
 const { createClient } = require('@supabase/supabase-js');
+const A = require('./_ai-lib');
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -173,25 +181,15 @@ exports.handler = async (event) => {
     return json(401, { error: 'Session invalide, reconnecte-toi.' });
   }
 
-  // 1 bis. Limite quotidienne (admins exemptés)
-  let isAdmin = false;
+  let isAdmin = false, role = 'FREE';
   try {
     const { data: prof } = await supabaseAdmin.from('profiles').select('role').eq('id', userId).maybeSingle();
-    isAdmin = prof?.role === 'ADMIN';
+    role = prof?.role || 'FREE';
+    isAdmin = role === 'ADMIN';
   } catch (e) { /* profil illisible : traité comme non-admin */ }
-  const usedToday = isAdmin ? null : await countReadsToday(userId);
-  if (usedToday !== null && usedToday >= DAILY_LIMIT) {
-    return json(429, { error: `Tu as atteint la limite de ${DAILY_LIMIT} lectures de capture pour aujourd'hui. Réessaie demain, ou ajoute tes comptes avec « Ajout en masse ».`, remaining: 0, limit: DAILY_LIMIT });
-  }
-  if (GLOBAL_BUDGET > 0 && !isAdmin) {
-    const siteToday = await countReadsToday(null);
-    if (siteToday !== null && siteToday >= GLOBAL_BUDGET) {
-      return json(429, { error: "Le service de lecture est très sollicité aujourd'hui.", remaining: null, limit: DAILY_LIMIT, budget: true });
-    }
-  }
 
   // 2. Image valide
-  let image, mimeType, firmNames = [], source = '';
+  let image, mimeType, firmNames = [], source = '', engine = 'site';
   try {
     const body = JSON.parse(event.body || '{}');
     // Catalogue des PropFirms (noms seulement) : 100 max, noms courts et sans guillemets.
@@ -204,12 +202,54 @@ exports.handler = async (event) => {
     image = typeof body.image === 'string' ? body.image.replace(/^data:[^,]*,/, '') : '';
     mimeType = typeof body.mimeType === 'string' ? body.mimeType : '';
     source = typeof body.source === 'string' && Object.prototype.hasOwnProperty.call(SOURCE_HINTS, body.source) ? body.source : '';
+    engine = body.engine === 'mine' ? 'mine' : 'site';
   } catch (e) {
     return json(400, { error: 'Requête invalide.' });
   }
   if (!image) return json(400, { error: 'Aucune image reçue.' });
   if (!ALLOWED_MIME.includes(mimeType)) return json(400, { error: 'Format non pris en charge : utilise une image PNG, JPG ou WEBP.' });
   if (Math.floor(image.length * 3 / 4) > MAX_IMAGE_BYTES) return json(413, { error: 'Image trop lourde (6 Mo maximum). Recadre la capture sur la liste des comptes.' });
+
+  // 2 bis. Lecture avec la clé personnelle de l'utilisateur.
+  if (engine === 'mine') {
+    const user = { id: userId, isAdmin, role };
+    let row = null, mineKey = null;
+    try {
+      row = await A.loadUserKey(supabaseAdmin, userId);
+      if (!row) return json(409, { error: A.userMessage('no_key'), code: 'no_key' });
+      const P = A.PROVIDERS[row.provider] || {};
+      if (!P.vision) return json(422, { error: A.userMessage('no_vision', P.name), code: 'no_vision' });
+      const q = await A.checkQuota(supabaseAdmin, user, 'mine');
+      if (!q.ok) return json(429, { error: A.userMessage('quota'), code: 'quota' });
+      mineKey = A.decrypt(row.key_enc);
+      const out = await A.callProvider(row.provider, mineKey, {
+        prompt: buildPrompt(firmNames, source), image: { mime: mimeType, base64: image }, model: row.model, json: true, maxTokens: 4096, deadline: Date.now() + TIME_BUDGET_MS,
+      });
+      await A.logUsage(supabaseAdmin, user, 'import', 'mine', true);
+      let parsed = null;
+      try { parsed = JSON.parse(out.text); } catch (e) { const m = out.text.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) { /* ignoré */ } } }
+      return json(200, { ...cleanAccounts(parsed && parsed.accounts, firmNames), remaining: null, limit: null, engine: 'mine', provider: row.provider });
+    } catch (e) {
+      A.safeLog('read-accounts-screenshot (clé perso):', e, [mineKey]);
+      try { await A.logUsage(supabaseAdmin, user, 'import', 'mine', false); } catch (_) { /* */ }
+      const code = e.code || 'error';
+      if (row && ['invalid_key', 'no_credit', 'bad_model'].includes(code)) await supabaseAdmin.from('user_ai_keys').update({ last_error: code }).eq('user_id', userId);
+      // 4xx : le navigateur affiche le message (pas de lecture locale de secours, l'erreur vient de la clé).
+      return json(code === 'timeout' ? 504 : code === 'overloaded' ? 503 : 422, { error: A.userMessage(code, row ? (A.PROVIDERS[row.provider] || {}).name : null), code, engine: 'mine' });
+    }
+  }
+
+  // 2 ter. Limite quotidienne de la lecture avec la clé du site (admins exemptés)
+  const usedToday = isAdmin ? null : await countReadsToday(userId);
+  if (usedToday !== null && usedToday >= DAILY_LIMIT) {
+    return json(429, { error: `Tu as atteint la limite de ${DAILY_LIMIT} lectures de capture pour aujourd'hui. Réessaie demain, ajoute tes comptes avec « Ajout en masse », ou lis la capture avec ta propre clé IA.`, remaining: 0, limit: DAILY_LIMIT });
+  }
+  if (GLOBAL_BUDGET > 0 && !isAdmin) {
+    const siteToday = await countReadsToday(null);
+    if (siteToday !== null && siteToday >= GLOBAL_BUDGET) {
+      return json(429, { error: "Le service de lecture est très sollicité aujourd'hui.", remaining: null, limit: DAILY_LIMIT, budget: true });
+    }
+  }
 
   const key = process.env.GEMINI_API_KEY;
   if (!key) return json(500, { error: 'GEMINI_API_KEY non configurée sur Netlify.' });
@@ -229,9 +269,10 @@ exports.handler = async (event) => {
       try {
         const generationConfig = { temperature: 0, responseMimeType: 'application/json' };
         if (useThinking) generationConfig.thinkingConfig = THINKING;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+        // Clé en en-tête, jamais dans l'URL (qui peut finir dans des journaux).
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
           signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: buildPrompt(firmNames, source) }, { inline_data: { mime_type: mimeType, data: image } }] }],
@@ -259,7 +300,7 @@ exports.handler = async (event) => {
         }
         lastError = data.error?.message || 'Erreur API Gemini';
         lastGeminiStatus = res.status;
-        console.error(`read-accounts-screenshot Gemini ${model} ${res.status}:`, lastError);
+        A.safeLog(`read-accounts-screenshot Gemini ${model} ${res.status}:`, lastError, [key]);
         // Réglage de réflexion refusé par ce modèle : on le retire et on réessaie aussitôt.
         if (useThinking && res.status === 400 && /thinking/i.test(lastError)) { useThinking = false; attempt--; continue; }
         if (isOverloaded(res.status, lastError)) {
@@ -271,7 +312,7 @@ exports.handler = async (event) => {
       } catch (err) {
         clearTimeout(timer);
         if (err && err.name === 'AbortError') { timedOut = true; break; }
-        console.error('read-accounts-screenshot error:', err);
+        A.safeLog('read-accounts-screenshot error:', err, [key]);
         lastError = 'Erreur serveur lors de la lecture de la capture';
       }
     }
