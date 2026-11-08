@@ -163,6 +163,23 @@ exports.handler = async (event) => {
     const { error: fiscalErr } = await supabaseAdmin.from('fiscal_checklist_items').delete().eq('user_id', uid);
     if (fiscalErr) console.warn('delete-account: échec suppression fiscal_checklist_items', fiscalErr.message);
 
+    // 4 bis (08/11/2026). Tables rangées par user_id sans clé étrangère vers auth.users : Radar
+    //    d'inactivité (pointages et état par compte). Les autres tables récentes (session_plan,
+    //    user_ai_keys, ai_usage, broker_connections, cohort_members, cohorts) sont effacées en
+    //    cascade avec le compte Auth. Best-effort : une table absente est simplement ignorée.
+    for (const table of ['dormancy_logs', 'dormancy_account_state']) {
+      const { error } = await supabaseAdmin.from(table).delete().eq('user_id', uid);
+      if (error) console.warn(`delete-account: échec suppression ${table}`, error.message);
+    }
+    //    Logos de communauté (bucket public 'community-logos', dossier <uid>/).
+    try {
+      const { data: logos } = await supabaseAdmin.storage.from('community-logos').list(uid, { limit: 100 });
+      const logoPaths = (logos || []).map(o => `${uid}/${o.name}`);
+      if (logoPaths.length) await supabaseAdmin.storage.from('community-logos').remove(logoPaths);
+    } catch (logoErr) {
+      console.warn('delete-account: échec suppression logos communauté', logoErr.message);
+    }
+
     // 5. Contact Brevo (liste marketing "Contralytix", voir sync-brevo-contact.js) — sans ça,
     //    l'email reste indéfiniment dans la liste marketing après "suppression complète" du
     //    compte. Best-effort : n'empêche jamais la suppression du compte si Brevo échoue/n'est

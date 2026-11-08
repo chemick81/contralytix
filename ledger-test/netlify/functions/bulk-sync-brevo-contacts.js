@@ -9,6 +9,9 @@
 // Variables d'environnement Netlify requises : mêmes que sync-brevo-contact.js
 // (BREVO_API_KEY, BREVO_LIST_ID).
 //
+// Transmet aussi MARKETING_OPTIN par contact (voir sync-brevo-contact.js pour le détail du
+// consentement "Annonces produit") — à filtrer côté Brevo avant tout envoi marketing.
+//
 // Utilise l'import Brevo (/v3/contacts/import), pensé pour de gros volumes en un
 // seul appel plutôt qu'une boucle de créations individuelles. Le traitement est
 // asynchrone côté Brevo (l'API renvoie un processId) : cette fonction confirme
@@ -54,7 +57,7 @@ exports.handler = async (event) => {
         listIds: [Number(listId)],
         updateExistingContacts: true,
         emptyContactsAttributes: false,
-        jsonBody: contacts.map(c => ({ email: c.email, attributes: { ROLE: c.role || 'FREE' } })),
+        jsonBody: contacts.map(c => ({ email: c.email, attributes: { ROLE: c.role || 'FREE', MARKETING_OPTIN: c.marketingOptin === true } })),
       }),
     });
 
