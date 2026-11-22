@@ -1067,6 +1067,12 @@ th.th-sort-active svg{opacity:1;}
 /* CATALOGUE PROP FIRM (22/11/2026) — même langage que la barre de filtres de la page Comptes */
 .cat-page{display:flex;flex-direction:column;gap:16px;}
 .field-label-note{font-weight:400;color:var(--text-faint);font-size:11.5px;}
+.af-cat{background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px;}
+.af-cat-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;font-size:13px;}
+.af-cat-head svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
+.af-cat-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.af-cat-row select{flex:1 1 260px;min-width:0;}
+.af-cat-sizes{display:flex;gap:4px;flex-wrap:wrap;}
 /* ADMIN › CATALOGUE (22/11/2026) */
 .acat-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
 .acat-top-actions{display:flex;gap:8px;flex-wrap:wrap;}
@@ -1171,6 +1177,7 @@ th.th-sort-active svg{opacity:1;}
 .cat-ecart{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px 16px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:8px;padding:10px 12px;}
 .cat-ecart-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .cat-empty{padding:40px 18px;text-align:center;color:var(--text-dim);display:flex;flex-direction:column;align-items:center;gap:10px;}
+.cat-add-cell{text-align:right;white-space:nowrap;padding-right:14px !important;}
 .cat-foot{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin:0 2px;}
 @media (max-width:640px){.cat-ms-menu,.cat-ms-menu.right{position:fixed;left:12px;right:12px;top:auto;bottom:12px;max-height:70vh;overflow-y:auto;}}
 /* COACH RENTABILITÉ (route 'coach', 18/10/2026) */
@@ -7116,6 +7123,7 @@ function viewCatalogue(){
       <td title="${escapeHtml(r.accessNote)}">${actCell(r)}</td>
       <td>${dll(r)}</td>
       ${admin ? `<td>${chkBadge(r)}</td>` : ''}
+      <td class="cat-add-cell"><button type="button" class="btn btn-ghost btn-sm" onclick="catAddAccount('${r.id}')" title="Créer un compte PA avec ce programme">${icon('plus')}Ajouter</button></td>
     </tr>`).join('');
   return `<div class="cat-page">
     ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
@@ -7128,7 +7136,7 @@ function viewCatalogue(){
     </div>
     ${admin ? catAdminPanel(c) : ''}
     <div class="panel"><div class="table-wrap"><table class="cat-table">
-      <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}</tr></thead>
+      <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}<th></th></tr></thead>
       <tbody>${body}</tbody>
     </table>
     ${rows.length ? '' : `<div class="cat-empty">Aucun compte ne correspond à ces filtres.<br><button type="button" class="btn btn-ghost btn-sm" onclick="catReset()">Réinitialiser les filtres</button></div>`}
@@ -7165,6 +7173,15 @@ function catAdminPanel(c){
         </div>`).join('') : ''}
     </div>
   </section>`;
+}
+// « Ajouter » dans la page Catalogue : nouveau compte PA prérempli (prop firm, taille, programme, frais d'activation).
+function catAddAccount(rowId){
+  const r = (catState().rows || []).find(x=>x.id===rowId); if(!r) return;
+  const code = ({ 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' })[r.size] || 'AUTRE';
+  const prefill = { propFirmId:r.firmId, size:code, programId:r.id };
+  if(code === 'AUTRE') prefill.customSize = r.size;
+  if(r.act === 'paid' && r.rules.activationFee) prefill.activationFee = Number(r.rules.activationFee) || '';
+  accountFormModal({ type:r.phase, prefill });
 }
 function catToggle(key){ const c = catState(); c.open = (key && c.open !== key) ? key : null; renderView(); }
 function catPick(key, v){
@@ -24029,6 +24046,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
     wide: true,
     bodyHtml: `
       ${parentChallenge ? `<div class="field-hint" style="margin-bottom:14px;">Ce PA sera relié au challenge réussi de <strong>${getTrader(parentChallenge.traderId).pseudo}</strong>.</div>` : ''}
+      ${!isEdit ? `<div class="af-cat" id="af-cat-wrap" style="display:none;"></div>` : ''}
       <div class="field-row">
         <div class="field"><label>Trader</label>
           <select id="af-trader" ${lockTrader?'disabled':''}>
@@ -24250,6 +24268,53 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
       if(curType==='PA'||curType==='LIVE') refreshParentChallengeOptions();
       // Programme (catalogue prop firm, 22/11/2026) : proposé automatiquement, modifiable.
       let afProgramTouched = false;
+      let afCatKey = null;   // programme choisi dans « Choisir dans le catalogue » (prop firm|programme|phase)
+      const catKeyOf = r => r.firmId + '|' + r.program + '|' + r.phase;
+      if(!isEdit && a.programId){ const r0 = (catState().rows || []).find(r=>r.id===a.programId); if(r0) afCatKey = catKeyOf(r0); }
+      // Choisir dans le catalogue (22/11/2026) : à la création d'un PA / Live, un seul choix remplit
+      // la prop firm, la taille, le programme et le frais d'activation (si le catalogue le connaît).
+      function afRenderCatPick(){
+        const wrap = document.getElementById('af-cat-wrap');
+        if(!wrap) return;
+        const rows = catState().rows;
+        const paLike = curType==='PA' || curType==='LIVE';
+        if(!pilotageEnabled() || !paLike || !rows || parentChallenge){ wrap.style.display = 'none'; return; }
+        const today = todayISO();
+        const groups = {};
+        rows.filter(r=>r.active && r.phase===curType && (!r.validTo || r.validTo >= today)).forEach(r=>{
+          const k = catKeyOf(r);
+          (groups[r.firmId] = groups[r.firmId] || { name:r.firm.name, progs:{} }).progs[k] = groups[r.firmId].progs[k] || { r, sizes:[] };
+          groups[r.firmId].progs[k].sizes.push(r.size);
+        });
+        const firms = Object.values(groups).sort((x,y)=>x.name.localeCompare(y.name, 'fr'));
+        if(!firms.length){ wrap.style.display = 'none'; return; }
+        const sel = afCatKey ? Object.values(groups).flatMap(g=>Object.values(g.progs)).find(p=>catKeyOf(p.r)===afCatKey) : null;
+        const curSize = accSizeNum({ size:document.getElementById('af-size').value, customSize:(document.getElementById('af-customsize')||{}).value });
+        wrap.style.display = 'block';
+        wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et le programme</span></div>
+          <div class="af-cat-row"><select id="af-cat-prog"><option value="">— Programme —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(catKeyOf(p.r))}" ${catKeyOf(p.r)===afCatKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
+          ${sel ? `<div class="af-cat-sizes">${sel.sizes.sort((x,y)=>x-y).map(sz=>`<button type="button" class="acat-chip${sz===curSize?' on':''}" data-af-cat-size="${sz}">${acatSizeLabel(sz)}</button>`).join('')}</div>` : ''}</div>`;
+        document.getElementById('af-cat-prog').onchange = (e)=>{
+          afCatKey = e.target.value || null; afProgramTouched = false;
+          if(afCatKey){
+            const p = Object.values(groups).flatMap(g=>Object.values(g.progs)).find(x=>catKeyOf(x.r)===afCatKey);
+            afApplyCat(p.r.firmId, p.sizes.includes(curSize) ? curSize : Math.min(...p.sizes));
+          } else afRenderCatPick();
+        };
+        wrap.querySelectorAll('[data-af-cat-size]').forEach(b=>b.onclick=()=>{ const p = afCatKey.split('|'); afApplyCat(p[0], Number(b.dataset.afCatSize)); });
+      }
+      function afApplyCat(firmId, size){
+        document.querySelectorAll('[data-firm-pick]').forEach(x=>x.classList.toggle('selected', x.dataset.firmPick===firmId));
+        document.getElementById('af-firm').value = firmId;
+        const code = ({ 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' })[size] || 'AUTRE';
+        const sizeSel = document.getElementById('af-size'); sizeSel.value = code; curSize = code;
+        document.getElementById('af-customsize-wrap').style.display = code==='AUTRE' ? 'block' : 'none';
+        if(code==='AUTRE') document.getElementById('af-customsize').value = size;
+        const row = (catState().rows || []).find(r=>catKeyOf(r)===afCatKey && r.size===size);
+        const feeEl = document.getElementById('af-activation-fee');
+        if(row && feeEl && !feeEl.value && row.act==='paid' && row.rules.activationFee) feeEl.value = Number(row.rules.activationFee) || '';
+        afRenderCatPick(); afRefreshProgram();
+      }
       function afRefreshProgram(){
         const wrap = document.getElementById('af-program-wrap');
         if(!wrap) return;
@@ -24268,8 +24333,9 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         const prev = document.getElementById('af-program');
         const keep = afProgramTouched && prev ? prev.value : null;
         const sug = accProgramSuggest(draft);
-        const current = keep !== null ? keep : (a.programId && all.some(r=>r.id===a.programId) && firmId===a.propFirmId ? a.programId : (sug ? sug.row.id : ''));
-        const confirmed = keep !== null || (a.programId && current === a.programId);
+        const fromCat = afCatKey && keep === null ? all.find(r=>catKeyOf(r)===afCatKey) : null;
+        const current = keep !== null ? keep : (fromCat ? fromCat.id : (a.programId && all.some(r=>r.id===a.programId) && firmId===a.propFirmId ? a.programId : (sug ? sug.row.id : '')));
+        const confirmed = keep !== null || !!fromCat || (a.programId && current === a.programId);
         const d = draft.activationDate || todayISO();
         const opts = all.slice().sort((x,y)=>(x.sort||0)-(y.sort||0)).map(r=>{
           const off = (r.validFrom && r.validFrom > d) || (r.validTo && r.validTo < d);
@@ -24286,10 +24352,12 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         const link = wrap.querySelector('[data-af-open-catalogue]');
         if(link) link.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
       }
-      afRefreshProgram();
-      if(!catState().rows) catLoad().then(afRefreshProgram);
-      document.querySelectorAll('[data-type],[data-firm-pick]').forEach(el=>el.addEventListener('click', ()=>setTimeout(afRefreshProgram)));
-      ['af-size','af-customsize','af-activation-date','af-number'].forEach(id=>{ const el = document.getElementById(id); if(el) el.addEventListener('change', afRefreshProgram); });
+      afRefreshProgram(); afRenderCatPick();
+      if(!catState().rows) catLoad().then(()=>{ afRefreshProgram(); afRenderCatPick(); });
+      document.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click', ()=>setTimeout(()=>{ afRefreshProgram(); afRenderCatPick(); })));
+      // Prop firm changée à la main : le choix catalogue ne s'applique plus si elle diffère.
+      document.querySelectorAll('[data-firm-pick]').forEach(el=>el.addEventListener('click', ()=>setTimeout(()=>{ if(afCatKey && afCatKey.split('|')[0] !== el.dataset.firmPick) afCatKey = null; afRefreshProgram(); afRenderCatPick(); })));
+      ['af-size','af-customsize','af-activation-date','af-number'].forEach(id=>{ const el = document.getElementById(id); if(el) el.addEventListener('change', ()=>{ afRefreshProgram(); if(id==='af-size' || id==='af-customsize') afRenderCatPick(); }); });
       const statusSelect = document.getElementById('af-status');
       if(statusSelect) statusSelect.onchange = (e)=>{
         const terminal = e.target.value!=='ACTIF';
