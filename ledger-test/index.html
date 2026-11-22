@@ -1064,6 +1064,62 @@ th.th-sort-active svg{opacity:1;}
 .recap-total-row{border-top:2px solid var(--border);}
 .recap-total-row td{font-weight:700;padding-top:10px;}
 .filter-bar-spacer{flex:1 1 auto;}
+/* CATALOGUE PROP FIRM (22/11/2026) — même langage que la barre de filtres de la page Comptes */
+.cat-page{display:flex;flex-direction:column;gap:16px;}
+.cat-bar{margin-bottom:0;}
+.cat-ms{position:relative;}
+.cat-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 14px 9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;transition:border-color .12s,background .12s;}
+.cat-ms-btn:hover,.cat-ms-btn.is-open{border-color:var(--accent);}
+.cat-ms-btn.is-on{border-color:var(--accent);background:var(--accent-dim);}
+.cat-ms-val{color:var(--accent);font-weight:600;}
+.cat-ms-chev{width:13px;height:13px;color:var(--text-faint);transition:transform .15s;flex-shrink:0;}
+.cat-ms-btn.is-open .cat-ms-chev{transform:rotate(180deg);}
+.cat-ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:6px;z-index:40;min-width:220px;display:flex;flex-direction:column;gap:1px;}
+.cat-ms-menu.wide{min-width:250px;}
+.cat-ms-menu.right{left:auto;right:0;}
+.cat-ms-head{font-size:10px;color:var(--text-faint);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;padding:6px 8px;}
+.cat-ms-item{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:none;background:none;border-radius:6px;font-size:12.5px;font-family:inherit;color:var(--text);text-align:left;cursor:pointer;}
+.cat-ms-item:hover,.cat-ms-item:focus-visible{background:var(--surface-2);outline:none;}
+.cat-ms-item.is-sel{background:var(--surface-2);font-weight:600;}
+.cat-ms-item.is-dim{color:var(--text-faint);}
+.cat-ms-item.is-sel .firm-sel-check{background:var(--accent);border-color:var(--accent);}
+.cat-ms-lab{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-ms-n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);}
+.cat-radio{width:16px;height:16px;flex:none;border:1.5px solid var(--border);border-radius:50%;display:inline-grid;place-items:center;}
+.cat-ms-item.is-sel .cat-radio{border-color:var(--accent);}
+.cat-ms-item.is-sel .cat-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent);}
+.cat-ms-sep{height:1px;background:var(--border-soft);margin:4px 2px;}
+.cat-ms-hint{font-size:11px;color:var(--text-faint);padding:6px 8px 2px;line-height:1.45;max-width:260px;}
+.cat-overlay{position:fixed;inset:0;z-index:30;}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block;}
+.cat-table{min-width:1120px;}
+.cat-table th.num,.cat-table td.num{text-align:right;}
+.cat-table th.cat-first,.cat-table td.cat-first{padding-left:18px;}
+.cat-table tbody tr:hover{background:var(--surface-2);}
+.cat-table tbody tr:last-child td{border-bottom:none;}
+.cat-firm{display:flex;align-items:center;gap:11px;}
+.cat-prog{font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cat-prog a{color:var(--text);}
+.cat-prog a:hover{color:var(--accent);}
+.cat-sub{font-size:11.5px;color:var(--text-faint);margin-top:2px;line-height:1.45;}
+.cat-v{font-weight:600;font-size:12.5px;}
+.cat-ok{color:var(--accent);font-weight:600;}
+.cat-size{display:inline-flex;align-items:center;gap:7px;font-weight:600;}
+.cat-pending{font-size:10.5px;font-weight:600;color:var(--dm-yellow);background:var(--dm-yellow-dim);border-radius:var(--radius-pill);padding:2px 8px;}
+.cat-b-ok{color:var(--accent);background:var(--accent-dim);}
+.cat-b-warn{color:var(--dm-yellow);background:var(--dm-yellow-dim);}
+.cat-b-slate{color:var(--slate);background:var(--slate-dim);}
+.cat-b-eod{color:var(--type-challenge);background:color-mix(in srgb, var(--type-challenge) 14%, transparent);}
+.cat-b-intra{color:var(--gold);background:var(--gold-dim);}
+.cat-b-both{color:var(--type-pa);background:color-mix(in srgb, var(--type-pa) 14%, transparent);}
+.cat-tag-admin{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--gold);background:var(--gold-dim);border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);border-radius:5px;padding:2px 6px;}
+.cat-admin-body{display:flex;flex-direction:column;gap:10px;}
+.cat-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.cat-ecart{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px 16px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:8px;padding:10px 12px;}
+.cat-ecart-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.cat-empty{padding:40px 18px;text-align:center;color:var(--text-dim);display:flex;flex-direction:column;align-items:center;gap:10px;}
+.cat-foot{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin:0 2px;}
+@media (max-width:640px){.cat-ms-menu,.cat-ms-menu.right{position:fixed;left:12px;right:12px;top:auto;bottom:12px;max-height:70vh;overflow-y:auto;}}
 /* COACH RENTABILITÉ (route 'coach', 18/10/2026) */
 .co-page{display:flex;flex-direction:column;gap:16px;}
 .renta-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;}
@@ -6809,6 +6865,291 @@ function requestPropfirmModal(){
 }
 
 /* ============================================================
+   CATALOGUE PROP FIRM (22/11/2026)
+   Règles des comptes financés (PA), table propfirm_programs (relevé officiel + contrôle croisé
+   PropFirm Factory / MaPropFirm, voir doc projet « catalogue-propfirm-regles-payout »).
+   Visible avec les nouveautés pilotage (admins d'abord). Le contrôle des sources est réservé
+   aux admins ; le bouton MAJ appelle netlify/functions/catalogue-check.js (lecture seule :
+   rien n'est écrit sans validation).
+============================================================ */
+const CAT_SIZE_COL = { 25000:'#3ED6B5', 50000:'#6FA8FF', 75000:'#B6A6FF', 100000:'#FF6FA6', 150000:'#F5C542', 250000:'#E85C4A' };
+function catEmptyFilters(){ return { size:[], dd:'ALL', buf:'ALL', days:'ALL', coh:'ALL', act:'ALL', pay:'ALL', dll:'ALL', firm:[] }; }
+function catState(){
+  if(!state.cat) state.cat = { rows:null, loading:false, error:'', f:catEmptyFilters(), sort:'buf', dir:1, open:null, ecartsOpen:false, running:false, result:null };
+  return state.cat;
+}
+function catMoney(n){ return n==null || n==='' ? '—' : Math.round(Number(n)).toLocaleString('fr-FR').replace(/ | /g,' ') + ' $'; }
+function catDate(iso){ return iso ? iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4) : ''; }
+async function catLoad(force){
+  const c = catState();
+  if(c.loading || (c.rows && !force)) return;
+  c.loading = true; c.error = '';
+  try{
+    const { data, error } = await supabaseClient.from('propfirm_programs').select('*').eq('active', true).order('propfirm_id').order('sort').order('size');
+    if(error) throw error;
+    c.rows = (data||[]).map(catRow);
+  }catch(e){
+    c.error = /propfirm_programs/.test(String(e && e.message)) ? 'Le catalogue n’est pas encore installé sur la base.' : 'Impossible de charger le catalogue.';
+    c.rows = c.rows || [];
+  }
+  c.loading = false;
+  if(state.route === 'catalogue') renderView();
+}
+function catCheckInfo(R){
+  const ck = R.check || {};
+  if(ck.verifiedAt) return { kind:'ok', label:'Vérifié', tip:'Vérifié par un admin le ' + catDate(ck.verifiedAt) + (ck.note ? ' · ' + ck.note : '') };
+  const vals = [ck.factory, ck.mapropfirm].filter(v=>v && v!=='absent');
+  const name = v => ({ ok:'confirmé', ecart:'écart', absent:'absent' })[v || 'absent'];
+  const tip = 'PropFirm Factory : ' + name(ck.factory) + ' · MaPropFirm : ' + name(ck.mapropfirm) + (ck.note ? '. ' + ck.note : '');
+  if(vals.includes('ecart')) return { kind:'ecart', label:'Écart signalé', tip };
+  if(!vals.length) return { kind:'none', label:'Non contrôlé', tip };
+  return { kind:'ok', label:'Confirmé ' + vals.length + '/2', tip };
+}
+function catRow(p){
+  const R = p.rules || {};
+  const size = Number(p.size) || 0;
+  const firm = state.propfirms.find(x=>x.id===p.propfirm_id) || { id:p.propfirm_id, name:'Prop firm' };
+  const t = R.ddTypes || [];
+  const buf = Number(R.buffer) || 0;
+  let bufNote = '';
+  if(buf && R.bufferPayouts) bufNote = R.bufferPayouts + ' premiers payouts';
+  else if(buf && R.bufferSteps) bufNote = 'monte jusqu’à ' + catMoney(Math.max(...R.bufferSteps));
+  else if(buf) bufNote = 'à garder après chaque payout';
+  else if(R.splitBelow) bufNote = 'split ' + Math.round(R.splitBelow.split*100) + '/' + Math.round(100-R.splitBelow.split*100) + ' sous ' + catMoney(R.splitBelow.profit) + ' de profit';
+  else if(R.capPct && R.capPct[0]) bufNote = 'payout ≤ ' + Math.round(R.capPct[0]*100) + ' % du profit';
+  const md = Number(R.minDays) || 0;
+  let dayTxt = 'Aucun';
+  if(md && R.winDays) dayTxt = md + ' j de trading dont ' + R.winDays + ' à +' + R.winMin + ' $';
+  else if(md && R.dayType === 'winning') dayTxt = md + ' j à +' + R.dayMin + ' $';
+  else if(md) dayTxt = md + ' j de trading';
+  const coh = (R.consistency || []).filter(Boolean);
+  const cohTxt = !coh.length ? 'Aucune' : (new Set(coh).size === 1 ? coh[0] + ' %' : Math.min(...coh) + ' → ' + Math.max(...coh) + ' %');
+  const act = R.activation || '';
+  const ck = catCheckInfo(R);
+  return {
+    id:p.id, firmId:p.propfirm_id, firm, program:p.program, phase:p.phase, size,
+    sizeTxt: size >= 1000 ? Math.round(size/1000) + 'K' : String(size),
+    ddEod:t.includes('EOD'), ddIntra:t.includes('INTRADAY'),
+    ddTxt:t.map(x=>x==='INTRADAY'?'Intraday':x).join(' / ') || '—', ddA:R.ddAmount ? catMoney(R.ddAmount) : '',
+    buf, bufTxt: buf ? catMoney(buf) : 'Sans buffer', bufNote,
+    days:md, dayTxt, coh:coh[0] || 0, cohTxt,
+    minP:R.minPayout ? catMoney(R.minPayout) : '—',
+    act, actTxt: act==='free' ? 'Gratuite' : act==='choice' ? 'Au choix' : act==='paid' ? (R.activationFee ? catMoney(R.activationFee) : 'Payante') : '—',
+    pay:R.payment || '', payTxt: R.payment==='one_time' ? 'Paiement unique' : R.payment==='monthly' ? 'Abonnement mensuel' : '',
+    dll:R.dll || '', accessNote:R.accessNote || '',
+    partial:p.conf === 'partial', src:p.source_url || '', notes:p.notes || '',
+    dates: p.valid_from ? 'depuis le ' + catDate(p.valid_from) : (p.valid_to ? 'jusqu’au ' + catDate(p.valid_to) : ''),
+    chk:ck, check:R.check || {}, rules:R
+  };
+}
+const CAT_SECTIONS = [
+  { key:'size', label:'Taille', head:'Taille du compte', multi:true },
+  { key:'dd', label:'Drawdown', head:'Type de drawdown', opts:[['ALL','Tous'],['EOD','EOD (fin de journée)'],['INTRA','Intraday']], short:{ EOD:'EOD', INTRA:'Intraday' } },
+  { key:'buf', label:'Buffer payout', head:'Buffer avant payout', opts:[['ALL','Tous'],['YES','Avec buffer'],['NO','Sans buffer']], short:{ YES:'Avec', NO:'Sans' } },
+  { key:'days', label:'Jours min', head:'Jours min en PA', opts:[['ALL','Tous'],['NONE','Aucun minimum'],['LE5','5 jours ou moins'],['GT5','Plus de 5 jours']], short:{ NONE:'Aucun', LE5:'≤ 5 j', GT5:'> 5 j' } },
+  { key:'coh', label:'Cohérence', head:'Règle de cohérence', opts:[['ALL','Toutes'],['NO','Sans cohérence'],['YES','Avec cohérence']], short:{ NO:'Sans', YES:'Avec' } },
+  { key:'act', label:'Activation', head:'Frais d’activation du PA', opts:[['ALL','Toutes'],['FREE','Gratuite'],['PAID','Payante']], hint:'Au choix : la prop firm propose une formule avec et une sans frais d’activation. Ces comptes apparaissent dans les deux options.' },
+  { key:'pay', label:'Paiement', head:'Mode de paiement', opts:[['ALL','Tous'],['ONE','Paiement unique'],['SUB','Abonnement mensuel']], short:{ ONE:'Unique', SUB:'Abonnement' } },
+  { key:'dll', label:'DLL', head:'Daily loss limit en PA', opts:[['ALL','Toutes'],['YES','Avec daily loss limit'],['NO','Sans daily loss limit']], short:{ YES:'Avec', NO:'Sans' }, hint:'Au choix : la daily loss limit se choisit à l’achat du compte. Ces comptes apparaissent dans les deux options.' },
+  { key:'firm', label:'Prop firm', head:'Prop firm', multi:true },
+];
+function catTest(key, v, r){
+  if(v === 'ALL') return true;
+  switch(key){
+    case 'size': return v === 250000 ? r.size >= 250000 : r.size === v;
+    case 'dd': return v === 'EOD' ? r.ddEod : r.ddIntra;
+    case 'buf': return v === 'YES' ? r.buf > 0 : !r.buf;
+    case 'days': return v === 'NONE' ? !r.days : (v === 'LE5' ? r.days > 0 && r.days <= 5 : r.days > 5);
+    case 'coh': return v === 'YES' ? r.coh > 0 : !r.coh;
+    case 'act': return v === 'FREE' ? (r.act === 'free' || r.act === 'choice') : (r.act === 'paid' || r.act === 'choice');
+    case 'pay': return v === 'ONE' ? r.pay === 'one_time' : r.pay === 'monthly';
+    case 'dll': return v === 'YES' ? (r.dll === 'yes' || r.dll === 'optional') : (r.dll === 'no' || r.dll === 'optional');
+    case 'firm': return r.firmId === v;
+  }
+  return true;
+}
+function catMatch(f, r, skip){
+  return CAT_SECTIONS.every(s=>{
+    if(s.key === skip) return true;
+    const v = f[s.key];
+    return s.multi ? (!v.length || v.some(x=>catTest(s.key, x, r))) : catTest(s.key, v, r);
+  });
+}
+function catOptions(s, rows){
+  if(s.key === 'size'){
+    const sizes = [...new Set(rows.map(r=>r.size >= 250000 ? 250000 : r.size))].sort((a,b)=>a-b);
+    return sizes.map(v=>[v, v >= 250000 ? '250K et plus' : Math.round(v/1000) + 'K']);
+  }
+  if(s.key === 'firm'){
+    const seen = []; rows.forEach(r=>{ if(!seen.find(x=>x[0]===r.firmId)) seen.push([r.firmId, r.firm.name]); });
+    return seen.sort((a,b)=>a[1].localeCompare(b[1], 'fr'));
+  }
+  return s.opts;
+}
+const CAT_CHEV = '<svg class="cat-ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function catFilterHtml(s, idx, all, f, c){
+  const opts = catOptions(s, all);
+  const base = all.filter(r=>catMatch(f, r, s.key));
+  const sel = f[s.key];
+  const on = s.multi ? sel.length > 0 : sel !== 'ALL';
+  const open = c.open === s.key;
+  let label = s.label, val = '', logos = '';
+  if(on && s.multi){
+    if(s.key === 'firm'){
+      const firms = sel.map(id=>(all.find(r=>r.firmId===id) || {}).firm).filter(Boolean);
+      logos = `<span class="firm-logo-stack">${firms.slice(0,3).map(fm=>firmLogoHtml(fm, 18)).join('')}</span>`;
+      if(sel.length === 1 && firms[0]) label = escapeHtml(firms[0].name); else val = String(sel.length);
+    } else {
+      val = sel.length === 1 ? (opts.find(o=>o[0]===sel[0]) || [,''])[1] : String(sel.length);
+    }
+  } else if(on){
+    val = (s.short && s.short[sel]) || (opts.find(o=>o[0]===sel) || [,''])[1];
+  }
+  const items = opts.map(o=>{
+    const isOn = s.multi ? sel.includes(o[0]) : sel === o[0];
+    const n = base.filter(r=>catTest(s.key, o[0], r)).length;
+    const firm = s.key === 'firm' ? (all.find(r=>r.firmId===o[0]) || {}).firm : null;
+    const mark = s.multi
+      ? `<span class="firm-sel-check" aria-hidden="true">${isOn ? icon('check') : ''}</span>`
+      : `<span class="cat-radio" aria-hidden="true"></span>`;
+    const deco = s.key === 'size' ? `<span class="cat-dot" style="background:${CAT_SIZE_COL[o[0]] || 'var(--slate)'}"></span>` : (firm ? firmLogoHtml(firm, 20) : '');
+    return `<button type="button" class="cat-ms-item${isOn ? ' is-sel' : ''}${!isOn && !n ? ' is-dim' : ''}" role="${s.multi ? 'checkbox' : 'radio'}" aria-checked="${isOn}" onclick="catPick('${s.key}', ${typeof o[0] === 'number' ? o[0] : `'${o[0]}'`})">${mark}${deco}<span class="cat-ms-lab">${escapeHtml(String(o[1]))}</span><span class="cat-ms-n">${n}</span></button>`;
+  }).join('');
+  return `<div class="cat-ms">
+    <button type="button" class="cat-ms-btn${on ? ' is-on' : ''}${open ? ' is-open' : ''}" aria-haspopup="true" aria-expanded="${open}" onclick="catToggle('${s.key}')">${logos}<span>${label}</span>${val ? `<span class="cat-ms-val">${escapeHtml(val)}</span>` : ''}${CAT_CHEV}</button>
+    ${open ? `<div class="cat-ms-menu${s.key === 'firm' ? ' wide' : ''}${idx >= 6 ? ' right' : ''}" role="${s.multi ? 'group' : 'radiogroup'}" aria-label="${s.head}">
+      <div class="cat-ms-head">${s.head}</div>${items}
+      ${s.hint ? `<div class="cat-ms-hint">${s.hint}</div>` : ''}
+      ${s.multi && on ? `<div class="cat-ms-sep"></div><button type="button" class="status-ms-clear" onclick="catClear('${s.key}')">Effacer ce filtre</button>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+function catSortVal(r, k){ return k === 'buf' ? r.buf : k === 'days' ? r.days : k === 'coh' ? r.coh : r.size; }
+function viewCatalogue(){
+  const c = catState();
+  if(!c.rows){ catLoad(); return emptyState('layers', 'Chargement du catalogue…', ''); }
+  const all = c.rows.filter(r=>r.phase === 'PA');
+  const f = c.f;
+  const rows = all.filter(r=>catMatch(f, r, null))
+    .sort((a,b)=>(catSortVal(a, c.sort) - catSortVal(b, c.sort)) * c.dir || a.size - b.size || a.firm.name.localeCompare(b.firm.name, 'fr') || a.program.localeCompare(b.program, 'fr'));
+  const hasActive = CAT_SECTIONS.some(s=>s.multi ? f[s.key].length : f[s.key] !== 'ALL');
+  const admin = isAdmin();
+  const th = (label, key, cls) => {
+    if(!key) return `<th class="${cls||''}">${label}</th>`;
+    const onS = c.sort === key;
+    return `<th class="th-sortable${onS ? ' th-sort-active' : ''} ${cls||''}" aria-sort="${onS ? (c.dir > 0 ? 'ascending' : 'descending') : 'none'}" onclick="catSort('${key}')"><span class="th-sort-inner">${label}${icon(onS ? (c.dir > 0 ? 'arrowUp' : 'arrowDown') : 'arrowUpDown')}</span></th>`;
+  };
+  const ddBadge = r => `<span class="badge ${r.ddEod && r.ddIntra ? 'cat-b-both' : r.ddEod ? 'cat-b-eod' : 'cat-b-intra'}">${r.ddTxt}</span>`;
+  const dll = r => r.dll === 'no' ? '<span class="cat-ok">Non</span>' : r.dll === 'optional' ? '<span class="badge cat-b-slate">Au choix</span>' : r.dll === 'yes' ? '<span class="badge cat-b-warn">Oui</span>' : '<span class="text-faint">—</span>';
+  const actCell = r => (r.act === 'free' ? `<span class="cat-ok">${r.actTxt}</span>` : r.act === 'choice' ? `<span class="badge cat-b-slate">${r.actTxt}</span>` : `<span class="mono cat-v">${r.actTxt}</span>`) + (r.payTxt ? `<div class="cat-sub">${r.payTxt}</div>` : '');
+  const chkBadge = r => `<span class="badge ${r.chk.kind === 'ok' ? 'cat-b-ok' : r.chk.kind === 'ecart' ? 'cat-b-warn' : 'cat-b-slate'}" title="${escapeHtml(r.chk.tip)}">${r.chk.label}</span>`;
+  const body = rows.map(r=>`<tr>
+      <td class="cat-first"><div class="cat-firm">${firmLogoHtml(r.firm, 30)}<div style="min-width:0">
+        <div class="cat-prog">${r.src ? `<a href="${escapeHtml(r.src)}" target="_blank" rel="noopener" title="Page officielle">${escapeHtml(r.program)}</a>` : escapeHtml(r.program)}${r.partial ? '<span class="cat-pending" title="Une valeur reste à confirmer auprès de la prop firm">À confirmer</span>' : ''}</div>
+        <div class="cat-sub">${escapeHtml(r.firm.name)}${r.dates ? ' · ' + r.dates : ''}</div></div></div></td>
+      <td><span class="cat-size mono"><span class="cat-dot" style="background:${CAT_SIZE_COL[r.size >= 250000 ? 250000 : r.size] || 'var(--slate)'}"></span>${r.sizeTxt}</span></td>
+      <td>${ddBadge(r)}${r.ddA ? `<div class="cat-sub mono">${r.ddA}</div>` : ''}</td>
+      <td>${r.buf ? `<span class="mono cat-v">${r.bufTxt}</span>` : `<span class="cat-ok">${r.bufTxt}</span>`}${r.bufNote ? `<div class="cat-sub">${r.bufNote}</div>` : ''}</td>
+      <td>${r.days ? r.dayTxt : `<span class="cat-ok">${r.dayTxt}</span>`}</td>
+      <td>${r.coh ? `<span class="mono cat-v">${r.cohTxt}</span>` : `<span class="cat-ok">${r.cohTxt}</span>`}</td>
+      <td class="num"><span class="mono cat-v">${r.minP}</span></td>
+      <td title="${escapeHtml(r.accessNote)}">${actCell(r)}</td>
+      <td>${dll(r)}</td>
+      ${admin ? `<td>${chkBadge(r)}</td>` : ''}
+    </tr>`).join('');
+  return `<div class="cat-page">
+    ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
+    ${c.error ? `<div class="search-hidden-note">${icon('alertTriangle')}<span>${c.error}</span></div>` : ''}
+    <div class="filter-bar cat-bar" role="toolbar" aria-label="Filtres du catalogue">
+      <div class="results-counter"><span class="results-counter-label">Résultats</span><span class="results-counter-value">${rows.length}<span class="rc-total">/${all.length}</span></span></div>
+      ${CAT_SECTIONS.map((s,i)=>catFilterHtml(s, i, all, f, c)).join('')}
+      <div class="filter-bar-spacer"></div>
+      ${hasActive ? '<button type="button" class="pill-reset" onclick="catReset()">Réinitialiser</button>' : ''}
+    </div>
+    ${admin ? catAdminPanel(c) : ''}
+    <div class="panel"><div class="table-wrap"><table class="cat-table">
+      <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    ${rows.length ? '' : `<div class="cat-empty">Aucun compte ne correspond à ces filtres.<br><button type="button" class="btn btn-ghost btn-sm" onclick="catReset()">Réinitialiser les filtres</button></div>`}
+    </div></div>
+    <p class="cat-foot">Règles relevées sur les pages officielles des prop firms et contrôlées avec deux sources indépendantes. Clique sur le nom d’un programme pour ouvrir la page officielle. Les règles peuvent changer : vérifie toujours chez la prop firm avant de demander un payout.</p>
+  </div>`;
+}
+function catAdminPanel(c){
+  const all = c.rows.filter(r=>r.phase === 'PA');
+  const n = k => all.filter(r=>r.chk.kind === k).length;
+  const lastAt = all.reduce((m,r)=>(r.check.at && r.check.at > m ? r.check.at : m), '');
+  const groups = [];
+  all.forEach(r=>{ if(r.chk.kind === 'ecart' && !groups.find(g=>g.firmId===r.firmId && g.program===r.program)) groups.push(r); });
+  const res = c.result;
+  const resLine = res ? (res.error
+      ? `<div class="cat-sub" style="color:var(--danger)">${escapeHtml(res.error)}</div>`
+      : `<div class="cat-sub">MAJ du ${escapeHtml(res.at)} : ${res.compared} valeurs comparées · ${res.diffs.length} écart(s) détecté(s)${res.sources ? ' · ' + escapeHtml(res.sources) : ''}</div>`) : '';
+  const diffList = res && res.diffs && res.diffs.length ? res.diffs.slice(0, 40).map(d=>`<div class="cat-ecart"><div style="flex:1 1 420px;min-width:0"><div class="cat-prog">${escapeHtml(d.title)}</div><div class="cat-sub">${escapeHtml(d.note)}</div></div></div>`).join('') : '';
+  return `<section class="panel" aria-label="Contrôle des sources">
+    <div class="panel-head">
+      <div><div class="section-title"><span class="cat-tag-admin">ADMIN</span>Contrôle des sources</div>
+      <div class="cat-sub">Dernier contrôle : ${lastAt ? catDate(lastAt) : '—'} · pages officielles, PropFirm Factory, MaPropFirm</div>${resLine}</div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="catRunCheck()" ${c.running ? 'disabled' : ''}>${c.running ? '<span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>Contrôle en cours…' : icon('reset') + 'MAJ'}</button>
+    </div>
+    <div class="panel-body cat-admin-body">
+      <div class="cat-chips">
+        <span class="badge cat-b-ok">${n('ok')} confirmés</span><span class="badge cat-b-warn">${n('ecart')} écarts</span><span class="badge cat-b-slate">${n('none')} non couverts</span>
+        ${groups.length ? `<button type="button" class="btn btn-ghost btn-sm" onclick="catToggleEcarts()" aria-expanded="${c.ecartsOpen}">${c.ecartsOpen ? 'Masquer les écarts' : 'Voir les écarts'}</button>` : ''}
+      </div>
+      ${diffList}
+      ${c.ecartsOpen ? groups.map(r=>`<div class="cat-ecart">
+          <div style="flex:1 1 420px;min-width:0"><div class="cat-prog">${escapeHtml(r.firm.name)} · ${escapeHtml(r.program)}</div><div class="cat-sub">${escapeHtml(r.chk.tip)}</div></div>
+          <div class="cat-ecart-actions">${r.src ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(r.src)}" target="_blank" rel="noopener">Page officielle</a>` : ''}<button type="button" class="btn btn-outline btn-sm" onclick="catMarkVerified('${r.firmId}', ${escapeHtml(JSON.stringify(r.program))})">Marquer vérifié</button></div>
+        </div>`).join('') : ''}
+    </div>
+  </section>`;
+}
+function catToggle(key){ const c = catState(); c.open = (key && c.open !== key) ? key : null; renderView(); }
+function catPick(key, v){
+  const c = catState(); const s = CAT_SECTIONS.find(x=>x.key===key);
+  if(s.multi){ const cur = c.f[key]; const i = cur.indexOf(v); if(i >= 0) cur.splice(i, 1); else cur.push(v); }
+  else { c.f[key] = v; c.open = null; }
+  renderView();
+}
+function catClear(key){ catState().f[key] = []; renderView(); }
+function catReset(){ const c = catState(); c.f = catEmptyFilters(); c.open = null; renderView(); }
+function catSort(key){ const c = catState(); if(c.sort === key) c.dir = -c.dir; else { c.sort = key; c.dir = 1; } renderView(); }
+function catToggleEcarts(){ const c = catState(); c.ecartsOpen = !c.ecartsOpen; renderView(); }
+async function catMarkVerified(firmId, program){
+  if(!isAdmin()) return;
+  const c = catState();
+  const list = c.rows.filter(r=>r.firmId===firmId && r.program===program);
+  const today = new Date().toISOString().slice(0,10);
+  try{
+    for(const r of list){
+      const rules = { ...r.rules, check:{ ...(r.rules.check||{}), verifiedAt:today } };
+      const { error } = await supabaseClient.from('propfirm_programs').update({ rules, change_note:'Écart vérifié sur la page officielle (admin) — ' + catDate(today) }).eq('id', r.id);
+      if(error) throw error;
+    }
+    showToast(program + ' : marqué vérifié', 'success');
+    await catLoad(true);
+  }catch(e){ showToast('Enregistrement impossible : ' + (e.message || e), 'error'); }
+}
+async function catRunCheck(){
+  if(!isAdmin()) return;
+  const c = catState(); if(c.running) return;
+  c.running = true; renderView();
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/catalogue-check', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') }, body:'{}' });
+    const data = await res.json().catch(()=>({}));
+    if(res.status === 404) c.result = { error:'La fonction de contrôle n’est pas déployée sur ce site.' };
+    else if(!res.ok) c.result = { error:data.error || 'Contrôle impossible.' };
+    else c.result = data;
+  }catch(e){ c.result = { error:'Contrôle impossible : ' + (e.message || e) }; }
+  c.running = false;
+  if(state.route === 'catalogue') renderView();
+}
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
+
+/* ============================================================
    RENDER: SHELL
 ============================================================ */
 // Liste complète des pages (hors Admin) — référence unique utilisée par la navigation
@@ -6820,6 +7161,7 @@ const BASE_NAV = [
   { id:'ecole', label:'Communauté', icon:'layers' },
   { id:'traders', label:'Traders', icon:'users' },
   { id:'propfirms', label:'PropFirms', icon:'building' },
+  { id:'catalogue', label:'Catalogue prop firm', icon:'book' },
   { id:'accounts', label:'Comptes', icon:'card' },
   { id:'radar', label:'Radar inactivité', icon:'hourglass' },
   { id:'calendrier', label:'Calendrier', icon:'calendar' },
@@ -6855,6 +7197,8 @@ function getNav(){
     .filter(n => !SP_ROUTES.includes(n.id) || isAdmin())
     // Mon plan (22/11/2026) : onglet du Profil, admins seulement tant que les nouveautés pilotage ne sont pas ouvertes.
     .filter(n => n.id !== 'mon-plan' || pilotageEnabled())
+    // Catalogue prop firm (22/11/2026) : même interrupteur que les nouveautés pilotage (admins d'abord).
+    .filter(n => n.id !== 'catalogue' || pilotageEnabled())
     .map(n => hidden.has(n.id) ? { ...n, hiddenForOthers:true } : n);
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
@@ -6872,7 +7216,7 @@ function getNav(){
 // par un trait. Traders et PropFirms sont des listes de référence remplies une fois : elles rejoignent
 // « Mon compte ». « flat » = page affichée seule, sans en-tête de groupe ; « bottom » = bloc du bas.
 const NAV_GROUPS = [
-  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier'] },
+  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier','catalogue'] },
   { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'] },
   { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
   { id:'trading',    label:'Trading',      items:['sessions','meteo','plan-seance','cockpit'] },
@@ -7338,6 +7682,7 @@ function topbarSub(){
     'seance-methode': 'Paliers, profils et règles de suggestion',
     traders: state.traders.length + ' trader(s) enregistré(s)',
     propfirms: state.propfirms.length + ' propfirm(s) enregistrée(s)',
+    catalogue: 'Règles des comptes financés : buffer, jours minimum, cohérence, activation — relevées sur les sites officiels',
     accounts: state.accounts.length + ' compte(s) au total',
     radar: 'Comptes funded à risque de clôture pour inactivité, triés par urgence',
     accounting: 'Dépenses, mensualités et payouts',
@@ -8459,6 +8804,7 @@ function renderView(){
   else if(state.route==='meteo') el.innerHTML = viewMeteo();
   else if(state.route==='traders') el.innerHTML = viewTraders();
   else if(state.route==='propfirms') el.innerHTML = viewPropfirms();
+  else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? viewCatalogue() : '';
   else if(state.route==='accounts') el.innerHTML = viewAccounts();
   else if(state.route==='radar') el.innerHTML = perms().isPremium ? viewRadar() : lockedFeatureView('Le radar inactivité');
   else if(state.route==='calendrier') el.innerHTML = perms().canCalendar ? viewCalendrier() : lockedFeatureView('Le calendrier', 'calendrier');
