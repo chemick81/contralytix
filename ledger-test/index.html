@@ -2947,6 +2947,12 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:5px;}
 .pl-kpi small{font-size:12px;color:var(--text-dim);}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
+@media (max-width:640px){.pl-kpis{grid-template-columns:1fr 1fr;gap:8px;}.pl-kpi{padding:11px;}.pl-kpi b{font-size:18px;}}
+.pl-kpi-cmp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--text-faint);}
+.pl-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.pl-trend-up{color:var(--accent);background:var(--accent-dim);}
+.pl-trend-down{color:var(--danger, #F0616D);background:color-mix(in srgb, var(--danger, #F0616D) 14%, transparent);}
+.pl-trend-flat{color:var(--text-dim);background:var(--surface-2);}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
 .cc-confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:4000;}
@@ -3596,7 +3602,7 @@ const DASHBOARD_WIDGETS = [
   { id:'pilotSession',   label:'P&L du jour', pilot:true },
   { id:'pilotPlan',      label:'Payouts du mois', pilot:true },
   { id:'pilotProgress',  label:'Courbe des payouts', pilot:true },
-  { id:'pilotKpis',      label:'Stats prop firm', pilot:true },
+  { id:'pilotKpis',      label:'KPI du mois', pilot:true },
   { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
   { id:'decisionRepurchase', label:'Puis-je racheter un compte cette semaine ?' },
@@ -11288,7 +11294,7 @@ async function renderPublicCohortReport(token, month){
    PILOTAGE — modules du Dashboard (22/11/2026, étape 2)
    Séance du jour, Plan de payout, Avancement vs plan, Indicateurs de pilotage.
    Libellés renommés le 22/11 (vocabulaire trading, pour ne pas copier PropFirm Factory) : P&L du jour,
-   Payouts du mois, Courbe des payouts, Stats prop firm, Signal, Target du jour, journée verte / rouge,
+   Payouts du mois, Courbe des payouts, KPI du mois, Signal, Target du jour, journée verte / rouge,
    Trajectoire cible, Prévision, Drawdown exposé, Trading plan.
    Visibles seulement si pilotageEnabled() (admins tant que Admin > Nouveautés pilotage est coupé).
    Portée : tous les comptes de l'utilisateur (le plan est global), pas les filtres trader / PropFirm.
@@ -11637,18 +11643,75 @@ function pilotProgressWidgetHtml(pd){
     <div class="pl-legend">${dueTxt}</div>
   </section>`;
 }
-function pilotKpisWidgetHtml(pd, firstPayoutDetails){
-  const c = pd.cur, d = pd.d;
-  let dd = null, ddN = 0;
-  if(pilotHealthAllowed()) pd.act.forEach(a=>{ const h = dlxHealthOf(a.id); if(h && h.remainingLoss != null){ dd = (dd || 0) + Number(h.remainingLoss); ddN++; } });
-  const per = d.days ? `sur ${d.days === 365 ? '12 mois' : d.days + ' jours'}` : 'depuis le début';
-  const costPay = d.payoutCount ? d.totalExp / d.payoutCount : null;
-  const avgPay = d.payoutCount ? d.totalPay / d.payoutCount : null;
-  return `<section class="pl-kpis" aria-label="Stats prop firm">
-    <div class="pl-kpi"><small>Drawdown exposé ${pilotTip('Somme du drawdown encore disponible (avant la limite de perte) sur tes comptes actifs suivis par Deltalytix : ce que tu perdrais si tous cassaient.')}</small><b>${dd != null ? pilotMoney(dd, 'USD') : '—'}</b><em>${dd != null ? `perdu si tes ${ddN} compte${ddN > 1 ? 's' : ''} suivi${ddN > 1 ? 's' : ''} par Deltalytix cassent` : (pilotHealthAllowed() ? 'aucun drawdown configuré dans Deltalytix' : 'avec Premium et Deltalytix connecté')}</em></div>
-    <div class="pl-kpi"><small>PA → payout ${pilotTip('Part de tes comptes financés (PA et Live) qui ont versé au moins un payout, sur la période choisie dans le Coach.')}</small><b>${d.paidRate != null ? Math.round(d.paidRate) + ' %' : '—'}</b><em>comptes financés avec au moins un payout ${per}</em></div>
-    <div class="pl-kpi"><small>Coût par payout ${pilotTip('Toutes tes dépenses prop firm (challenges, mensualités, activations, resets) ÷ nombre de payouts reçus, sur la même période : ce que te coûte, en moyenne, chaque payout obtenu.')}</small><b>${costPay != null ? pilotMoney(costPay, c) : '—'}</b><em>${d.payoutCount ? `${pilotMoney(d.totalExp, c)} dépensés · ${d.payoutCount} payout${d.payoutCount > 1 ? 's' : ''} ${per}` : `aucun payout ${per}`}</em></div>
-    <div class="pl-kpi"><small>Payout moyen ${pilotTip('Montant moyen d’un payout sur la période. Comparé au coût par payout : au-dessus de 1 ×, chaque payout rembourse ce qu’il t’a coûté.')}</small><b class="${avgPay != null && costPay != null ? (avgPay >= costPay ? 'pl-pos' : 'pl-neg') : ''}">${avgPay != null ? pilotMoney(avgPay, c) : '—'}</b><em>${avgPay != null && costPay ? `${(avgPay / costPay).toFixed(1).replace('.', ',')} × son coût ${avgPay >= costPay ? '· rentable' : '· ne couvre pas son coût'}` : (d.payoutCount ? 'aucune dépense sur la période' : `aucun payout ${per}`)}</em></div>
+// KPI du mois (refonte du 22/11/2026, décisions de Mickael) : l'ancien module « Stats prop firm »
+// faisait doublon avec Vue d'ensemble / Performance & ROI. Quatre chiffres de pilotage, mois en cours
+// comparé au mois dernier À LA MÊME DATE (du 1er au jour J), tous dans la devise d'affichage :
+// Net du mois, Multiplicateur (payouts ÷ dépenses), Coût d'un PA obtenu, Jours verts.
+function pilotKpiMonth(pd){
+  const d = pd.d, val = d.val, today = d.today;
+  const accIds = new Set(pd.accounts.map(a=>a.id));
+  const exp = computeAllExpenses().filter(e=>accIds.has(e.accountId) && e.date);
+  const pay = state.payouts.filter(x=>accIds.has(x.accountId) && x.date);
+  const ym = today.slice(0,7), dom = Number(today.slice(8,10));
+  const pd0 = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)) - 2, 1);
+  const pym = pd0.getFullYear() + '-' + String(pd0.getMonth() + 1).padStart(2, '0');
+  const pdim = new Date(pd0.getFullYear(), pd0.getMonth() + 1, 0).getDate();
+  const pTo = `${pym}-${String(Math.min(dom, pdim)).padStart(2, '0')}`;
+  const range = (from, to)=> (x)=> x >= from && x <= to;
+  const cur = { from: ym + '-01', to: today }, prv = { from: pym + '-01', to: pTo }, prvFull = { from: pym + '-01', to: `${pym}-${pdim}` };
+  const calc = (r)=>{
+    const inR = range(r.from, r.to);
+    const e = exp.filter(x=>inR(x.date.slice(0,10))), py = pay.filter(x=>inR(x.date.slice(0,10)));
+    const ex = e.reduce((t,x)=>t + val(x), 0), pa = py.reduce((t,x)=>t + val(x), 0);
+    const chExp = e.filter(x=>{ const ac = getAccount(x.accountId); return ac && ac.type === 'CHALLENGE'; }).reduce((t,x)=>t + val(x), 0);
+    const paGot = pd.accounts.filter(ac=>(ac.type === 'PA' || ac.type === 'LIVE') && (ac.activationDate || ac.purchaseDate) && inR(String(ac.activationDate || ac.purchaseDate).slice(0,10))).length;
+    // Jours verts : jour tradé où le P&L moyen par compte tradé (compté au-dessus du buffer le cas
+    // échéant) atteint le seuil « Journée verte si P&L ≥ » du Trading plan.
+    const byDay = new Map();
+    (state.dormancyLogs || []).forEach(l=>{
+      if(!accIds.has(l.accountId) || !inR(l.day) || l.pnl === null || l.pnl === undefined || l.pnl === '') return;
+      const ac = getAccount(l.accountId); if(!ac) return;
+      const c = planCountedPnl(l, ac, pd.p);
+      const g = byDay.get(l.day) || { t:0, n:0 }; g.t += c.v; g.n++; byDay.set(l.day, g);
+    });
+    const valid = Number(pd.p.sessionValid) || 0;
+    const days = byDay.size, green = [...byDay.values()].filter(g=>g.t / g.n >= valid).length;
+    return { ex, pa, net: pa - ex, mult: ex > 0 ? pa / ex : null, chExp, paGot, cpa: paGot ? chExp / paGot : null, days, green, gPct: days ? green / days * 100 : null };
+  };
+  return { cur: calc(cur), prv: calc(prv), prvFull: calc(prvFull), pTo, pym, dom };
+}
+function pilotTrend(now, before, { better = 'up', fmt, minAbs = 0 } = {}){
+  if(now == null || before == null) return null;
+  const diff = now - before;
+  if(Math.abs(diff) <= minAbs) return `<span class="pl-trend pl-trend-flat">= stable</span>`;
+  const good = better === 'up' ? diff > 0 : diff < 0;
+  return `<span class="pl-trend ${good ? 'pl-trend-up' : 'pl-trend-down'}">${diff > 0 ? '▲' : '▼'} ${fmt(Math.abs(diff))}</span>`;
+}
+function pilotKpisWidgetHtml(pd){
+  const c = pd.cur, k = pilotKpiMonth(pd), n = k.cur, b = k.prv;
+  const mName = (ym)=> new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)) - 1, 1).toLocaleDateString('fr-FR', { month:'long' });
+  const vsTxt = `vs ${mName(k.pym)} au ${Number(k.pTo.slice(8,10))}`;
+  const mult = (x)=> x == null ? '—' : x.toFixed(2).replace('.', ',') + ' ×';
+  const pct = (x)=> Math.round(x) + ' pts';
+  const money = (x)=> pilotMoney(x, c);
+  const tile = (title, tip, value, cls, trend, sub)=> `<div class="pl-kpi"><small>${title} ${pilotTip(tip)}</small><b class="${cls}">${value}</b><div class="pl-kpi-cmp">${trend ? `${trend}<span>${vsTxt}</span>` : `<span>rien à comparer en ${mName(k.pym)} au ${Number(k.pTo.slice(8,10))}</span>`}</div><em>${sub}</em></div>`;
+  return `<section class="pl-kpis" aria-label="KPI du mois">
+    ${tile('Net du mois', 'Payouts reçus − dépenses prop firm (challenges, resets, mensualités, activations) depuis le 1er du mois. Comparé au mois dernier à la même date.',
+      pilotSigned(n.net, c), n.net > 0 ? 'pl-pos' : n.net < 0 ? 'pl-neg' : '',
+      pilotTrend(n.net, b.net, { fmt: money, minAbs: 0.5 }),
+      `${money(n.pa)} retirés · ${money(n.ex)} dépensés · ${mName(k.pym)} entier : ${pilotSigned(k.prvFull.net, c)}`)}
+    ${tile('Multiplicateur', 'Payouts ÷ dépenses du mois. 1,50 × = chaque euro dépensé en a rapporté 1,50. Sous 1 ×, le mois coûte plus qu’il ne rapporte.',
+      n.mult == null ? (n.pa > 0 ? '∞' : '—') : mult(n.mult), n.mult == null ? (n.pa > 0 ? 'pl-pos' : '') : (n.mult >= 1 ? 'pl-pos' : 'pl-neg'),
+      pilotTrend(n.mult, b.mult, { fmt: (x)=>x.toFixed(2).replace('.', ','), minAbs: 0.005 }),
+      n.mult == null ? (n.pa > 0 ? 'aucune dépense ce mois-ci' : 'ni payout ni dépense ce mois-ci') : (n.mult >= 1 ? 'le mois est rentable' : `il manque ${money(n.ex - n.pa)} pour être à l’équilibre`))}
+    ${tile('Coût d’un PA obtenu', 'Dépenses sur tes challenges du mois ÷ nombre de PA (et comptes Live) obtenus dans le mois. Plus c’est bas, mieux c’est.',
+      n.cpa != null ? money(n.cpa) : '—', '',
+      pilotTrend(n.cpa, b.cpa, { better: 'down', fmt: money, minAbs: 0.5 }),
+      n.paGot ? `${money(n.chExp)} en challenges · ${n.paGot} PA obtenu${n.paGot > 1 ? 's' : ''}` : (n.chExp > 0 ? `${money(n.chExp)} en challenges · aucun PA obtenu pour l’instant` : 'aucun challenge payé ce mois-ci'))}
+    ${tile('Jours verts', `Jours tradés du mois où ton P&L moyen par compte atteint ton seuil « Journée verte si P&L ≥ » (${money(Number(pd.p.sessionValid) || 0)}). Compté au-dessus du buffer pour les prop firms cochées dans ton trading plan.`,
+      n.gPct != null ? Math.round(n.gPct) + ' %' : '—', n.gPct == null ? '' : (n.gPct >= 50 ? 'pl-pos' : 'pl-neg'),
+      pilotTrend(n.gPct, b.gPct, { fmt: pct, minAbs: 0.5 }),
+      n.days ? `${n.green} jour${n.green > 1 ? 's' : ''} vert${n.green > 1 ? 's' : ''} sur ${n.days} tradé${n.days > 1 ? 's' : ''}` : 'aucune journée enregistrée (Deltalytix ou saisie manuelle)')}
   </section>`;
 }
 function bindPilotEvents(){
@@ -12099,7 +12162,7 @@ function viewDashboard(){
     pilotSession: pilotOn ? pilotSessionWidgetHtml(pd) : undefined,
     pilotPlan: pilotOn ? pilotPlanWidgetHtml(pd) : undefined,
     pilotProgress: pilotOn ? pilotProgressWidgetHtml(pd) : undefined,
-    pilotKpis: pilotOn ? pilotKpisWidgetHtml(pd, firstPayoutDetails) : undefined,
+    pilotKpis: pilotOn ? pilotKpisWidgetHtml(pd) : undefined,
     alerts: `
       <div class="panel dash-alerts-panel">
         <div class="panel-head dash-alerts-head" data-alerts-toggle>
