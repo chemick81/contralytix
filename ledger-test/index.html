@@ -11408,14 +11408,14 @@ function pilotKpisWidgetHtml(pd, firstPayoutDetails){
   const c = pd.cur, d = pd.d;
   let dd = null, ddN = 0;
   if(pilotHealthAllowed()) pd.act.forEach(a=>{ const h = dlxHealthOf(a.id); if(h && h.remainingLoss != null){ dd = (dd || 0) + Number(h.remainingLoss); ddN++; } });
-  const fp = (firstPayoutDetails || []).filter(x=>!x.anomaly && pd.accounts.some(a=>a.id === x.account.id)).map(x=>x.days).sort((a,b)=>a-b);
-  const med = fp.length ? (fp.length % 2 ? fp[(fp.length - 1) / 2] : Math.round((fp[fp.length/2 - 1] + fp[fp.length/2]) / 2)) : null;
   const per = d.days ? `sur ${d.days === 365 ? '12 mois' : d.days + ' jours'}` : 'depuis le début';
+  const costPay = d.payoutCount ? d.totalExp / d.payoutCount : null;
+  const avgPay = d.payoutCount ? d.totalPay / d.payoutCount : null;
   return `<section class="pl-kpis" aria-label="Stats prop firm">
-    <div class="pl-kpi"><small>Drawdown exposé</small><b>${dd != null ? pilotMoney(dd, 'USD') : '—'}</b><em>${dd != null ? `perdu si tes ${ddN} compte${ddN > 1 ? 's' : ''} suivi${ddN > 1 ? 's' : ''} par Deltalytix cassent` : (pilotHealthAllowed() ? 'aucun drawdown configuré dans Deltalytix' : 'avec Premium et Deltalytix connecté')}</em></div>
-    <div class="pl-kpi"><small>Délai médian avant 1er payout</small><b>${med != null ? med + ' j' : '—'}</b><em>${fp.length ? `de l’ouverture du PA au 1er payout · ${fp.length} compte${fp.length > 1 ? 's' : ''}` : 'pas encore de payout enregistré'}</em></div>
-    <div class="pl-kpi"><small>Challenge → PA</small><b>${d.passRate != null ? Math.round(d.passRate) + ' %' : '—'}</b><em>challenges réussis ${per}</em></div>
-    <div class="pl-kpi"><small>PA → payout</small><b>${d.paidRate != null ? Math.round(d.paidRate) + ' %' : '—'}</b><em>comptes financés avec au moins un payout ${per}</em></div>
+    <div class="pl-kpi"><small>Drawdown exposé ${pilotTip('Somme du drawdown encore disponible (avant la limite de perte) sur tes comptes actifs suivis par Deltalytix : ce que tu perdrais si tous cassaient.')}</small><b>${dd != null ? pilotMoney(dd, 'USD') : '—'}</b><em>${dd != null ? `perdu si tes ${ddN} compte${ddN > 1 ? 's' : ''} suivi${ddN > 1 ? 's' : ''} par Deltalytix cassent` : (pilotHealthAllowed() ? 'aucun drawdown configuré dans Deltalytix' : 'avec Premium et Deltalytix connecté')}</em></div>
+    <div class="pl-kpi"><small>PA → payout ${pilotTip('Part de tes comptes financés (PA et Live) qui ont versé au moins un payout, sur la période choisie dans le Coach.')}</small><b>${d.paidRate != null ? Math.round(d.paidRate) + ' %' : '—'}</b><em>comptes financés avec au moins un payout ${per}</em></div>
+    <div class="pl-kpi"><small>Coût par payout ${pilotTip('Toutes tes dépenses prop firm (challenges, mensualités, activations, resets) ÷ nombre de payouts reçus, sur la même période : ce que te coûte, en moyenne, chaque payout obtenu.')}</small><b>${costPay != null ? pilotMoney(costPay, c) : '—'}</b><em>${d.payoutCount ? `${pilotMoney(d.totalExp, c)} dépensés · ${d.payoutCount} payout${d.payoutCount > 1 ? 's' : ''} ${per}` : `aucun payout ${per}`}</em></div>
+    <div class="pl-kpi"><small>Payout moyen ${pilotTip('Montant moyen d’un payout sur la période. Comparé au coût par payout : au-dessus de 1 ×, chaque payout rembourse ce qu’il t’a coûté.')}</small><b class="${avgPay != null && costPay != null ? (avgPay >= costPay ? 'pl-pos' : 'pl-neg') : ''}">${avgPay != null ? pilotMoney(avgPay, c) : '—'}</b><em>${avgPay != null && costPay ? `${(avgPay / costPay).toFixed(1).replace('.', ',')} × son coût ${avgPay >= costPay ? '· rentable' : '· ne couvre pas son coût'}` : (d.payoutCount ? 'aucune dépense sur la période' : `aucun payout ${per}`)}</em></div>
   </section>`;
 }
 function bindPilotEvents(){
