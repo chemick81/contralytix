@@ -2949,6 +2949,22 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
+.cc-confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:4000;}
+.cc-modal{max-width:520px;border-color:color-mix(in srgb, var(--accent) 45%, var(--border));box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent), 0 24px 70px -20px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow);}
+.cc-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:6px 0 2px;}
+.cc-badge{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:var(--gold);background:radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--gold) 28%, transparent), color-mix(in srgb, var(--gold) 8%, transparent) 70%);border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);margin-bottom:6px;animation:ccPop .6s cubic-bezier(.2,1.4,.4,1) both;}
+.cc-badge svg{width:32px;height:32px;}
+.cc-kicker{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+.cc-name{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.15;}
+.cc-sub{font-size:12px;color:var(--text-faint);}
+.cc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;width:100%;margin-top:12px;}
+.cc-tile{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;text-align:left;}
+.cc-tile small{font-size:11.5px;color:var(--text-dim);}
+.cc-tile b{font-size:17px;font-variant-numeric:tabular-nums;}
+.cc-tile em{font-style:normal;font-size:11px;color:var(--text-faint);}
+.cc-next{margin-top:12px;font-size:13px;line-height:1.5;color:var(--text-dim);background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);border-radius:10px;padding:10px 12px;width:100%;text-align:left;}
+@keyframes ccPop{0%{transform:scale(.4);opacity:0;}100%{transform:scale(1);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.cc-badge{animation:none;}}
 .pl-raw{font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .mp-buf{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border-soft);padding-top:14px;}
 .mp-buf-row{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);}
@@ -3505,6 +3521,7 @@ const ICONS = {
   play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2 1c0 1.7-2.5 1.9-2.5 3.6"/><path d="M12 17.5h.01"/></svg>',
   arrowRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
   arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
   arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M18 13l-6 6-6-6"/></svg>',
   arrowUpDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15V3M4 6l3-3 3 3"/><path d="M17 9v12M14 18l3 3 3-3"/></svg>',
@@ -11419,7 +11436,7 @@ function pilotRiskWidgetHtml(pd){
       <div class="pl-risk-ico" style="color:${c};background:color-mix(in srgb, ${c} 15%, transparent);">${x.kind === 'dd' ? ddIco : goalIco}</div>
       <div class="pl-risk-name"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span class="pl-tag" style="${tagC}">${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span><b style="font-size:14px;">${pilotAccName(x.a)}</b></div><span style="font-size:13px;font-weight:600;color:${c};">${title}</span></div>
       <div class="pl-risk-metric">${metric}<div class="pl-risk-bar"><i style="width:${Math.max(2, x.pct).toFixed(0)}%;background:${c};"></i></div><span style="font-size:12px;color:var(--text-dim);">${hint}</span></div>
-      <button type="button" class="btn btn-outline btn-sm" data-alert-acc="${x.a.id}">Ouvrir le compte</button>
+      ${x.level === 'done' && x.a.status === 'ACTIF' && canEdit(x.a) ? `<button type="button" class="btn btn-primary btn-sm" data-pl-mark="${x.a.id}">${icon('check')}Marquer réussi</button>` : `<button type="button" class="btn btn-outline btn-sm" data-alert-acc="${x.a.id}">Ouvrir le compte</button>`}
     </div>`;
   }).join('');
   return `<section class="panel pl-card pl-risk-card" aria-label="Alertes de risque">${head(`<span class="pl-dot ${anyCrit ? 'on' : ''}" aria-hidden="true" style="${anyCrit ? '' : 'background:var(--gold);'}"></span>`, seg)}<div>${rows}</div>${foot}</section>`;
@@ -11642,6 +11659,7 @@ function bindPilotEvents(){
   const plmSave = document.querySelector('[data-pl-manual-save]');
   if(plmSave) plmSave.onclick = pilotManualSave;
   document.querySelectorAll('[data-plm-acc]').forEach(inp=>{ inp.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); pilotManualSave(); } }; });
+  document.querySelectorAll('[data-pl-mark]').forEach(b=>{ b.onclick = (e)=>{ e.stopPropagation(); const a = getAccount(b.dataset.plMark); if(a) statusChangeModal(a, 'REUSSI', todayISO()); }; });
   document.querySelectorAll('[data-pl-risk-f]').forEach(b=>{ b.onclick = ()=>{ state.pilotRiskFilter = b.dataset.plRiskF; renderView(); }; });
   document.querySelectorAll('[data-pl-series]').forEach(b=>{
     b.onclick = ()=>{
@@ -25126,6 +25144,102 @@ function convertPaToLive(acc){
 }
 
 /* ============================================================
+   CHALLENGE RÉUSSI — CÉLÉBRATION (étape 5, 22/11/2026)
+   Confettis + carte récap (coût, durée, jours tradés, n-ième challenge validé) + actions
+   Créer le PA / Plus tard / Partager. Déclenchée par « Marquer réussi » (statusChangeModal), y
+   compris depuis l'alerte « Objectif atteint » du Dashboard (Deltalytix). Visible quand
+   pilotageEnabled() (admins d'abord). Le partage ne contient aucun montant.
+============================================================ */
+function ccConfetti(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.createElement('canvas');
+  cv.className = 'cc-confetti'; cv.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(cv);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement);
+  const pick = (v, f)=> (css.getPropertyValue(v) || '').trim() || f;
+  const cols = [pick('--accent', '#2ED3A0'), pick('--gold', '#E9B44C'), pick('--type-challenge', '#8B7CF6'), '#FFFFFF', pick('--accent', '#2ED3A0')];
+  const N = W < 600 ? 90 : 160;
+  const parts = Array.from({ length: N }, (_, i)=>{
+    const left = i % 2 === 0;
+    return { x: left ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.3),
+      vx: (left ? 1 : -1) * (4 + Math.random() * 7), vy: -(9 + Math.random() * 9),
+      w: 5 + Math.random() * 6, h: 8 + Math.random() * 8, r: Math.random() * 6.3, vr: (Math.random() - .5) * .35,
+      c: cols[i % cols.length], d: Math.random() * 12 };
+  });
+  const t0 = performance.now();
+  const step = (t)=>{
+    const el = t - t0;
+    ctx.clearRect(0, 0, W, H);
+    parts.forEach(p=>{
+      if(el < p.d * 16) return;
+      p.vy += 0.32; p.vx *= 0.985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, Math.min(1, (3600 - el) / 800));
+      ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 1.7)) + 1);
+      ctx.restore();
+    });
+    if(el < 3600) requestAnimationFrame(step); else cv.remove();
+  };
+  requestAnimationFrame(step);
+}
+function ccStats(acc){
+  const end = acc.endDate || todayISO();
+  const days = acc.purchaseDate ? Math.max(1, daysBetween(acc.purchaseDate, end) + 1) : null;
+  const traded = (state.dormancyLogs || []).filter(l=>String(l.accountId) === String(acc.id) && l.traded && l.day <= end).length;
+  let cost = null;
+  try{ cost = totalExpensesFor(acc.id); }catch(e){}
+  const mine = state.accounts.filter(a=>a.type === 'CHALLENGE' && a.status === 'REUSSI' && (a.traderId === acc.traderId));
+  return { days, traded, cost, rank: mine.length };
+}
+function challengePassedCelebration(acc){
+  if(!acc) return;
+  const firm = getFirm(acc.propFirmId);
+  const name = `${(firm || {}).name || 'Challenge'}${acc.size ? ' ' + sizeLabelRaw(acc) : ''}`;
+  const st = ccStats(acc);
+  const canPa = needsPa(acc) && canEdit(acc);
+  const ord = st.rank === 1 ? 'Ton premier challenge validé' : `Ton ${st.rank}e challenge validé`;
+  const tile = (k, v, sub)=> `<div class="cc-tile"><small>${k}</small><b>${v}</b>${sub ? `<em>${sub}</em>` : ''}</div>`;
+  const tiles = [
+    st.days ? tile('Validé en', `${st.days} jour${st.days > 1 ? 's' : ''}`, acc.purchaseDate ? `depuis le ${fmtDate(acc.purchaseDate)}` : '') : '',
+    st.traded ? tile('Jours tradés', String(st.traded), 'd’après tes journées') : '',
+    st.cost != null ? tile('Coût du challenge', fmtMoneyCur(st.cost, acc.currency || 'USD'), 'achat, resets, mensualités') : '',
+  ].filter(Boolean).join('');
+  openModal({
+    title: 'Challenge validé',
+    bodyHtml: `<div class="cc-card">
+      <div class="cc-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></div>
+      <div class="cc-kicker">${escapeHtml(ord)}</div>
+      <div class="cc-name">${escapeHtml(name)}</div>
+      ${acc.accountNumber ? `<div class="cc-sub">N° ${maskAccountNumber(acc.accountNumber)}</div>` : ''}
+      ${tiles ? `<div class="cc-tiles">${tiles}</div>` : ''}
+      <div class="cc-next">${canPa ? '<b>Prochaine étape :</b> crée le PA obtenu. Son activation et ses dépenses rejoindront le net de ce challenge, et ton trading plan le comptera.' : 'Bravo. Ton prochain objectif : le premier payout de ce compte.'}</div>
+    </div>`,
+    footHtml: `<button class="btn btn-ghost" id="cc-share">${icon('share')}Partager</button><span style="flex:1;"></span><button class="btn btn-outline" id="cc-later">${canPa ? 'Plus tard' : 'Fermer'}</button>${canPa ? `<button class="btn btn-primary" id="cc-pa">${icon('bolt')}Créer le PA</button>` : ''}`,
+    onMount(){
+      const m = document.querySelector('#modal-root .modal'); if(m) m.classList.add('cc-modal');
+      document.getElementById('cc-later').onclick = closeModal;
+      const pa = document.getElementById('cc-pa');
+      if(pa) pa.onclick = ()=>{ closeModal(); accountFormModal({ type:'PA', parentChallenge: getAccount(acc.id) }); };
+      document.getElementById('cc-share').onclick = async ()=>{
+        const txt = `🏆 Challenge ${name} validé${st.days ? ` en ${st.days} jour${st.days > 1 ? 's' : ''}` : ''} ! Suivi de mes comptes prop firm avec Contralytix.`;
+        const url = 'https://contralytix.fr';
+        try{
+          if(navigator.share){ await navigator.share({ title:'Challenge validé', text: txt, url }); return; }
+          await navigator.clipboard.writeText(`${txt} ${url}`);
+          showToast('Texte copié : colle-le où tu veux.');
+        }catch(e){ if(e && e.name !== 'AbortError') showToast('Partage impossible sur cet appareil.', 'danger'); }
+      };
+      ccConfetti();
+      try{ logActivity('UPDATE', 'account', acc.id, 'Célébration challenge réussi affichée'); }catch(e){}
+    }
+  });
+}
+
+/* ============================================================
    STATUS CHANGE (Réussi / Breached / Fermé)
 ============================================================ */
 function statusChangeModal(acc, newStatus, defaultDate){
@@ -25150,7 +25264,9 @@ function statusChangeModal(acc, newStatus, defaultDate){
         // Challenge réussi → on enchaîne directement sur « Créer le PA » (02/10/2026). « Plus tard »
         // laisse le challenge visible dans le filtre Actif avec le badge « PA à créer » (voir needsPa).
         const updated = getAccount(acc.id);
-        if(newStatus==='REUSSI' && needsPa(updated) && canEdit(updated)){
+        if(newStatus==='REUSSI' && updated && updated.type==='CHALLENGE' && pilotageEnabled()){
+          challengePassedCelebration(updated);
+        } else if(newStatus==='REUSSI' && needsPa(updated) && canEdit(updated)){
           accountFormModal({ type:'PA', parentChallenge: updated });
         }
       };
