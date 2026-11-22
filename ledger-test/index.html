@@ -2949,6 +2949,34 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
+@keyframes pl-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.pl-dot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex-shrink:0;}
+.pl-dot.on{animation:pl-pulse 1.8s ease-out infinite;}
+.pl-dot.ok{background:var(--accent);}
+@media (prefers-reduced-motion: reduce){ .pl-dot.on{animation:none;} }
+.pl-risk-card{padding:0;gap:0;}
+.pl-risk-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);}
+.pl-risk-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pl-risk-title h3{margin:0;font-size:15px;font-weight:700;}
+.pl-seg{display:flex;gap:2px;padding:3px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;}
+.pl-seg button{height:28px;padding:0 11px;border:0;border-radius:6px;background:transparent;color:var(--text-dim);font:500 12px inherit;font-family:inherit;cursor:pointer;}
+.pl-seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);}
+.pl-seg button{white-space:nowrap;}
+.pl-risk-metric .top{flex-wrap:wrap;}
+.pl-risk-row{display:grid;grid-template-columns:34px minmax(0,1.2fr) minmax(0,1.6fr) auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--border-soft, var(--border));}
+.pl-risk-row:first-child{border-top:0;}
+.pl-risk-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.pl-risk-ico svg{width:17px;height:17px;}
+.pl-risk-name{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.pl-risk-name .pl-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
+.pl-risk-metric{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.pl-risk-metric .top{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-dim);}
+.pl-risk-metric .top b{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--text);font-weight:600;white-space:nowrap;}
+.pl-risk-bar{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;}
+.pl-risk-bar i{display:block;height:100%;border-radius:999px;}
+.pl-risk-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim);}
+.pl-risk-empty{padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;}
+@media (max-width:760px){ .pl-seg{width:100%;} .pl-seg button{flex:1;padding:0 6px;} .pl-risk-row{grid-template-columns:34px minmax(0,1fr);} .pl-risk-metric,.pl-risk-row>.btn{grid-column:2;} .pl-risk-row>.btn{justify-self:start;} }
 .pl-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:3px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-faint);font:700 10px inherit;font-family:inherit;line-height:1;cursor:help;vertical-align:middle;padding:0;}
 .pl-info:hover,.pl-info:focus-visible,.pl-info:focus{color:var(--text);border-color:var(--text-dim);outline:none;}
 .pl-float-tip{position:fixed;z-index:9999;max-width:280px;padding:9px 11px;border-radius:8px;background:var(--surface-3);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--text);font:400 12px/1.45 Inter,system-ui,sans-serif;pointer-events:none;opacity:0;transition:opacity .12s;}
@@ -3530,9 +3558,10 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 // Modules de pilotage (22/11/2026) : déclarés ici car la disposition du Dashboard est chargée dès l'initialisation de state.
-const PILOT_WIDGET_IDS = ['pilotSession','pilotPlan','pilotProgress','pilotKpis'];
-const PILOT_DEFAULT_SIZES = { pilotSession:'md', pilotPlan:'md', pilotProgress:'lg', pilotKpis:'lg' };
+const PILOT_WIDGET_IDS = ['pilotRisk','pilotSession','pilotPlan','pilotProgress','pilotKpis'];
+const PILOT_DEFAULT_SIZES = { pilotRisk:'lg', pilotSession:'md', pilotPlan:'md', pilotProgress:'lg', pilotKpis:'lg' };
 const DASHBOARD_WIDGETS = [
+  { id:'pilotRisk',      label:'Alertes de risque', pilot:true },
   { id:'pilotSession',   label:'P&L du jour', pilot:true },
   { id:'pilotPlan',      label:'Payouts du mois', pilot:true },
   { id:'pilotProgress',  label:'Courbe des payouts', pilot:true },
@@ -7063,6 +7092,8 @@ function openDashboardCustomizeModal(){
 function navItemHtml(n){
   const dmUrgentN = n.id==='radar' ? dmUrgent().length : 0;
   const dmBadge = dmUrgentN ? ` <span class="badge badge-danger nav-hidden-badge" title="Comptes en danger de fermeture pour inactivité">${dmUrgentN}</span>` : '';
+  const riskN = n.id==='accounts' ? pilotRiskCritCount() : 0;
+  const riskBadge = riskN ? ` <span class="badge badge-danger nav-hidden-badge" title="Comptes au drawdown critique (Alertes de risque)">${riskN}</span>` : '';
   // title = libellé toujours présent (pas seulement le cas "masqué") : en dessous de 880px, la
   // sidebar repasse en icônes seules (voir @media max-width:880px) et sans ce title natif, un
   // item n'était identifiable qu'en cliquant dessus.
@@ -7072,7 +7103,7 @@ function navItemHtml(n){
   const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
     ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
   return `<div class="nav-item ${navRouteOwner(state.route)===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
-    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}
+    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}${riskBadge}
   </div>`;
 }
 function renderNavGroups(){
@@ -11278,6 +11309,77 @@ function pilotSession(pd){
   const dailyGoal = pd.goal ? pd.goal / PLAN_SPLIT / days : 0;
   return { day, isToday: day === today, items, total, ok, valid, dailyGoal };
 }
+// Alertes de risque (étape 3, 22/11/2026) : drawdown restant sous les seuils du Trading plan et
+// challenges proches de leur objectif, d'après la santé Deltalytix (dlxHealthOf). Accès : admin, ou
+// Premium + Deltalytix connecté (gratuit ou payant, décision de Mickael du 22/11) — même règle que
+// les jauges des cartes Comptes (dlxCardHealthHtml).
+function pilotRiskItems(pd){
+  if(!pilotHealthAllowed()) return [];
+  const p = pd ? pd.p : planSettings();
+  const accs = pd ? pd.act : (canSeeAllData() ? state.accounts : state.accounts.filter(isMineAccount)).filter(a=>a.status === 'ACTIF');
+  const crit = Number(p.ddCrit) || 20, warn = Number(p.ddWarn) || 35, near = Number(p.goalNear) || 80;
+  const out = [];
+  accs.forEach(a=>{
+    const h = dlxHealthOf(a.id);
+    if(!h || h.breached) return;
+    if(h.remainingLoss != null && h.drawdownTotal > 0){
+      const pct = Math.max(0, h.remainingLoss / h.drawdownTotal * 100);
+      if(pct <= warn) out.push({ kind:'dd', level: pct <= crit ? 'crit' : 'warn', a, pct, rem:h.remainingLoss, tot:h.drawdownTotal });
+    }
+    if(a.type === 'CHALLENGE' && h.targetProgress != null && h.targetProgress >= near){
+      out.push({ kind:'goal', level: h.targetProgress >= 100 ? 'done' : 'near', a, pct: Math.min(100, h.targetProgress), rem: Math.max(0, h.remainingToTarget || 0) });
+    }
+  });
+  const rank = { crit:0, done:1, warn:2, near:3 };
+  return out.sort((x,y)=> rank[x.level] - rank[y.level] || (x.kind === 'dd' ? x.pct - y.pct : y.pct - x.pct));
+}
+function pilotRiskCritCount(){
+  if(!pilotageEnabled() || !pilotHealthAllowed()) return 0;
+  try{ return pilotRiskItems(null).filter(x=>x.level === 'crit').length; }catch(e){ return 0; }
+}
+function pilotRiskWidgetHtml(pd){
+  const p = pd.p;
+  const usd = (v)=> pilotMoney(v, 'USD');
+  const head = (dot, extra)=> `<div class="pl-risk-head"><div class="pl-risk-title">${dot}<h3>Alertes de risque</h3><span class="pl-sub">drawdown · objectif de challenge</span></div>${extra || ''}</div>`;
+  if(!pilotHealthAllowed()){
+    const prem = perms().isPremium;
+    return `<section class="panel pl-card pl-risk-card" aria-label="Alertes de risque">${head('<span class="pl-dot ok" aria-hidden="true" style="background:var(--type-challenge);"></span>')}
+      <div class="pl-risk-empty"><span class="mp-ico" style="color:var(--type-challenge);">${icon('lock')}</span><span style="flex:1;min-width:220px;">Sois prévenu avant qu’un compte casse ou quand un challenge est presque validé. ${prem ? 'Connecte ton compte Deltalytix (gratuit ou payant) : les alertes lisent le drawdown et l’objectif de chaque compte.' : 'Avec Premium et ton compte Deltalytix connecté.'}</span>
+      ${prem ? `<button type="button" class="btn btn-outline btn-sm" data-nav="profil">Connecter Deltalytix</button>` : `<button type="button" class="btn btn-primary btn-sm" onclick="openUpgradeModal()">Voir Premium</button>`}</div></section>`;
+  }
+  const items = pilotRiskItems(pd);
+  const f = state.pilotRiskFilter || 'all';
+  const n = (k)=> items.filter(x=>k === 'all' || x.kind === k).length;
+  const anyCrit = items.some(x=>x.level === 'crit');
+  const seg = items.length ? `<div class="pl-seg" role="group" aria-label="Filtrer les alertes">${[['all','Tout'],['dd','Drawdown'],['goal','Objectif']].map(([k,l])=>`<button type="button" aria-pressed="${f === k ? 'true' : 'false'}" data-pl-risk-f="${k}">${l} (${n(k)})</button>`).join('')}</div>` : '';
+  const ago = dlx().health && dlx().health.at ? `Deltalytix · ${dlxAgo(dlx().health.at)}` : 'Deltalytix';
+  const foot = `<div class="pl-risk-foot"><span>Seuils : drawdown critique ≤ ${p.ddCrit} %, à surveiller ≤ ${p.ddWarn} % restant · objectif proche ≥ ${p.goalNear} % · ${ago}</span><a href="#" data-nav="mon-plan">Régler dans mon trading plan</a></div>`;
+  if(!items.length){
+    const tracked = pd.act.filter(a=>{ const h = dlxHealthOf(a.id); return h && (h.remainingLoss != null || h.targetProgress != null); }).length;
+    return `<section class="panel pl-card pl-risk-card" aria-label="Alertes de risque">${head('<span class="pl-dot ok" aria-hidden="true"></span>')}
+      <div class="pl-risk-empty">${tracked ? `<span><b>Aucun compte à risque.</b> <span class="text-dim">${tracked} compte${tracked > 1 ? 's' : ''} suivi${tracked > 1 ? 's' : ''} : drawdown au-dessus de ${p.ddWarn} % et aucun challenge au-delà de ${p.goalNear} % de son objectif.</span></span>` : `<span><b>Aucun compte suivi.</b> <span class="text-dim">Renseigne le drawdown et l’objectif de tes comptes dans Deltalytix, puis synchronise.</span></span>`}</div>${foot}</section>`;
+  }
+  const shown = items.filter(x=>f === 'all' || x.kind === f);
+  const col = { crit:'var(--danger)', warn:'var(--gold)', near:'var(--accent)', done:'var(--accent)' };
+  const ddIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6 6 4-4 8 8"/><path d="M21 11v6h-6"/></svg>';
+  const goalIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>';
+  const rows = shown.map(x=>{
+    const c = col[x.level];
+    const tagC = x.a.type === 'CHALLENGE' ? 'color:var(--type-challenge);background:color-mix(in srgb, var(--type-challenge) 15%, transparent);' : 'color:var(--accent);background:var(--accent-dim);';
+    const title = x.kind === 'dd' ? (x.level === 'crit' ? 'Drawdown critique' : 'Drawdown à surveiller') : (x.level === 'done' ? 'Objectif atteint' : 'Objectif presque atteint');
+    const metric = x.kind === 'dd' ? `<div class="top"><span>Drawdown restant</span><b>${usd(x.rem)} / ${usd(x.tot)} · ${Math.round(x.pct)} %</b></div>`
+      : `<div class="top"><span>Objectif</span><b>${x.level === 'done' ? 'Atteint' : `${usd(x.rem)} restants`} · ${Math.round(x.pct)} %</b></div>`;
+    const hint = x.kind === 'dd' ? (x.level === 'crit' ? `Une perte de ${usd(x.rem)} casse le compte. Réduis la taille ou mets-le en pause.` : `Moins de ${p.ddWarn} % de drawdown restant : prudence sur la taille.`)
+      : (x.level === 'done' ? 'Vérifie les jours minimum et la règle de cohérence, puis marque le challenge réussi.' : `Plus que ${usd(x.rem)} : vérifie les jours minimum et la règle de cohérence.`);
+    return `<div class="pl-risk-row">
+      <div class="pl-risk-ico" style="color:${c};background:color-mix(in srgb, ${c} 15%, transparent);">${x.kind === 'dd' ? ddIco : goalIco}</div>
+      <div class="pl-risk-name"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span class="pl-tag" style="${tagC}">${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span><b style="font-size:14px;">${pilotAccName(x.a)}</b></div><span style="font-size:13px;font-weight:600;color:${c};">${title}</span></div>
+      <div class="pl-risk-metric">${metric}<div class="pl-risk-bar"><i style="width:${Math.max(2, x.pct).toFixed(0)}%;background:${c};"></i></div><span style="font-size:12px;color:var(--text-dim);">${hint}</span></div>
+      <button type="button" class="btn btn-outline btn-sm" data-alert-acc="${x.a.id}">Ouvrir le compte</button>
+    </div>`;
+  }).join('');
+  return `<section class="panel pl-card pl-risk-card" aria-label="Alertes de risque">${head(`<span class="pl-dot ${anyCrit ? 'on' : ''}" aria-hidden="true" style="${anyCrit ? '' : 'background:var(--gold);'}"></span>`, seg)}<div>${rows}</div>${foot}</section>`;
+}
 function pilotNextAction(pd){
   const fresh = pd.act.filter(a=>a.type === 'CHALLENGE');
   const toPa = pd.accounts.filter(a=>typeof needsPa === 'function' && needsPa(a));
@@ -11420,6 +11522,7 @@ function pilotKpisWidgetHtml(pd, firstPayoutDetails){
 }
 function bindPilotEvents(){
   if(state.route !== 'dashboard') return;
+  document.querySelectorAll('[data-pl-risk-f]').forEach(b=>{ b.onclick = ()=>{ state.pilotRiskFilter = b.dataset.plRiskF; renderView(); }; });
   document.querySelectorAll('[data-pl-series]').forEach(b=>{
     b.onclick = ()=>{
       const k = b.dataset.plSeries;
@@ -11854,6 +11957,7 @@ function viewDashboard(){
   const pilotOn = pilotageEnabled();
   const pd = pilotOn ? pilotData() : null;
   const widgetHtml = {
+    pilotRisk: pilotOn ? pilotRiskWidgetHtml(pd) : undefined,
     pilotSession: pilotOn ? pilotSessionWidgetHtml(pd) : undefined,
     pilotPlan: pilotOn ? pilotPlanWidgetHtml(pd) : undefined,
     pilotProgress: pilotOn ? pilotProgressWidgetHtml(pd) : undefined,
@@ -18438,7 +18542,7 @@ function viewMonPlan(){
           <div class="section-title" style="margin:0 0 6px;">Où ton trading plan est utilisé</div>
           <a href="#" data-nav="coach"><span>Coach rentabilité · budget et objectif</span><span>→</span></a>
           <a href="#" data-nav="rentabilite"><span>Rentabilité réelle</span><span>→</span></a>
-          <a href="#" data-nav="dashboard"><span>Dashboard · payouts du mois, P&amp;L du jour et signal</span><span>→</span></a>
+          <a href="#" data-nav="dashboard"><span>Dashboard · alertes de risque, P&amp;L du jour, payouts du mois</span><span>→</span></a>
         </section>
       </aside>
     </div>`;
@@ -20140,10 +20244,11 @@ function dlxCardHealthHtml(a){
   // objectif réservés aux comptes Contralytix Premium (Beta) ET abonnés payants de Deltalytix
   // (statut renvoyé par la synchro, dès que Deltalytix le fournit). Exception : les admins voient
   // toujours les jauges (tests, support).
-  const dlxPaid = !!(d.health && d.health.plan && d.health.plan.known && d.health.plan.paid);
+  // 22/11/2026 (Mickael) : on n'oblige plus l'abonnement payant Deltalytix, juste la connexion.
+  // Règle = Premium + Deltalytix connecté (connexion déjà vérifiée plus haut), admins toujours.
   const isPrem = perms().isPremium;
-  if(!isAdmin() && !(isPrem && dlxPaid)){
-    const need = !isPrem && !dlxPaid ? 'avec Premium et un abonnement Deltalytix' : !isPrem ? 'avec Premium' : 'avec un abonnement Deltalytix';
+  if(!isAdmin() && !isPrem){
+    const need = 'avec Premium';
     return `<div class="dlx-health dlx-health-lock" title="D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}"><span class="dlx-logo xs" aria-hidden="true"></span><span>${h.lastTradeDay?`Dernier trade : <strong>${fmtDate(h.lastTradeDay)}</strong> · `:''}<span class="dlx-lock-txt">${icon('lock')}Solde, drawdown et objectif ${need}</span></span>${!isPrem ? `<button type="button" class="btn btn-ghost btn-sm" data-dlx-upsell>Voir Premium</button>` : ''}</div>`;
   }
   const tip = `D’après Deltalytix, à la synchro ${dlxAgo(d.health && d.health.at)}. Solde calculé sur les trades clôturés (positions ouvertes non comprises).`;
@@ -20157,7 +20262,10 @@ function dlxCardHealthHtml(a){
   if(ddKnown){
     const tot = h.drawdownTotal && h.drawdownTotal>0 ? h.drawdownTotal : null;
     const ratio = tot ? Math.max(0, Math.min(1, h.remainingLoss / tot)) : null;
-    const lvl = ratio==null ? '' : ratio<=0.2 ? 'is-danger' : ratio<=0.5 ? 'is-warn' : '';
+    // Seuils du Trading plan (Alertes de risque) quand les nouveautés sont visibles, sinon 20 % / 50 %.
+    const pls = pilotageEnabled() ? planSettings() : null;
+    const thC = pls ? (Number(pls.ddCrit) || 20) / 100 : 0.2, thW = pls ? (Number(pls.ddWarn) || 35) / 100 : 0.5;
+    const lvl = ratio==null ? '' : ratio<=thC ? 'is-danger' : ratio<=thW ? 'is-warn' : '';
     gauges += `<div class="dlx-g ${lvl}" title="${tot?`Drawdown : ${usd(h.remainingLoss)} restants sur ${usd(tot)}`:''}${h.drawdownLevel!=null?` · niveau de clôture ${usd(h.drawdownLevel)}`:''}">
       <div class="dlx-g-top"><span>Drawdown restant</span><strong>${usd(h.remainingLoss)}${tot?`<span class="dlx-g-of"> / ${usd(tot)}</span>`:''}</strong></div>
       ${ratio!=null?`<div class="dlx-g-bar"><div style="width:${(ratio*100).toFixed(1)}%"></div></div>`:''}
