@@ -2949,6 +2949,20 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
+.pl-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:3px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-faint);font:700 10px inherit;font-family:inherit;line-height:1;cursor:help;vertical-align:middle;padding:0;}
+.pl-info:hover,.pl-info:focus-visible,.pl-info:focus{color:var(--text);border-color:var(--text-dim);outline:none;}
+.pl-info::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:260px;padding:9px 11px;border-radius:8px;background:var(--surface-3);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--text);font:400 12px/1.45 Inter,system-ui,sans-serif;letter-spacing:0;text-transform:none;text-align:left;white-space:normal;z-index:30;opacity:0;pointer-events:none;transition:opacity .12s;}
+.pl-info:hover::after,.pl-info:focus::after{opacity:1;}
+.pl-info.is-l::after{left:-8px;transform:none;}
+.pl-info.is-r::after{left:auto;right:-8px;transform:none;}
+.pl-big .pl-info{font-family:Inter,system-ui,sans-serif;}
+.pl-chart{position:relative;touch-action:pan-y;}
+.pl-hit{cursor:crosshair;}
+.pl-tip{position:absolute;top:8px;min-width:170px;padding:10px 12px;border-radius:9px;background:var(--surface-3);border:1px solid var(--border);box-shadow:var(--shadow);font-size:12px;line-height:1.5;pointer-events:none;z-index:5;display:none;}
+.pl-tip b{display:block;font-size:12.5px;margin-bottom:4px;text-transform:capitalize;}
+.pl-tip div{display:flex;justify-content:space-between;gap:14px;}
+.pl-tip div span:last-child{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:600;}
+.pl-tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;}
 @media (max-width:640px){ .pl-tiles{grid-template-columns:repeat(2,minmax(0,1fr));} .pl-tile b{font-size:17px;} .pl-big b{font-size:23px;} .pl-next{flex-wrap:wrap;} .pl-next .btn{align-self:flex-start;} .pl-next .pl-ico{display:none;} .pl-li{flex-wrap:wrap;} }
 .mp-err{font-size:12px;color:var(--danger);}
 .account-tab svg{width:15px;height:15px;flex-shrink:0;}
@@ -11227,6 +11241,7 @@ function pilotFirm(a){ return ((getFirm(a.propFirmId)||{}).name) || 'Compte'; }
 function pilotAccName(a){ return `${escapeHtml(pilotFirm(a))} ${escapeHtml(sizeLabelRaw(a) || '')}`.trim(); }
 function pilotMoney(x, cur){ const n = Math.round(Number(x) || 0); return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' ' + (cur === 'EUR' ? '€' : '$'); }
 function pilotSigned(x, cur){ const n = Math.round(Number(x) || 0); return (n > 0 ? '+' : '') + pilotMoney(n, cur); }
+function pilotTip(txt){ const t = escapeHtml(txt); return `<button type="button" class="pl-info" aria-label="${t}" data-tip="${t}">?</button>`; }
 function pilotData(){
   const d = computeCoachData();
   const p = planSettings();
@@ -11307,7 +11322,7 @@ function pilotSessionWidgetHtml(pd){
   return `<section class="panel pl-card" aria-label="P&amp;L du jour">
     <div class="pl-top"><div><div class="pl-kicker">${ss.isToday ? 'P&amp;L du jour' : 'Dernière session'}${ss.isToday && ss.items.length ? '<span class="pl-live">LIVE</span>' : ''}</div><h3 class="pl-h" style="text-transform:capitalize;">${when}</h3></div>${chip}</div>
     <div class="pl-tiles">
-      <div class="pl-tile"><small>Target du jour</small><b>${ss.dailyGoal ? pilotMoney(ss.dailyGoal, pd.cur) : '—'}</b>${ss.dailyGoal ? '' : '<em>à fixer dans ton trading plan</em>'}</div>
+      <div class="pl-tile"><small>Target du jour ${pilotTip('Objectif de payouts du mois ÷ 0,9 (partage de profit) ÷ jours de trading par mois : le P&L à produire chaque jour, tous comptes confondus.')}</small><b>${ss.dailyGoal ? pilotMoney(ss.dailyGoal, pd.cur) : '—'}</b>${ss.dailyGoal ? '' : '<em>à fixer dans ton trading plan</em>'}</div>
       <div class="pl-tile"><small>P&amp;L réalisé</small><b class="${ss.total > 0 ? 'pl-pos' : ss.total < 0 ? 'pl-neg' : ''}">${ss.items.length ? pilotSigned(ss.total, 'USD') : '—'}</b></div>
       <div class="pl-tile"><small>Comptes verts</small><b>${ss.items.length ? `${ss.ok}/${ss.items.length}` : '—'}</b></div>
     </div>
@@ -11330,15 +11345,15 @@ function pilotPlanWidgetHtml(pd){
   const gap = pd.goal - pd.projection;
   return `<section class="panel pl-card" aria-label="Payouts du mois">${head}
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <div class="pl-big"><b>${pilotMoney(d.monthPay, c)} <span>/ ${pilotMoney(pd.goal, c)}</span></b><span style="font-size:13px;font-weight:600;color:var(--accent);">${Math.round(pd.pct)} % de l’objectif</span></div>
+      <div class="pl-big"><b>${pilotMoney(d.monthPay, c)} <span>/ ${pilotMoney(pd.goal, c)}</span> ${pilotTip(`Somme des payouts enregistrés ce mois-ci sur tous tes comptes, face à ton objectif. Le trait blanc de la barre = trajectoire cible : où tu devrais en être au jour ${d.dayOfMonth} sur ${d.dim}.`)}</b><span style="font-size:13px;font-weight:600;color:var(--accent);">${Math.round(pd.pct)} % de l’objectif</span></div>
       <div class="pl-bar" role="img" aria-label="${Math.round(pd.pct)} % de l’objectif retiré, prévision ${Math.round(pctProj)} %"><i class="pl-proj" style="width:${pctProj}%;"></i><i class="pl-done" style="width:${pctDone}%;"></i><i class="pl-ideal" style="left:${pctIdeal}%;"></i></div>
       <div class="pl-legend"><span><i style="background:var(--accent);"></i>Retiré</span><span><i style="background:color-mix(in srgb, var(--type-challenge) 45%, transparent);"></i>Prévision fin de mois</span><span><i style="width:2px;height:12px;border-radius:0;background:var(--text);"></i>Trajectoire cible au jour ${d.dayOfMonth}</span></div>
     </div>
     <div class="pl-tiles two">
-      <div class="pl-tile"><small>Prévision fin de mois</small><b class="pl-blue">${pilotMoney(pd.projection, c)}</b><em>${pd.avgPrev ? `rythme des 3 derniers mois (${pilotMoney(pd.avgPrev, c)}/mois)` : 'pas d’historique : payouts déjà retirés seulement'}</em></div>
-      <div class="pl-tile"><small>Écart à l’objectif</small><b class="${gap > 0 ? 'pl-gold' : 'pl-pos'}">${gap > 0 ? '−' + pilotMoney(gap, c) : 'Atteint'}</b><em>après prévision</em></div>
-      <div class="pl-tile"><small>PA actifs</small><b>${pd.paActive.length} / ${Math.round(Number(pd.p.paTarget) || 1)}</b><em>visés par ton trading plan · ${pd.chActive.length} challenge${pd.chActive.length > 1 ? 's' : ''} en cours</em></div>
-      <div class="pl-tile"><small>Budget du mois</small><b class="${pd.budget && d.monthExp > pd.budget ? 'pl-neg' : ''}">${pd.budget ? `${pilotMoney(d.monthExp, c)}` : pilotMoney(d.monthExp, c)}</b><em>${pd.budget ? `dépensés sur ${pilotMoney(pd.budget, c)}` : 'dépensés · pas de budget fixé'}</em></div>
+      <div class="pl-tile"><small>Prévision fin de mois ${pilotTip(`Payouts déjà retirés ce mois + ta moyenne mensuelle des 3 mois précédents (${pilotMoney(pd.avgPrev, c)}) × jours restants (${Math.max(0, d.dim - d.dayOfMonth)}) ÷ jours du mois (${d.dim}). Une estimation : un payout demandé la fait monter aussitôt.`)}</small><b class="pl-blue">${pilotMoney(pd.projection, c)}</b><em>${pd.avgPrev ? `rythme des 3 derniers mois (${pilotMoney(pd.avgPrev, c)}/mois)` : 'pas d’historique : payouts déjà retirés seulement'}</em></div>
+      <div class="pl-tile"><small>Écart à l’objectif ${pilotTip(`Objectif du mois (${pilotMoney(pd.goal, c)}) moins la prévision de fin de mois (${pilotMoney(pd.projection, c)}).`)}</small><b class="${gap > 0 ? 'pl-gold' : 'pl-pos'}">${gap > 0 ? '−' + pilotMoney(gap, c) : 'Atteint'}</b><em>après prévision</em></div>
+      <div class="pl-tile"><small>PA actifs ${pilotTip('Tes comptes PA et Live au statut Actif, face au nombre de PA visés dans ton trading plan (Profil › Trading plan).')}</small><b class="${pd.paActive.length >= Math.round(Number(pd.p.paTarget) || 1) ? 'pl-pos' : ''}">${pd.paActive.length} / ${Math.round(Number(pd.p.paTarget) || 1)}</b><em>${pd.paActive.length >= Math.round(Number(pd.p.paTarget) || 1) ? (pd.paActive.length > Math.round(Number(pd.p.paTarget) || 1) ? 'objectif dépassé' : 'objectif atteint') : 'visés par ton trading plan'} · ${pd.chActive.length} challenge${pd.chActive.length > 1 ? 's' : ''} en cours</em></div>
+      <div class="pl-tile"><small>Budget du mois ${pilotTip('Tout ce que tu as dépensé ce mois-ci (achats de challenges, mensualités, activations, resets), face à ton budget mensuel max. En rouge si tu le dépasses.')}</small><b class="${pd.budget && d.monthExp > pd.budget ? 'pl-neg' : ''}">${pd.budget ? `${pilotMoney(d.monthExp, c)}` : pilotMoney(d.monthExp, c)}</b><em>${pd.budget ? `dépensés sur ${pilotMoney(pd.budget, c)}` : 'dépensés · pas de budget fixé'}</em></div>
     </div>
   </section>`;
 }
@@ -11362,10 +11377,13 @@ function pilotProgressWidgetHtml(pd){
   const xt = [1, 8, 15, 22, dim].map(k=>`<text x="${x(k).toFixed(1)}" y="${B + 22}" text-anchor="middle">${String(k).padStart(2,'0')}/${d.today.slice(5,7)}</text>`).join('');
   const sr = state.pilotSeries || (state.pilotSeries = { act:true, ideal:true, proj:true });
   const chip = (k, label, color, dash)=> `<button type="button" aria-pressed="${sr[k] ? 'true' : 'false'}" data-pl-series="${k}"><i style="border-top-style:${dash ? 'dashed' : 'solid'};border-color:${color};"></i>${label}</button>`;
+  const cumArr = []; { let cc = 0; for(let k = 1; k <= day; k++){ cc += byDay[k] || 0; cumArr.push(Math.round(cc * 100) / 100); } }
+  const chartData = { L, R, T, B, maxY, dim, day, cum: cumArr, byDay, goal: pd.goal, proj: pd.projection, cur: c, mm: d.today.slice(0,7) };
   const dueTxt = pd.pays.length ? pd.pays.map(p=>{ const a = getAccount(p.accountId); return `<span><b class="pl-pos">${p.date.slice(8,10)}/${p.date.slice(5,7)}</b> ${a ? pilotAccName(a) : 'payout'} ${pilotMoney(val(p), c)}</span>`; }).join('') : '<span>Aucun payout ce mois-ci pour l’instant.</span>';
   return `<section class="panel pl-card" aria-label="Courbe des payouts">
     <div class="pl-top"><div><h3 class="pl-h" style="margin:0;font-size:16px;">Courbe des payouts</h3><div class="pl-sub">Objectif ${pilotMoney(pd.goal, c)} · retiré ${pilotMoney(d.monthPay, c)} · prévision ${pilotMoney(pd.projection, c)} au ${dim}/${d.today.slice(5,7)}</div></div>
       <div class="pl-chips" role="group" aria-label="Séries affichées">${chip('act','Payouts cumulés','var(--accent)',false)}${chip('ideal','Trajectoire cible','var(--text-dim)',true)}${chip('proj','Prévision','var(--type-challenge)',true)}</div></div>
+    <div class="pl-chart" data-pl-chart='${escapeHtml(JSON.stringify(chartData))}'>
     <svg class="pl-svg" viewBox="0 0 1000 290" role="img" aria-label="Payouts cumulés ${pilotMoney(d.monthPay, c)} au jour ${day}, trajectoire cible ${pilotMoney(pd.ideal, c)}, prévision ${pilotMoney(pd.projection, c)} en fin de mois pour un objectif de ${pilotMoney(pd.goal, c)}.">
       ${grid}${xt}
       <line x1="${L}" y1="${y(pd.goal).toFixed(1)}" x2="${R}" y2="${y(pd.goal).toFixed(1)}" stroke="var(--gold)" stroke-dasharray="2 4" opacity=".8"/>
@@ -11375,7 +11393,16 @@ function pilotProgressWidgetHtml(pd){
       <path data-pl-s="ideal" d="M${x(1).toFixed(1)} ${y(0).toFixed(1)} L${x(dim).toFixed(1)} ${y(pd.goal).toFixed(1)}" fill="none" stroke="var(--text-dim)" stroke-width="1.6" stroke-dasharray="6 6" style="${sr.ideal ? '' : 'display:none'}"/>
       <path data-pl-s="proj" d="M${x(day).toFixed(1)} ${y(cum).toFixed(1)} L${x(dim).toFixed(1)} ${y(pd.projection).toFixed(1)}" fill="none" stroke="var(--type-challenge)" stroke-width="2" stroke-dasharray="5 5" style="${sr.proj ? '' : 'display:none'}"/>
       <g data-pl-s="act" style="${sr.act ? '' : 'display:none'}"><path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round"/>${dots.map(([a,b])=>`<circle cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`).join('')}</g>
+      <g class="pl-cur" style="display:none" aria-hidden="true">
+        <line class="pl-cur-l" x1="0" y1="${T}" x2="0" y2="${B}" stroke="var(--text-dim)" stroke-width="1"/>
+        <circle class="pl-cur-act" r="5.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+        <circle class="pl-cur-ideal" r="4.5" fill="var(--text-dim)" stroke="var(--surface)" stroke-width="2"/>
+        <circle class="pl-cur-proj" r="4.5" fill="var(--type-challenge)" stroke="var(--surface)" stroke-width="2"/>
+      </g>
+      <rect class="pl-hit" x="${L}" y="${T}" width="${R - L}" height="${B - T}" fill="transparent"/>
     </svg>
+    <div class="pl-tip" role="status" aria-live="polite"></div>
+    </div>
     <div class="pl-legend">${dueTxt}</div>
   </section>`;
 }
@@ -11403,6 +11430,53 @@ function bindPilotEvents(){
       b.setAttribute('aria-pressed', state.pilotSeries[k] ? 'true' : 'false');
       document.querySelectorAll(`[data-pl-s="${k}"]`).forEach(el=>{ el.style.display = state.pilotSeries[k] ? '' : 'none'; });
     };
+  });
+  document.querySelectorAll('.pl-info').forEach(b=>{
+    const place = ()=>{ const r = b.getBoundingClientRect(), w = window.innerWidth; b.classList.toggle('is-l', r.left < 150); b.classList.toggle('is-r', r.right > w - 150); };
+    b.addEventListener('mouseenter', place); b.addEventListener('focus', place);
+    b.addEventListener('click', e=>e.stopPropagation());
+  });
+  document.querySelectorAll('[data-pl-chart]').forEach(box=>{
+    let cd; try{ cd = JSON.parse(box.dataset.plChart); }catch(e){ return; }
+    const svg = box.querySelector('svg'), hit = box.querySelector('.pl-hit'), g = box.querySelector('.pl-cur'), tip = box.querySelector('.pl-tip');
+    if(!svg || !hit || !g || !tip) return;
+    const X = (k)=> cd.L + (cd.R - cd.L) * (k - 1) / Math.max(1, cd.dim - 1);
+    const Y = (v)=> cd.B - (cd.B - cd.T) * v / cd.maxY;
+    const m = (v)=> pilotMoney(v, cd.cur);
+    const show = (clientX)=>{
+      const r = svg.getBoundingClientRect();
+      const vx = (clientX - r.left) / r.width * 1000;
+      const k = Math.min(cd.dim, Math.max(1, Math.round(1 + (vx - cd.L) / (cd.R - cd.L) * (cd.dim - 1))));
+      const sr = state.pilotSeries || { act:true, ideal:true, proj:true };
+      const ideal = cd.goal * (k - 1) / Math.max(1, cd.dim - 1);
+      const past = k <= cd.day;
+      const cumK = past ? cd.cum[k - 1] : null;
+      const last = cd.cum.length ? cd.cum[cd.cum.length - 1] : 0;
+      const projK = !past ? last + (cd.proj - last) * (k - cd.day) / Math.max(1, cd.dim - cd.day) : null;
+      const xx = X(k);
+      g.style.display = '';
+      g.querySelector('.pl-cur-l').setAttribute('x1', xx); g.querySelector('.pl-cur-l').setAttribute('x2', xx);
+      const put = (cls, v, on)=>{ const c = g.querySelector(cls); if(v == null || !on){ c.style.display = 'none'; return; } c.style.display = ''; c.setAttribute('cx', xx); c.setAttribute('cy', Y(v)); };
+      put('.pl-cur-act', cumK, sr.act); put('.pl-cur-ideal', ideal, sr.ideal); put('.pl-cur-proj', projK, sr.proj);
+      const date = new Date(cd.mm + '-' + String(k).padStart(2, '0') + 'T12:00:00').toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+      const row = (color, label, v)=> `<div><span><i style="background:${color};"></i>${label}</span><span>${m(v)}</span></div>`;
+      let h = `<b>${date}${k === cd.day ? ' · aujourd’hui' : ''}</b>`;
+      if(past && sr.act) h += row('var(--accent)', 'Payouts cumulés', cumK);
+      if(past && cd.byDay[k]) h += `<div><span style="padding-left:14px;">dont ce jour</span><span class="pl-pos">+${m(cd.byDay[k])}</span></div>`;
+      if(!past && sr.proj) h += row('var(--type-challenge)', 'Prévision', projK);
+      if(sr.ideal) h += row('var(--text-dim)', 'Trajectoire cible', ideal);
+      const ref = past ? cumK : projK;
+      if(ref != null) h += `<div style="margin-top:4px;color:var(--text-dim);"><span>${ref >= ideal ? 'En avance de' : 'En retard de'}</span><span class="${ref >= ideal ? 'pl-pos' : 'pl-gold'}">${m(Math.abs(ref - ideal))}</span></div>`;
+      tip.innerHTML = h; tip.style.display = 'block';
+      const bw = box.clientWidth, px = xx / 1000 * r.width, tw = tip.offsetWidth;
+      tip.style.left = Math.max(4, Math.min(bw - tw - 4, px + (px > bw / 2 ? -tw - 14 : 14))) + 'px';
+    };
+    const hide = ()=>{ g.style.display = 'none'; tip.style.display = 'none'; };
+    hit.addEventListener('pointermove', e=>show(e.clientX));
+    hit.addEventListener('pointerdown', e=>show(e.clientX));
+    hit.addEventListener('pointerleave', e=>{ if(e.pointerType === 'mouse') hide(); });
+    hit.addEventListener('touchmove', e=>{ if(e.touches[0]) show(e.touches[0].clientX); }, { passive:true });
+    box.addEventListener('mouseleave', hide);
   });
   document.querySelectorAll('.pl-li[data-alert-acc]').forEach(el=>{
     el.onkeydown = (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); } };
