@@ -2949,6 +2949,13 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
+.pl-raw{font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.mp-buf{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border-soft);padding-top:14px;}
+.mp-buf-row{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);}
+.mp-buf-top{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;}
+.mp-buf-sizes{display:flex;gap:10px;flex-wrap:wrap;}
+.mp-buf-sizes[hidden]{display:none;}
+.mp-buf-sizes .field{min-width:150px;flex:1 1 150px;margin:0;}
 .pl-src{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:0 6px;margin-left:4px;}
 .pl-man{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);}
 .pl-man-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;}
@@ -11298,6 +11305,33 @@ function pilotData(){
   return { d, p, cur, goal, budget, accounts, act, pays, avgPrev, projection, ideal, paActive, chActive,
     pct: goal ? d.monthPay / goal * 100 : 0, gap: goal ? goal - projection : 0 };
 }
+// P&L au-dessus du buffer (22/11/2026, demande de Mickael) : pour les PA des prop firms cochées dans
+// le Trading plan, le P&L du jour ne compte que ce qui dépasse le buffer (seule partie retirable).
+// Sources combinées, dans cet ordre : 1) Deltalytix (dormancy_logs.pnl_buffer = metrics.dailyPnL,
+// calculé avec le buffer réglé dans Deltalytix) ; 2) montant saisi dans le Trading plan par prop firm
+// et taille, appliqué au cumul de P&L du compte depuis son dernier payout ; 3) plus tard : catalogue
+// prop firm (valeurs par défaut). Les challenges et le Radar inactivité restent sur le P&L brut.
+function planSizeKey(a){ return a.size === 'AUTRE' ? 'A' + (Number(a.customSize) || 0) : String(a.size || ''); }
+function planBufferRule(a, p){
+  if(!a || (a.type !== 'PA' && a.type !== 'LIVE')) return null;
+  const bf = ((p || planSettings()).bufferFirms || {})[String(a.propFirmId)];
+  if(!bf || !bf.on) return null;
+  const amt = Number((bf.amounts || {})[planSizeKey(a)]);
+  return { amount: amt > 0 ? amt : null };
+}
+function planCountedPnl(log, a, p){
+  const raw = Number(log.pnl) || 0;
+  const rule = planBufferRule(a, p);
+  if(!rule) return { v: raw, raw, mode: 'raw' };
+  if(log.source === 'deltalytix' && log.pnlBuffer !== null && log.pnlBuffer !== undefined && log.pnlBuffer !== '') return { v: Number(log.pnlBuffer) || 0, raw, mode: 'dlx' };
+  if(!rule.amount) return { v: raw, raw, mode: 'unknown' };
+  const B = rule.amount;
+  const lastPay = state.payouts.filter(x=>String(x.accountId) === String(a.id) && x.date && x.date.slice(0,10) < log.day).map(x=>x.date.slice(0,10)).sort().pop() || '';
+  const c0 = (state.dormancyLogs || []).filter(l=>String(l.accountId) === String(a.id) && l.day < log.day && l.day > lastPay && l.pnl !== null && l.pnl !== undefined && l.pnl !== '')
+    .reduce((t,l)=>t + (Number(l.pnl) || 0), 0);
+  const v = Math.max(0, c0 + raw - B) - Math.max(0, c0 - B);
+  return { v: Math.round(v * 100) / 100, raw, mode: 'manual', cushion: Math.max(0, B - c0 - raw) };
+}
 function pilotSession(pd){
   const ids = new Set(pd.accounts.map(a=>a.id));
   const logs = (state.dormancyLogs || []).filter(l=>ids.has(l.accountId) && l.pnl !== null && l.pnl !== undefined && l.pnl !== '');
@@ -11308,13 +11342,16 @@ function pilotSession(pd){
     if(recent){ day = recent; rows = logs.filter(l=>l.day === recent); }
   }
   const valid = Number(pd.p.sessionValid) || 0;
-  const items = rows.map(l=>({ a: getAccount(l.accountId), pnl: Number(l.pnl) || 0, src: l.source })).filter(x=>x.a)
+  const items = rows.map(l=>{ const a = getAccount(l.accountId); if(!a) return null; const c = planCountedPnl(l, a, pd.p); return { a, pnl: c.v, raw: c.raw, mode: c.mode, cushion: c.cushion, src: l.source }; }).filter(Boolean)
     .sort((x,y)=>y.pnl - x.pnl);
   const total = items.reduce((s,x)=>s + x.pnl, 0);
+  const rawTotal = items.reduce((s,x)=>s + x.raw, 0);
+  const buffered = items.some(x=>x.mode === 'dlx' || x.mode === 'manual');
+  const unknownBuf = items.filter(x=>x.mode === 'unknown').length;
   const ok = items.filter(x=>x.pnl >= valid).length;
   const days = Math.max(1, Number(pd.p.tradingDays) || 20);
   const dailyGoal = pd.goal ? pd.goal / PLAN_SPLIT / days : 0;
-  return { day, isToday: day === today, items, total, ok, valid, dailyGoal };
+  return { day, isToday: day === today, items, total, rawTotal, buffered, unknownBuf, ok, valid, dailyGoal };
 }
 // Alertes de risque (étape 3, 22/11/2026) : drawdown restant sous les seuils du Trading plan et
 // challenges proches de leur objectif, d'après la santé Deltalytix (dlxHealthOf). Accès : admin, ou
@@ -11492,13 +11529,14 @@ function pilotSessionWidgetHtml(pd){
   const st = (x)=> x.pnl >= ss.valid ? `<span class="pl-st pl-pos">VERT</span>` : x.pnl < 0 ? `<span class="pl-st pl-neg">ROUGE</span>` : `<span class="pl-st pl-gold">SOUS LE TARGET</span>`;
   const list = ss.items.length ? `
       <div class="pl-lh"><span>Comptes tradés</span><a href="#" data-nav="mon-plan" style="color:var(--text-dim);">Journée verte si P&amp;L ≥ ${pilotMoney(ss.valid, 'USD')} · régler</a></div>
-      <div class="pl-list">${ss.items.slice(0,6).map(x=>`<div class="pl-li" data-alert-acc="${x.a.id}" role="button" tabindex="0"><span><b>${pilotAccName(x.a)}</b> <span class="text-dim">· ${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span>${x.src === 'manual' ? ' <span class="pl-src" title="Saisi à la main">manuel</span>' : ''}</span><span style="display:flex;gap:10px;align-items:center;"><span class="pl-m ${x.pnl > 0 ? 'pl-pos' : x.pnl < 0 ? 'pl-neg' : ''}">${pilotSigned(x.pnl, 'USD')}</span>${st(x)}</span></div>`).join('')}</div>`
+      ${ss.unknownBuf ? `<a href="#" data-nav="mon-plan" class="pl-sub" style="color:var(--gold);">Buffer inconnu pour ${ss.unknownBuf} PA : P&amp;L brut affiché. Renseigne le montant dans ton trading plan (ou dans Deltalytix).</a>` : ''}
+      <div class="pl-list">${ss.items.slice(0,6).map(x=>`<div class="pl-li" data-alert-acc="${x.a.id}" role="button" tabindex="0"><span><b>${pilotAccName(x.a)}</b> <span class="text-dim">· ${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span>${x.src === 'manual' ? ' <span class="pl-src" title="Saisi à la main">manuel</span>' : ''}</span><span style="display:flex;gap:10px;align-items:center;"><span style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;"><span class="pl-m ${x.pnl > 0 ? 'pl-pos' : x.pnl < 0 ? 'pl-neg' : ''}">${pilotSigned(x.pnl, 'USD')}</span>${(x.mode === 'dlx' || x.mode === 'manual') && Math.abs(x.raw - x.pnl) >= 0.01 ? `<span class="pl-raw" title="${x.mode === 'dlx' ? 'Buffer réglé dans Deltalytix' : 'Buffer de ton trading plan'}">brut ${pilotSigned(x.raw, 'USD')}</span>` : (x.mode === 'unknown' ? `<span class="pl-raw" title="Buffer activé pour cette prop firm mais montant inconnu : règle-le dans ton trading plan">buffer ?</span>` : '')}</span>${st(x)}</span></div>`).join('')}</div>`
     : `<div class="pl-empty"><span style="font-size:13.5px;">Aucune journée tradée ${ss.isToday ? 'aujourd’hui' : 'ces 7 derniers jours'}.</span><span class="pl-sub">${dlxOn ? 'Les journées arrivent à la prochaine synchronisation Deltalytix.' : (pilotManualEnabled(pd) ? 'Saisis ton P&amp;L ci-dessous, ou connecte Deltalytix (Profil) pour que tes journées remontent toutes seules.' : 'Connecte Deltalytix (Profil) pour que tes journées remontent toutes seules.')}</span></div>`;
   return `<section class="panel pl-card" aria-label="P&amp;L du jour">
     <div class="pl-top"><div><div class="pl-kicker">${ss.isToday ? 'P&amp;L du jour' : 'Dernière session'}${ss.isToday && ss.items.length ? '<span class="pl-live">LIVE</span>' : ''}</div><h3 class="pl-h" style="text-transform:capitalize;">${when}</h3></div>${chip}</div>
     <div class="pl-tiles">
       <div class="pl-tile"><small>Target du jour ${pilotTip('Objectif de payouts du mois ÷ 0,9 (partage de profit) ÷ jours de trading par mois : le P&L à produire chaque jour, tous comptes confondus.')}</small><b>${ss.dailyGoal ? pilotMoney(ss.dailyGoal, pd.cur) : '—'}</b>${ss.dailyGoal ? '' : '<em>à fixer dans ton trading plan</em>'}</div>
-      <div class="pl-tile"><small>P&amp;L réalisé</small><b class="${ss.total > 0 ? 'pl-pos' : ss.total < 0 ? 'pl-neg' : ''}">${ss.items.length ? pilotSigned(ss.total, 'USD') : '—'}</b></div>
+      <div class="pl-tile"><small>${ss.buffered ? `Au-dessus du buffer ${pilotTip('Pour les PA des prop firms cochées dans ton trading plan, seul le P&L au-dessus du buffer compte (c’est lui que tu peux retirer). Buffer lu dans Deltalytix, sinon celui de ton trading plan. Challenges : P&L brut.')}` : 'P&amp;L réalisé'}</small><b class="${ss.total > 0 ? 'pl-pos' : ss.total < 0 ? 'pl-neg' : ''}">${ss.items.length ? pilotSigned(ss.total, 'USD') : '—'}</b>${ss.buffered && Math.abs(ss.rawTotal - ss.total) >= 0.01 ? `<em>brut ${pilotSigned(ss.rawTotal, 'USD')}</em>` : ''}</div>
       <div class="pl-tile"><small>Comptes verts</small><b>${ss.items.length ? `${ss.ok}/${ss.items.length}` : '—'}</b></div>
     </div>
     ${list}
@@ -18508,7 +18546,22 @@ function mpRead(){
     paTarget: mpNum(g('mp-pa')), tradingDays: mpNum(g('mp-days')),
     sessionValid: mpNum(g('mp-valid')), manualEntry: cb ? cb.checked : true,
     ddCrit: mpNum(g('mp-ddcrit')), ddWarn: mpNum(g('mp-ddwarn')), goalNear: mpNum(g('mp-near')),
+    bufferFirms: mpReadBuffers(),
   };
+}
+function mpReadBuffers(){
+  const out = JSON.parse(JSON.stringify(planSettings().bufferFirms || {}));
+  document.querySelectorAll('[data-mpb-on]').forEach(cb=>{
+    const id = cb.dataset.mpbOn;
+    const prev = out[id] || {};
+    const amounts = { ...(prev.amounts || {}) };
+    document.querySelectorAll(`[data-mpb-amt="${CSS.escape(id)}"]`).forEach(inp=>{
+      const v = mpNum(inp.value);
+      if(v != null && v > 0) amounts[inp.dataset.mpbSize] = Math.round(v * 100) / 100; else delete amounts[inp.dataset.mpbSize];
+    });
+    out[id] = { on: cb.checked, amounts };
+  });
+  return out;
 }
 function mpValidate(v){
   const e = [];
@@ -18536,6 +18589,42 @@ function mpSummary(v, cur){
   else if(goal / pa > 2500){ cls = 'warn'; txt = 'Ambitieux : plus de 2 500 par PA et par mois. Vise plus de PA, ou un objectif plus bas.'; }
   else if(!budget){ cls = 'warn'; txt = 'Ajoute un budget mensuel : le Coach te préviendra avant de le dépasser.'; }
   return { perPa, daily, ratio: ratio != null ? ratio.toFixed(1).replace('.', ',') + ' ×' : '—', cls, txt };
+}
+// Bloc « Buffer des PA » du Trading plan : une ligne par prop firm où tu as des PA actifs.
+function mpBufferFirms(){
+  const accs = (canSeeAllData() ? state.accounts : state.accounts.filter(isMineAccount)).filter(a=>a.status === 'ACTIF' && (a.type === 'PA' || a.type === 'LIVE'));
+  const by = new Map();
+  accs.forEach(a=>{
+    const k = String(a.propFirmId);
+    if(!by.has(k)) by.set(k, { id:k, firm:getFirm(a.propFirmId), sizes:new Map() });
+    const g = by.get(k), sk = planSizeKey(a);
+    if(!g.sizes.has(sk)) g.sizes.set(sk, { key:sk, label:sizeLabelRaw(a) || '—', n:0, dlx:0 });
+    const z = g.sizes.get(sk); z.n++; if(dlxHealthOf(a.id)) z.dlx++;
+  });
+  return [...by.values()].sort((x,y)=>((x.firm||{}).name||'').localeCompare((y.firm||{}).name||''));
+}
+function mpBufferHtml(p, sym){
+  const firms = mpBufferFirms();
+  const cfg = p.bufferFirms || {};
+  const rows = firms.map(g=>{
+    const c = cfg[g.id] || {}, on = !!c.on;
+    const sizes = [...g.sizes.values()].map(z=>{
+      const allDlx = z.dlx === z.n;
+      const v = (c.amounts || {})[z.key];
+      return `<div class="field"><label for="mpb-${escapeHtml(g.id)}-${escapeHtml(z.key)}">Buffer ${escapeHtml(String(z.label))} <span class="text-faint" style="font-weight:500;">· ${z.n} PA${z.dlx ? `, ${allDlx ? 'tous' : z.dlx} sur Deltalytix` : ''}</span></label>
+        <div class="mp-in"><input id="mpb-${escapeHtml(g.id)}-${escapeHtml(z.key)}" type="number" inputmode="decimal" min="0" step="50" placeholder="${allDlx ? 'Lu dans Deltalytix' : 'Ex : 2600'}" value="${v > 0 ? v : ''}" data-mpb-amt="${escapeHtml(g.id)}" data-mpb-size="${escapeHtml(z.key)}"/><span>${sym}</span></div></div>`;
+    }).join('');
+    return `<div class="mp-buf-row">
+      <div class="mp-buf-top"><span style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;">${g.firm ? firmLogoHtml(g.firm, 20) : ''}${escapeHtml((g.firm || {}).name || 'Prop firm')}</span>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);">Seulement au-dessus du buffer <span class="switch"><input type="checkbox" data-mpb-on="${escapeHtml(g.id)}" ${on ? 'checked' : ''}/><span class="switch-track"></span></span></label></div>
+      <div class="mp-buf-sizes" data-mpb-sizes="${escapeHtml(g.id)}" ${on ? '' : 'hidden'}>${sizes}</div>
+    </div>`;
+  }).join('');
+  return `<div class="mp-buf">
+    <div><div style="font-size:13.5px;font-weight:600;margin-bottom:2px;">P&amp;L au-dessus du buffer</div>
+    <div class="mp-sub">Chez certaines prop firms, seul le profit au-dessus du buffer est retirable. Coche-les : le P&amp;L du jour de leurs PA ne comptera que cette partie. Le buffer réglé dans Deltalytix fait foi pour les comptes synchronisés ; sinon le montant saisi ici, appliqué au cumul depuis le dernier payout. Challenges et Radar inactivité : P&amp;L brut.</div></div>
+    ${rows || '<div class="mp-sub">Aucun PA actif pour l’instant.</div>'}
+  </div>`;
 }
 function viewMonPlan(){
   const p = planSettings();
@@ -18580,6 +18669,7 @@ function viewMonPlan(){
             <div class="field"><label for="mp-valid">Journée verte si P&amp;L ≥</label>${inp('mp-valid', p.sessionValid, sym, 'min="0" step="10"')}</div>
             <div class="field"><label>Target du jour (calculé)</label><div class="mp-calc"><span id="mp-calc-daily" style="color:var(--accent);font-weight:600;font-size:13px;">${sm.daily}</span><span>tous comptes</span></div></div>
           </div>
+          ${mpBufferHtml(p, sym)}
         </section>
 
         <section class="panel mp-sec" aria-labelledby="mp-t3">
@@ -18654,6 +18744,10 @@ function bindMonPlanEvents(){
     return { v, errs };
   };
   root.querySelectorAll('.mp-in input, #mp-manual').forEach(el=>{ el.addEventListener('input', refresh); el.addEventListener('change', refresh); });
+  root.querySelectorAll('[data-mpb-on]').forEach(cb=>cb.addEventListener('change', ()=>{
+    const box = root.querySelector(`[data-mpb-sizes="${CSS.escape(cb.dataset.mpbOn)}"]`);
+    if(box) box.hidden = !cb.checked;
+  }));
   const save = document.getElementById('mp-save');
   if(save) save.onclick = async ()=>{
     const { v, errs } = refresh();
