@@ -2868,6 +2868,50 @@ th.th-sort-active svg{opacity:1;}
 .mp-preview-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
 .aik-seg-warn{flex-basis:100%;display:flex;gap:6px;align-items:flex-start;font-size:11.5px;line-height:1.4;color:var(--gold);}
 .aik-seg-warn svg{width:13px;height:13px;flex-shrink:0;margin-top:1px;}
+/* Mon plan (22/11/2026) — Profil › Mon plan : objectif, budget, séance, seuils d'alerte */
+.mp-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.mp-main{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.mp-side{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.mp-sec{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.mp-head{display:flex;gap:12px;align-items:flex-start;}
+.mp-num{width:26px;height:26px;flex-shrink:0;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;}
+.mp-title{font-size:15px;font-weight:700;margin:0 0 3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-sub{font-size:12.5px;color:var(--text-dim);line-height:1.45;}
+.mp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;}
+.mp-grid .field{margin:0;}
+.mp-in{display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 11px;}
+.mp-in:focus-within{border-color:var(--accent);}
+.mp-in input{border:0 !important;background:transparent !important;padding:9px 0 !important;font-family:'JetBrains Mono',ui-monospace,monospace !important;font-weight:600;min-width:0;flex:1;outline:none;}
+.mp-in span{color:var(--text-faint);font-size:12px;white-space:nowrap;}
+.mp-calc{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);padding:9px 11px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:600;color:var(--accent);}
+.mp-calc span{font-family:inherit;font-weight:400;color:var(--text-faint);font-size:12px;}
+.mp-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);}
+.mp-tag{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--type-challenge);border:1px solid currentColor;border-radius:999px;padding:1px 7px;}
+.mp-tag.admin{color:var(--gold);}
+.mp-gauge{display:flex;height:10px;border-radius:999px;overflow:hidden;}
+.mp-gauge i{display:block;height:100%;}
+.mp-gauge-lbl{position:relative;height:16px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint);font-family:'JetBrains Mono',ui-monospace,monospace;}
+.mp-gl{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;}
+.mp-err{font-size:12px;color:var(--danger);}
+.account-tab svg{width:15px;height:15px;flex-shrink:0;}
+.account-tabs{overflow-x:auto;scrollbar-width:none;}.account-tabs::-webkit-scrollbar{display:none;}.account-tab{white-space:nowrap;flex-shrink:0;}
+@media (max-width:640px){ .account-tab{margin-right:14px !important;} }
+.mp-ico{display:inline-flex;flex-shrink:0;}.mp-ico svg{width:15px;height:15px;}
+.mp-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.mp-sum{padding:20px;display:flex;flex-direction:column;gap:14px;border-color:color-mix(in srgb, var(--accent) 35%, var(--border));}
+.mp-k{display:flex;flex-direction:column;gap:3px;}
+.mp-k small{font-size:12px;color:var(--text-dim);}
+.mp-k b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
+.mp-k em{font-style:normal;font-size:11.5px;color:var(--text-faint);}
+.mp-verdict{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:var(--radius-sm);font-size:12.5px;line-height:1.45;border:1px solid;}
+.mp-verdict.ok{background:var(--accent-dim);border-color:color-mix(in srgb, var(--accent) 40%, transparent);}
+.mp-verdict.warn{background:var(--gold-dim);border-color:color-mix(in srgb, var(--gold) 45%, transparent);}
+.mp-verdict.bad{background:var(--danger-dim);border-color:color-mix(in srgb, var(--danger) 45%, transparent);}
+.mp-verdict i{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.mp-use a{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text);text-decoration:none;}
+.mp-use a:last-child{border-bottom:0;}
+.mp-use a span:last-child{color:var(--accent);}
+@media (max-width:640px){ .mp-sec,.mp-sum{padding:16px;} }
 </style>
 </head>
 <body>
@@ -3501,6 +3545,7 @@ const state = {
     hiddenPages: [],
     announcement: { enabled:false, message:'', type:'info' },
     maintenance: { enabled:false, message:'' },
+    pilotagePublic: false,
   },
   filters: {
     // Page Comptes filtrée par défaut sur les comptes actifs — décision utilisateur du 23/09/2026.
@@ -3828,12 +3873,13 @@ async function loadAppSettings(){
       hiddenPages: Array.isArray(data.value.hiddenPages) ? data.value.hiddenPages : [],
       announcement: { enabled:false, message:'', type:'info', ...(data.value.announcement||{}) },
       maintenance: { enabled:false, message:'', ...(data.value.maintenance||{}) },
+      pilotagePublic: !!data.value.pilotagePublic,
     };
   }
 }
 async function saveAppSettings(successMessage){
   if(!isAdmin()) return false;
-  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement, maintenance: state.appSettings.maintenance }, updated_at: new Date().toISOString() };
+  const payload = { key:'global', value: { hiddenPages: state.appSettings.hiddenPages, announcement: state.appSettings.announcement, maintenance: state.appSettings.maintenance, pilotagePublic: !!state.appSettings.pilotagePublic }, updated_at: new Date().toISOString() };
   const { error } = await supabaseClient.from('app_settings').upsert(payload, { onConflict:'key' });
   if(error){
     showToast("Impossible d'enregistrer les réglages : " + error.message + " — la table 'app_settings' existe-t-elle bien dans Supabase ? Voir app_settings.sql.", 'danger');
@@ -3889,6 +3935,22 @@ async function saveAnnouncement(enabled, message, type){
 // claude/mode-maintenance.md.
 function maintenanceModeActive(){
   return !!(state.appSettings && state.appSettings.maintenance && state.appSettings.maintenance.enabled);
+}
+// Nouveautés « pilotage » (22/11/2026 : Mon plan, tableau de bord, alertes, saisie manuelle de séance).
+// Livrées directement en prod : visibles par les admins seulement tant que l'interrupteur
+// Admin > Réglages > « Nouveautés pilotage » n'est pas activé (app_settings.global.pilotagePublic).
+function pilotageEnabled(){
+  return isAdmin() || !!(state.appSettings && state.appSettings.pilotagePublic);
+}
+async function savePilotagePublic(on){
+  if(!isAdmin()) return;
+  const prev = !!state.appSettings.pilotagePublic;
+  state.appSettings.pilotagePublic = !!on;
+  const ok = await saveAppSettings();
+  if(!ok){ state.appSettings.pilotagePublic = prev; renderView(); return; }
+  try{ await logActivity('SETTINGS', 'app_settings', 'pilotage', on ? 'Nouveautés pilotage ouvertes à tous' : 'Nouveautés pilotage réservées aux admins'); }catch(e){}
+  showToast(on ? 'Nouveautés pilotage visibles par tous les utilisateurs.' : 'Nouveautés pilotage réservées aux admins.');
+  render();
 }
 async function saveMaintenanceMode(enabled, message){
   if(!isAdmin()) return;
@@ -6630,6 +6692,7 @@ const BASE_NAV = [
   { id:'changelog', label:'Nouveautés', icon:'sparkles' },
   { id:'subscription', label:'Abonnement', icon:'wallet' },
   { id:'profil', label:'Profil', icon:'userCircle' },
+  { id:'mon-plan', label:'Mon plan', icon:'target' },
   { id:'parametres', label:'Paramètres', icon:'gear' },
   { id:'aide-centre', label:'Centre d’aide', icon:'chat' },
   { id:'manuel', label:'Manuel', icon:'help' },
@@ -6646,6 +6709,8 @@ function getNav(){
     .filter(n => !hidden.has(n.id) || isAdmin())
     // Plan de session / Cockpit / Méthode (23/10/2026) : réservés aux admins pour l'instant.
     .filter(n => !SP_ROUTES.includes(n.id) || isAdmin())
+    // Mon plan (22/11/2026) : onglet du Profil, admins seulement tant que les nouveautés pilotage ne sont pas ouvertes.
+    .filter(n => n.id !== 'mon-plan' || pilotageEnabled())
     .map(n => hidden.has(n.id) ? { ...n, hiddenForOthers:true } : n);
   if(isAdmin()) nav.push({ id:'admin', label:'Admin', icon:'shield' });
   return nav;
@@ -6673,7 +6738,7 @@ const NAV_GROUPS = [
 ];
 // Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
 // mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
-const NAV_TAB_PARENT = { coach:'rentabilite', 'seance-methode':'plan-seance' };
+const NAV_TAB_PARENT = { coach:'rentabilite', 'seance-methode':'plan-seance', 'mon-plan':'profil' };
 function navRouteOwner(route){ return NAV_TAB_PARENT[route] || route; }
 // Les pages légales (confidentialité, mentions légales, CGV/CGU) ne sont plus un groupe du menu
 // principal — elles sont rarement consultées au quotidien et vivent désormais en pied de page
@@ -7132,6 +7197,7 @@ function topbarSub(){
     comparatif: 'Performance comparée des PropFirms',
     rentabilite: 'Ce que tu as vraiment gagné, toutes dépenses comprises',
     coach: 'Où tu perds de l’argent et quoi changer ce mois-ci',
+    'mon-plan': 'Ton objectif du mois, ton budget, ta séance et tes seuils d’alerte',
     ecole: 'Bilans de cohorte anonymes, calculés à partir des comptes réels',
     subscription: 'Choisis la formule qui correspond à tes besoins',
     admin: 'Utilisateurs, rôles et journal d\u2019activité',
@@ -8262,6 +8328,7 @@ function renderView(){
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
   else if(state.route==='profil') el.innerHTML = viewProfil();
+  else if(state.route==='mon-plan') el.innerHTML = pilotageEnabled() ? viewMonPlan() : viewProfil();
   else if(state.route==='parametres') el.innerHTML = viewParametres();
   else if(state.route==='aide-centre') el.innerHTML = viewCentreAide();
   else if(state.route==='manuel') el.innerHTML = viewManuel();
@@ -9137,11 +9204,21 @@ const COACH_PERIODS = [ { v:'30', l:'30 jours' }, { v:'90', l:'90 jours' }, { v:
 let __coachAi = { loading:false, error:null, offerMine:false };
 
 function coachLsKey(){ return COACH_LS_KEY + ':' + (currentUserId() || 'anon'); }
-function coachSettings(){
+function coachStoredRaw(){
   let s = null;
   if(state.profile && state.profile.coachSettings && typeof state.profile.coachSettings === 'object') s = state.profile.coachSettings;
   if(!s){ try{ s = JSON.parse(localStorage.getItem(coachLsKey()) || 'null'); }catch(e){ s = null; } }
-  return { ...COACH_DEFAULTS, ...(s || {}) };
+  return s;
+}
+function coachSettings(){
+  const out = { ...COACH_DEFAULTS, ...(coachStoredRaw() || {}) };
+  // 22/11/2026 : budget et objectif de payout ont une seule source, le plan (Profil › Mon plan).
+  const pl = planStored();
+  if(pl){
+    if(pl.budget !== undefined) out.budget = pl.budget;
+    if(pl.payoutGoal !== undefined) out.payoutGoal = pl.payoutGoal;
+  }
+  return out;
 }
 async function coachSaveSettings(patch){
   const next = { ...coachSettings(), ...patch };
@@ -9152,6 +9229,8 @@ async function coachSaveSettings(patch){
     const { error } = await supabaseClient.from('profiles').update({ coach_settings: next }).eq('id', currentUserId());
     if(error && isAdmin()) showToast('coach_settings non enregistré en base : ' + error.message, 'danger');
   }
+  // Même objectif et même budget que Profil › Mon plan.
+  if('budget' in patch || 'payoutGoal' in patch) await planWrite({ ...planSettings(), budget: next.budget, payoutGoal: next.payoutGoal });
   return next;
 }
 function coIsoAdd(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
@@ -17081,6 +17160,16 @@ function viewAdmin(){
         </div>
       </div>
     </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('target')}Nouveautés pilotage${state.appSettings.pilotagePublic?`<span class="badge badge-accent">Visibles par tous</span>`:`<span class="badge badge-gold">Admins seulement</span>`}</div></div>
+      <div class="panel-body">
+      <div class="field-hint" style="margin:0 0 12px;">Mon plan (Profil), et les prochaines étapes : tableau de bord de pilotage, alertes drawdown / objectif, saisie manuelle de la séance, animation de challenge réussi. Tant que ce réglage est coupé, seuls les admins les voient : teste-les en prod, puis ouvre-les à tout le monde.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;">
+        <label class="switch"><input type="checkbox" id="pilotage-public" ${state.appSettings.pilotagePublic?'checked':''}/><span class="switch-track"></span></label>
+        Ouvrir les nouveautés pilotage à tous les utilisateurs
+      </label>
+      </div>
+    </div>
     <div class="panel" style="margin-bottom:16px;${maint.enabled?'border-color:var(--danger);':''}">
       <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('shield')}Mode maintenance${maint.enabled?`<span class="badge badge-danger">Actif</span>`:''}</div></div>
       <div class="panel-body">
@@ -17452,6 +17541,7 @@ function viewSubscription(){
 function accountTabsHtml(active){
   const tabs = [
     { id:'profil', label:'Profil', icon:'userCircle' },
+    ...(pilotageEnabled() ? [{ id:'mon-plan', label:'Mon plan', icon:'target' }] : []),
     { id:'parametres', label:'Paramètres', icon:'gear' },
     { id:'subscription', label:'Abonnement', icon:'wallet' },
   ];
@@ -17804,6 +17894,242 @@ async function saveRadarSettings(maxDays, threshold, firmDraft){
   showToast(`Radar enregistré${nf ? ` · ${nf} règle${nf>1?'s':''} personnelle${nf>1?'s':''}` : ' · règles officielles du catalogue'}.`);
   renderView();
 }
+/* ============================================================
+   MON PLAN (22/11/2026) — Profil › Mon plan
+   Objectif de payout mensuel, budget max, PA visés, jours de trading, séance du jour (seuil de
+   validation, saisie manuelle), seuils d'alerte drawdown / objectif. Maquette :
+   claude/dashboard-pilotage-plan-maquette.md. Visible par les admins tant que pilotageEnabled()
+   est faux pour les autres (Admin > Réglages > Nouveautés pilotage).
+   Stockage : profiles.payout_plan (jsonb, migration_mon_plan_20261122.sql) ; repli localStorage
+   si la colonne n'existe pas encore. Budget et objectif = même valeur que le Coach (coach_settings
+   reste synchronisé pour ne rien casser).
+============================================================ */
+const PLAN_DEFAULTS = { payoutGoal:null, budget:null, paTarget:3, tradingDays:20, sessionValid:150, manualEntry:true, ddCrit:20, ddWarn:35, goalNear:80 };
+const PLAN_SPLIT = 0.9; // partage de profit moyen retenu pour l'estimation du PnL à produire
+function planLsKey(){ return 'ctx_payout_plan:' + (currentUserId() || 'anon'); }
+function planStored(){
+  let s = null;
+  if(state.profile && state.profile.payoutPlan && typeof state.profile.payoutPlan === 'object') s = state.profile.payoutPlan;
+  if(!s){ try{ s = JSON.parse(localStorage.getItem(planLsKey()) || 'null'); }catch(e){ s = null; } }
+  return s;
+}
+function planSettings(){
+  const st = planStored() || {};
+  const out = { ...PLAN_DEFAULTS, ...st };
+  const co = coachStoredRaw();
+  if(co){
+    if(st.budget === undefined && co.budget != null) out.budget = co.budget;
+    if(st.payoutGoal === undefined && co.payoutGoal != null) out.payoutGoal = co.payoutGoal;
+  }
+  return out;
+}
+function planHasColumn(){ return !!(state.profile && ('payoutPlan' in state.profile)); }
+function planIsDefined(){ const p = planSettings(); return Number(p.payoutGoal) > 0; }
+async function planWrite(next){
+  try{ localStorage.setItem(planLsKey(), JSON.stringify(next)); }catch(e){}
+  if(planHasColumn() && SUPABASE_CONFIGURED && currentUserId()){
+    const prev = state.profile.payoutPlan;
+    state.profile.payoutPlan = next;
+    const { error } = await supabaseClient.from('profiles').update({ payout_plan: next }).eq('id', currentUserId());
+    if(error){ state.profile.payoutPlan = prev; return { ok:false, error }; }
+  }
+  return { ok:true, local: !planHasColumn() };
+}
+async function planSave(next){
+  const r = await planWrite(next);
+  if(!r.ok) return r;
+  // Le Coach lit déjà le plan, mais on garde coach_settings aligné (anciennes versions, export…).
+  if(state.profile && ('coachSettings' in state.profile) && SUPABASE_CONFIGURED && currentUserId()){
+    const co = { ...COACH_DEFAULTS, ...(coachStoredRaw() || {}), budget: next.budget, payoutGoal: next.payoutGoal };
+    state.profile.coachSettings = co;
+    try{ localStorage.setItem(coachLsKey(), JSON.stringify(co)); }catch(e){}
+    await supabaseClient.from('profiles').update({ coach_settings: co }).eq('id', currentUserId());
+  }
+  try{ await logActivity('UPDATE', 'profiles', currentUserId(), 'Mon plan enregistré'); }catch(e){}
+  return r;
+}
+function mpNum(v){ const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : null; }
+function mpRead(){
+  const g = (id)=>{ const el = document.getElementById(id); return el ? el.value : ''; };
+  const cb = document.getElementById('mp-manual');
+  return {
+    payoutGoal: mpNum(g('mp-goal')), budget: mpNum(g('mp-budget')),
+    paTarget: mpNum(g('mp-pa')), tradingDays: mpNum(g('mp-days')),
+    sessionValid: mpNum(g('mp-valid')), manualEntry: cb ? cb.checked : true,
+    ddCrit: mpNum(g('mp-ddcrit')), ddWarn: mpNum(g('mp-ddwarn')), goalNear: mpNum(g('mp-near')),
+  };
+}
+function mpValidate(v){
+  const e = [];
+  if(v.payoutGoal != null && v.payoutGoal < 0) e.push('L’objectif ne peut pas être négatif.');
+  if(v.budget != null && v.budget < 0) e.push('Le budget ne peut pas être négatif.');
+  if(!(v.paTarget >= 1 && v.paTarget <= 50)) e.push('Nombre de PA visés : entre 1 et 50.');
+  if(!(v.tradingDays >= 1 && v.tradingDays <= 23)) e.push('Jours de trading : entre 1 et 23 par mois.');
+  if(v.sessionValid == null || v.sessionValid < 0) e.push('Seuil de validation de séance : 0 ou plus.');
+  if(!(v.ddCrit >= 5 && v.ddCrit <= 60)) e.push('Drawdown critique : entre 5 et 60 %.');
+  if(!(v.ddWarn > v.ddCrit && v.ddWarn <= 90)) e.push('Le seuil « à surveiller » doit être au-dessus du seuil critique (90 % max).');
+  if(!(v.goalNear >= 50 && v.goalNear <= 99)) e.push('Objectif proche : entre 50 et 99 %.');
+  return e;
+}
+function mpMoney(x, cur){ return Math.round(Number(x) || 0).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ') + ' ' + (cur === 'EUR' ? '€' : '$'); }
+function mpSummary(v, cur){
+  const m = (x)=> mpMoney(x, cur);
+  const goal = Number(v.payoutGoal) || 0, budget = Number(v.budget) || 0;
+  const pa = Math.max(1, Math.round(Number(v.paTarget) || 1)), days = Math.max(1, Math.round(Number(v.tradingDays) || 1));
+  const perPa = goal ? m(goal / pa) : '—';
+  const daily = goal ? m(goal / PLAN_SPLIT / days) : '—';
+  const ratio = goal && budget ? (goal / budget) : null;
+  let cls = 'ok', txt = 'Plan cohérent : ton objectif reste atteignable avec ce nombre de PA.';
+  if(!goal){ cls = 'warn'; txt = 'Fixe un objectif de payout mensuel pour activer le suivi sur le tableau de bord.'; }
+  else if(ratio != null && ratio < 1.5){ cls = 'bad'; txt = 'Risqué : ton objectif couvre à peine ton budget. Un mois sans payout et tu es en perte.'; }
+  else if(goal / pa > 2500){ cls = 'warn'; txt = 'Ambitieux : plus de 2 500 par PA et par mois. Vise plus de PA, ou un objectif plus bas.'; }
+  else if(!budget){ cls = 'warn'; txt = 'Ajoute un budget mensuel : le Coach te préviendra avant de le dépasser.'; }
+  return { perPa, daily, ratio: ratio != null ? ratio.toFixed(1).replace('.', ',') + ' ×' : '—', cls, txt };
+}
+function viewMonPlan(){
+  const p = planSettings();
+  const d = computeCoachData();
+  const cur = d.currency || 'USD';
+  const sym = cur === 'EUR' ? '€' : '$';
+  const sm = mpSummary(p, cur);
+  const crit = Number(p.ddCrit), warn = Number(p.ddWarn);
+  const vColor = { ok:'var(--accent)', warn:'var(--gold)', bad:'var(--danger)' };
+  const goal = Number(p.payoutGoal) || 0, budget = Number(p.budget) || 0;
+  const inp = (id, val, unit, attrs)=> `<div class="mp-in"><input id="${id}" type="number" inputmode="decimal" value="${val == null ? '' : val}" ${attrs || ''}/>${unit ? `<span>${unit}</span>` : ''}</div>`;
+  const adminOnly = !state.appSettings.pilotagePublic;
+  return `
+    ${accountTabsHtml('mon-plan')}
+    ${!planHasColumn() && isAdmin() ? `<div class="panel" style="padding:12px 16px;margin-bottom:16px;border-color:var(--gold);font-size:12.5px;display:flex;gap:8px;align-items:center;"><span class="mp-ico" style="color:var(--gold);">${icon('alertTriangle')}</span><span>La colonne <code>profiles.payout_plan</code> n’existe pas encore : le plan est enregistré sur cet appareil seulement. Lance <code>migration_mon_plan_20261122.sql</code>.</span></div>` : ''}
+    <div class="mp-wrap">
+      <div class="mp-main">
+        <section class="panel mp-sec" aria-labelledby="mp-t1">
+          <div class="mp-head"><span class="mp-num" aria-hidden="true">1</span><div>
+            <h2 class="mp-title" id="mp-t1">Objectif et budget du mois ${adminOnly && isAdmin() ? '<span class="mp-tag admin">ADMINS SEULEMENT</span>' : ''}</h2>
+            <div class="mp-sub">Ce que tu veux encaisser et ce que tu acceptes de dépenser chaque mois, en ${cur}. Même objectif et même budget que le Coach rentabilité.</div>
+          </div></div>
+          <div class="mp-grid">
+            <div class="field"><label for="mp-goal">Objectif de payout mensuel</label>${inp('mp-goal', p.payoutGoal, sym, 'min="0" step="100" placeholder="Ex : 3000"')}</div>
+            <div class="field"><label for="mp-budget">Budget mensuel max</label>${inp('mp-budget', p.budget, sym, 'min="0" step="50" placeholder="Ex : 500"')}<div class="field-hint">Achats, mensualités, resets et activations.</div></div>
+            <div class="field"><label for="mp-pa">Nombre de PA visés en parallèle</label>${inp('mp-pa', p.paTarget, '', 'min="1" max="50" step="1"')}</div>
+            <div class="field"><label for="mp-days">Jours de trading par mois</label>${inp('mp-days', p.tradingDays, 'jours', 'min="1" max="23" step="1"')}</div>
+          </div>
+        </section>
+
+        <section class="panel mp-sec" aria-labelledby="mp-t2">
+          <div class="mp-head"><span class="mp-num" aria-hidden="true">2</span><div>
+            <h2 class="mp-title" id="mp-t2">Séance du jour</h2>
+            <div class="mp-sub">Quand une séance est-elle réussie ? Le PnL du jour vient de Deltalytix, ou de ta saisie.</div>
+          </div></div>
+          <div class="mp-row">
+            <div><div style="font-size:13.5px;font-weight:600;margin-bottom:2px;">Saisie manuelle du PnL du jour</div>
+              <div class="mp-sub" id="mp-manual-hint">${p.manualEntry ? 'Activée : pour tes comptes sans Deltalytix, la Séance du jour te demande ton PnL. Ta saisie vaut aussi pointage pour le Radar inactivité.' : 'Désactivée : la Séance du jour ne suit que les comptes synchronisés avec Deltalytix.'}</div></div>
+            <label class="switch" title="Saisie manuelle du PnL du jour"><input type="checkbox" id="mp-manual" ${p.manualEntry ? 'checked' : ''}/><span class="switch-track"></span></label>
+          </div>
+          <div class="mp-grid">
+            <div class="field"><label for="mp-valid">Compte validé si PnL du jour ≥</label>${inp('mp-valid', p.sessionValid, sym, 'min="0" step="10"')}</div>
+            <div class="field"><label>Objectif du jour (calculé)</label><div class="mp-calc"><span id="mp-calc-daily" style="color:var(--accent);font-weight:600;font-size:13px;">${sm.daily}</span><span>tous comptes</span></div></div>
+          </div>
+        </section>
+
+        <section class="panel mp-sec" aria-labelledby="mp-t3">
+          <div class="mp-head"><span class="mp-num" aria-hidden="true">3</span><div>
+            <h2 class="mp-title" id="mp-t3">Seuils d’alerte <span class="mp-tag">PREMIUM + DELTALYTIX</span></h2>
+            <div class="mp-sub">Quand le tableau de bord te prévient. Les alertes lisent le drawdown et l’objectif synchronisés depuis Deltalytix (compte connecté, gratuit ou payant).</div>
+          </div></div>
+          <div class="mp-grid">
+            <div class="field"><label for="mp-ddcrit">Drawdown critique sous</label>${inp('mp-ddcrit', p.ddCrit, '% restant', 'min="5" max="60" step="5"')}</div>
+            <div class="field"><label for="mp-ddwarn">Drawdown à surveiller sous</label>${inp('mp-ddwarn', p.ddWarn, '% restant', 'min="10" max="90" step="5"')}</div>
+            <div class="field"><label for="mp-near">Objectif proche à partir de</label>${inp('mp-near', p.goalNear, '% atteint', 'min="50" max="99" step="5"')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <div class="mp-sub">Aperçu sur une jauge de drawdown restant</div>
+            <div class="mp-gauge" aria-hidden="true"><i id="mp-g-crit" style="width:${crit}%;background:var(--danger);"></i><i id="mp-g-warn" style="width:${Math.max(0, warn - crit)}%;background:var(--gold);"></i><i style="flex:1;background:var(--accent);opacity:.75;"></i></div>
+            <div class="mp-gauge-lbl"><span>0 %</span><span class="mp-gl" id="mp-g-l1" style="left:${crit}%;">${crit} %</span><span class="mp-gl" id="mp-g-l2" style="left:${warn}%;">${warn} %</span><span>100 %</span></div>
+          </div>
+        </section>
+
+        <div id="mp-errors" class="mp-err" role="alert"></div>
+        <div class="mp-actions">
+          <button type="button" class="btn btn-primary" id="mp-save">${icon('check')}Enregistrer mon plan</button>
+          <button type="button" class="btn btn-outline" id="mp-reset">Valeurs conseillées</button>
+        </div>
+      </div>
+
+      <aside class="mp-side" aria-label="Résumé du plan">
+        <section class="panel mp-sum">
+          <div class="section-title" style="margin:0;">Ce que ton plan demande</div>
+          <div class="mp-k"><small>Payout moyen par PA et par mois</small><b id="mp-s-perpa">${sm.perPa}</b></div>
+          <div class="mp-k"><small>PnL à produire par jour de trading</small><b id="mp-s-daily" style="color:var(--accent);">${sm.daily}</b><em>tous comptes, avec un partage de profit de 90 %</em></div>
+          <div class="mp-k"><small>Rendement visé sur le budget</small><b id="mp-s-ratio">${sm.ratio}</b><em>objectif ÷ budget</em></div>
+          <div class="mp-verdict ${sm.cls}" id="mp-s-verdict"><i style="background:${vColor[sm.cls]};"></i><span>${sm.txt}</span></div>
+          <div class="mp-sub" style="font-size:11.5px;">Estimations indicatives, pas un conseil : le Coach compare ensuite ton plan à tes vrais chiffres.</div>
+        </section>
+        <section class="panel mp-sum" style="border-color:var(--border);">
+          <div class="section-title" style="margin:0;">Ce mois-ci</div>
+          <div class="mp-k"><small>Payouts reçus</small><b>${mpMoney(d.monthPay, cur)}</b><em>${goal ? `${Math.round((d.monthPay || 0) / goal * 100)} % de ton objectif` : 'pas d’objectif fixé'}</em></div>
+          <div class="mp-k"><small>Dépensé</small><b>${mpMoney(d.monthExp, cur)}</b><em>${budget ? `${Math.round((d.monthExp || 0) / budget * 100)} % de ton budget` : 'pas de budget fixé'}</em></div>
+        </section>
+        <section class="panel mp-sum mp-use" style="border-color:var(--border);gap:4px;">
+          <div class="section-title" style="margin:0 0 6px;">Où ton plan est utilisé</div>
+          <a href="#" data-nav="coach"><span>Coach rentabilité · budget et objectif</span><span>→</span></a>
+          <a href="#" data-nav="rentabilite"><span>Rentabilité réelle</span><span>→</span></a>
+          <a href="#" data-nav="dashboard"><span>Tableau de bord · plan de payout et alertes <em style="font-style:normal;color:var(--text-faint);">(bientôt)</em></span><span>→</span></a>
+        </section>
+      </aside>
+    </div>`;
+}
+function bindMonPlanEvents(){
+  if(state.route !== 'mon-plan') return;
+  const root = document.getElementById('view-root');
+  const cur = (computeCoachData().currency) || 'USD';
+  const vColor = { ok:'var(--accent)', warn:'var(--gold)', bad:'var(--danger)' };
+  const set = (id, html)=>{ const el = document.getElementById(id); if(el) el.innerHTML = html; };
+  const refresh = ()=>{
+    const v = mpRead();
+    const sm = mpSummary(v, cur);
+    set('mp-s-perpa', sm.perPa); set('mp-s-daily', sm.daily); set('mp-calc-daily', sm.daily); set('mp-s-ratio', sm.ratio);
+    const vd = document.getElementById('mp-s-verdict');
+    if(vd){ vd.className = 'mp-verdict ' + sm.cls; vd.innerHTML = `<i style="background:${vColor[sm.cls]};"></i><span>${sm.txt}</span>`; }
+    const c = Math.min(100, Math.max(0, Number(v.ddCrit) || 0)), w = Math.min(100, Math.max(c, Number(v.ddWarn) || 0));
+    const gc = document.getElementById('mp-g-crit'), gw = document.getElementById('mp-g-warn');
+    if(gc) gc.style.width = c + '%'; if(gw) gw.style.width = (w - c) + '%';
+    set('mp-g-l1', c + ' %'); set('mp-g-l2', w + ' %');
+    const l1 = document.getElementById('mp-g-l1'), l2 = document.getElementById('mp-g-l2');
+    if(l1) l1.style.left = c + '%'; if(l2) l2.style.left = w + '%';
+    set('mp-manual-hint', v.manualEntry ? 'Activée : pour tes comptes sans Deltalytix, la Séance du jour te demande ton PnL. Ta saisie vaut aussi pointage pour le Radar inactivité.' : 'Désactivée : la Séance du jour ne suit que les comptes synchronisés avec Deltalytix.');
+    const errs = mpValidate(v);
+    set('mp-errors', errs.map(escapeHtml).join('<br>'));
+    const sv = document.getElementById('mp-save'); if(sv) sv.disabled = errs.length > 0;
+    return { v, errs };
+  };
+  root.querySelectorAll('.mp-in input, #mp-manual').forEach(el=>{ el.addEventListener('input', refresh); el.addEventListener('change', refresh); });
+  const save = document.getElementById('mp-save');
+  if(save) save.onclick = async ()=>{
+    const { v, errs } = refresh();
+    if(errs.length) return;
+    const next = { ...planSettings(), ...v,
+      payoutGoal: v.payoutGoal > 0 ? Math.round(v.payoutGoal * 100) / 100 : null,
+      budget: v.budget > 0 ? Math.round(v.budget * 100) / 100 : null,
+      paTarget: Math.round(v.paTarget), tradingDays: Math.round(v.tradingDays),
+      updatedAt: new Date().toISOString() };
+    save.disabled = true;
+    const r = await planSave(next);
+    save.disabled = false;
+    if(!r.ok){ showToast('Plan non enregistré : ' + (r.error && r.error.message || 'erreur inconnue'), 'danger'); return; }
+    showToast(r.local ? 'Plan enregistré sur cet appareil.' : 'Plan enregistré.');
+    renderView();
+  };
+  const reset = document.getElementById('mp-reset');
+  if(reset) reset.onclick = ()=>{
+    const d = PLAN_DEFAULTS;
+    [['mp-pa', d.paTarget], ['mp-days', d.tradingDays], ['mp-valid', d.sessionValid], ['mp-ddcrit', d.ddCrit], ['mp-ddwarn', d.ddWarn], ['mp-near', d.goalNear]].forEach(([id, val])=>{ const el = document.getElementById(id); if(el) el.value = val; });
+    const cb = document.getElementById('mp-manual'); if(cb) cb.checked = true;
+    refresh();
+    showToast('Valeurs conseillées remises (objectif et budget inchangés). Pense à enregistrer.');
+  };
+  refresh();
+}
+
 function viewProfil(){
   const emailReal = state.session ? state.session.user.email : (state.profile ? state.profile.email : null);
   const emailShown = state.profileEmailRevealed ? (emailReal || '—') : maskedEmail(emailReal);
@@ -20440,6 +20766,8 @@ function gdStartSteps(){
       done: myTraders.length>0, cta:'Créer mon trader', run:"gdGo('traders');setTimeout(()=>traderFormModal(),60)" },
     { id:'accounts', title:'Ajoute tes comptes', sub:'Le plus rapide : une capture de ta plateforme, les numéros sont lus pour toi.',
       done: myAccounts.length>0, cta:'Importer mes comptes', run:"gdGo('accounts');setTimeout(()=>captureImportModal(),60)" },
+    ...(pilotageEnabled() ? [{ id:'plan', title:'Définis ton plan', sub:'Objectif du mois, budget et seuils d’alerte : Contralytix suit ton avancement et te prévient.',
+      done: planIsDefined(), cta:'Définir mon plan', run:"gdGo('mon-plan')" }] : []),
     { id:'payout', title:'Enregistre un payout', sub:'Depuis la carte d’un compte financé, bouton « Payouts ». C’est ce qui alimente ton net.',
       done: (state.payouts||[]).some(p=>myIds.has(p.accountId)), cta:'Voir mes comptes', run:"gdGo('accounts')" },
     { id:'rentabilite', title:'Découvre ton net réel', sub:'Payouts moins toutes tes dépenses : ce que tu as vraiment gagné.',
@@ -20471,7 +20799,7 @@ function gdStartChecklistHtml(){
       <div class="gd-start-head">
         <div>
           <div class="gd-start-title">Bien démarrer sur Contralytix</div>
-          <div class="gd-start-sub">${done===0 ? 'Cinq étapes pour voir ton vrai résultat prop firm. Compte 5 minutes.' : `Plus que ${steps.length-done} étape${steps.length-done>1?'s':''}. Prochaine : ${next.title.toLowerCase()}.`}</div>
+          <div class="gd-start-sub">${done===0 ? `${steps.length} étapes pour voir ton vrai résultat prop firm. Compte 5 minutes.` : `Plus que ${steps.length-done} étape${steps.length-done>1?'s':''}. Prochaine : ${next.title.toLowerCase()}.`}</div>
         </div>
         <div class="gd-start-prog">
           <span>${done}/${steps.length}</span>
@@ -20556,9 +20884,12 @@ function gdEmptyRadar(){
 
 /* ---------- 3. Aide de page ---------- */
 const GD_HELP = {
+  'mon-plan': { manual:'m-profil', intro:'Ton plan du mois : ce que tu veux encaisser, ce que tu acceptes de dépenser et quand Contralytix doit te prévenir.',
+    points:['<b>Objectif</b> et <b>budget</b> sont les mêmes que ceux du Coach rentabilité : un seul réglage.','Le résumé à droite se met à jour pendant la saisie : payout par PA, PnL à produire par jour, rendement sur le budget.','La <b>saisie manuelle</b> du PnL du jour sert aux comptes sans Deltalytix ; tu peux la couper.','Les <b>seuils d’alerte</b> (drawdown, objectif proche) demandent Premium et Deltalytix connecté.'],
+    actions:[{ icon:'target', label:'Voir le Coach rentabilité', run:"gdCloseHelp();gdGo('coach')" }] },
   dashboard: { manual:'m-dashboard', intro:'Ta vue d’ensemble : ce que tu as dépensé, encaissé et gagné, et ce qui demande ton attention.',
     points:['Les <b>filtres</b> (trader, PropFirm, période) s’appliquent à tous les modules.','<b>Personnaliser</b> : choisis les modules, leur ordre et leur taille (SM, MD, LG). Ta disposition suit ton compte.','Le <b>Net</b> = payouts − dépenses. Le <b>Net global</b> ajoute tes frais généraux.','Les petites flèches ▲▼ comparent à la période précédente.'],
-    actions:[{ icon:'layout', label:'Personnaliser le Dashboard', run:"document.getElementById('dash-customize-btn')&&document.getElementById('dash-customize-btn').click()" },{ icon:'check', label:'Afficher la checklist « Bien démarrer »', run:'gdShowStart()' }],
+    actions:[{ icon:'target', label:'Définir ou ajuster mon plan', run:"gdCloseHelp();gdGo('mon-plan')", show:()=>pilotageEnabled() },{ icon:'layout', label:'Personnaliser le Dashboard', run:"document.getElementById('dash-customize-btn')&&document.getElementById('dash-customize-btn').click()" },{ icon:'check', label:'Afficher la checklist « Bien démarrer »', run:'gdShowStart()' }],
     tour:[
       { sel:'.gd-start', title:'Bien démarrer', text:'Les étapes clés pour voir ton vrai résultat. Elles se cochent toutes seules.' },
       { sel:'.filter-bar', title:'Filtres', text:'Trader, PropFirm et période : tout le Dashboard suit ces filtres.' },
@@ -20638,7 +20969,7 @@ function gdOpenHelp(){
     <div class="gd-drawer-body">
       ${h ? `<div class="gd-drawer-intro">${h.intro}</div>` : `<div class="gd-drawer-intro">Le manuel décrit cette page en détail, section par section.</div>`}
       ${h && h.points ? `<div><div class="gd-sec-title">L’essentiel</div><ul class="gd-points">${h.points.map(p=>`<li>${ck}<span>${p}</span></li>`).join('')}</ul></div>` : ''}
-      ${h && h.actions ? `<div><div class="gd-sec-title">Actions rapides</div><div class="gd-actions">${h.actions.map(a=>`<button type="button" class="gd-action" onclick="${a.run}">${icon(a.icon)}<span>${a.label}</span>${icon('chevRight')}</button>`).join('')}</div></div>` : ''}
+      ${h && h.actions ? `<div><div class="gd-sec-title">Actions rapides</div><div class="gd-actions">${h.actions.filter(a=>!a.show || a.show()).map(a=>`<button type="button" class="gd-action" onclick="${a.run}">${icon(a.icon)}<span>${a.label}</span>${icon('chevRight')}</button>`).join('')}</div></div>` : ''}
       ${h && h.glossary ? `<div><div class="gd-sec-title">Lexique</div><dl class="gd-gloss">${h.glossary.map(([t,x])=>`<div><dt>${t}</dt> <dd>— ${x}</dd></div>`).join('')}</dl></div>` : ''}
       ${state.route!=='dashboard' && gdGet('start_hidden')==='1' && gdStartSteps().some(s=>!s.done) ? `<div><div class="gd-sec-title">Bien démarrer</div><div class="gd-actions"><button type="button" class="gd-action" onclick="gdShowStart()">${icon('check')}<span>Reprendre la checklist « Bien démarrer »</span>${icon('chevRight')}</button></div></div>` : ''}
     </div>
@@ -20849,6 +21180,7 @@ function bindViewEvents(){
   bindFirmSelect('fd-firm', state.filters.dashboard, 'firmMenuOpen');
   bindDateRangeFilter('fd-date', state.filters.dashboard);
   bindRentabiliteEvents();
+  bindMonPlanEvents();
   bindCoachEvents();
   bindEcoleEvents();
   bindMultiSelectDropdown('fd-trader', state.filters.dashboard, 'trader', 'traderMenuOpen', (arr)=>setTraderFilterEverywhere(arr));
@@ -21523,6 +21855,14 @@ function bindViewEvents(){
     const type = document.getElementById('ann-type').value;
     if(enabled && !message.trim()){ showToast('Ajoute un message avant d\u2019activer la bannière.', 'danger'); return; }
     saveAnnouncement(enabled, message, type);
+  };
+  // Admin : nouveautés pilotage (admins seulement / tous)
+  const pilotCb = document.getElementById('pilotage-public');
+  if(pilotCb) pilotCb.onchange = ()=>{
+    const on = pilotCb.checked;
+    if(on) confirmModal('Les nouveautés pilotage (Mon plan, et les étapes suivantes déjà livrées) deviennent visibles pour tous les utilisateurs. Confirmer ?', ()=> savePilotagePublic(true), false);
+    else savePilotagePublic(false);
+    pilotCb.checked = !!state.appSettings.pilotagePublic;
   };
   // Admin : mode maintenance
   const maintSaveBtn = document.getElementById('maint-save');
@@ -25741,7 +26081,7 @@ function applyLandingPricing(){
       state.expense_receipts = [];
       state.ecole = null;
       state.fiscalChecklist = {};
-      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' } };
+      state.appSettings = { hiddenPages: [], announcement: { enabled:false, message:'', type:'info' }, maintenance: { enabled:false, message:'' }, pilotagePublic: false };
       document.getElementById('app-root').style.display = 'none';
       const ml = document.getElementById('marketing-landing');
       if(ml) ml.style.display = '';
