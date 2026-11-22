@@ -1067,6 +1067,58 @@ th.th-sort-active svg{opacity:1;}
 /* CATALOGUE PROP FIRM (22/11/2026) — même langage que la barre de filtres de la page Comptes */
 .cat-page{display:flex;flex-direction:column;gap:16px;}
 .field-label-note{font-weight:400;color:var(--text-faint);font-size:11.5px;}
+/* ADMIN › CATALOGUE (22/11/2026) */
+.acat-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.acat-top-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.acat-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start;}
+@media (max-width:900px){.acat-grid{grid-template-columns:1fr;}}
+.acat-side{padding:8px;max-height:calc(100vh - 220px);overflow-y:auto;position:sticky;top:80px;}
+.acat-search{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-pill);padding:8px 14px;font-size:12.5px;font-family:inherit;margin-bottom:4px;}
+.acat-firm-h{display:flex;align-items:center;gap:9px;padding:10px 8px 4px;font-weight:600;font-size:12.5px;}
+.acat-add{margin-left:auto;background:none;border:0;color:var(--text-faint);font-size:16px;line-height:1;padding:2px 7px;border-radius:6px;cursor:pointer;}
+.acat-add:hover{color:var(--accent);background:var(--surface-2);}
+.acat-prog{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--text-dim);font-size:12.5px;font-family:inherit;padding:7px 8px 7px 37px;border-radius:7px;text-align:left;cursor:pointer;}
+.acat-prog:hover{background:var(--surface-2);color:var(--text);}
+.acat-prog.sel{background:var(--accent-dim);color:var(--text);font-weight:600;}
+.acat-prog.off{opacity:.55;}
+.acat-n{margin-left:auto;font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.acat-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 18px;border-bottom:1px solid var(--border-soft);}
+.acat-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;}
+.acat-tabs{margin-left:auto;}
+.acat-sec{padding:16px 18px;border-bottom:1px solid var(--border-soft);}
+.acat-sec-t{font-size:10.5px;color:var(--text-faint);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;margin-bottom:12px;}
+.acat-sec-t span{text-transform:none;letter-spacing:0;font-weight:400;}
+.acat-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 16px;}
+.acat-span2{grid-column:span 2;}
+@media (max-width:640px){.acat-span2{grid-column:auto;}}
+.acat-inp{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:12.5px;font-family:inherit;}
+.acat-inp:focus{outline:none;border-color:var(--accent);}
+.acat-inp.chg{border-color:var(--accent);background:var(--accent-dim);}
+.acat-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.acat-chip{background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);border-radius:var(--radius-pill);padding:6px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;}
+.acat-chip:hover{color:var(--text);}
+.acat-chip.on{border-color:var(--accent);background:var(--accent-dim);color:var(--text);}
+.acat-chip.on.chg{box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);}
+.acat-st{min-width:640px;font-size:12.5px;}
+.acat-st th.num{text-align:right;}
+.acat-st td{padding:6px 8px;}
+.acat-st .acat-inp{padding:6px 8px;text-align:right;min-width:84px;}
+.acat-st .acat-inp.wide{text-align:left;min-width:170px;}
+.acat-lab{color:var(--text-dim);white-space:nowrap;padding-right:14px !important;}
+.acat-copy{background:none;border:0;color:var(--text-faint);font-size:11px;font-weight:600;font-family:inherit;padding:4px 6px;border-radius:6px;white-space:nowrap;cursor:pointer;}
+.acat-copy:hover{color:var(--accent);background:var(--surface-2);}
+.acat-addsize{background:none;border:1px dashed var(--border);color:var(--text-dim);border-radius:7px;padding:6px 10px;font-size:11.5px;font-weight:600;font-family:inherit;white-space:nowrap;cursor:pointer;}
+.acat-addsize:hover{border-color:var(--accent);color:var(--accent);}
+.acat-savebar{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;background:var(--surface-3);border-top:1px solid var(--border);border-radius:0 0 var(--radius-md) var(--radius-md);}
+.acat-count{font-weight:600;font-size:12.5px;}
+.acat-motif{flex:1 1 260px;width:auto;}
+.acat-h{padding:14px 18px;border-bottom:1px solid var(--border-soft);display:flex;flex-direction:column;gap:6px;}
+.acat-h:last-child{border-bottom:none;}
+.acat-h-top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.acat-h-date{font-size:12px;color:var(--text-dim);}
+.acat-h-diff{font-size:12px;color:var(--text-dim);display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.acat-old{text-decoration:line-through;color:var(--text-faint);}
+.acat-new{color:var(--accent);font-weight:600;}
 .cat-bar{margin-bottom:0;}
 .cat-ms{position:relative;}
 .cat-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 14px 9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;transition:border-color .12s,background .12s;}
@@ -6892,7 +6944,7 @@ async function catFetch(){
   const c = catState();
   c.loading = true; c.error = '';
   try{
-    const { data, error } = await supabaseClient.from('propfirm_programs').select('*').eq('active', true).order('propfirm_id').order('sort').order('size');
+    const { data, error } = await supabaseClient.from('propfirm_programs').select('*').order('propfirm_id').order('sort').order('size');
     if(error) throw error;
     c.rows = (data||[]).map(catRow);
   }catch(e){
@@ -6945,7 +6997,7 @@ function catRow(p){
     pay:R.payment || '', payTxt: R.payment==='one_time' ? 'Paiement unique' : R.payment==='monthly' ? 'Abonnement mensuel' : '',
     dll:R.dll || '', accessNote:R.accessNote || '',
     partial:p.conf === 'partial', src:p.source_url || '', notes:p.notes || '',
-    validFrom:p.valid_from || null, validTo:p.valid_to || null, isDefault:!!p.is_default, sort:p.sort || 0,
+    active:p.active !== false, validFrom:p.valid_from || null, validTo:p.valid_to || null, isDefault:!!p.is_default, sort:p.sort || 0,
     dates: p.valid_from ? 'depuis le ' + catDate(p.valid_from) : (p.valid_to ? 'jusqu’au ' + catDate(p.valid_to) : ''),
     chk:ck, check:R.check || {}, rules:R
   };
@@ -7036,7 +7088,7 @@ function catSortVal(r, k){ return k === 'buf' ? r.buf : k === 'days' ? r.days : 
 function viewCatalogue(){
   const c = catState();
   if(!c.rows){ catLoad(); return emptyState('layers', 'Chargement du catalogue…', ''); }
-  const all = c.rows.filter(r=>r.phase === 'PA');
+  const all = c.rows.filter(r=>r.phase === 'PA' && r.active);
   const f = c.f;
   const rows = all.filter(r=>catMatch(f, r, null))
     .sort((a,b)=>(catSortVal(a, c.sort) - catSortVal(b, c.sort)) * c.dir || a.size - b.size || a.firm.name.localeCompare(b.firm.name, 'fr') || a.program.localeCompare(b.program, 'fr'));
@@ -7085,7 +7137,7 @@ function viewCatalogue(){
   </div>`;
 }
 function catAdminPanel(c){
-  const all = c.rows.filter(r=>r.phase === 'PA');
+  const all = c.rows.filter(r=>r.phase === 'PA' && r.active);
   const n = k => all.filter(r=>r.chk.kind === k).length;
   const lastAt = all.reduce((m,r)=>(r.check.at && r.check.at > m ? r.check.at : m), '');
   const groups = [];
@@ -7166,7 +7218,8 @@ function accSizeNum(a){
   return m ? Number(m[1]) * 1000 : 0;
 }
 function accProgramCandidates(firmId, type, size, date){
-  const rows = (catState().rows || []).filter(r=>r.firmId === firmId && r.phase === type && r.size === size);
+  // Programmes retirés de la vente (Admin › Catalogue) : plus proposés, mais gardés pour les comptes qui les ont déjà.
+  const rows = (catState().rows || []).filter(r=>r.active && r.firmId === firmId && r.phase === type && r.size === size);
   const d = date || todayISO();
   const valid = rows.filter(r=>(!r.validFrom || r.validFrom <= d) && (!r.validTo || r.validTo >= d));
   return { all:rows, valid: valid.length ? valid : rows };
@@ -7197,6 +7250,337 @@ function accProgram(a){
   }
   const s = accProgramSuggest(a);
   return s ? { row:s.row, state: s.sure ? 'auto' : 'todo' } : null;
+}
+/* ============================================================
+   ADMIN › CATALOGUE (22/11/2026, maquette validée par Mickael)
+   Édition de propfirm_programs : un programme = toutes ses lignes (une par taille).
+   Conditions communes (appliquées à toutes les tailles) + tableau des valeurs par taille,
+   motif obligatoire. Chaque ligne modifiée est tracée par le trigger propfirm_programs_log
+   (propfirm_program_history : ancienne et nouvelle ligne, motif = change_note, auteur).
+============================================================ */
+const ACAT_SIZE_ROWS = [
+  ['ddAmount','Drawdown max','$'], ['buffer','Buffer','à garder après payout'], ['minRequestProfit','Profit min pour demander','au-dessus du départ'],
+  ['minPayout','Retrait min','$'], ['minDays','Jours min','nombre'], ['dayMin','Profit min par jour','jours gagnants'],
+  ['consistency','Cohérence','% par payout : 40, 40, 45'], ['caps','Plafond par payout','#1, #2… ; — = sans plafond'], ['activationFee','Frais d’activation','si payante'],
+];
+const ACAT_LIST_FIELDS = ['consistency','caps'];
+const ACAT_COMMONS = [
+  ['ddTypes','Drawdown',[['EOD','EOD'],['INTRADAY','Intraday'],['EOD,INTRADAY','Les deux']]],
+  ['dayType','Jours comptés',[['winning','Jours gagnants'],['trading','Jours de trading'],['','Aucun']]],
+  ['activation','Activation',[['free','Gratuite'],['paid','Payante'],['choice','Au choix']]],
+  ['payment','Paiement',[['one_time','Unique'],['monthly','Abonnement']]],
+  ['dll','DLL en PA',[['yes','Oui'],['no','Non'],['optional','Au choix']]],
+];
+const ACAT_LABELS = { program:'Nom', phase:'Phase', valid_from:'En vente depuis', valid_to:'Jusqu’au', source_url:'Page officielle', conf:'Fiabilité', active:'En vente', notes:'Note',
+  ddTypes:'Drawdown', dayType:'Jours comptés', activation:'Activation', payment:'Paiement', dll:'DLL en PA', split:'Split', maxPayouts:'Payouts max', frequency:'Fréquence',
+  ddAmount:'Drawdown max', buffer:'Buffer', minRequestProfit:'Profit min pour demander', minPayout:'Retrait min', minDays:'Jours min', dayMin:'Profit min par jour', consistency:'Cohérence', caps:'Plafonds', activationFee:'Frais d’activation', accessNote:'Note accès', check:'Contrôle' };
+function acat(){
+  if(!state.admCat) state.admCat = { raw:null, loading:false, sel:null, tab:'rules', edits:{}, motif:'', q:'', hist:null, saving:false };
+  return state.admCat;
+}
+function acatKey(r){ return r.propfirm_id + '|' + r.program + '|' + r.phase; }
+function acatGroup(key){ return (acat().raw || []).filter(r=>acatKey(r) === key).sort((a,b)=>Number(a.size) - Number(b.size)); }
+function acatRerender(){ if(state.route === 'admin' && state.adminTab === 'catalogue'){ document.getElementById('view-root').innerHTML = viewAdmin(); bindViewEvents(); } }
+async function acatLoad(){
+  const c = acat(); if(c.loading) return;
+  c.loading = true;
+  const { data, error } = await supabaseClient.from('propfirm_programs').select('*').order('propfirm_id').order('sort').order('size');
+  c.loading = false;
+  if(error){ c.raw = []; showToast('Catalogue illisible : ' + error.message, 'danger'); }
+  else c.raw = data || [];
+  if(!c.sel && c.raw.length) c.sel = acatKey(c.raw[0]);
+  acatRerender();
+}
+function acatFirmName(id){ const f = state.propfirms.find(x=>x.id===id); return f ? f.name : id; }
+// Valeur affichée (texte) d'un champ, pour le groupe (g) ou une taille (s).
+function acatOrig(group, scope, field, size){
+  const row = scope === 's' ? group.find(r=>String(Number(r.size)) === String(size)) : group[0];
+  if(!row) return '';
+  const R = row.rules || {};
+  if(['program','phase','valid_from','valid_to','source_url','conf','notes'].includes(field)) return row[field] == null ? '' : String(row[field]);
+  if(field === 'active') return row.active === false ? 'false' : 'true';
+  if(field === 'ddTypes') return (R.ddTypes || []).join(',');
+  if(field === 'split') return R.split == null ? '' : String(Math.round(R.split * 1000) / 10);
+  if(ACAT_LIST_FIELDS.includes(field)) return Array.isArray(R[field]) ? R[field].map(v=>v == null ? '—' : String(v)).join(', ') : '';
+  return R[field] == null ? '' : String(R[field]);
+}
+function acatVal(group, scope, field, size){
+  const k = scope + ':' + (size || '') + ':' + field;
+  const e = acat().edits;
+  return k in e ? e[k] : acatOrig(group, scope, field, size);
+}
+function acatChanges(group){
+  const e = acat().edits;
+  return Object.keys(e).filter(k=>{ const [scope, size, field] = k.split(':'); return e[k] !== acatOrig(group, scope, field, size); });
+}
+function acatSelect(key){
+  const c = acat();
+  if(c.sel !== key && acatChanges(acatGroup(c.sel)).length && !confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')) return;
+  c.sel = key; c.edits = {}; c.motif = ''; c.tab = 'rules'; c.hist = null; acatRerender();
+}
+function acatSet(field, value){ const c = acat(); c.edits['g::' + field] = value; acatRerender(); }
+function acatInput(el){
+  const c = acat(); const group = acatGroup(c.sel);
+  const [scope, size, field] = el.dataset.k.split(':');
+  c.edits[el.dataset.k] = el.value;
+  el.classList.toggle('chg', el.value !== acatOrig(group, scope, field, size));
+  acatSyncBar();
+}
+function acatSyncBar(){
+  const c = acat(); const n = acatChanges(acatGroup(c.sel)).length;
+  const cnt = document.getElementById('acat-count'); if(cnt) cnt.textContent = n ? n + ' modification' + (n>1?'s':'') + ' non enregistrée' + (n>1?'s':'') : 'Aucune modification';
+  const save = document.getElementById('acat-save'); if(save) save.disabled = !n || !c.motif.trim() || c.saving;
+  const cancel = document.getElementById('acat-cancel'); if(cancel) cancel.disabled = !n;
+}
+function acatMotif(el){ acat().motif = el.value; acatSyncBar(); }
+function acatCopyRow(field){
+  const c = acat(); const group = acatGroup(c.sel);
+  const first = acatVal(group, 's', field, Number(group[0].size));
+  group.forEach(r=>{ c.edits['s:' + Number(r.size) + ':' + field] = first; });
+  acatRerender();
+}
+function acatCancel(){ const c = acat(); c.edits = {}; c.motif = ''; acatRerender(); }
+function acatParse(field, txt){
+  const t = String(txt).trim();
+  if(ACAT_LIST_FIELDS.includes(field)){
+    if(!t) return undefined;
+    return t.split(/[,;]+/).map(x=>x.trim()).filter(x=>x !== '').map(x=>/^[—–-]$/.test(x) ? null : Number(x.replace(/\s/g,'').replace(',','.')));
+  }
+  if(['frequency','accessNote'].includes(field)) return t || undefined;
+  if(field === 'activationFee') return t ? String(Number(t.replace(/\s/g,''))) : undefined;
+  if(field === 'split') return t ? Number(t.replace(',','.')) / 100 : undefined;
+  if(t === '') return undefined;
+  const n = Number(t.replace(/\s/g,'').replace(',','.'));
+  return Number.isFinite(n) ? n : NaN;
+}
+async function acatSave(){
+  const c = acat(); const group = acatGroup(c.sel);
+  const changes = acatChanges(group);
+  if(!changes.length || !c.motif.trim() || c.saving) return;
+  // Contrôle des nombres avant d'écrire quoi que ce soit.
+  for(const k of changes){
+    const [, , field] = k.split(':');
+    if(!ACAT_SIZE_ROWS.some(r=>r[0]===field) && !['split','maxPayouts'].includes(field)) continue;
+    const v = acatParse(field, c.edits[k]);
+    const bad = Array.isArray(v) ? v.some(x=>x !== null && !Number.isFinite(x)) : (typeof v === 'number' && !Number.isFinite(v));
+    if(bad){ showToast((ACAT_LABELS[field] || field) + ' : valeur non reconnue (« ' + c.edits[k] + ' »).', 'danger'); return; }
+  }
+  c.saving = true; acatSyncBar();
+  const today = todayISO();
+  try{
+    for(const row of group){
+      const size = String(Number(row.size));
+      const mine = changes.filter(k=>{ const [scope, sz] = k.split(':'); return scope === 'g' || sz === size; });
+      if(!mine.length) continue;
+      const patch = {}; const rules = { ...(row.rules || {}) };
+      mine.forEach(k=>{
+        const [scope, , field] = k.split(':'); const txt = c.edits[k];
+        if(['program','phase','conf'].includes(field)) patch[field] = txt;
+        else if(['valid_from','valid_to','source_url','notes'].includes(field)) patch[field] = txt.trim() || null;
+        else if(field === 'active') patch.active = txt === 'true';
+        else if(field === 'ddTypes') rules.ddTypes = txt ? txt.split(',') : [];
+        else if(field === 'dayType'){ if(txt) rules.dayType = txt; else delete rules.dayType; }
+        else if(['activation','payment','dll'].includes(field)) rules[field] = txt;
+        else { const v = acatParse(field, txt); if(v === undefined) delete rules[field]; else rules[field] = v; }
+      });
+      rules.check = { ...(rules.check || {}), editedAt: today };
+      patch.rules = rules;
+      patch.change_note = c.motif.trim();
+      const { error } = await supabaseClient.from('propfirm_programs').update(patch).eq('id', row.id);
+      if(error) throw error;
+    }
+    const n = changes.length;
+    c.edits = {}; c.motif = ''; c.hist = null;
+    showToast(n + ' modification' + (n>1?'s':'') + ' enregistrée' + (n>1?'s':'') + '.', 'success');
+    try{ await logActivity('UPDATE', 'propfirm_program', group[0].id, acatFirmName(group[0].propfirm_id) + ' · ' + group[0].program); }catch(e){}
+  }catch(e){
+    showToast('Enregistrement interrompu : ' + (e.message || e) + '. Les tailles déjà enregistrées restent modifiées.', 'danger');
+  }
+  c.saving = false;
+  const oldSel = c.sel; c.raw = null; await acatLoad();
+  if(!acatGroup(oldSel).length){
+    const g = (c.raw || []).find(r=>r.id === group[0].id); if(g) c.sel = acatKey(g);
+  }
+  catLoad(true);
+  acatRerender();
+}
+const ACAT_SIZE_CHOICES = [25000, 50000, 75000, 100000, 150000, 200000, 250000, 300000];
+function acatSizeLabel(n){ n = Number(n); return n >= 1000 ? Math.round(n/1000) + 'K' : String(n); }
+function acatAddSize(){
+  const c = acat(); const group = acatGroup(c.sel); if(!group.length) return;
+  const have = group.map(r=>Number(r.size));
+  const opts = ACAT_SIZE_CHOICES.filter(s=>!have.includes(s));
+  openModal({ title:'Ajouter une taille à ' + escapeHtml(group[0].program),
+    bodyHtml:`<div class="field"><label>Taille</label><select id="acat-ns">${opts.map(s=>`<option value="${s}">${acatSizeLabel(s)}</option>`).join('')}<option value="other">Autre…</option></select></div>
+      <div class="field" id="acat-ns-other-wrap" style="display:none;"><label>Montant ($)</label><input id="acat-ns-other" type="number" min="1000" step="1000"/></div>
+      <div class="field-hint">La nouvelle taille reprend les conditions communes du programme. Ses valeurs (buffer, plafonds…) sont à remplir ensuite dans le tableau.</div>`,
+    footHtml:`<button class="btn btn-outline" id="acat-ns-cancel">Annuler</button><button class="btn btn-primary" id="acat-ns-ok">Ajouter</button>`,
+    onMount(){
+      const sel = document.getElementById('acat-ns');
+      sel.onchange = ()=>{ document.getElementById('acat-ns-other-wrap').style.display = sel.value === 'other' ? 'block' : 'none'; };
+      document.getElementById('acat-ns-cancel').onclick = closeModal;
+      document.getElementById('acat-ns-ok').onclick = async ()=>{
+        const size = sel.value === 'other' ? Number(document.getElementById('acat-ns-other').value) : Number(sel.value);
+        if(!(size >= 1000) || have.includes(size)){ showToast('Taille invalide ou déjà présente.', 'danger'); return; }
+        const base = group[0]; const R = base.rules || {};
+        const keep = {}; ['ddTypes','dayType','activation','payment','dll','split','maxPayouts','frequency','accessNote','splitNote'].forEach(k=>{ if(R[k] !== undefined) keep[k] = R[k]; });
+        keep.check = { at: todayISO(), factory:'absent', mapropfirm:'absent' };
+        const { error } = await supabaseClient.from('propfirm_programs').insert({ propfirm_id:base.propfirm_id, program:base.program, phase:base.phase, size, valid_from:base.valid_from, valid_to:base.valid_to, is_default:base.is_default, source_url:base.source_url, conf:'partial', rules:keep, active:base.active !== false, sort:base.sort, change_note:'Ajout de la taille ' + acatSizeLabel(size) });
+        if(error){ showToast('Ajout impossible : ' + error.message, 'danger'); return; }
+        closeModal(); showToast('Taille ' + acatSizeLabel(size) + ' ajoutée : remplis ses valeurs.', 'success');
+        c.raw = null; await acatLoad(); catLoad(true);
+      };
+    } });
+}
+function acatAddProgram(firmIdPreset, newFirm){
+  const c = acat();
+  const inCat = new Set((c.raw || []).map(r=>r.propfirm_id));
+  const firms = sortedFirms().filter(f=>newFirm ? !inCat.has(f.id) : true);
+  if(!firms.length){ showToast(newFirm ? 'Toutes les PropFirms de l’app sont déjà dans le catalogue. Crée d’abord la nouvelle prop firm dans la page PropFirms.' : 'Aucune PropFirm.', 'danger'); return; }
+  const preset = firmIdPreset || (newFirm ? firms[0].id : (c.sel ? c.sel.split('|')[0] : firms[0].id));
+  openModal({ title: newFirm ? 'Ajouter une prop firm au catalogue' : 'Ajouter un programme',
+    bodyHtml:`<div class="field"><label>Prop firm</label><select id="acat-np-firm">${firms.map(f=>`<option value="${f.id}" ${f.id===preset?'selected':''}>${escapeHtml(f.name)}</option>`).join('')}</select>
+        ${newFirm ? '<div class="field-hint">PropFirms de l’app qui ne sont pas encore dans le catalogue. Une prop firm absente se crée d’abord dans la page PropFirms.</div>' : ''}</div>
+      <div class="field"><label>${newFirm ? 'Premier programme' : 'Nom du programme'}</label><input id="acat-np-name" placeholder="ex. Standard MAX"/></div>
+      <div class="field"><label>Phase</label><select id="acat-np-phase"><option value="PA">PA (compte financé)</option><option value="LIVE">Live</option></select></div>
+      <div class="field"><label>Tailles</label><div class="acat-chips" id="acat-np-sizes">${ACAT_SIZE_CHOICES.map(s=>`<button type="button" class="acat-chip ${[25000,50000,100000,150000].includes(s)?'on':''}" data-size="${s}">${acatSizeLabel(s)}</button>`).join('')}</div></div>
+      <div class="field"><label>Page officielle (optionnel)</label><input id="acat-np-src" placeholder="https://"/></div>`,
+    footHtml:`<button class="btn btn-outline" id="acat-np-cancel">Annuler</button><button class="btn btn-primary" id="acat-np-ok">Créer et remplir les règles</button>`,
+    onMount(){
+      document.querySelectorAll('#acat-np-sizes [data-size]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+      document.getElementById('acat-np-cancel').onclick = closeModal;
+      document.getElementById('acat-np-ok').onclick = async ()=>{
+        const firmId = document.getElementById('acat-np-firm').value;
+        const name = document.getElementById('acat-np-name').value.trim();
+        const phase = document.getElementById('acat-np-phase').value;
+        const sizes = [...document.querySelectorAll('#acat-np-sizes .on')].map(b=>Number(b.dataset.size));
+        const src = document.getElementById('acat-np-src').value.trim() || null;
+        if(!name || !sizes.length){ showToast('Indique le nom du programme et au moins une taille.', 'danger'); return; }
+        if((c.raw || []).some(r=>r.propfirm_id===firmId && r.program===name && r.phase===phase)){ showToast('Ce programme existe déjà pour cette prop firm.', 'danger'); return; }
+        const sort = Math.max(0, ...(c.raw || []).map(r=>Number(r.sort) || 0)) + 1;
+        const rows = sizes.map(size=>({ propfirm_id:firmId, program:name, phase, size, source_url:src, conf:'partial', active:true, is_default:false, sort,
+          rules:{ check:{ at:todayISO(), factory:'absent', mapropfirm:'absent' } }, change_note:'Création du programme (admin)' }));
+        const { error } = await supabaseClient.from('propfirm_programs').insert(rows);
+        if(error){ showToast('Création impossible : ' + error.message, 'danger'); return; }
+        closeModal(); showToast(name + ' créé : remplis ses règles.', 'success');
+        c.sel = firmId + '|' + name + '|' + phase; c.edits = {}; c.motif = ''; c.raw = null;
+        await acatLoad(); catLoad(true);
+      };
+    } });
+}
+async function acatLoadHistory(){
+  const c = acat(); const group = acatGroup(c.sel);
+  const ids = group.map(r=>r.id);
+  if(!ids.length){ c.hist = []; acatRerender(); return; }
+  const { data, error } = await supabaseClient.from('propfirm_program_history').select('*').in('program_id', ids).order('changed_at', { ascending:false }).limit(200);
+  c.hist = error ? [] : (data || []);
+  acatRerender();
+}
+function acatDiffs(h){
+  const o = h.old_row || {}, n = h.new_row || {};
+  const sz = acatSizeLabel(n.size || o.size);
+  if(h.action === 'create') return [{ label:'Création', old:'', nw:sz }];
+  if(h.action === 'delete') return [{ label:'Suppression', old:sz, nw:'' }];
+  const out = [];
+  const show = v => v == null || v === '' ? '—' : (Array.isArray(v) ? v.map(x=>x==null?'—':x).join(', ') : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+  ['program','phase','valid_from','valid_to','source_url','conf','active','notes'].forEach(f=>{ if(show(o[f]) !== show(n[f])) out.push({ label:(ACAT_LABELS[f]||f), old:show(o[f]), nw:show(n[f]) }); });
+  const ro = o.rules || {}, rn = n.rules || {};
+  [...new Set([...Object.keys(ro), ...Object.keys(rn)])].filter(k=>k !== 'check').forEach(k=>{ if(show(ro[k]) !== show(rn[k])) out.push({ label:(ACAT_LABELS[k]||k) + ' · ' + sz, old:show(ro[k]), nw:show(rn[k]) }); });
+  if(!out.length && JSON.stringify(ro.check) !== JSON.stringify(rn.check)) out.push({ label:'Contrôle des sources · ' + sz, old:'', nw:'mis à jour' });
+  return out;
+}
+function viewAdminCatalogue(){
+  const c = acat();
+  if(!c.raw){ acatLoad(); return emptyState('book', 'Chargement du catalogue…', ''); }
+  const q = c.q.trim().toLowerCase();
+  const groups = []; const seen = new Set();
+  c.raw.forEach(r=>{ const k = acatKey(r); if(!seen.has(k)){ seen.add(k); groups.push(k); } });
+  const byFirm = {};
+  groups.forEach(k=>{
+    const g = acatGroup(k); const r0 = g[0]; const fname = acatFirmName(r0.propfirm_id);
+    if(q && !(fname + ' ' + r0.program).toLowerCase().includes(q)) return;
+    (byFirm[r0.propfirm_id] = byFirm[r0.propfirm_id] || { name:fname, items:[] }).items.push({ k, r0, n:g.length, off:g.every(r=>r.active === false) });
+  });
+  const side = Object.entries(byFirm).sort((a,b)=>a[1].name.localeCompare(b[1].name, 'fr')).map(([fid, fm])=>{
+    const firm = state.propfirms.find(f=>f.id===fid) || { name:fm.name };
+    return `<div class="acat-firm"><div class="acat-firm-h">${firmLogoHtml(firm, 20)}<span>${escapeHtml(fm.name)}</span><button type="button" class="acat-add" title="Ajouter un programme" onclick="acatAddProgram('${fid}')">+</button></div>
+      ${fm.items.map(it=>`<button type="button" class="acat-prog${it.k===c.sel?' sel':''}${it.off?' off':''}" onclick='acatSelect(${escapeHtml(JSON.stringify(it.k))})'><span>${escapeHtml(it.r0.program)}</span>${it.r0.phase==='LIVE'?'<span class="badge cat-b-both">Live</span>':''}${it.off?'<span class="badge cat-b-slate">Retiré</span>':''}<span class="acat-n">${it.n} t.</span></button>`).join('')}</div>`;
+  }).join('') || '<div class="cat-sub" style="padding:12px;">Aucun programme.</div>';
+  const group = acatGroup(c.sel);
+  let editor = '<div class="cat-empty">Choisis un programme dans la liste.</div>';
+  if(group.length){
+    const r0 = group[0]; const firm = state.propfirms.find(f=>f.id===r0.propfirm_id) || { name:acatFirmName(r0.propfirm_id) };
+    const v = (f)=>acatVal(group, 'g', f);
+    const chg = (f)=>v(f) !== acatOrig(group, 'g', f) ? ' chg' : '';
+    const chip = (f, val, lab) => `<button type="button" class="acat-chip${v(f)===val?' on':''}${v(f)===val ? chg(f) : ''}" onclick='acatSet("${f}", ${escapeHtml(JSON.stringify(val))})'>${lab}</button>`;
+    const inp = (f, extra) => `<input class="acat-inp${chg(f)}" data-k="g::${f}" value="${escapeHtml(v(f))}" oninput="acatInput(this)" ${extra||''}/>`;
+    const n = acatChanges(group).length;
+    const sizes = group.map(r=>Number(r.size));
+    const confOn = v('conf') === 'official';
+    const active = v('active') !== 'false';
+    const rules = `
+      <div class="acat-sec"><div class="acat-sec-t">Programme</div><div class="acat-fgrid">
+        <div class="field"><label>Nom du programme</label>${inp('program')}</div>
+        <div class="field"><label>Phase</label><div class="acat-chips">${chip('phase','PA','PA')}${chip('phase','LIVE','Live')}</div></div>
+        <div class="field"><label>En vente depuis</label>${inp('valid_from','type="date"')}</div>
+        <div class="field"><label>Jusqu’au (comptes achetés avant)</label>${inp('valid_to','type="date"')}</div>
+        <div class="field acat-span2"><label>Page officielle</label>${inp('source_url','placeholder="https://"')}</div>
+        <div class="field"><label>Fiabilité</label><div class="acat-chips">${chip('conf','official','Officiel')}${chip('conf','partial','À confirmer')}</div></div>
+        <div class="field"><label>En vente</label><div class="acat-chips">${chip('active','true','Oui')}${chip('active','false','Non (anciens comptes)')}</div></div>
+        <div class="field acat-span2"><label>Note</label>${inp('notes','placeholder="ex. comptes achetés avant le 28/11/2025 : 100 % des premiers 10 000 $"')}</div>
+      </div></div>
+      <div class="acat-sec"><div class="acat-sec-t">Conditions <span>· communes à toutes les tailles</span></div><div class="acat-fgrid">
+        ${ACAT_COMMONS.map(([f, lab, opts])=>`<div class="field"><label>${lab}</label><div class="acat-chips">${opts.map(o=>chip(f, o[0], o[1])).join('')}</div></div>`).join('')}
+        <div class="field"><label>Split trader (%)</label>${inp('split','inputmode="decimal" placeholder="90"')}</div>
+        <div class="field"><label>Payouts max</label>${inp('maxPayouts','inputmode="numeric"')}</div>
+        <div class="field acat-span2"><label>Fréquence des payouts</label>${inp('frequency','placeholder="ex. traité le mercredi"')}</div>
+      </div></div>
+      <div class="acat-sec"><div class="acat-sec-t">Valeurs par taille <span>· en dollars sauf mention</span></div>
+        <div class="table-wrap"><table class="acat-st">
+          <thead><tr><th>Règle</th>${sizes.map(s=>`<th class="num">${acatSizeLabel(s)}</th>`).join('')}<th><button type="button" class="acat-addsize" onclick="acatAddSize()">+ Taille</button></th></tr></thead>
+          <tbody>${ACAT_SIZE_ROWS.map(([f, lab, hint])=>`<tr><td class="acat-lab">${lab}<div class="cat-sub">${hint}</div></td>
+            ${sizes.map(s=>{ const val = acatVal(group, 's', f, s); const ch = val !== acatOrig(group, 's', f, s); return `<td><input class="acat-inp mono${ACAT_LIST_FIELDS.includes(f)?' wide':''}${ch?' chg':''}" data-k="s:${s}:${f}" value="${escapeHtml(val)}" oninput="acatInput(this)" aria-label="${lab} ${acatSizeLabel(s)}"/></td>`; }).join('')}
+            <td><button type="button" class="acat-copy" onclick="acatCopyRow('${f}')" title="Recopier la valeur de la première taille sur toutes les tailles">= partout</button></td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="acat-savebar">
+        <span id="acat-count" class="acat-count">${n ? n + ' modification' + (n>1?'s':'') + ' non enregistrée' + (n>1?'s':'') : 'Aucune modification'}</span>
+        <input class="acat-inp acat-motif" placeholder="Motif (obligatoire) — ex. page officielle mise à jour le ${fmtDate(todayISO())}" value="${escapeHtml(c.motif)}" oninput="acatMotif(this)" aria-label="Motif de la modification"/>
+        <button type="button" class="btn btn-outline btn-sm" id="acat-cancel" onclick="acatCancel()" ${n?'':'disabled'}>Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" id="acat-save" onclick="acatSave()" ${n && c.motif.trim() && !c.saving ? '' : 'disabled'}>Enregistrer</button>
+      </div>`;
+    let hist = '';
+    if(c.tab === 'hist'){
+      if(!c.hist){ acatLoadHistory(); hist = '<div class="cat-empty">Chargement…</div>'; }
+      else if(!c.hist.length) hist = '<div class="cat-empty">Aucune modification enregistrée.</div>';
+      else {
+        // Regroupe les lignes d'un même enregistrement (même motif, même minute, même auteur).
+        const packs = [];
+        c.hist.forEach(h=>{
+          const key = (h.note||'') + '|' + (h.changed_at||'').slice(0,16) + '|' + (h.changed_by||'');
+          let p = packs.find(x=>x.key===key); if(!p){ p = { key, h, diffs:[] }; packs.push(p); }
+          p.diffs.push(...acatDiffs(h));
+        });
+        hist = packs.map(p=>{
+          const who = (state.profiles.find(x=>x.id===p.h.changed_by) || {}).email || (p.h.changed_by ? 'admin' : 'script');
+          const d = new Date(p.h.changed_at);
+          const when = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+          return `<div class="acat-h"><div class="acat-h-top"><span class="mono acat-h-date">${when}</span><b>${escapeHtml(p.h.note || 'Sans motif')}</b><span class="cat-sub" style="margin:0">${escapeHtml(who)}</span></div>
+            ${p.diffs.slice(0,30).map(x=>`<div class="acat-h-diff"><span>${escapeHtml(x.label)}</span>${x.old!==''?`<span class="acat-old">${escapeHtml(x.old)}</span><span>→</span>`:''}<span class="acat-new">${escapeHtml(x.nw)}</span></div>`).join('')}${p.diffs.length>30?`<div class="cat-sub">+ ${p.diffs.length-30} autres changements</div>`:''}</div>`;
+        }).join('');
+      }
+    }
+    editor = `<div class="acat-head">${firmLogoHtml(firm, 34)}<div><div class="acat-title">${escapeHtml(r0.program)}</div><div class="cat-sub">${escapeHtml(firm.name)} · ${sizes.length} taille${sizes.length>1?'s':''} · ${r0.phase==='LIVE'?'compte Live':'compte financé (PA)'}</div></div>
+        <span class="badge ${confOn?'cat-b-ok':'cat-b-warn'}">${confOn?'Officiel':'À confirmer'}</span>${active?'':'<span class="badge cat-b-slate">Retiré de la vente</span>'}
+        <div class="recap-granularity acat-tabs"><button type="button" class="recap-gran-btn ${c.tab==='rules'?'active':''}" onclick="acat().tab='rules';acatRerender()">Règles</button><button type="button" class="recap-gran-btn ${c.tab==='hist'?'active':''}" onclick="acat().tab='hist';acatRerender()">Historique</button></div></div>
+      ${c.tab === 'hist' ? `<div class="acat-hist">${hist}</div>` : rules}`;
+  }
+  return `<div class="acat-top"><div><div class="section-title" style="font-size:16px;">Catalogue prop firm</div><div class="cat-sub">Choisis un programme à gauche, puis clique dans une case pour la modifier. Enregistre avec un motif en bas de la fiche. Chaque modification est gardée dans l’historique.</div></div>
+      <div class="acat-top-actions"><button type="button" class="btn btn-outline btn-sm" onclick="acatAddProgram()">${icon('plus')}Ajouter un programme</button><button type="button" class="btn btn-primary btn-sm" onclick="acatAddProgram(null, true)">${icon('plus')}Ajouter une prop firm</button></div></div>
+    <div class="acat-grid">
+      <aside class="panel acat-side"><input class="acat-search" type="search" placeholder="Rechercher une prop firm ou un programme" value="${escapeHtml(c.q)}" oninput="acat().q=this.value;clearTimeout(window.__acatQ);window.__acatQ=setTimeout(()=>{acatRerender();const s=document.querySelector('.acat-search');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},250)"/>${side}</aside>
+      <section class="panel acat-editor">${editor}</section>
+    </div>`;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
 
@@ -17993,6 +18377,7 @@ const ADMIN_TABS = [
   { id:'settings',    label:'Paramètres',      icon:'layout' },
   { id:'log',         label:'Journal',         icon:'clock' },
   { id:'inactivity',  label:'Règles d’inactivité', icon:'hourglass' },
+  { id:'catalogue',   label:'Catalogue', icon:'book' },
 ];
 
 /* Admin > Utilisateurs : filtres et tri (26/09/2026). */
@@ -18429,6 +18814,7 @@ function viewAdmin(){
     log: logPanel,
     dormancy: viewAdminDormancy(),
     inactivity: viewAdminInactivity(),
+    catalogue: state.adminTab === 'catalogue' ? viewAdminCatalogue() : '',
   }[state.adminTab] || dashboard;
 
   return tabBar + tabContent;
@@ -23875,7 +24261,9 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           activationDate: (document.getElementById('af-activation-date')||{}).value || a.activationDate };
         const rows = catState().rows;
         const paLike = curType==='PA' || curType==='LIVE';
-        const { all } = rows ? accProgramCandidates(firmId, curType, accSizeNum(draft), draft.activationDate) : { all:[] };
+        const { all:cands } = rows ? accProgramCandidates(firmId, curType, accSizeNum(draft), draft.activationDate) : { all:[] };
+        const kept = a.programId && rows ? rows.find(r=>r.id===a.programId && !r.active && r.firmId===firmId) : null;
+        const all = kept ? cands.concat([kept]) : cands;
         if(!pilotageEnabled() || !paLike || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
         const prev = document.getElementById('af-program');
         const keep = afProgramTouched && prev ? prev.value : null;
