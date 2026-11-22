@@ -1066,6 +1066,7 @@ th.th-sort-active svg{opacity:1;}
 .filter-bar-spacer{flex:1 1 auto;}
 /* CATALOGUE PROP FIRM (22/11/2026) — même langage que la barre de filtres de la page Comptes */
 .cat-page{display:flex;flex-direction:column;gap:16px;}
+.field-label-note{font-weight:400;color:var(--text-faint);font-size:11.5px;}
 .cat-bar{margin-bottom:0;}
 .cat-ms{position:relative;}
 .cat-ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 14px 9px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;transition:border-color .12s,background .12s;}
@@ -6880,9 +6881,15 @@ function catState(){
 }
 function catMoney(n){ return n==null || n==='' ? '—' : Math.round(Number(n)).toLocaleString('fr-FR').replace(/ | /g,' ') + ' $'; }
 function catDate(iso){ return iso ? iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4) : ''; }
-async function catLoad(force){
+function catLoad(force){
   const c = catState();
-  if(c.loading || (c.rows && !force)) return;
+  if(c.loading && c.promise) return c.promise;
+  if(c.rows && !force) return Promise.resolve();
+  c.promise = catFetch();
+  return c.promise;
+}
+async function catFetch(){
+  const c = catState();
   c.loading = true; c.error = '';
   try{
     const { data, error } = await supabaseClient.from('propfirm_programs').select('*').eq('active', true).order('propfirm_id').order('sort').order('size');
@@ -6938,6 +6945,7 @@ function catRow(p){
     pay:R.payment || '', payTxt: R.payment==='one_time' ? 'Paiement unique' : R.payment==='monthly' ? 'Abonnement mensuel' : '',
     dll:R.dll || '', accessNote:R.accessNote || '',
     partial:p.conf === 'partial', src:p.source_url || '', notes:p.notes || '',
+    validFrom:p.valid_from || null, validTo:p.valid_to || null, isDefault:!!p.is_default, sort:p.sort || 0,
     dates: p.valid_from ? 'depuis le ' + catDate(p.valid_from) : (p.valid_to ? 'jusqu’au ' + catDate(p.valid_to) : ''),
     chk:ck, check:R.check || {}, rules:R
   };
@@ -7146,6 +7154,49 @@ async function catRunCheck(){
   }catch(e){ c.result = { error:'Contrôle impossible : ' + (e.message || e) }; }
   c.running = false;
   if(state.route === 'catalogue') renderView();
+}
+/* Programme du compte (22/11/2026) : relie un PA / Live à une ligne du catalogue (accounts.program_id).
+   Tant que le titulaire n'a pas choisi, l'app propose le programme le plus probable :
+   prop firm + taille + phase, programme en vigueur à la date d'activation, indice dans le numéro
+   de compte (Bulenox « BX-M… » = Master), puis le programme déjà choisi sur ses autres comptes de
+   la même prop firm, puis le programme par défaut. « À confirmer » si plusieurs restent possibles. */
+function accSizeNum(a){
+  if(a.size === 'AUTRE') return Number(a.customSize) || 0;
+  const m = /^S(\d+)K$/.exec(a.size || '');
+  return m ? Number(m[1]) * 1000 : 0;
+}
+function accProgramCandidates(firmId, type, size, date){
+  const rows = (catState().rows || []).filter(r=>r.firmId === firmId && r.phase === type && r.size === size);
+  const d = date || todayISO();
+  const valid = rows.filter(r=>(!r.validFrom || r.validFrom <= d) && (!r.validTo || r.validTo >= d));
+  return { all:rows, valid: valid.length ? valid : rows };
+}
+function accProgramSuggest(a){
+  if(!(a.type === 'PA' || a.type === 'LIVE')) return null;
+  const size = accSizeNum(a);
+  const { valid } = accProgramCandidates(a.propFirmId, a.type, size, a.activationDate || a.purchaseDate);
+  if(!valid.length) return null;
+  if(valid.length === 1) return { row:valid[0], sure:true };
+  const num = String(a.accountNumber || '').toUpperCase();
+  const hint = valid.find(r=>r.firmId === 'pf_mr7w2dj0v72mkk' && r.program === 'Master' && /^BX-?M/.test(num));
+  if(hint) return { row:hint, sure:true };
+  const used = {};
+  (state.accounts || []).forEach(x=>{
+    if(x.id === a.id || x.propFirmId !== a.propFirmId || !x.programId) return;
+    const r = (catState().rows || []).find(y=>y.id === x.programId);
+    if(r) used[r.program] = (used[r.program] || 0) + 1;
+  });
+  const ranked = valid.slice().sort((x,y)=>(used[y.program]||0) - (used[x.program]||0) || (y.isDefault?1:0) - (x.isDefault?1:0) || (x.sort||0) - (y.sort||0));
+  return { row:ranked[0], sure:false };
+}
+// { row, state:'confirmed' | 'auto' | 'todo' } ou null (pas de programme connu pour ce compte).
+function accProgram(a){
+  if(a.programId){
+    const row = (catState().rows || []).find(r=>r.id === a.programId);
+    if(row) return { row, state:'confirmed' };
+  }
+  const s = accProgramSuggest(a);
+  return s ? { row:s.row, state: s.sure ? 'auto' : 'todo' } : null;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
 
@@ -23668,6 +23719,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           <div class="field"><label>Date d'activation</label><input id="af-activation-date" type="date" value="${a.activationDate||todayISO()}"/><div class="field-hint">Sert aussi de date d'achat/ouverture du PA — les deux dates sont toujours identiques.</div></div>
           <div class="field"><label id="af-activation-fee-label">Frais d'activation (${(a.currency||'USD')==='EUR'?'€':'$'}, optionnel)</label><input id="af-activation-fee" type="number" value="${a.activationFee||''}"/></div>
         </div>
+        <div class="field" id="af-program-wrap" style="display:none;"></div>
         ${!parentChallenge ? `
         <div class="field">
           <label>Challenge d'origine (optionnel)</label>
@@ -23810,6 +23862,46 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         });
       }
       if(curType==='PA'||curType==='LIVE') refreshParentChallengeOptions();
+      // Programme (catalogue prop firm, 22/11/2026) : proposé automatiquement, modifiable.
+      let afProgramTouched = false;
+      function afRefreshProgram(){
+        const wrap = document.getElementById('af-program-wrap');
+        if(!wrap) return;
+        const firmId = document.getElementById('af-firm').value;
+        const sizeCode = document.getElementById('af-size').value;
+        const draft = { ...a, type:curType, propFirmId:firmId, size:sizeCode,
+          customSize: sizeCode==='AUTRE' ? Number((document.getElementById('af-customsize')||{}).value)||0 : null,
+          accountNumber: document.getElementById('af-number').value.trim(),
+          activationDate: (document.getElementById('af-activation-date')||{}).value || a.activationDate };
+        const rows = catState().rows;
+        const paLike = curType==='PA' || curType==='LIVE';
+        const { all } = rows ? accProgramCandidates(firmId, curType, accSizeNum(draft), draft.activationDate) : { all:[] };
+        if(!pilotageEnabled() || !paLike || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+        const prev = document.getElementById('af-program');
+        const keep = afProgramTouched && prev ? prev.value : null;
+        const sug = accProgramSuggest(draft);
+        const current = keep !== null ? keep : (a.programId && all.some(r=>r.id===a.programId) && firmId===a.propFirmId ? a.programId : (sug ? sug.row.id : ''));
+        const confirmed = keep !== null || (a.programId && current === a.programId);
+        const d = draft.activationDate || todayISO();
+        const opts = all.slice().sort((x,y)=>(x.sort||0)-(y.sort||0)).map(r=>{
+          const off = (r.validFrom && r.validFrom > d) || (r.validTo && r.validTo < d);
+          return `<option value="${r.id}" ${r.id===current?'selected':''}>${escapeHtml(r.program)}${r.dates ? ' · ' + r.dates : ''}${off ? ' (hors dates)' : ''}</option>`;
+        }).join('');
+        const hint = confirmed ? 'Règles de payout du catalogue utilisées pour ce compte.'
+          : (sug && sug.sure ? 'Détecté automatiquement d’après la prop firm, la taille et la date d’activation.'
+          : 'Proposé automatiquement : plusieurs programmes sont possibles. Vérifie, l’enregistrement confirme ce choix.');
+        wrap.style.display = 'block';
+        wrap.innerHTML = `<label>Programme <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
+          <select id="af-program"><option value="">— Pas dans le catalogue —</option>${opts}</select>
+          <div class="field-hint">${hint} <a href="#" data-af-open-catalogue>Voir le catalogue</a></div>`;
+        document.getElementById('af-program').onchange = ()=>{ afProgramTouched = true; afRefreshProgram(); };
+        const link = wrap.querySelector('[data-af-open-catalogue]');
+        if(link) link.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
+      }
+      afRefreshProgram();
+      if(!catState().rows) catLoad().then(afRefreshProgram);
+      document.querySelectorAll('[data-type],[data-firm-pick]').forEach(el=>el.addEventListener('click', ()=>setTimeout(afRefreshProgram)));
+      ['af-size','af-customsize','af-activation-date','af-number'].forEach(id=>{ const el = document.getElementById(id); if(el) el.addEventListener('change', afRefreshProgram); });
       const statusSelect = document.getElementById('af-status');
       if(statusSelect) statusSelect.onchange = (e)=>{
         const terminal = e.target.value!=='ACTIF';
@@ -23898,6 +23990,10 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           currency, fxRateToEur,
           platform: ((document.getElementById('af-platform') || {}).dataset || {}).value || null,
         };
+        // Programme : enregistré seulement quand le champ est affiché (PA/Live d'une prop firm du catalogue).
+        const programSel = document.getElementById('af-program');
+        if(programSel) record.programId = programSel.value || null;
+        else if(!(curType==='PA'||curType==='LIVE') || propFirmId !== a.propFirmId) record.programId = null;
         await upsert('accounts', record);
         const accDesc = `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]}`;
         await logActivity(isEdit?'UPDATE':'CREATE', 'account', a.id, accDesc);
@@ -27212,6 +27308,7 @@ function applyLandingPricing(){
     await loadInactivityRules();
     aikLoad();            // Ma clé IA : statut (jamais la clé elle-même)
     dlxMaybeAutoSync();   // connexion Deltalytix : statut + radar automatique (sans bloquer l'affichage)
+    catLoad();            // catalogue prop firm : programme proposé pour chaque PA (sans bloquer l'affichage)
     await loadPricingSettings();
     await loadFiscalThresholds();
     await loadFiscalChecklist(state.fiscalYear || Number(todayISO().slice(0,4)));
