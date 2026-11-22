@@ -2884,7 +2884,7 @@ th.th-sort-active svg{opacity:1;}
 .field .mp-in input:focus,.mp-in input:focus{outline:none !important;box-shadow:none !important;border:0 !important;}
 .mp-in input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .mp-in input[type=number]::-webkit-inner-spin-button,.mp-in input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-.mp-in input{border:0 !important;background:transparent !important;padding:9px 0 !important;font-family:'JetBrains Mono',ui-monospace,monospace !important;font-weight:600;min-width:0;flex:1;outline:none;}
+.mp-in input{color:var(--text);border:0 !important;background:transparent !important;padding:9px 0 !important;font-family:'JetBrains Mono',ui-monospace,monospace !important;font-weight:600;min-width:0;flex:1;outline:none;}
 .mp-in span{color:var(--text-faint);font-size:12px;white-space:nowrap;}
 .mp-calc{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);padding:9px 11px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:600;color:var(--accent);}
 .mp-calc span{font-family:inherit;font-weight:400;color:var(--text-faint);font-size:12px;}
@@ -2949,6 +2949,13 @@ th.th-sort-active svg{opacity:1;}
 .pl-kpi b{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:600;}
 .pl-kpi em{font-style:normal;font-size:11.5px;color:var(--text-faint);line-height:1.4;}
 .pl-li .pl-m,.pl-st{white-space:nowrap;}
+.pl-src{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:0 6px;margin-left:4px;}
+.pl-man{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);}
+.pl-man-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;}
+.pl-man-row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:center;font-size:13px;}
+.pl-man-row .mp-in{background:var(--surface);}
+.pl-man-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+@media (max-width:640px){ .pl-man-row{grid-template-columns:1fr;gap:6px;} }
 @keyframes pl-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
 .pl-dot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex-shrink:0;}
 .pl-dot.on{animation:pl-pulse 1.8s ease-out infinite;}
@@ -11409,6 +11416,74 @@ function pilotNextHtml(n){
     : `<button type="button" class="btn btn-sm" style="background:var(--gold);color:#1A1206;border-color:var(--gold);" data-nav="${n.nav}">${n.cta}</button>`;
   return `<div class="pl-next"><span class="pl-ico">${icon('arrowRight')}</span><div style="flex:1 1 220px;min-width:0;"><div class="pl-next-k">Signal</div><div class="pl-next-t">${n.t}</div></div>${btn}</div>`;
 }
+// Saisie manuelle du P&L (étape 4, 22/11/2026) : pour les comptes actifs SANS données Deltalytix,
+// créés par l'utilisateur (RLS de dormancy_logs : insertion seulement sur ses propres comptes).
+// Écrit dans dormancy_logs (source 'manual') : la même ligne sert au P&L du jour et au Radar
+// inactivité (dmLogQualifies utilise le P&L quand la case « qualifiant » n'est pas cochée).
+// Désactivable dans le Trading plan (manualEntry). Un P&L Deltalytix du même jour reste prioritaire.
+function pilotManualEnabled(pd){ return !!(state.dormancyReady && (pd ? pd.p : planSettings()).manualEntry !== false); }
+function pilotManualCandidates(pd){
+  const me = currentUserId();
+  return pd.act.filter(a=>a.createdBy === me && !dlxHealthOf(a.id));
+}
+function pilotManualDefaultDay(){
+  let d = todayISO();
+  if(typeof dmIsTradingDay === 'function'){ let k = 0; while(!dmIsTradingDay(d) && k < 7){ d = dmAdd(d, -1); k++; } }
+  return d;
+}
+function pilotManualFormHtml(pd){
+  const cands = pilotManualCandidates(pd);
+  if(!cands.length) return '';
+  const day = state.pilotManualDay || pilotManualDefaultDay();
+  const open = !!state.pilotManualOpen;
+  const logOf = (a)=> (state.dormancyLogs || []).find(l=>String(l.accountId) === String(a.id) && l.day === day);
+  const filled = cands.filter(a=>{ const l = logOf(a); return l && l.pnl !== null && l.pnl !== undefined && l.pnl !== ''; }).length;
+  const when = new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+  if(!open){
+    return `<button type="button" class="btn btn-outline btn-sm" data-pl-manual-toggle style="align-self:flex-start;">${icon('edit')}Saisir mon P&amp;L · ${when} <span class="text-dim" style="font-weight:500;">(${filled}/${cands.length} compte${cands.length > 1 ? 's' : ''} sans Deltalytix)</span></button>`;
+  }
+  const rows = cands.map(a=>{
+    const l = logOf(a);
+    const v = l && l.pnl !== null && l.pnl !== undefined && l.pnl !== '' ? Number(l.pnl) : '';
+    return `<div class="pl-man-row"><label for="plm-${escapeHtml(a.id)}"><b>${pilotAccName(a)}</b> <span class="text-dim">· ${a.type === 'CHALLENGE' ? 'Challenge' : a.type}</span>${l && l.source === 'manual' ? '' : (l && l.traded ? ' <span class="text-faint">· pointé (sans P&amp;L)</span>' : '')}</label>
+      <div class="mp-in"><input id="plm-${escapeHtml(a.id)}" type="number" inputmode="decimal" step="10" placeholder="0" value="${v}" data-plm-acc="${escapeHtml(a.id)}"/><span>$</span></div></div>`;
+  }).join('');
+  return `<div class="pl-man" role="group" aria-label="Saisie manuelle du P&amp;L">
+    <div class="pl-man-head"><b>Saisie manuelle du P&amp;L</b><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);">Jour <input type="date" id="plm-day" value="${day}" max="${todayISO()}" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 6px;font:inherit;"/></label></div>
+    <div class="pl-sub">Comptes sans Deltalytix. Laisse vide un compte non tradé. Ta saisie vaut aussi pointage pour le Radar inactivité.</div>
+    ${rows}
+    <div class="pl-man-foot"><div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn btn-primary btn-sm" data-pl-manual-save>${icon('check')}Enregistrer</button><button type="button" class="btn btn-ghost btn-sm" data-pl-manual-toggle>Fermer</button></div><a href="#" data-nav="mon-plan" style="font-size:12px;">Désactiver la saisie manuelle</a></div>
+  </div>`;
+}
+async function pilotManualSave(){
+  const day = (document.getElementById('plm-day') || {}).value || pilotManualDefaultDay();
+  if(day > todayISO()){ showToast('Choisis un jour passé ou aujourd’hui.', 'danger'); return; }
+  const me = currentUserId(), now = new Date().toISOString();
+  const payload = [];
+  document.querySelectorAll('[data-plm-acc]').forEach(inp=>{
+    const id = inp.dataset.plmAcc;
+    const raw = String(inp.value || '').trim().replace(',', '.');
+    const prev = (state.dormancyLogs || []).find(l=>String(l.accountId) === String(id) && l.day === day);
+    if(prev && prev.source === 'deltalytix') return; // Deltalytix prime
+    if(raw === ''){
+      if(prev && prev.source === 'manual' && prev.pnl !== null) payload.push({ user_id: me, account_id: id, day, traded: !!prev.traded, qualifying: !!prev.qualifying, pnl: null, platform_login: !!prev.platformLogin, source: 'manual', updated_at: now });
+      return;
+    }
+    const v = Number(raw);
+    if(!isFinite(v)) return;
+    payload.push({ user_id: me, account_id: id, day, traded: true, qualifying: !!(prev && prev.qualifying), pnl: Math.round(v * 100) / 100, platform_login: !!(prev && prev.platformLogin), source: 'manual', updated_at: now });
+  });
+  if(!payload.length){ showToast('Rien à enregistrer : saisis au moins un P&L.'); return; }
+  const btn = document.querySelector('[data-pl-manual-save]'); if(btn) btn.disabled = true;
+  const { error } = await supabaseClient.from('dormancy_logs').upsert(payload, { onConflict:'account_id,day' });
+  if(btn) btn.disabled = false;
+  if(error){ showToast('P&L non enregistré : ' + error.message, 'danger'); return; }
+  try{ await logActivity('UPDATE', 'dormancy_logs', day, `P&L du jour saisi à la main (${payload.length} compte${payload.length > 1 ? 's' : ''})`); }catch(e){}
+  await loadDormancy();
+  state.pilotManualOpen = false;
+  showToast(`P&L enregistré pour ${payload.length} compte${payload.length > 1 ? 's' : ''}.`);
+  render();
+}
 function pilotSessionWidgetHtml(pd){
   const ss = pilotSession(pd);
   const dlxOn = !!dlx().connected;
@@ -11417,8 +11492,8 @@ function pilotSessionWidgetHtml(pd){
   const st = (x)=> x.pnl >= ss.valid ? `<span class="pl-st pl-pos">VERT</span>` : x.pnl < 0 ? `<span class="pl-st pl-neg">ROUGE</span>` : `<span class="pl-st pl-gold">SOUS LE TARGET</span>`;
   const list = ss.items.length ? `
       <div class="pl-lh"><span>Comptes tradés</span><a href="#" data-nav="mon-plan" style="color:var(--text-dim);">Journée verte si P&amp;L ≥ ${pilotMoney(ss.valid, 'USD')} · régler</a></div>
-      <div class="pl-list">${ss.items.slice(0,6).map(x=>`<div class="pl-li" data-alert-acc="${x.a.id}" role="button" tabindex="0"><span><b>${pilotAccName(x.a)}</b> <span class="text-dim">· ${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span></span><span style="display:flex;gap:10px;align-items:center;"><span class="pl-m ${x.pnl > 0 ? 'pl-pos' : x.pnl < 0 ? 'pl-neg' : ''}">${pilotSigned(x.pnl, 'USD')}</span>${st(x)}</span></div>`).join('')}</div>`
-    : `<div class="pl-empty"><span style="font-size:13.5px;">Aucune journée tradée ${ss.isToday ? 'aujourd’hui' : 'ces 7 derniers jours'}.</span><span class="pl-sub">${dlxOn ? 'Les journées arrivent à la prochaine synchronisation Deltalytix.' : 'Connecte Deltalytix (Profil) pour que tes journées remontent toutes seules.'}</span></div>`;
+      <div class="pl-list">${ss.items.slice(0,6).map(x=>`<div class="pl-li" data-alert-acc="${x.a.id}" role="button" tabindex="0"><span><b>${pilotAccName(x.a)}</b> <span class="text-dim">· ${x.a.type === 'CHALLENGE' ? 'Challenge' : x.a.type}</span>${x.src === 'manual' ? ' <span class="pl-src" title="Saisi à la main">manuel</span>' : ''}</span><span style="display:flex;gap:10px;align-items:center;"><span class="pl-m ${x.pnl > 0 ? 'pl-pos' : x.pnl < 0 ? 'pl-neg' : ''}">${pilotSigned(x.pnl, 'USD')}</span>${st(x)}</span></div>`).join('')}</div>`
+    : `<div class="pl-empty"><span style="font-size:13.5px;">Aucune journée tradée ${ss.isToday ? 'aujourd’hui' : 'ces 7 derniers jours'}.</span><span class="pl-sub">${dlxOn ? 'Les journées arrivent à la prochaine synchronisation Deltalytix.' : (pilotManualEnabled(pd) ? 'Saisis ton P&amp;L ci-dessous, ou connecte Deltalytix (Profil) pour que tes journées remontent toutes seules.' : 'Connecte Deltalytix (Profil) pour que tes journées remontent toutes seules.')}</span></div>`;
   return `<section class="panel pl-card" aria-label="P&amp;L du jour">
     <div class="pl-top"><div><div class="pl-kicker">${ss.isToday ? 'P&amp;L du jour' : 'Dernière session'}${ss.isToday && ss.items.length ? '<span class="pl-live">LIVE</span>' : ''}</div><h3 class="pl-h" style="text-transform:capitalize;">${when}</h3></div>${chip}</div>
     <div class="pl-tiles">
@@ -11427,6 +11502,7 @@ function pilotSessionWidgetHtml(pd){
       <div class="pl-tile"><small>Comptes verts</small><b>${ss.items.length ? `${ss.ok}/${ss.items.length}` : '—'}</b></div>
     </div>
     ${list}
+    ${pilotManualEnabled(pd) ? pilotManualFormHtml(pd) : ''}
     ${pilotNextHtml(pilotNextAction(pd))}
   </section>`;
 }
@@ -11522,6 +11598,12 @@ function pilotKpisWidgetHtml(pd, firstPayoutDetails){
 }
 function bindPilotEvents(){
   if(state.route !== 'dashboard') return;
+  document.querySelectorAll('[data-pl-manual-toggle]').forEach(b=>{ b.onclick = ()=>{ state.pilotManualOpen = !state.pilotManualOpen; renderView(); if(state.pilotManualOpen) setTimeout(()=>{ const f = document.querySelector('[data-plm-acc]'); if(f) f.focus(); }, 30); }; });
+  const plmDay = document.getElementById('plm-day');
+  if(plmDay) plmDay.onchange = ()=>{ const v = plmDay.value; if(v && v <= todayISO()){ state.pilotManualDay = v; renderView(); } };
+  const plmSave = document.querySelector('[data-pl-manual-save]');
+  if(plmSave) plmSave.onclick = pilotManualSave;
+  document.querySelectorAll('[data-plm-acc]').forEach(inp=>{ inp.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); pilotManualSave(); } }; });
   document.querySelectorAll('[data-pl-risk-f]').forEach(b=>{ b.onclick = ()=>{ state.pilotRiskFilter = b.dataset.plRiskF; renderView(); }; });
   document.querySelectorAll('[data-pl-series]').forEach(b=>{
     b.onclick = ()=>{
