@@ -313,23 +313,35 @@ exports.handler = async (event) => {
         matchedIds.push(a.id);
         // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
         const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
+        // P&L « au-dessus du buffer » (22/11/2026, Trading plan) : c'est exactement metrics.dailyPnL de
+        // Deltalytix (considerBuffer). Gardé à part dans pnl_buffer ; pnl reste le P&L brut (Radar).
+        // Un jour tradé absent de dailyPnL = tout sous le buffer → 0. Pas de dailyPnL du tout → inconnu.
+        const dpRaw = byNum.get(k) || {};
+        const dp = {};
+        Object.entries(dpRaw).forEach(([day, v]) => { const d = isoDay(day); if (d && Number.isFinite(Number(v))) dp[d] = (dp[d] || 0) + Number(v); });
+        const hasDp = Object.keys(dp).length > 0;
+        const bufOf = (d) => (hasDp ? Math.round((dp[d] || 0) * 100) / 100 : null);
         matched++;
         let lastOld = null;
         Object.entries(daily).forEach(([day, pnl]) => {
           const d = isoDay(day);
           if (!d || !Number.isFinite(Number(pnl))) return;
           if (d < since) { if (!lastOld || d > lastOld[0]) lastOld = [d, pnl]; return; }
-          rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, source: 'deltalytix', updated_at: now });
+          rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, pnl_buffer: bufOf(d), source: 'deltalytix', updated_at: now });
         });
         // Aucun trade récent : on écrit quand même le dernier jour tradé connu (point de départ du Radar).
         if (lastOld && !rows.some((r) => r.account_id === a.id)) {
-          rows.push({ user_id: user.id, account_id: a.id, day: lastOld[0], traded: true, pnl: Math.round(Number(lastOld[1]) * 100) / 100, source: 'deltalytix', updated_at: now });
+          rows.push({ user_id: user.id, account_id: a.id, day: lastOld[0], traded: true, pnl: Math.round(Number(lastOld[1]) * 100) / 100, pnl_buffer: bufOf(lastOld[0]), source: 'deltalytix', updated_at: now });
         }
       });
       // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
       if (body.radar === false) rows.length = 0;
       for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
+        let { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
+        // Colonne pnl_buffer absente (migration 20261122 pas jouée) : on écrit sans, la synchro ne casse pas.
+        if (error && /pnl_buffer/.test(error.message || '')) {
+          ({ error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500).map(({ pnl_buffer, ...r }) => r), { onConflict: 'account_id,day' }));
+        }
         if (error) throw new Error(`dormancy_logs : ${error.message}`);
       }
       const dltxPlan = await deltalytixPlanOf(token, deadline);
