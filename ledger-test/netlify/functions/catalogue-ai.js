@@ -19,7 +19,9 @@ const PAGE_TIMEOUT_MS = 12000;
 const MAX_PAGE_CHARS = 90000;
 const MIN_PAGE_CHARS = 1200;   // en dessous : page chargée en JavaScript ou bloquée, l'IA la lit elle-même
 const MAX_FIELDS = 200;
-const SITE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
+// Surcharge Google fréquente (« high demand ») : plusieurs essais espacés, puis modèles de repli.
+const SITE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
+const RETRY_WAITS_MS = [1500, 4000, 8000];
 
 const env = (name) => {
   try { if (typeof Netlify !== 'undefined' && Netlify.env) return Netlify.env.get(name); } catch (e) { /* */ }
@@ -108,13 +110,16 @@ async function callSite(prompt, { urlContext, deadline }) {
   else body.generationConfig.responseMimeType = 'application/json';
   let last = null;
   for (const model of SITE_MODELS) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      if (deadline - Date.now() < 2000) throw last || aiError('timeout');
+    for (let attempt = 1; attempt <= RETRY_WAITS_MS.length + 1; attempt++) {
+      if (deadline - Date.now() < 4000) throw last || aiError('timeout');
       try { return { text: await gemini(model, body, deadline), model }; }
       catch (e) {
         last = e;
         if (e.code === 'provider_error' && /thinking/i.test(e.message) && body.generationConfig.thinkingConfig) { delete body.generationConfig.thinkingConfig; continue; }
-        if (e.code === 'overloaded' && attempt < 2) { await new Promise((r) => setTimeout(r, 800)); continue; }
+        if (e.code === 'overloaded' && attempt <= RETRY_WAITS_MS.length && deadline - Date.now() > RETRY_WAITS_MS[attempt - 1] + 6000) {
+          console.log(`catalogue-ai: ${model} surchargé, nouvel essai dans ${RETRY_WAITS_MS[attempt - 1] / 1000} s`);
+          await new Promise((r) => setTimeout(r, RETRY_WAITS_MS[attempt - 1])); continue;
+        }
         if (e.code === 'overloaded' || e.code === 'bad_model') break;
         throw e;
       }
@@ -193,7 +198,7 @@ async function handle(request) {
     });
   } catch (e) {
     safeLog('catalogue-ai:', e);
-    const msg = { timeout: 'L’analyse a pris trop de temps. Réessaie, ou indique une page plus ciblée.', overloaded: 'L’IA est surchargée. Réessaie dans une minute.',
+    const msg = { timeout: 'L’analyse a pris trop de temps. Réessaie, ou indique une page plus ciblée.', overloaded: 'Les serveurs de l’IA (Google Gemini) sont saturés en ce moment, même après plusieurs essais. Réessaie dans quelques minutes.',
       not_configured: 'IA non configurée sur le serveur (GEMINI_API_KEY).', bad_answer: 'L’IA a renvoyé une réponse illisible. Réessaie.' }[e.code];
     return out(e.code === 'timeout' ? 504 : e.code === 'overloaded' ? 503 : 502, { error: msg || 'Analyse impossible pour le moment. Réessaie.', code: e.code || 'error', pageWhy: page.why });
   }
