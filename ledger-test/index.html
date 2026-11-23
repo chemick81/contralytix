@@ -1078,7 +1078,7 @@ th.th-sort-active svg{opacity:1;}
 .po-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;}
 .po-verdict{border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
 .po-v-ready{background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);}
-.po-v-soon,.po-v-wait{background:var(--surface-2);border:1px solid var(--border);}
+.po-v-soon,.po-v-wait,.po-v-norules{background:var(--surface-2);border:1px solid var(--border);}
 .po-v-input{background:color-mix(in srgb, var(--type-challenge) 10%, transparent);border:1px solid color-mix(in srgb, var(--type-challenge) 40%, transparent);}
 .po-vt{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;}
 .po-amt{margin-left:auto;text-align:right;}
@@ -7832,7 +7832,7 @@ function payoutStatus(a){
     // Sans buffer (Fast Pass, Flex, Rapid Pro…) : le montant est aussi limité par le profit du cycle.
     if(R.capPct || R.cycleProfit) withdrawable = Math.min(withdrawable, Math.max(0, profitCycle));
     const ok = withdrawable >= minPayout && withdrawable > 0;
-    conds.push({ key:'bal', t:`Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}`, d:'Profit disponible au-dessus du solde de départ', v: poMoney(withdrawable), ok });
+    conds.push({ key:'bal', t: minPayout ? `Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}` : 'Profit au-dessus du solde de départ', d:'Profit disponible au-dessus du solde de départ', v: poMoney(withdrawable), ok });
     if(!ok) miss.push(poMoney(Math.max(minPayout, 1) - withdrawable) + ' de profit');
   }
   const cap = poAt(R.caps, n);
@@ -7844,17 +7844,19 @@ function payoutStatus(a){
     amt = Math.max(0, Math.floor(amt));
   }
   const maxed = R.maxPayouts && n > Number(R.maxPayouts);
+  // Formule sans aucune règle de payout dans le catalogue (ex. Live TPT PRO+) : pas de verdict inventé.
+  const noRules = !minPayout && !buf && !minDays && !coh && !(cyc && cyc > 1) && !cap && !capPct && !R.minRequestProfit;
   if(maxed) miss.unshift('nombre maximum de payouts atteint (' + R.maxPayouts + ')');
   const condsOk = conds.every(c=>c.ok !== false);
   const ready = condsOk && bal != null && !maxed && amt != null && amt >= minPayout && amt > 0;
-  const state_ = maxed ? 'wait' : bal == null ? 'input' : ready ? 'ready' : (miss.length <= 1 ? 'soon' : 'wait');
+  const state_ = noRules ? 'norules' : maxed ? 'wait' : bal == null ? 'input' : ready ? 'ready' : (miss.length <= 1 ? 'soon' : 'wait');
   let split = R.split != null ? Number(R.split) : null, splitTxt = '';
   if(R.splitBelow && bal != null && bal - start < Number(R.splitBelow.profit)){ split = Number(R.splitBelow.split); splitTxt = ` (partage ${Math.round(split*100)}/${Math.round(100-split*100)} tant que le profit est sous ${poMoney(R.splitBelow.profit)})`; }
   return { a, row, pg, R, n, lastPay, days, bal, start, src: dlxBal != null ? 'dlx' : (man ? 'manual' : 'none'), balAt: dlxBal != null ? (dlx().health && dlx().health.at) : (man && man.at),
     profitCycle, conds, miss, amt, cap, minPayout, net: amt != null && split != null ? amt * split : null, split, splitTxt, state: state_, maxed };
 }
 function poPillHtml(s, short){
-  if(!s) return '';
+  if(!s || s.state === 'norules') return '';
   const lab = s.state === 'ready' ? (short ? 'Payout prêt' : 'Prêt') : s.state === 'soon' ? (short ? 'Manque ' + s.miss[0] : 'Bientôt') : s.state === 'input' ? (short ? 'Solde ?' : 'Solde à saisir') : (short ? (s.maxed ? 'Payouts max atteints' : 'Manque ' + (s.miss[0] || '…')) : 'Pas encore');
   return `<span class="po-pill po-${s.state}" title="${escapeHtml(s.state === 'ready' ? 'Jusqu’à ' + poMoney(s.amt) : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche Payout' : 'Manque : ' + s.miss.join(', '))}">${escapeHtml(lab)}</span>`;
 }
@@ -7868,8 +7870,9 @@ function payoutFicheModal(accId){
       footHtml:`<button class="btn btn-outline" onclick="closeModal()">Fermer</button><button class="btn btn-primary" onclick="closeModal();accountFormModal({ existing:getAccount('${a.id}') })">Ouvrir la fiche du compte</button>` });
     return;
   }
-  const vTitle = s.state === 'ready' ? 'Prêt à demander' : s.state === 'input' ? 'Solde à saisir' : s.state === 'soon' ? 'Bientôt prêt' : 'Pas encore';
-  const vSub = s.state === 'ready' ? `Toutes les conditions sont remplies. Retrait entre ${poMoney(s.minPayout)} et ${poMoney(s.amt)}${s.cap ? ` (plafond du payout n°${s.n} : ${poMoney(s.cap)})` : ''}.`
+  const vTitle = s.state === 'norules' ? 'Règles de payout non renseignées' : s.state === 'ready' ? 'Prêt à demander' : s.state === 'input' ? 'Solde à saisir' : s.state === 'soon' ? 'Bientôt prêt' : 'Pas encore';
+  const vSub = s.state === 'norules' ? `Le catalogue ne connaît pas encore les conditions de payout de la formule ${s.row.program}. Vérifie-les chez la prop firm ; un admin peut les compléter dans Admin › Catalogue.${s.amt != null ? ' Profit au-dessus du solde de départ : ' + poMoney(s.amt) + '.' : ''}`
+    : s.state === 'ready' ? `Toutes les conditions sont remplies. Retrait entre ${poMoney(s.minPayout)} et ${poMoney(s.amt)}${s.cap ? ` (plafond du payout n°${s.n} : ${poMoney(s.cap)})` : ''}.`
     : s.state === 'input' ? 'Le buffer et le montant se calculent avec le solde actuel du compte.'
     : 'Il manque : ' + s.miss.join(' · ') + '.';
   const ic = c => c.ok === true ? '<span class="po-ic po-ic-ok">✓</span>' : c.ok === false ? '<span class="po-ic po-ic-ko">!</span>' : '<span class="po-ic po-ic-na">?</span>';
@@ -7894,10 +7897,10 @@ function payoutFicheModal(accId){
   openModal({
     title: `${escapeHtml(firm ? firm.name : 'Compte')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(a))}`,
     bodyHtml: `<div class="po-fiche">
-      <div class="po-head">${firmLogoHtml(firm, 34)}<div><div class="po-title">${escapeHtml(maskAccountNumber(a.accountNumber) || '—')}</div><div class="cat-sub">${s.lastPay ? 'Dernier payout le ' + fmtDate(s.lastPay) : 'Aucun payout encore'} · ${s.pg.state === 'todo' ? '<span class="badge badge-todo">Formule à confirmer</span>' : 'formule ' + escapeHtml(s.row.program)}</div></div>
+      <div class="po-head">${firmLogoHtml(firm, 34)}<div><div class="po-title">${a.accountNumber ? maskAccountNumber(a.accountNumber) : '—'}</div><div class="cat-sub">${s.lastPay ? 'Dernier payout le ' + fmtDate(s.lastPay) : 'Aucun payout encore'} · ${s.pg.state === 'todo' ? '<span class="badge badge-todo">Formule à confirmer</span>' : 'formule ' + escapeHtml(s.row.program)}</div></div>
         <span class="badge badge-slate" style="margin-left:auto">Payout n°${s.n}${s.R.maxPayouts ? ' sur ' + s.R.maxPayouts : ''}</span></div>
       <div class="po-verdict po-v-${s.state}"><div><div class="po-vt">${vTitle}</div><div class="cat-sub" style="font-size:12.5px;color:var(--text-dim)">${escapeHtml(vSub)}</div></div>
-        ${s.amt != null && s.amt > 0 ? `<div class="po-amt"><div class="mono">jusqu’à ${poMoney(s.amt)}</div><div class="cat-sub">${s.net != null ? '≈ ' + poMoney(s.net) + ' reçus' + (s.split < 1 ? ' à ' + Math.round(s.split * 100) + ' %' : '') + escapeHtml(s.splitTxt) : 'partage des profits non indiqué'}</div></div>` : ''}</div>
+        ${s.state !== 'norules' && s.amt != null && s.amt > 0 ? `<div class="po-amt"><div class="mono">jusqu’à ${poMoney(s.amt)}</div><div class="cat-sub">${s.net != null ? '≈ ' + poMoney(s.net) + ' reçus' + (s.split < 1 ? ' à ' + Math.round(s.split * 100) + ' %' : '') + escapeHtml(s.splitTxt) : 'partage des profits non indiqué'}</div></div>` : ''}</div>
       ${manualBlock}
       <div class="po-conds">${conds}</div>
       <div class="po-sec"><div class="po-ct" style="margin-bottom:6px;">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${daysHtml}</div>
@@ -7920,7 +7923,9 @@ function payoutFicheModal(accId){
   });
 }
 function pilotPayoutWidgetHtml(pd){
-  const list = pd.paActive.map(a=>payoutStatus(a)).filter(Boolean);
+  const all = pd.paActive.map(a=>payoutStatus(a)).filter(Boolean);
+  const list = all.filter(s=>s.state !== 'norules');
+  const noRulesN = all.length - list.length;
   const order = { ready:0, soon:1, wait:2, input:3 };
   list.sort((x,y)=>order[x.state] - order[y.state] || (y.amt || 0) - (x.amt || 0));
   const ready = list.filter(s=>s.state === 'ready');
@@ -7935,6 +7940,7 @@ function pilotPayoutWidgetHtml(pd){
     ${rows || `<div class="panel-body"><div class="empty-sub">${pd.paActive.length ? 'Aucun PA actif n’a de formule du catalogue. Choisis-la dans la fiche de chaque compte (champ « Formule »).' : 'Aucun PA ou compte Live actif.'}</div></div>`}
     ${list.length > 8 ? `<div class="po-w-more cat-sub">+ ${list.length - 8} autres PA · <a href="#" onclick="event.preventDefault();state.route='accounts';render();">voir la page Comptes</a></div>` : ''}
     ${noProg && list.length ? `<div class="po-w-more cat-sub">${noProg} PA sans formule : non suivi${noProg>1?'s':''}.</div>` : ''}
+    ${noRulesN ? `<div class="po-w-more cat-sub">${noRulesN} compte${noRulesN>1?'s':''} dont la formule n’a pas encore de règles de payout dans le catalogue.</div>` : ''}
   </div>`;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
