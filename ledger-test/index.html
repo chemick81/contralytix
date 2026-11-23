@@ -1256,6 +1256,7 @@ th.th-sort-active svg{opacity:1;}
 .acat-ai-more{margin-top:12px;font-size:12.5px;color:var(--text-dim);}
 .acat-ai-more ul{margin:6px 0 0 18px;padding:0;}
 .acat-ai-foot{margin-top:10px;}
+.mp-k-dim{font-size:12px;font-weight:500;color:var(--text-faint);}
 .cat-hint-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--radius-md);background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);font-size:12.5px;}
 .cat-hint-add svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 .cat-hint-add span{flex:1;min-width:200px;}
@@ -12737,7 +12738,9 @@ function pilotSession(pd){
   const unknownBuf = items.filter(x=>x.mode === 'unknown').length;
   const ok = items.filter(x=>x.pnl >= valid).length;
   const days = Math.max(1, Number(pd.p.tradingDays) || 20);
-  const dailyGoal = pd.goal ? pd.goal / PLAN_SPLIT / days : 0;
+  // Même calcul que le Trading plan : PA en cours, split de leur formule, buffer restant à construire.
+  const real = pd.goal ? mpPlanReal({ payoutGoal:pd.goal, tradingDays:days }) : null;
+  const dailyGoal = pd.goal ? (real ? real.daily : pd.goal / PLAN_SPLIT / days) : 0;
   return { day, isToday: day === today, items, total, rawTotal, buffered, unknownBuf, ok, valid, dailyGoal };
 }
 // Alertes de risque (étape 3, 22/11/2026) : drawdown restant sous les seuils du Trading plan et
@@ -20029,6 +20032,56 @@ function mpValidate(v){
   return e;
 }
 function mpMoney(x, cur){ return Math.round(Number(x) || 0).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ') + ' ' + (cur === 'EUR' ? '€' : '$'); }
+// Trading plan calé sur les PA en cours (23/11/2026, demande de Mickael) : nombre réel de PA actifs,
+// split de chaque formule, plafonds et rythme de payout du catalogue, buffer restant à construire.
+// Renvoie null sans PA actif (on garde alors le calcul simple sur les « PA visés »).
+function mpPlanReal(v){
+  const goal = Number(v.payoutGoal) || 0;
+  const days = Math.max(1, Math.round(Number(v.tradingDays) || 20));
+  const pas = dmFundedAccounts();
+  if(!pas.length) return null;
+  const items = pas.map(a=>{
+    const s = payoutStatus(a);
+    const R = s && s.state !== 'norules' ? s.R : null;
+    const split = s && s.split != null ? s.split : PLAN_SPLIT;
+    let cap = null, cycles = null;   // cap null = pas de plafond connu
+    if(R){
+      const minDays = Number(R.minDays) || 0;
+      cycles = minDays ? Math.floor(days / minDays) : 4;   // sans jours minimum : au plus un payout par semaine
+      if(R.maxPayouts) cycles = Math.min(cycles, Math.max(0, Number(R.maxPayouts) - (s.n - 1)));
+      let total = 0, unlimited = false;
+      for(let k = 0; k < cycles; k++){ const c = poAt(R.caps, s.n + k); if(c) total += Number(c); else unlimited = true; }
+      cap = unlimited ? null : total;
+    }
+    let toBuild = null;   // null = solde inconnu
+    if(s && s.bal != null && R){
+      const buf = poAt(R.bufferSteps, s.n) || Number(R.buffer) || 0;
+      toBuild = Math.max(0, s.start + buf - s.bal);
+    } else if(s && s.bal != null) toBuild = 0;
+    const firm = getFirm(a.propFirmId);
+    return { a, s, split, cap, cycles, toBuild, name: [(firm || {}).name, s && s.row ? s.row.program : '', sizeLabelRaw(a)].filter(Boolean).join(' ') };
+  });
+  // Répartition de l'objectif : parts égales, sauf les PA plafonnés par leurs règles (les autres compensent).
+  let rest = goal, open = items.slice();
+  items.forEach(x=>{ x.alloc = 0; });
+  for(let guard = 0; guard < 60 && rest > 0.5 && open.length; guard++){
+    const share = rest / open.length;
+    const capped = open.filter(x=>x.cap != null && x.cap - x.alloc <= share);
+    if(!capped.length){ open.forEach(x=>{ x.alloc += share; }); rest = 0; break; }
+    capped.forEach(x=>{ rest -= (x.cap - x.alloc); x.alloc = x.cap; });
+    open = open.filter(x=>!capped.includes(x));
+  }
+  const shortfall = Math.max(0, rest);
+  const capKnown = items.every(x=>x.cap != null);
+  const capTotal = capKnown ? items.reduce((t,x)=>t + x.cap, 0) : null;
+  const toBuild = items.reduce((t,x)=>t + (x.toBuild || 0), 0);
+  const unknownBuf = items.filter(x=>x.toBuild == null).length;
+  const pnlPayout = items.reduce((t,x)=>t + (x.alloc || 0) / (x.split || PLAN_SPLIT), 0);
+  const pnl = pnlPayout + toBuild;
+  const limited = items.filter(x=>x.cap != null && x.cap < goal / items.length);
+  const splits = [...new Set(items.map(x=>Math.round((x.split || PLAN_SPLIT) * 100)))].sort((x,y)=>x-y);
+  return { n: items.length, items, goal, days, shortfall, capKnown, capTotal, toBuild, unknownBuf, pnl, pnlPayout, daily: pnl / days, limited, splits, noRules: items.filter(x=>x.cap == null && x.cycles == null).length };
+}
 function mpSummary(v, cur){
   const m = (x)=> mpMoney(x, cur);
   const goal = Number(v.payoutGoal) || 0, budget = Number(v.budget) || 0;
@@ -20037,11 +20090,26 @@ function mpSummary(v, cur){
   const daily = goal ? m(goal / PLAN_SPLIT / days) : '—';
   const ratio = goal && budget ? (goal / budget) : null;
   let cls = 'ok', txt = 'Plan cohérent : ton objectif reste atteignable avec ce nombre de PA.';
+  const real = mpPlanReal(v);
+  let paLine = '', perPaSub = '', dailySub = 'tous comptes, avec un partage de profit de 90 %';
+  let perPaV = perPa, dailyV = daily;
+  if(real){
+    const target = Math.max(1, Math.round(Number(v.paTarget) || 1));
+    paLine = `${real.n}${target !== real.n ? ` <span class="mp-k-dim">/ ${target} visés</span>` : ''}`;
+    perPaV = goal ? m(goal / real.n) : '—';
+    perPaSub = real.capKnown ? `max possible selon les règles : ${m(real.capTotal / real.n)} / PA` : real.capTotal === null && real.items.some(x=>x.cap != null) ? 'certaines formules sans plafond de payout' : 'formules sans plafond de payout connu';
+    dailyV = goal ? m(real.daily) : '—';
+    const splitTxt = real.splits.length === 1 ? `partage ${real.splits[0]} %` : `partage ${real.splits[0]} à ${real.splits[real.splits.length - 1]} % selon la formule`;
+    dailySub = goal ? `${m(real.pnl)} sur le mois, ${splitTxt}${real.toBuild > 0.5 ? ` · dont ${m(real.toBuild)} de buffer à construire` : ''}${real.unknownBuf ? ` · buffer non compté pour ${real.unknownBuf} PA (solde inconnu)` : ''}` : splitTxt;
+  }
   if(!goal){ cls = 'warn'; txt = 'Fixe un objectif de payouts mensuel pour activer le suivi sur le Dashboard.'; }
+  else if(real && real.shortfall > 0.5){ cls = 'bad'; txt = `Impossible ce mois avec tes ${real.n} PA en cours : leurs règles (plafonds, jours entre deux payouts) limitent les payouts à ${m(real.capTotal != null ? real.capTotal : goal - real.shortfall)}. Ajoute des PA ou baisse l’objectif.`; }
   else if(ratio != null && ratio < 1.5){ cls = 'bad'; txt = 'Risqué : ton objectif couvre à peine ton budget. Un mois sans payout et tu es en perte.'; }
-  else if(goal / pa > 2500){ cls = 'warn'; txt = 'Ambitieux : plus de 2 500 par PA et par mois. Vise plus de PA, ou un objectif plus bas.'; }
+  else if(real && real.limited.length){ cls = 'warn'; txt = `Tenable, mais ${real.limited.length === 1 ? real.limited[0].name + ' ne peut pas' : real.limited.length + ' PA ne peuvent pas'} verser ${m(goal / real.n)} ce mois (plafond ${real.limited.length === 1 ? m(real.limited[0].cap) : 'des règles'}) : tes autres PA doivent compenser.`; }
+  else if(!real && goal / pa > 2500){ cls = 'warn'; txt = 'Ambitieux : plus de 2 500 par PA et par mois. Vise plus de PA, ou un objectif plus bas.'; }
   else if(!budget){ cls = 'warn'; txt = 'Ajoute un budget mensuel : le Coach te préviendra avant de le dépasser.'; }
-  return { perPa, daily, ratio: ratio != null ? ratio.toFixed(1).replace('.', ',') + ' ×' : '—', cls, txt };
+  else if(real) txt = `Plan cohérent avec tes ${real.n} PA en cours et leurs règles de payout.`;
+  return { perPa: perPaV, daily: dailyV, perPaSub, dailySub, paLine, real, ratio: ratio != null ? ratio.toFixed(1).replace('.', ',') + ' ×' : '—', cls, txt };
 }
 // Bloc « Buffer des PA » du Trading plan : une ligne par prop firm où tu as des PA actifs.
 function mpBufferFirms(){
@@ -20152,8 +20220,9 @@ function viewMonPlan(){
       <aside class="mp-side" aria-label="Résumé du plan">
         <section class="panel mp-sum">
           <div class="section-title" style="margin:0;">Ce que ton trading plan exige</div>
-          <div class="mp-k"><small>Payout moyen par PA et par mois</small><b id="mp-s-perpa">${sm.perPa}</b></div>
-          <div class="mp-k"><small>PnL à produire par jour de trading</small><b id="mp-s-daily" style="color:var(--accent);">${sm.daily}</b><em>tous comptes, avec un partage de profit de 90 %</em></div>
+          <div class="mp-k" id="mp-s-pa-wrap" ${sm.paLine ? '' : 'hidden'}><small>PA en cours</small><b id="mp-s-pa">${sm.paLine}</b><em>le plan se calcule sur tes PA et Live actifs, avec les règles de leur formule</em></div>
+          <div class="mp-k"><small>Payout moyen par PA et par mois</small><b id="mp-s-perpa">${sm.perPa}</b><em id="mp-s-perpa-sub" ${sm.perPaSub ? '' : 'hidden'}>${sm.perPaSub}</em></div>
+          <div class="mp-k"><small>PnL à produire par jour de trading</small><b id="mp-s-daily" style="color:var(--accent);">${sm.daily}</b><em id="mp-s-daily-sub">${sm.dailySub}</em></div>
           <div class="mp-k"><small>Rendement visé sur le budget</small><b id="mp-s-ratio">${sm.ratio}</b><em>objectif ÷ budget</em></div>
           <div class="mp-verdict ${sm.cls}" id="mp-s-verdict"><i style="background:${vColor[sm.cls]};"></i><span>${sm.txt}</span></div>
           <div class="mp-sub" style="font-size:11.5px;">Estimations indicatives, pas un conseil : le Coach compare ensuite ton trading plan à tes vrais chiffres.</div>
@@ -20182,6 +20251,8 @@ function bindMonPlanEvents(){
     const v = mpRead();
     const sm = mpSummary(v, cur);
     set('mp-s-perpa', sm.perPa); set('mp-s-daily', sm.daily); set('mp-calc-daily', sm.daily); set('mp-s-ratio', sm.ratio);
+    set('mp-s-pa', sm.paLine); set('mp-s-perpa-sub', sm.perPaSub); set('mp-s-daily-sub', sm.dailySub);
+    const ps = document.getElementById('mp-s-perpa-sub'); if(ps) ps.hidden = !sm.perPaSub;
     const vd = document.getElementById('mp-s-verdict');
     if(vd){ vd.className = 'mp-verdict ' + sm.cls; vd.innerHTML = `<i style="background:${vColor[sm.cls]};"></i><span>${sm.txt}</span>`; }
     const c = Math.min(100, Math.max(0, Number(v.ddCrit) || 0)), w = Math.min(100, Math.max(c, Number(v.ddWarn) || 0));
