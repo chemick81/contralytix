@@ -8327,7 +8327,7 @@ function payoutFicheModal(accId){
     </div>` : '';
   const srcTxt = s.src === 'dlx'
     ? `Solde et journées : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
-    : `Journées : ${s.days.some(d=>d.src==='deltalytix') ? 'Deltalytix et saisies' : 'saisies à la main'} · solde : ${s.src === 'manual' ? 'saisi sur cette fiche' : 'à saisir'} · payouts : enregistrés dans Contralytix (montant reçu)`;
+    : `Journées : ${[s.days.some(d=>d.src==='deltalytix') && 'Deltalytix', s.days.some(d=>d.src==='tradovate') && 'relevé Tradovate', s.days.some(d=>d.src==='edited') && 'corrections', s.days.some(d=>!['deltalytix','tradovate','edited'].includes(d.src)) && 'saisies à la main'].filter(Boolean).join(', ') || 'aucune'} · solde : ${s.src === 'manual' ? 'saisi sur cette fiche' : 'à saisir'} · payouts : enregistrés dans Contralytix (montant reçu)`;
   openModal({
     title: `${escapeHtml(firm ? firm.name : 'Compte')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(a))}`,
     bodyHtml: `<div class="po-fiche">
@@ -22684,7 +22684,7 @@ function dmOpenActivation(accountIds){
   // Dernier jour tradé déjà connu par les journées (Deltalytix ou pointage), hors saisie manuelle.
   const knownLog = a => { const ls = dmLogsFor(a).filter(l=>l.traded && l.day); if(!ls.length) return null;
     const day = dmMax(ls.map(l=>l.day)); const l = ls.find(x=>x.day===day);
-    return { day, src: l && l.source==='deltalytix' ? 'Deltalytix' : 'tes pointages' }; };
+    return { day, src: l && l.source==='deltalytix' ? 'Deltalytix' : l && l.source==='tradovate' ? 'ton relevé Tradovate' : l && l.source==='edited' ? 'ta correction' : 'tes pointages' }; };
   const single = accountIds && accountIds[0]!=='all';
   let hiddenKnown = 0;
   if(single) accounts = accounts.filter(a=>accountIds.includes(a.id));
