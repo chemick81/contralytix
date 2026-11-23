@@ -24,6 +24,9 @@
 //   - Comptes : actifs par type + mouvements de la semaine (nouveaux comptes, réussis, breached,
 //     fermés) d'après account_status_history
 //   - Cumul depuis le début : résultat net et rentabilité (net / dépenses)
+//   - (23/11/2026) Comptes à trader (Radar d'inactivité, si activé) en tête, et Prochain payout
+//     (prêts / bientôt / en cours), lus dans l'instantané profiles.payout_plan.mailSnapshot écrit
+//     par l'app. Une alerte urgente ou un payout prêt suffit à envoyer l'email.
 // Aucun email n'est envoyé à un utilisateur sans activité financière ni mouvement de compte sur
 // la semaine (sauf options.forceOne), pour éviter le bruit.
 //
@@ -289,7 +292,131 @@ function trendChart(trend, currency) {
   </table>`;
 }
 
-function buildEmailHtml({ name, weekStart, weekEnd, s, appUrl }) {
+
+/* ── Radar d'inactivité + Prochain payout (23/11/2026) ─────────────────────────────────────
+   L'app calcule ces deux modules (règles du Radar, formules du catalogue) et en garde un instantané
+   dans profiles.payout_plan.mailSnapshot = { at, radar:[…], payout:[…] } (voir mailSnapshotWrite
+   dans index.html). L'email relit cet instantané : mêmes chiffres que dans l'app, sans recopier les
+   moteurs ici. Les échéances du Radar sont recalculées par rapport au jour de l'envoi. */
+const RADAR_STYLE = {
+  over: { label: 'Délai dépassé', color: C.danger, bg: C.dangerSoft, order: 0 },
+  crit: { label: 'Critique', color: C.danger, bg: C.dangerSoft, order: 1 },
+  todo: { label: 'À faire', color: C.danger, bg: C.dangerSoft, order: 1.5 },
+  warn: { label: 'À surveiller', color: C.amber, bg: C.amberSoft, order: 2 },
+};
+const PAYOUT_STYLE = {
+  ready: { label: 'Prêt', color: C.accent, bg: C.accentSoft },
+  soon: { label: 'Bientôt', color: C.amber, bg: C.amberSoft },
+  wait: { label: 'En cours', color: C.dim, bg: C.soft },
+  input: { label: 'Solde à saisir', color: C.dim, bg: C.soft },
+};
+const DOW_FR = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+function fmtDow(iso) { return `${DOW_FR[isoToUTC(iso).getUTCDay()]} ${fmtDayMonth(iso)}`; }
+function diffDays(a, b) { return Math.round((isoToUTC(b) - isoToUTC(a)) / 86400000); }
+
+// Instantané -> listes prêtes à afficher (today = jour de l'envoi, heure de Paris).
+function snapshotSections(snap, today) {
+  if (!snap || !snap.at) return null;
+  const at = String(snap.at).slice(0, 10);
+  const radar = (snap.radar || []).map(r => {
+    let level = r.level;
+    if (r.deadline) {
+      const d = diffDays(today, r.deadline);
+      if (d < 0) level = 'over';
+      else if (d <= 1 && level !== 'over') level = 'crit';
+    }
+    return { ...r, level, daysLeft: r.deadline ? diffDays(today, r.deadline) : null };
+  }).filter(r => RADAR_STYLE[r.level])
+    .sort((x, y) => RADAR_STYLE[x.level].order - RADAR_STYLE[y.level].order || (x.daysLeft ?? 999) - (y.daysLeft ?? 999));
+  const payout = (snap.payout || []).filter(p => PAYOUT_STYLE[p.state] && !p.maxed);
+  const rank = p => p.state === 'ready' ? 0 : p.state === 'input' ? 2 : 1;
+  payout.sort((x, y) => rank(x) - rank(y) || (rank(x) === 1 ? (y.progress || 0) - (x.progress || 0) : 0) || (y.amt || 0) - (x.amt || 0));
+  return { at, stale: diffDays(at, today) > 2, radar, payout, radarOn: !!snap.radarOn };
+}
+
+// Préfixe d'objet quand un compte est à trader d'urgence (le plus important de l'email).
+function alertSubject(sec) {
+  const n = sec && sec.radarOn ? sec.radar.filter(r => r.level !== 'warn').length : 0;
+  return n ? `⚠️ ${n} compte${n > 1 ? 's' : ''} à trader · ` : '';
+}
+
+function pill(st) {
+  return `<span style="display:inline-block;min-width:64px;text-align:center;padding:4px 8px;border-radius:999px;background:${st.bg};color:${st.color};font:600 11px/1.2 ${FONT};white-space:nowrap;">${st.label}</span>`;
+}
+
+function radarCard(sec, appUrl) {
+  if (!sec || !sec.radarOn || !sec.radar.length) return '';
+  const MAX = 6;
+  const urgent = sec.radar.filter(r => r.level !== 'warn').length;
+  const rows = sec.radar.slice(0, MAX).map((r, i) => {
+    const st = RADAR_STYLE[r.level];
+    const when = r.daysLeft === null ? '' : r.daysLeft < 0 ? `<span style="color:${C.danger};font-weight:700;">Dépassé</span>`
+      : r.daysLeft === 0 ? `<span style="color:${C.danger};font-weight:700;">Aujourd’hui</span>`
+      : `<span style="color:${r.daysLeft <= 1 ? C.danger : C.text};font-weight:700;">J-${r.daysLeft}</span><br><span style="color:${C.faint};font-weight:400;">${fmtDow(r.deadline)}</span>`;
+    return `<tr>
+      <td width="96" valign="top" style="padding:10px 0;${i ? `border-top:1px solid ${C.line};` : ''}">${pill(st)}</td>
+      <td valign="top" style="padding:10px 0 10px 8px;${i ? `border-top:1px solid ${C.line};` : ''}">
+        <div style="font:600 13px/1.4 ${FONT};color:${C.text};">${escapeHtml(r.label)}${r.num ? ` <span style="font-weight:400;color:${C.faint};">··${escapeHtml(String(r.num).slice(-4))}</span>` : ''}</div>
+        <div style="font:400 12px/1.5 ${FONT};color:${C.dim};">${escapeHtml(r.action || '')}</div></td>
+      <td align="right" valign="top" style="padding:10px 0 10px 8px;font:400 12px/1.35 ${FONT};white-space:nowrap;${i ? `border-top:1px solid ${C.line};` : ''}">${when}</td></tr>`;
+  }).join('') + (sec.radar.length > MAX ? `<tr><td colspan="3" style="padding:8px 0 0 0;font:400 12px/1.4 ${FONT};color:${C.faint};border-top:1px solid ${C.line};">+ ${sec.radar.length - MAX} autre${sec.radar.length - MAX > 1 ? 's' : ''} compte${sec.radar.length - MAX > 1 ? 's' : ''} à surveiller</td></tr>` : '');
+  const accentColor = urgent ? C.danger : C.amber;
+  return `<tr><td style="padding:0 0 16px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.card};border-radius:14px;border:1px solid ${C.line};border-left:4px solid ${accentColor};"><tr><td style="padding:20px 22px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="font:700 16px/1.3 ${FONT};color:${C.text};">${urgent ? '⚠️ ' : ''}Comptes à trader</td>
+      <td align="right" style="font:600 12px/1.3 ${FONT};color:${accentColor};white-space:nowrap;">${urgent ? `${urgent} urgent${urgent > 1 ? 's' : ''}` : `${sec.radar.length} à surveiller`}</td></tr>
+      <tr><td colspan="2" style="font:400 12.5px/1.5 ${FONT};color:${C.dim};padding:4px 0 10px 0;">Radar d’inactivité : trade ces comptes avant l’échéance pour ne pas les perdre.</td></tr></table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>
+    <div style="padding-top:14px;"><a href="${appUrl}/#radar" style="font:600 13px/1 ${FONT};color:${C.accent};text-decoration:none;">Voir le Radar →</a></div>
+  </td></tr></table></td></tr>`;
+}
+
+function progressBar(p, color) {
+  const pct = Math.max(0, Math.min(100, Math.round((p || 0) * 100)));
+  const on = Math.max(pct, pct ? 4 : 0);
+  return `<table role="presentation" width="96" cellpadding="0" cellspacing="0" border="0" style="width:96px;"><tr>
+    <td width="64" style="width:64px;padding:0;"><table role="presentation" width="64" cellpadding="0" cellspacing="0" border="0" style="width:64px;background:${C.line};border-radius:3px;"><tr>
+      ${on ? `<td width="${Math.round(64 * on / 100)}" height="6" style="width:${Math.round(64 * on / 100)}px;height:6px;line-height:6px;font-size:0;background:${color};border-radius:3px;">&nbsp;</td>` : ''}
+      ${on < 100 ? `<td height="6" style="height:6px;line-height:6px;font-size:0;">&nbsp;</td>` : ''}
+    </tr></table></td>
+    <td align="right" style="padding:0 0 0 6px;font:600 11px/1 ${FONT};color:${C.faint};white-space:nowrap;">${pct} %</td></tr></table>`;
+}
+
+function payoutCard(sec, appUrl) {
+  if (!sec || !sec.payout.length) return '';
+  const ready = sec.payout.filter(p => p.state === 'ready');
+  const soon = sec.payout.filter(p => p.state === 'soon');
+  const going = sec.payout.filter(p => p.state === 'wait' || p.state === 'input');
+  const readyNet = ready.reduce((t, p) => t + (Number(p.net) || 0), 0);
+  const stat = (n, label, color, sub) => `<td width="33%" align="center" valign="top" style="padding:12px 4px;">
+      <div style="font:700 24px/1.1 ${FONT};color:${n ? color : C.faint};">${n}</div>
+      <div style="font:600 12px/1.4 ${FONT};color:${C.text};padding-top:2px;">${label}</div>
+      ${sub ? `<div style="font:400 11.5px/1.4 ${FONT};color:${C.faint};">${sub}</div>` : ''}</td>`;
+  const MAX = 6;
+  const rows = sec.payout.slice(0, MAX).map((p, i) => {
+    const st = PAYOUT_STYLE[p.state];
+    const sub = p.state === 'ready'
+      ? `Jusqu’à <b style="color:${C.text};">${fmtMoney(p.amt, 'USD')}</b>${p.net ? ` · ≈ ${fmtMoney(p.net, 'USD')} reçus` : ''}`
+      : p.state === 'input' ? 'Solde à saisir dans l’app pour calculer le montant'
+      : p.miss && p.miss.length ? `Manque : ${escapeHtml(p.miss.join(', '))}` : '';
+    const right = p.state === 'ready' ? pill(st) : p.state === 'input' ? pill(st) : progressBar(p.progress, p.state === 'soon' ? C.amber : C.accent);
+    return `<tr>
+      <td valign="top" style="padding:10px 0;${i ? `border-top:1px solid ${C.line};` : ''}">
+        <div style="font:600 13px/1.4 ${FONT};color:${C.text};">${escapeHtml(p.label)}${p.num ? ` <span style="font-weight:400;color:${C.faint};">··${escapeHtml(String(p.num).slice(-4))}</span>` : ''}${p.state === 'soon' ? ` <span style="font:600 11px/1 ${FONT};color:${C.amber};">· Bientôt</span>` : ''}</div>
+        <div style="font:400 12px/1.5 ${FONT};color:${C.dim};">${sub}</div></td>
+      <td align="right" valign="middle" style="padding:10px 0 10px 10px;${i ? `border-top:1px solid ${C.line};` : ''}">${right}</td></tr>`;
+  }).join('') + (sec.payout.length > MAX ? `<tr><td colspan="2" style="padding:8px 0 0 0;font:400 12px/1.4 ${FONT};color:${C.faint};border-top:1px solid ${C.line};">+ ${sec.payout.length - MAX} autre${sec.payout.length - MAX > 1 ? 's' : ''}</td></tr>` : '');
+  return card(`${sectionTitle('Prochain payout', 'Du plus proche au plus loin')}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.soft};border-radius:10px;"><tr>
+      ${stat(ready.length, 'Prêt' + (ready.length > 1 ? 's' : '') + ' à demander', C.accent, ready.length ? `≈ ${fmtMoney(readyNet, 'USD')} reçus` : '')}
+      ${stat(soon.length, 'Bientôt', C.amber, soon.length ? 'une condition manque' : '')}
+      ${stat(going.length, 'En cours', C.text, '')}
+    </tr></table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">${rows}</table>
+    <div style="padding-top:14px;"><a href="${appUrl}/#dashboard" style="font:600 13px/1 ${FONT};color:${C.accent};text-decoration:none;">Voir le détail par compte →</a></div>`);
+}
+
+function buildEmailHtml({ name, weekStart, weekEnd, s, appUrl, sec }) {
   const cur = s.currency;
   const w = s.week;
   const delta = w.net - s.prevNet;
@@ -302,6 +429,9 @@ function buildEmailHtml({ name, weekStart, weekEnd, s, appUrl }) {
     s.eventCounts.REUSSI ? `${s.eventCounts.REUSSI} compte${s.eventCounts.REUSSI > 1 ? 's' : ''} réussi${s.eventCounts.REUSSI > 1 ? 's' : ''}` : null,
     s.eventCounts.BREACHED ? `${s.eventCounts.BREACHED} breach` : null,
   ].filter(Boolean).join(' · ');
+  const radarUrgent = sec && sec.radarOn ? sec.radar.filter(r => r.level !== 'warn').length : 0;
+  const payReady = sec ? sec.payout.filter(p => p.state === 'ready').length : 0;
+  const preFull = [radarUrgent ? `⚠️ ${radarUrgent} compte${radarUrgent > 1 ? 's' : ''} à trader` : null, payReady ? `${payReady} payout${payReady > 1 ? 's' : ''} prêt${payReady > 1 ? 's' : ''}` : null, pre].filter(Boolean).join(' · ');
 
   // 1. Héros : résultat net
   const deltaPill = s.prevHasActivity || Math.abs(s.prevNet) > 0.004
@@ -378,7 +508,7 @@ function buildEmailHtml({ name, weekStart, weekEnd, s, appUrl }) {
 <meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
 <title>Ton résumé de la semaine</title></head>
 <body style="margin:0;padding:0;background:${C.bg};">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${C.bg};">${escapeHtml(pre)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${C.bg};">${escapeHtml(preFull)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg};"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
   <tr><td style="padding:0 0 16px 0;">
@@ -387,14 +517,17 @@ function buildEmailHtml({ name, weekStart, weekEnd, s, appUrl }) {
       <td align="right" style="padding:20px 24px;font:400 12px/1.4 ${FONT};color:#8B98A5;">Résumé hebdo<br><span style="color:#E8EDF2;font-weight:600;">${range}</span></td>
     </tr></table></td></tr>
   <tr><td style="padding:4px 4px 18px 4px;font:400 15px/1.5 ${FONT};color:${C.text};">Bonjour${name ? ' ' + escapeHtml(name) : ''}, voici ta semaine en un coup d’œil.</td></tr>
+  ${radarCard(sec, appUrl)}
   ${hero}
   ${tiles}
+  ${payoutCard(sec, appUrl)}
   ${evolution}
   ${comptes}
   ${cumul}
   ${cta}
   <tr><td style="padding:0 8px;font:400 11.5px/1.6 ${FONT};color:${C.faint};text-align:center;">
     ${s.converted ? 'Montants convertis en EUR (comptes dans plusieurs devises).<br>' : ''}
+    ${sec && (sec.radar.length || sec.payout.length) ? `Radar et payouts : état calculé par l’app le ${fmtDayMonth(sec.at)}${sec.stale ? ' — ouvre l’app pour les mettre à jour' : ''}.<br>` : ''}
     Semaine du lundi au dimanche, heure de Paris. Calculé uniquement sur tes propres comptes.<br>
     Tu reçois cet email car le résumé hebdomadaire est activé. <a href="${appUrl}/#parametres" style="color:${C.dim};">Le désactiver dans Paramètres</a>.<br><br>
     — L’équipe Contralytix</td></tr>
@@ -423,7 +556,7 @@ async function runWeeklySummary(options = {}) {
   const weekStart = addDays(mondayOf(today), -7);
   const weekEnd = addDays(weekStart, 6);
 
-  let profilesQ = db.from('profiles').select('id, display_name, notif_perf_summary');
+  let profilesQ = db.from('profiles').select('id, display_name, notif_perf_summary, payout_plan');
   profilesQ = onlyUid ? profilesQ.eq('id', onlyUid) : profilesQ.eq('notif_perf_summary', true);
   const { data: profiles, error: profErr } = await profilesQ;
   if (profErr) throw profErr;
@@ -485,10 +618,15 @@ async function runWeeklySummary(options = {}) {
       statusHistory: myAccounts.flatMap(a => histByAccount.get(a.id) || []),
       firmsById, weekStart, weekEnd,
     });
-    if (!s.hasActivity && !forceOne) { skippedNoActivity++; continue; }
+    // Radar + Prochain payout : instantané laissé par l'app (voir snapshotSections).
+    const sec = snapshotSections(profile.payout_plan && profile.payout_plan.mailSnapshot, today);
+    // Un compte à trader (Radar, niveau urgent) ou un payout prêt justifie l'email même sans
+    // mouvement financier dans la semaine (choix de Mickael, 23/11/2026).
+    const alertWorth = !!sec && ((sec.radarOn && sec.radar.some(r => r.level !== 'warn')) || sec.payout.some(p => p.state === 'ready'));
+    if (!s.hasActivity && !alertWorth && !forceOne) { skippedNoActivity++; continue; }
 
     const name = (profile.display_name || '').trim();
-    const html = buildEmailHtml({ name, weekStart, weekEnd, s, appUrl });
+    const html = buildEmailHtml({ name, weekStart, weekEnd, s, appUrl, sec });
     if (dryRun) { previews.push({ uid, html }); continue; }
 
     // Adresse réelle du compte via l'API admin — jamais un champ modifiable côté client.
@@ -503,7 +641,7 @@ async function runWeeklySummary(options = {}) {
           sender: { email: senderEmail, name: 'Contralytix' },
           ...replyTo,
           to: [{ email: userData.user.email }],
-          subject: `Ta semaine : ${fmtMoney(s.week.net, s.currency, { sign: true })} · ${fmtRange(weekStart, weekEnd)}`,
+          subject: `${alertSubject(sec)}Ta semaine : ${fmtMoney(s.week.net, s.currency, { sign: true })} · ${fmtRange(weekStart, weekEnd)}`,
           htmlContent: html,
         }),
       });
@@ -518,4 +656,4 @@ async function runWeeklySummary(options = {}) {
   return { sent, skippedNoActivity, failed, total: profiles.length, weekStart, weekEnd, ...(dryRun ? { previews } : {}) };
 }
 
-module.exports = { runWeeklySummary, _internal: { computeSummary, buildEmailHtml, parisTodayISO, mondayOf, addDays } };
+module.exports = { runWeeklySummary, _internal: { computeSummary, buildEmailHtml, snapshotSections, parisTodayISO, mondayOf, addDays } };
