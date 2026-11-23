@@ -336,11 +336,11 @@ exports.handler = async (event) => {
       });
       // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
       if (body.radar === false) rows.length = 0;
-      // Journées corrigées à la main (source 'edited') ou importées d'un relevé Tradovate (source
-      // 'tradovate'), 23/11/2026 : jamais remplacées par la synchro, c'est le choix du trader.
+      // Journées corrigées à la main (source 'edited') ou importées d'un relevé Tradovate / R|Trader Pro
+      // (source 'tradovate' / 'rithmic'), 23/11/2026 : jamais remplacées par la synchro, c'est le choix du trader.
       if (rows.length) {
         const ids = [...new Set(rows.map((r) => r.account_id))];
-        const { data: edited, error: edErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).in('source', ['edited', 'tradovate']).gte('day', since);
+        const { data: edited, error: edErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).in('source', ['edited', 'tradovate', 'rithmic']).gte('day', since);
         if (!edErr && edited && edited.length) {
           const skip = new Set(edited.map((e) => e.account_id + '|' + e.day));
           for (let i = rows.length - 1; i >= 0; i--) if (skip.has(rows[i].account_id + '|' + rows[i].day)) rows.splice(i, 1);
