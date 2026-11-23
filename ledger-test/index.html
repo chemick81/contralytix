@@ -1110,6 +1110,7 @@ th.th-sort-active svg{opacity:1;}
 .po-dltx summary{cursor:pointer;list-style:revert;}
 .po-dltx-t td:first-child{color:var(--text-dim);white-space:nowrap;}
 .po-dltx-t td:nth-child(2){white-space:nowrap;}
+.po-w-prog{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.po-w-track{display:block;width:48px;height:4px;border-radius:2px;background:var(--border-soft);overflow:hidden}.po-w-track i{display:block;height:100%;border-radius:2px;background:var(--accent)}.po-w-prog em{font-style:normal;font-size:10.5px;color:var(--text-faint);width:30px;text-align:right}
 .po-w-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 16px;border:0;border-top:1px solid var(--border-soft);background:none;color:var(--text);text-align:left;cursor:pointer;font-family:inherit;}
 .po-w-row:hover{background:var(--surface-2);}
 .po-w-t{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -7785,6 +7786,7 @@ function payoutStatus(a){
   const profitCycle = days.reduce((s,d)=>s + d.pnl, 0);
   const best = days.reduce((m,d)=>Math.max(m, d.pnl), 0);
   const conds = [], miss = [];
+  const prog = []; // avancement de chaque condition (0 à 1), pour trier du plus proche au plus loin
   const sinceTxt = lastPay ? 'depuis le dernier payout (' + fmtDate(lastPay) + ')' : 'depuis l’activation';
   // 1. Jours
   const minDays = Number(R.minDays) || 0;
@@ -7800,6 +7802,7 @@ function payoutStatus(a){
       label = `${minDays} jours de trading dont ${R.winDays} à +${R.winMin} $`;
       ok = q >= minDays && w >= Number(R.winDays);
     }
+    prog.push(ok ? 1 : q / minDays);
     conds.push({ key:'days', t:label, d:'Comptés ' + sinceTxt, v:`${q} / ${minDays}`, ok, dots: days.map(d=>({ day:d.day, pnl:d.pnl, good:isQ(d) })), todo: Math.max(0, minDays - q) });
     if(!ok){ const k = Math.max(1, minDays - q); miss.push(k + (winning ? ` jour${k>1?'s':''} gagnant${k>1?'s':''}` : ` jour${k>1?'s':''} de trading`)); }
   }
@@ -7809,6 +7812,7 @@ function payoutStatus(a){
     const pct = profitCycle > 0 ? best / profitCycle * 100 : 0;
     const ok = profitCycle > 0 && pct <= coh + 1e-9;
     conds.push({ key:'coh', t:`Cohérence : meilleur jour ≤ ${coh} % du profit`, d:`Meilleur jour ${poSigned(best)} sur ${poSigned(profitCycle)} de profit ${sinceTxt}`, v: profitCycle > 0 ? Math.round(pct) + ' %' : '—', ok, bar:{ fill: Math.min(100, pct), lim: coh } });
+    prog.push(ok ? 1 : profitCycle > 0 ? profitCycle / (best * 100 / coh) : 0);
     if(!ok) miss.push(profitCycle > 0 ? 'cohérence (encore ' + poMoney(Math.max(0, best * 100 / coh - profitCycle)) + ' de profit)' : 'du profit pour la cohérence');
   }
   // 3. Profit minimum du cycle
@@ -7816,6 +7820,7 @@ function payoutStatus(a){
   if(cyc && cyc > 1){
     const ok = profitCycle >= cyc;
     conds.push({ key:'cycle', t:`Profit ${sinceTxt.replace('depuis', 'depuis')} ≥ ${poMoney(cyc)}`, d:'Profit net du cycle de payout', v: poSigned(profitCycle), ok, bar:{ fill: Math.max(0, Math.min(100, profitCycle / cyc * 100)), lim: 100 } });
+    prog.push(ok ? 1 : Math.max(0, profitCycle / cyc));
     if(!ok) miss.push(poMoney(cyc - profitCycle) + ' de profit');
   }
   // 4. Solde / buffer et montant
@@ -7830,6 +7835,7 @@ function payoutStatus(a){
     const ok = bal >= reqBal;
     withdrawable = Math.max(0, bal - start - buf);
     conds.push({ key:'bal', t:`Solde mini pour demander : ${poMoney(reqBal)}`, d:`Buffer de ${poMoney(buf)} à garder après le payout${R.bufferPayouts ? ' (pour les ' + R.bufferPayouts + ' premiers payouts)' : ''}`, v: poMoney(bal), ok, bar:{ fill: need > 0 ? Math.max(0, Math.min(100, (bal - start) / need * 100)) : 100, lim: need > 0 ? buf / need * 100 : 0 } });
+    prog.push(ok ? 1 : need > 0 ? Math.max(0, (bal - start) / need) : 0);
     if(!ok) miss.push(poMoney(reqBal - bal) + ' de solde');
   } else {
     withdrawable = Math.max(0, bal - start);
@@ -7837,6 +7843,7 @@ function payoutStatus(a){
     if(R.capPct || R.cycleProfit) withdrawable = Math.min(withdrawable, Math.max(0, profitCycle));
     const ok = withdrawable >= minPayout && withdrawable > 0;
     conds.push({ key:'bal', t: minPayout ? `Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}` : 'Profit au-dessus du solde de départ', d:'Profit disponible au-dessus du solde de départ', v: poMoney(withdrawable), ok });
+    prog.push(ok ? 1 : Math.max(0, withdrawable / Math.max(minPayout, 1)));
     if(!ok) miss.push(poMoney(Math.max(minPayout, 1) - withdrawable) + ' de profit');
   }
   const cap = poAt(R.caps, n);
@@ -7857,7 +7864,7 @@ function payoutStatus(a){
   let split = R.split != null ? Number(R.split) : null, splitTxt = '';
   if(R.splitBelow && bal != null && bal - start < Number(R.splitBelow.profit)){ split = Number(R.splitBelow.split); splitTxt = ` (partage ${Math.round(split*100)}/${Math.round(100-split*100)} tant que le profit est sous ${poMoney(R.splitBelow.profit)})`; }
   return { a, row, pg, R, n, lastPay, days, bal, start, src: dlxBal != null ? 'dlx' : (man ? 'manual' : 'none'), balAt: dlxBal != null ? (dlx().health && dlx().health.at) : (man && man.at),
-    profitCycle, conds, miss, amt, cap, minPayout, net: amt != null && split != null ? amt * split : null, split, splitTxt, state: state_, maxed };
+    profitCycle, conds, miss, amt, cap, minPayout, progress: maxed ? 0 : Math.min(1, ...prog.map(v=>Math.min(1, v)), 1), net: amt != null && split != null ? amt * split : null, split, splitTxt, state: state_, maxed };
 }
 function poPillHtml(s, short){
   if(!s || s.state === 'norules') return '';
@@ -7963,17 +7970,19 @@ function pilotPayoutWidgetHtml(pd){
   const all = pd.paActive.map(a=>payoutStatus(a)).filter(Boolean);
   const list = all.filter(s=>s.state !== 'norules');
   const noRulesN = all.length - list.length;
-  const order = { ready:0, soon:1, wait:2, input:3 };
-  list.sort((x,y)=>order[x.state] - order[y.state] || (y.amt || 0) - (x.amt || 0));
+  // Du plus facile au plus loin : prêts (plus gros montant d'abord), puis par avancement de la
+  // condition la moins avancée, puis soldes à saisir, puis payouts au maximum.
+  const rank = s => s.state === 'ready' ? 0 : s.maxed ? 3 : s.state === 'input' ? 2 : 1;
+  list.sort((x,y)=>rank(x) - rank(y) || (rank(x) === 1 ? (y.progress || 0) - (x.progress || 0) : 0) || (y.amt || 0) - (x.amt || 0));
   const ready = list.filter(s=>s.state === 'ready');
   const noProg = pd.paActive.filter(a=>!accProgram(a)).length;
   const rows = list.slice(0, 8).map(s=>{
     const firm = getFirm(s.a.propFirmId);
     const sub = s.state === 'ready' ? `Jusqu’à ${poMoney(s.amt)}${s.net != null ? ' · ≈ ' + poMoney(s.net) + ' reçus' : ''}` : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche' : 'Manque : ' + s.miss.join(', ');
-    return `<button type="button" class="po-w-row" onclick="poOpen('${s.a.id}')">${firmLogoHtml(firm, 28)}<span class="po-w-t"><b>${escapeHtml(firm ? firm.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b><span class="cat-sub">··${escapeHtml(String(s.a.accountNumber || '').slice(-4))} · ${escapeHtml(sub)}</span></span>${poPillHtml(s)}</button>`;
+    return `<button type="button" class="po-w-row" onclick="poOpen('${s.a.id}')">${firmLogoHtml(firm, 28)}<span class="po-w-t"><b>${escapeHtml(firm ? firm.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b><span class="cat-sub">··${escapeHtml(String(s.a.accountNumber || '').slice(-4))} · ${escapeHtml(sub)}</span></span>${poPillHtml(s)}${rank(s) === 1 ? `<span class="po-w-prog" title="Avancement de la condition la plus en retard"><span class="po-w-track"><i style="width:${Math.round((s.progress || 0) * 100)}%"></i></span><em>${Math.round((s.progress || 0) * 100)} %</em></span>` : ''}</button>`;
   }).join('');
   return `<div class="panel po-widget">
-    <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Prochain payout</div><span class="cat-sub" style="margin:0">${list.length ? `${ready.length} PA prêt${ready.length>1?'s':''} sur ${list.length}${ready.length ? ' · ' + poMoney(ready.reduce((t,s)=>t + (s.amt||0), 0)) + ' demandables' : ''}` : ''}</span></div>
+    <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Prochain payout</div><span class="cat-sub" style="margin:0">${list.length ? `Du plus proche au plus loin · ${ready.length} PA prêt${ready.length>1?'s':''} sur ${list.length}${ready.length ? ' · ' + poMoney(ready.reduce((t,s)=>t + (s.amt||0), 0)) + ' demandables' : ''}` : ''}</span></div>
     ${rows || `<div class="panel-body"><div class="empty-sub">${pd.paActive.length ? 'Aucun PA actif n’a de formule du catalogue. Choisis-la dans la fiche de chaque compte (champ « Formule »).' : 'Aucun PA ou compte Live actif.'}</div></div>`}
     ${list.length > 8 ? `<div class="po-w-more cat-sub">+ ${list.length - 8} autres PA · <a href="#" onclick="event.preventDefault();state.route='accounts';render();">voir la page Comptes</a></div>` : ''}
     ${noProg && list.length ? `<div class="po-w-more cat-sub">${noProg} PA sans formule : non suivi${noProg>1?'s':''}.</div>` : ''}
