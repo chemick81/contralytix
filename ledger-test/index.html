@@ -1115,6 +1115,10 @@ th.th-sort-active svg{opacity:1;}
 .po-edited{margin-left:6px;font-size:10px;padding:1px 6px;}
 .po-pnl-undo{background:none;border:0;color:var(--text-faint);cursor:pointer;padding:0 4px;font-size:13px;}
 .po-pnl-undo:hover{color:var(--accent);}
+.po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.po-tdv-days svg{width:13px;height:13px;}
+.tdv-acc-t{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
+.tdv-target{max-width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;}
 .tdv-intro{font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:14px;}
 .tdv-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 16px;border:1.5px dashed var(--border);border-radius:12px;cursor:pointer;text-align:center;color:var(--text-dim);font-size:12.5px;}
 .tdv-drop svg{width:22px;height:22px;color:var(--accent);} .tdv-drop b{color:var(--text);font-size:14px;}
@@ -8111,6 +8115,7 @@ function tdvParse(text){
     const cands = mine.filter(a=>{ const n = tdvNormNum(a.accountNumber); return n.length >= 5 && keys.some(k=>k === n || k.endsWith(n) || n.endsWith(k)); })
       .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type === 'PA' || y.type === 'LIVE') - (x.type === 'PA' || x.type === 'LIVE')));
     g.acc = cands[0] || null;
+    g.auto = !!g.acc; g.matchId = g.acc ? g.acc.id : null;   // trouvé par le numéro ; sinon le trader choisit le compte
     const last = g.rows[g.rows.length - 1];
     g.bal = last.bal; g.balDay = last.day;
     g.tradedRows = g.rows.filter(r=>Math.abs(r.pnl) >= 0.005);
@@ -8146,14 +8151,16 @@ function tdvImportModal(opts){
     if(!parsed) return `<div class="tdv-intro">Dans Tradovate : <b>Rapports du compte › Account Balance History</b>, choisis la période (par exemple « Cette année »), puis <b>Télécharger le CSV</b>. Le fichier donne le solde de chaque jour et le P&amp;L réalisé : Contralytix en déduit le solde actuel et les jours tradés.</div>
       <label class="tdv-drop" id="tdv-drop">${icon('download')}<b>Dépose le fichier CSV ici</b><span>ou clique pour le choisir${only ? ' · compte ' + maskAccountNumber(String(only.accountNumber || '')) : ' · un ou plusieurs comptes'}</span><input type="file" id="tdv-file" accept=".csv,text/csv" hidden/></label>`;
     if(parsed.error) return `<div class="acat-ai-err">${escapeHtml(parsed.error)}</div><button type="button" class="btn btn-outline btn-sm" id="tdv-again" style="margin-top:10px;">Choisir un autre fichier</button>`;
+    const targets = (state.accounts || []).filter(x=>isMineAccount(x) && (x.type === 'PA' || x.type === 'LIVE' || x.type === 'CHALLENGE'))
+      .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type !== 'CHALLENGE') - (x.type !== 'CHALLENGE')) || String(x.accountNumber || '').localeCompare(String(y.accountNumber || '')));
+    const accLabel = x => { const f = getFirm(x.propFirmId); return `${(f || {}).name || 'PropFirm'} · ${x.type === 'LIVE' ? 'Live' : x.type === 'CHALLENGE' ? 'Challenge' : 'PA'} ${sizeLabelRaw(x) || ''} · ${String(x.accountNumber || 'sans n°')}${x.status !== 'ACTIF' ? ' (' + String(x.status).toLowerCase() + ')' : ''}${dlxHealthOf(x.id) ? ' · Deltalytix' : ''}`; };
     return parsed.groups.map((g, i)=>{
       const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
-      const wrong = only && a && a.id !== only.id;
-      const skip = !a || wrong || (pl && pl.dlx);
-      const head = a ? `${firm ? firmLogoHtml(firm, 22) : ''}<div><b>${escapeHtml(g.name)}</b> → ${escapeHtml((firm || {}).name || '')} · ${escapeHtml(a.type === 'LIVE' ? 'Live' : a.type)} ${escapeHtml(sizeLabelRaw(a) || '')}</div>`
-        : `<div><b>${escapeHtml(g.name)}</b> → <span style="color:var(--danger)">aucun compte avec ce numéro dans Contralytix</span></div>`;
-      const why = !a ? '' : wrong ? 'Ce fichier concerne un autre compte que celui de la fiche : il sera ignoré.' : pl.dlx ? 'Compte synchronisé avec Deltalytix : il fait déjà foi, ce relevé est ignoré.' : '';
-      return `<div class="tdv-acc${skip ? ' off' : ''}"><label class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'}/>${head}</label>
+      const skip = !a;
+      const sel = `<select class="tdv-target" data-tdv-target="${i}" aria-label="Compte Contralytix pour ${escapeHtml(g.name)}"><option value="">— Ne pas importer —</option>${targets.map(x=>`<option value="${escapeHtml(x.id)}" ${a && a.id === x.id ? 'selected' : ''}>${escapeHtml(accLabel(x))}</option>`).join('')}</select>`;
+      const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b> <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? 'trouvé par le numéro' : 'compte choisi') : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
+      const why = a && pl.dlx ? 'Compte synchronisé avec Deltalytix : les journées du relevé remplaceront celles de Deltalytix et ne seront plus écrasées par la synchro. Le solde affiché reste celui de Deltalytix.' : '';
+      return `<div class="tdv-acc${skip ? ' off' : ''}"><div class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'} aria-label="Importer ce compte"/>${head}</div>
         ${why ? `<div class="cat-sub" style="margin:6px 0 0 26px;">${why}</div>` : ''}
         ${a && !skip ? `<div class="tdv-stats">
           <span><small>Solde au ${fmtDate(g.balDay)}</small><b class="mono">${poMoney(g.bal)}</b></span>
@@ -8179,11 +8186,17 @@ function tdvImportModal(opts){
     }
     const again = document.getElementById('tdv-again'); if(again) again.onclick = ()=>{ parsed = null; paint(); };
     document.querySelectorAll('[data-tdv-i]').forEach(cb=>cb.onchange = ()=>{ const b = document.getElementById('tdv-go'); if(b) b.disabled = !okCount(); });
+    document.querySelectorAll('[data-tdv-target]').forEach(se=>se.onchange = ()=>{ const g = parsed.groups[Number(se.dataset.tdvTarget)]; g.acc = se.value ? getAccount(se.value) : null; paint(); });
   };
   const read = file=>{
     if(file.size > 5e6){ parsed = { error:'Fichier trop gros (5 Mo maximum).' }; paint(); return; }
     const fr = new FileReader();
-    fr.onload = ()=>{ parsed = tdvParse(String(fr.result || '')); paint(); };
+    fr.onload = ()=>{
+      parsed = tdvParse(String(fr.result || ''));
+      // Depuis la fiche d'un compte : un relevé d'un seul compte va sur ce compte, même si le numéro diffère.
+      if(only && parsed.groups && parsed.groups.length === 1) parsed.groups[0].acc = only;
+      paint();
+    };
     fr.onerror = ()=>{ parsed = { error:'Lecture du fichier impossible.' }; paint(); };
     fr.readAsText(file);
   };
@@ -8297,6 +8310,7 @@ function payoutFicheModal(accId){
     const dots = c.dots ? `<div class="po-dots">${c.dots.map(d=>`<span class="po-dot ${d.good ? 'ok' : d.pnl < 0 ? 'neg' : 'no'}" title="${fmtDate(d.day)} : ${poSigned(d.pnl)}">${d.day.slice(8,10)}</span>`).join('')}${Array.from({ length:c.todo }).map(()=>'<span class="po-dot todo" title="À faire"></span>').join('')}</div>` : '';
     return `<div class="po-cond">${ic(c)}<div style="min-width:0"><div class="po-ct">${escapeHtml(c.t)}</div><div class="cat-sub">${escapeHtml(c.d)}</div>${bar}${dots}</div><span class="po-cv mono">${escapeHtml(c.v)}</span></div>`;
   }).join('') || '<div class="cat-sub" style="padding:12px 0;">Cette formule n’a pas de condition de jours ni de cohérence.</div>';
+  const tdvBtn = isMineAccount(a) ? `<button type="button" class="btn btn-ghost btn-sm po-tdv-days" id="po-tdv-days" title="Relevé Account Balance History de Tradovate (CSV)">${icon('download')}Importer un relevé Tradovate</button>` : '';
   const daysHtml = s.days.length ? `<table class="po-days"><thead><tr><th>Jour</th><th class="num">P&amp;L</th><th>Compte pour le payout</th></tr></thead><tbody>${s.days.slice().reverse().map(d=>{
       const R = s.R, good = R.dayType === 'winning' ? d.pnl >= (Number(R.dayMin)||0) : (R.minDays ? true : null);
       const editable = isMineAccount(a);
@@ -8309,7 +8323,7 @@ function payoutFicheModal(accId){
   const manualBlock = s.src !== 'dlx' ? `<div class="po-sec po-bal">
       <div class="po-ct">Solde actuel du compte</div>
       <div class="cat-sub">Ce compte n’est pas synchronisé avec Deltalytix : saisis le solde affiché sur ta plateforme pour calculer le buffer et le montant possible.</div>
-      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button><button class="btn btn-outline btn-sm" id="po-tdv" title="Relevé Account Balance History de Tradovate : solde et journées tradées">${icon('download')}Relevé Tradovate</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
+      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
     </div>` : '';
   const srcTxt = s.src === 'dlx'
     ? `Solde et journées : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
@@ -8323,7 +8337,7 @@ function payoutFicheModal(accId){
         ${s.state !== 'norules' && s.amt != null && s.amt > 0 ? `<div class="po-amt"><div class="mono">jusqu’à ${poMoney(s.amt)}</div><div class="cat-sub">${s.net != null ? '≈ ' + poMoney(s.net) + ' reçus' + (s.split < 1 ? ' à ' + Math.round(s.split * 100) + ' %' : '') + escapeHtml(s.splitTxt) : 'partage des profits non indiqué'}</div></div>` : ''}</div>
       ${manualBlock}
       <div class="po-conds">${conds}</div>
-      <div class="po-sec"><div class="po-ct" style="margin-bottom:6px;">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${daysHtml}</div>
+      <div class="po-sec"><div class="po-days-h"><div class="po-ct">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${tdvBtn}</div>${daysHtml}</div>
       <details class="po-sec po-dltx" ${s.src === 'dlx' ? 'open' : ''}><summary class="po-ct">Réglage Deltalytix conseillé <span class="field-label-note">pour que Deltalytix suive les règles de la formule ${escapeHtml(s.row.program)}</span></summary>
         <table class="po-days po-dltx-t"><tbody>${poDltxAdvice(s).map(([k,v,note])=>`<tr><td>${escapeHtml(k)}</td><td class="mono"><b>${escapeHtml(v)}</b></td><td class="cat-sub">${escapeHtml(note)}</td></tr>`).join('')}</tbody></table>
         <div class="cat-sub" style="margin-top:6px;">À saisir dans Deltalytix, fiche du compte. Contralytix ne peut pas lire tes réglages Deltalytix (l’API ne les renvoie pas) : compare-les toi-même.</div>
@@ -8342,7 +8356,7 @@ function payoutFicheModal(accId){
       };
       const cat = document.getElementById('po-open-cat');
       if(cat) cat.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
-      const tdv = document.getElementById('po-tdv'); if(tdv) tdv.onclick = ()=>{ closeModal(); tdvImportModal({ accId }); };
+      ['po-tdv', 'po-tdv-days'].forEach(id=>{ const b = document.getElementById(id); if(b) b.onclick = ()=>{ closeModal(); tdvImportModal({ accId }); }; });
       document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
       // Correction du P&L d'une journée (23/11/2026) : clic sur le montant, saisie, Entrée.
       document.querySelectorAll('.po-pnl-edit').forEach(btn=>btn.onclick = ()=>{
@@ -8986,7 +9000,7 @@ function renderTopbarActions(){
   else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? `<button class="btn btn-primary" onclick="accountFormModal({})">${icon('plus')}Nouveau compte</button>` : '';
   else if(state.route==='plan-seance') el.innerHTML = `<button class="btn btn-primary" id="sp-open-cockpit">${icon('play')}Ouvrir le cockpit</button>`;
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + ((state.accounts || []).some(a=>isMineAccount(a) && (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF' && !dlxHealthOf(a.id)) ? `<button class="btn btn-ghost" onclick="tdvImportModal()" title="Relevé Account Balance History de Tradovate (CSV) : solde et journées tradées des comptes sans Deltalytix">${icon('download')}Relevé Tradovate</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + ((state.accounts || []).some(a=>isMineAccount(a)) ? `<button class="btn btn-ghost" onclick="tdvImportModal()" title="Relevé Account Balance History de Tradovate (CSV), un ou plusieurs comptes : solde et journées tradées, appliqués au compte de ton choix">${icon('download')}Relevé Tradovate</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -16604,10 +16618,9 @@ function accountCard(a){
     actions += `<button class="btn btn-ghost btn-sm" data-resets="${a.id}" title="Resets du challenge">${icon('reset')}Resets${accountResetCount(a.id) ? ` (${accountResetCount(a.id)})` : ''}</button>`;
   } else if(a.type==='PA' || a.type==='LIVE'){
     if(a.status==='ACTIF'){
-      // Bouton « Payout » (23/11/2026, demande de Mickael) : ouvre directement l'ajout d'un payout.
+      // Un seul bouton Payouts (23/11/2026) : il ouvre directement l'ajout d'un payout (et la liste).
       // La fiche « Prochain payout » (conditions, solde) s'ouvre depuis la pastille à côté du statut.
-      if(pilotageEnabled() && accProgram(a)) actions += `<button class="btn btn-primary btn-sm" onclick="poAddPayout('${a.id}')" title="Enregistrer un payout">${icon('wallet')}Payout</button>`;
-      actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
+      actions += `<button class="btn btn-primary btn-sm" data-payouts="${a.id}" title="Ajouter un payout ou voir les payouts reçus">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
       if(editable){
         if(a.type==='PA'){
           actions += `<button class="btn btn-outline btn-sm" data-to-live="${a.id}">${icon('bolt')}Passer en Live</button>`;
@@ -24170,7 +24183,7 @@ function bindViewEvents(){
   document.querySelectorAll('[data-mark]').forEach(b=>b.onclick=()=>statusChangeModal(getAccount(b.dataset.acc), b.dataset.mark));
   document.querySelectorAll('[data-create-pa]').forEach(b=>b.onclick=()=>accountFormModal({ type:'PA', parentChallenge: getAccount(b.dataset.createPa) }));
   document.querySelectorAll('[data-to-live]').forEach(b=>b.onclick=()=>convertPaToLive(getAccount(b.dataset.toLive)));
-  document.querySelectorAll('[data-payouts]').forEach(b=>b.onclick=()=>payoutsModal(getAccount(b.dataset.payouts)));
+  document.querySelectorAll('[data-payouts]').forEach(b=>b.onclick=()=>poAddPayout(b.dataset.payouts));
   document.querySelectorAll('[data-resets]').forEach(b=>b.onclick=()=>resetsModal(getAccount(b.dataset.resets)));
   document.querySelectorAll('[data-notes]').forEach(b=>b.onclick=()=>notesModal(getAccount(b.dataset.notes)));
   document.querySelectorAll('[data-history]').forEach(b=>b.onclick=()=>statusHistoryModal(getAccount(b.dataset.history)));
