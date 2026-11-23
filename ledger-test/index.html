@@ -17060,14 +17060,14 @@ function calendarsPanelHtml(){
   // countries=5 -> États-Unis (le plus pertinent pour le NQ).
   // dateFrom/dateTo forcés sur la date du jour (fuseau Europe/Paris, voir parisDateISO) à chaque
   // rendu du panneau, pour que le calendrier s'ouvre toujours sur aujourd'hui plutôt que de garder
-  // en mémoire la dernière date consultée. timeZone=8 correspond à la zone Europe centrale
-  // (Paris/Berlin/Rome...) côté Investing.com ; le sélecteur de fuseau est retiré de "features"
+  // en mémoire la dernière date consultée. timeZone=16 = Paris côté Investing.com (vérifié le 23/11/2026 : PMI US à 15:45 ;
+  // l'ancien timeZone=8 était l'heure de New York) ; le sélecteur de fuseau est retiré de "features"
   // pour qu'un visiteur ne puisse pas basculer sur un autre fuseau par erreur.
   // Langue par défaut : anglais (le code langue français officiel n'a pas pu être vérifié
   // ici de façon fiable ; régénère le widget sur fr.investing.com/webmaster-tools/economic-calendar
   // si tu veux le forcer en français, et remplace juste l'URL ci-dessous dans le code).
   const todayParis = parisDateISO();
-  const ecalSrc = `https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker&countries=5&calType=day&timeZone=8&lang=1&dateFrom=${todayParis}&dateTo=${todayParis}`;
+  const ecalSrc = `https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker&countries=5&calType=day&timeZone=16&lang=1&dateFrom=${todayParis}&dateTo=${todayParis}`;
   return `
     <div class="panel" style="margin-bottom:18px;">
       <div class="panel-head"><div class="section-title">Calendrier économique — aujourd'hui (US, heure de Paris)</div></div>
