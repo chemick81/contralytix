@@ -7901,6 +7901,45 @@ function poPillHtml(s, short){
   return `<span class="po-pill po-${s.state}" title="${escapeHtml(s.state === 'ready' ? 'Jusqu’à ' + poMoney(s.amt) : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche Payout' : 'Manque : ' + s.miss.join(', '))}">${escapeHtml(lab)}</span>`;
 }
 function poOpen(accId){ payoutFicheModal(accId); }
+// Instantané pour l'email « Résumé de performance » (23/11/2026) : le serveur n'a pas les moteurs du
+// Radar ni du Prochain payout, l'app lui laisse leur état dans profiles.payout_plan.mailSnapshot.
+// Écrit seulement quand le contenu change (ou au plus une fois par 12 h pour rafraîchir la date).
+let mailSnapTimer = null, mailSnapLast = null;
+function mailSnapshotBuild(){
+  const label = (a, extra) => [getFirm(a.propFirmId) ? getFirm(a.propFirmId).name : 'PropFirm', extra, sizeLabelRaw(a)].filter(Boolean).join(' · ');
+  const radarOn = dmEnabled();
+  const radar = radarOn ? dmAllResults().filter(x=>['over','crit','todo','warn'].includes(x.r.level)).slice(0, 20).map(({a, r})=>({
+    label: label(a, a.type === 'LIVE' ? 'Live' : 'PA'), num: a.accountNumber ? String(a.accountNumber).slice(-4) : '',
+    level: r.level, deadline: r.deadline || null, action: r.action || dmLevelLabel(r),
+  })) : [];
+  const payout = pilotageEnabled() ? dmFundedAccounts().map(a=>payoutStatus(a)).filter(s=>s && s.state !== 'norules').slice(0, 30).map(s=>({
+    label: label(s.a, s.row ? s.row.program : ''), num: s.a.accountNumber ? String(s.a.accountNumber).slice(-4) : '',
+    state: s.state, maxed: !!s.maxed, progress: Math.round((s.progress || 0) * 100) / 100,
+    amt: s.amt ? Math.round(s.amt) : null, net: s.net != null ? Math.round(s.net) : null, miss: (s.miss || []).slice(0, 3),
+  })) : [];
+  return { radarOn, radar, payout };
+}
+function mailSnapshotSchedule(){
+  if(mailSnapTimer || !SUPABASE_CONFIGURED || !currentUserId() || !state.profile) return;
+  mailSnapTimer = setTimeout(async ()=>{
+    mailSnapTimer = null;
+    try{
+      if(!planHasColumn()) return;
+      // Données pas encore chargées : on n'écrase pas l'instantané précédent par une liste vide.
+      if(pilotageEnabled() && !catState().rows) return;
+      if(dmOptedIn() && !state.dormancyReady) return;
+      const body = mailSnapshotBuild();
+      const key = JSON.stringify(body);
+      const stored = planStored() || {};
+      const prev = stored.mailSnapshot;
+      const prevKey = prev ? JSON.stringify({ radarOn:prev.radarOn, radar:prev.radar, payout:prev.payout }) : null;
+      const fresh = prev && prev.at && (Date.now() - new Date(prev.at).getTime()) < 12 * 3600e3;
+      if(key === mailSnapLast || (key === prevKey && fresh)) { mailSnapLast = key; return; }
+      const r = await planWrite({ ...stored, mailSnapshot:{ at:new Date().toISOString(), ...body } });
+      if(r.ok) mailSnapLast = key;
+    }catch(e){ console.warn('mailSnapshot', e); }
+  }, 4000);
+}
 function poAddPayout(accId){
   const a = getAccount(accId); if(!a) return;
   payoutsModal(a);
@@ -9676,6 +9715,7 @@ function mdToHtml(src){
 }
 
 function renderView(){
+  mailSnapshotSchedule();
   const el = document.getElementById('view-root');
   if(state.route==='dashboard') el.innerHTML = viewDashboard();
   else if(state.route==='meteo') el.innerHTML = viewMeteo();
