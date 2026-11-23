@@ -1230,6 +1230,13 @@ th.th-sort-active svg{opacity:1;}
 .cat-add-cell{text-align:right;white-space:nowrap;padding-right:14px !important;position:sticky;right:0;background:var(--surface);box-shadow:-8px 0 12px -10px rgba(0,0,0,.5);}
 .cat-table tbody tr:hover .cat-add-cell{background:var(--surface-2);}
 .cat-add-btns{display:inline-flex;gap:6px;}
+.af-qty{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;}
+.af-qty-label{font-size:12.5px;color:var(--text-dim);}
+.af-qty-seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border-soft);}
+.af-qty-seg button{border:0;background:none;color:var(--text-dim);font:inherit;font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.af-qty-seg button svg{width:13px;height:13px;}
+.af-qty-seg button.on{background:var(--accent);color:var(--bg, #0b0f14);}
+.af-qty-seg button:not(.on):hover{color:var(--text);}
 .cat-hint-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--radius-md);background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);font-size:12.5px;}
 .cat-hint-add svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 .cat-hint-add span{flex:1;min-width:200px;}
@@ -2418,6 +2425,9 @@ th.th-sort-active svg{opacity:1;}
    de certains modules (ex : les filtres "Tous / Actifs uniquement" de Répartition par PropFirm),
    qui sont eux aussi alignés en haut à droite. Toujours visible mais discrète (petite et fine) pour
    ne pas alourdir chaque module. */
+.dash-widget-close{padding:4px 6px !important;margin-left:2px;color:var(--text-faint);}
+.dash-widget-close svg{width:13px;height:13px;}
+.dash-widget-close:hover{color:var(--danger);background:var(--surface-2);}
 .dash-widget-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:0 2px 6px;flex-shrink:0;}
 .dash-widget-drag{cursor:grab;padding:3px 7px;color:var(--text-faint);font-size:13px;line-height:1;user-select:none;border-radius:5px;}
 .dash-widget-drag:hover{background:var(--surface-3);color:var(--text);}
@@ -7179,7 +7189,7 @@ function viewCatalogue(){
       <td title="${escapeHtml(r.accessNote)}">${actCell(r)}</td>
       <td>${dll(r)}</td>
       ${admin ? `<td>${chkBadge(r)}</td>` : ''}
-      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="${r.phase==='LIVE'?'Créer un compte Live':'Démarrer un challenge (ou un PA direct)'} avec cette formule et cette taille">${icon('plus')}Compte</button><button type="button" class="btn btn-outline btn-sm" onclick="catAddAccount('${r.id}', true)" title="Créer plusieurs comptes identiques (challenge ou PA direct) avec cette formule et cette taille">${icon('layers')}Plusieurs</button></div></td>
+      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="${r.phase==='LIVE'?'Créer un compte Live':'Démarrer un challenge (ou un PA direct)'} avec cette formule et cette taille">${icon('plus')}Ajouter</button></div></td>
     </tr>`).join('');
   return `<div class="cat-page">
     ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
@@ -7191,7 +7201,7 @@ function viewCatalogue(){
       ${hasActive ? '<button type="button" class="pill-reset" onclick="catReset()">Réinitialiser</button>' : ''}
     </div>
     ${admin ? catAdminPanel(c) : ''}
-    <div class="cat-hint-add">${icon('plus')}<span>Trouve le compte que tu as acheté, puis clique <b>Compte</b> (ou <b>Plusieurs</b> pour un lot) au bout de sa ligne : la prop firm, la taille, la formule et le frais d’activation sont préremplis.</span></div>
+    <div class="cat-hint-add">${icon('plus')}<span>Trouve le compte que tu as acheté, puis clique <b>Ajouter</b> au bout de sa ligne : la prop firm, la taille et la formule sont préremplies. Dans le formulaire, choisis <b>Challenge</b> ou <b>PA direct</b>, et <b>Plusieurs identiques</b> pour un lot.</span></div>
     <div class="panel"><div class="table-wrap"><table class="cat-table">
       <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}<th class="cat-add-cell">Ajouter</th></tr></thead>
       <tbody>${body}</tbody>
@@ -7891,6 +7901,11 @@ function poPillHtml(s, short){
   return `<span class="po-pill po-${s.state}" title="${escapeHtml(s.state === 'ready' ? 'Jusqu’à ' + poMoney(s.amt) : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche Payout' : 'Manque : ' + s.miss.join(', '))}">${escapeHtml(lab)}</span>`;
 }
 function poOpen(accId){ payoutFicheModal(accId); }
+function poAddPayout(accId){
+  const a = getAccount(accId); if(!a) return;
+  payoutsModal(a);
+  setTimeout(()=>{ const el = document.getElementById('pm-amount'); if(el) el.focus(); }, 30);
+}
 function payoutFicheModal(accId){
   const a = getAccount(accId); if(!a) return;
   const s = payoutStatus(a);
@@ -8578,10 +8593,10 @@ function renderTopbarActions(){
         : `<button class="btn btn-outline" id="request-firm-btn">${icon('mail')}Demander l'ajout d'une PropFirm</button>`;
     }
   }
-  else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? `<button class="btn btn-outline" onclick="bulkAccountFormModal({ type:'PA' })">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" onclick="accountFormModal({ type:'PA' })">${icon('plus')}Nouveau compte</button>` : '';
+  else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? `<button class="btn btn-primary" onclick="accountFormModal({})">${icon('plus')}Nouveau compte</button>` : '';
   else if(state.route==='plan-seance') el.innerHTML = `<button class="btn btn-primary" id="sp-open-cockpit">${icon('play')}Ouvrir le cockpit</button>`;
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-outline" id="bulk-add-account">${icon('layers')}Ajout en masse</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -13504,6 +13519,7 @@ function viewDashboard(){
           <button type="button" class="btn btn-ghost btn-sm dash-widget-arrow" data-dw-down="${id}" ${i===visibleOrder.length-1?'disabled':''} title="Descendre">${icon('arrowDown')}</button>
         </div>
         <div class="dlw-size-select dash-widget-sizes">${sizeBtns}</div>
+        <button type="button" class="btn btn-ghost btn-sm dash-widget-close" data-dw-hide="${id}" title="Masquer ce module (réaffichable dans « Personnaliser »)" aria-label="Masquer ce module">${icon('x')}</button>
       </div>
       ${widgetHtml[id]}
     </div>`;
@@ -15177,7 +15193,7 @@ const MANUAL_CHAPTERS = [
     <h3>Créer un compte</h3>
     <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, la plateforme de trading (facultative), le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
     <h3>Ajout en masse</h3>
-    <p>Le bouton « Ajout en masse » permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
+    <p>Dans « Nouveau compte », le choix <b>Plusieurs identiques</b> (en haut du formulaire) permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
     <h3>Importer mes comptes</h3>
     <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant <b>Deltalytix</b>, ou à partir de <b>captures d'écran</b> de la liste de tes comptes. Les deux se combinent dans le même import.</p>
     <h3>Importer depuis Deltalytix (beta)</h3>
@@ -16195,8 +16211,9 @@ function accountCard(a){
     actions += `<button class="btn btn-ghost btn-sm" data-resets="${a.id}" title="Resets du challenge">${icon('reset')}Resets${accountResetCount(a.id) ? ` (${accountResetCount(a.id)})` : ''}</button>`;
   } else if(a.type==='PA' || a.type==='LIVE'){
     if(a.status==='ACTIF'){
-      // Prochain payout (23/11/2026) : fiche des conditions du programme (catalogue).
-      if(pilotageEnabled() && accProgram(a)) actions += `<button class="btn btn-primary btn-sm" onclick="poOpen('${a.id}')" title="Conditions du prochain payout">${icon('target')}Payout</button>`;
+      // Bouton « Payout » (23/11/2026, demande de Mickael) : ouvre directement l'ajout d'un payout.
+      // La fiche « Prochain payout » (conditions, solde) s'ouvre depuis la pastille à côté du statut.
+      if(pilotageEnabled() && accProgram(a)) actions += `<button class="btn btn-primary btn-sm" onclick="poAddPayout('${a.id}')" title="Enregistrer un payout">${icon('wallet')}Payout</button>`;
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
       if(editable){
         if(a.type==='PA'){
@@ -22804,7 +22821,7 @@ function gdEmptyAccounts(){
     opts:[
       { icon:'download', title:'Importer mes comptes', sub:'Connecte Deltalytix, ou colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les numéros sont lus pour toi.', run:'captureImportModal()', main:true, badge:'Le plus rapide' },
       { icon:'plus', title:'Nouveau compte', sub:'Un compte à la fois, avec tous les détails : prix, mensualités, date d’activation.', run:'accountFormModal({})' },
-      { icon:'layers', title:'Ajout en masse', sub:'Plusieurs comptes identiques achetés ensemble : seul le numéro change.', run:'bulkAccountFormModal()' },
+      { icon:'layers', title:'Plusieurs comptes identiques', sub:'Achetés ensemble : seul le numéro change.', run:'bulkAccountFormModal()' },
     ], manual:'m-comptes' });
 }
 function gdEmptyTraders(){
@@ -23142,6 +23159,21 @@ function bindViewEvents(){
       saveDashboardLayout();
       renderView();
     };
+    // Croix de chaque module (23/11/2026) : masque le module ; annulable en cliquant le message,
+    // réaffichable ensuite dans « Personnaliser le dashboard ».
+    document.querySelectorAll('[data-dw-hide]').forEach(b=>{
+      b.onclick = (e)=>{
+        e.stopPropagation();
+        const id = b.dataset.dwHide;
+        const w = DASHBOARD_WIDGETS.find(x=>x.id===id);
+        state.dashboardLayout.hidden = [...new Set([...(state.dashboardLayout.hidden || []), id])];
+        saveDashboardLayout(); renderView();
+        showToast(`« ${w ? w.label : 'Module'} » masqué — clique ici pour annuler (ou réaffiche-le dans Personnaliser)`, '', ()=>{
+          state.dashboardLayout.hidden = (state.dashboardLayout.hidden || []).filter(x=>x!==id);
+          saveDashboardLayout(); if(state.route === 'dashboard') renderView();
+        });
+      };
+    });
     document.querySelectorAll('[data-dw-size]').forEach(b=>{
       b.onclick = (e)=>{
         e.stopPropagation();
@@ -24465,6 +24497,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
     title: isEdit ? 'Modifier le compte' : (parentChallenge ? 'Créer le PA' : 'Nouveau compte'),
     wide: true,
     bodyHtml: `
+      ${!isEdit && !parentChallenge ? `<div class="af-qty"><span class="af-qty-label">Combien de comptes ?</span><div class="af-qty-seg" role="group" aria-label="Nombre de comptes"><button type="button" class="on" aria-pressed="true">${icon('plus')}Un compte</button><button type="button" id="af-to-bulk" aria-pressed="false" title="Plusieurs comptes identiques achetés ensemble : seul le numéro change">${icon('layers')}Plusieurs identiques</button></div></div>` : ''}
       ${parentChallenge ? `<div class="field-hint" style="margin-bottom:14px;">Ce PA sera relié au challenge réussi de <strong>${getTrader(parentChallenge.traderId).pseudo}</strong>.</div>` : ''}
       ${!isEdit ? `<div class="af-cat" id="af-cat-wrap" style="display:none;"></div>` : ''}
       <div class="field-row">
@@ -24802,6 +24835,14 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         document.getElementById('af-enddate-wrap').style.display = terminal ? 'block' : 'none';
       };
       document.getElementById('af-cancel').onclick = closeModal;
+      // « Plusieurs identiques » : bascule vers l'ajout en masse en gardant ce qui est déjà choisi.
+      const toBulk = document.getElementById('af-to-bulk');
+      if(toBulk) toBulk.onclick = ()=>{
+        const v = id => (document.getElementById(id) || {}).value || '';
+        const pre = { traderId:v('af-trader'), propFirmId:v('af-firm'), type:curType, size:v('af-size'), customSize:v('af-customsize'), programId:v('af-program') || a.programId || null, activationFee:v('af-activation-fee') };
+        Object.keys(pre).forEach(k=>{ if(pre[k] === '' || pre[k] == null) delete pre[k]; });
+        closeModal(); bulkAccountFormModal(pre);
+      };
       document.getElementById('af-save').onclick = async ()=>{
         if(afFxFetchPromise) await afFxFetchPromise;
         const traderId = document.getElementById('af-trader').value;
@@ -24927,7 +24968,7 @@ function bulkAccountFormModal(pre){
   }
   pre = pre || {};
   const base = {
-    traderId: defaultTrader() ? defaultTrader().id : '',
+    traderId: pre.traderId || (defaultTrader() ? defaultTrader().id : ''),
     propFirmId: pre.propFirmId || '',
     type: pre.type || 'CHALLENGE',
     size: pre.size || 'S25K',
@@ -24952,9 +24993,10 @@ function bulkAccountFormModal(pre){
   }
 
   openModal({
-    title: 'Ajout en masse — comptes identiques',
+    title: 'Nouveau compte — plusieurs identiques',
     wide: true,
     bodyHtml: `
+      <div class="af-qty"><span class="af-qty-label">Combien de comptes ?</span><div class="af-qty-seg" role="group" aria-label="Nombre de comptes"><button type="button" id="baf-to-one" aria-pressed="false">${icon('plus')}Un compte</button><button type="button" class="on" aria-pressed="true">${icon('layers')}Plusieurs identiques</button></div></div>
       <div class="field-hint" style="margin-bottom:14px;">Pour créer d’un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix) achetés ensemble. Seul le numéro de compte change entre chaque exemplaire. Pour un lot de PA/Live, le lien manuel vers un Challenge d’origine n’est pas disponible ici — modifie chaque compte individuellement après création si besoin.</div>
       <div class="af-cat" id="baf-cat-wrap" style="display:none;"></div>
       <div class="field-row">
@@ -25112,6 +25154,13 @@ function bulkAccountFormModal(pre){
       bafFxFetchPromise = autofillFxRate();
 
       document.getElementById('baf-cancel').onclick = closeModal;
+      const toOne = document.getElementById('baf-to-one');
+      if(toOne) toOne.onclick = ()=>{
+        const v = id => (document.getElementById(id) || {}).value || '';
+        const pre = { traderId:v('baf-trader'), propFirmId:v('baf-firm'), type:curType, size:v('baf-size'), customSize:v('baf-customsize'), programId:bafProg.value(), activationFee:v('baf-activation-fee') };
+        Object.keys(pre).forEach(k=>{ if(pre[k] === '' || pre[k] == null) delete pre[k]; });
+        closeModal(); accountFormModal({ prefill:pre });
+      };
       document.getElementById('baf-save').onclick = async ()=>{
         if(bafFxFetchPromise) await bafFxFetchPromise;
         const errorEl = document.getElementById('baf-error');
