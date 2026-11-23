@@ -1067,6 +1067,52 @@ th.th-sort-active svg{opacity:1;}
 /* CATALOGUE PROP FIRM (22/11/2026) — même langage que la barre de filtres de la page Comptes */
 .cat-page{display:flex;flex-direction:column;gap:16px;}
 .field-label-note{font-weight:400;color:var(--text-faint);font-size:11.5px;}
+/* PROCHAIN PAYOUT (23/11/2026) */
+.po-pill{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-pill);padding:3px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+.po-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.po-ready{color:var(--accent);background:var(--accent-dim);}
+.po-soon{color:var(--dm-yellow);background:var(--dm-yellow-dim);}
+.po-wait{color:var(--slate);background:var(--slate-dim);}
+.po-input{color:var(--type-challenge);background:color-mix(in srgb, var(--type-challenge) 14%, transparent);}
+.po-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.po-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;}
+.po-verdict{border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+.po-v-ready{background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);}
+.po-v-soon,.po-v-wait{background:var(--surface-2);border:1px solid var(--border);}
+.po-v-input{background:color-mix(in srgb, var(--type-challenge) 10%, transparent);border:1px solid color-mix(in srgb, var(--type-challenge) 40%, transparent);}
+.po-vt{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;}
+.po-amt{margin-left:auto;text-align:right;}
+.po-amt .mono{font-size:21px;font-weight:700;color:var(--accent);}
+.po-conds{display:flex;flex-direction:column;}
+.po-cond{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border-soft);}
+.po-ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;margin-top:1px;}
+.po-ic-ok{background:var(--accent);color:var(--accent-text,#0B0F14);}
+.po-ic-ko{background:var(--dm-yellow-dim);color:var(--dm-yellow);border:1px solid color-mix(in srgb, var(--dm-yellow) 50%, transparent);}
+.po-ic-na{background:var(--surface-3);color:var(--text-faint);}
+.po-ct{font-weight:600;font-size:13px;}
+.po-cv{font-size:12.5px;font-weight:600;text-align:right;white-space:nowrap;}
+.po-bar{position:relative;height:8px;border-radius:var(--radius-pill);background:var(--surface-3);margin-top:8px;}
+.po-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:var(--radius-pill);}
+.po-lim{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text-dim);border-radius:2px;}
+.po-dots{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.po-dot{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;}
+.po-dot.ok{background:var(--accent-dim);color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 40%, transparent);}
+.po-dot.no{background:var(--surface-2);color:var(--text-faint);border:1px solid var(--border);}
+.po-dot.neg{background:var(--danger-dim);color:var(--danger);border:1px solid color-mix(in srgb, var(--danger) 35%, transparent);}
+.po-dot.todo{border:1px dashed var(--border);}
+.po-sec{padding:12px 0;border-top:1px solid var(--border-soft);}
+.po-bal{border-top:none;}
+.po-bal-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.po-bal-row input{width:160px;font-family:'JetBrains Mono',monospace;}
+.po-days{width:100%;font-size:12px;}
+.po-days th,.po-days td{padding:6px 8px;}
+.po-days .num{text-align:right;}
+.po-w-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 16px;border:0;border-top:1px solid var(--border-soft);background:none;color:var(--text);text-align:left;cursor:pointer;font-family:inherit;}
+.po-w-row:hover{background:var(--surface-2);}
+.po-w-t{flex:1;min-width:0;display:flex;flex-direction:column;}
+.po-w-t b{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.po-w-t .cat-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.po-w-more{padding:8px 16px 12px;border-top:1px solid var(--border-soft);}
 .af-cat{background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px;}
 .af-cat-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;font-size:13px;}
 .af-cat-head svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
@@ -3716,10 +3762,11 @@ const TABLES = ['traders','propfirms','accounts','payouts','account_notes','yt_s
 // Registre des widgets du dashboard — déclaré avant `state` car state.dashboardLayout est initialisé
 // via loadDashboardLayout() dès la construction de l'objet state (sinon TDZ sur ce const).
 // Modules de pilotage (22/11/2026) : déclarés ici car la disposition du Dashboard est chargée dès l'initialisation de state.
-const PILOT_WIDGET_IDS = ['pilotRisk','pilotSession','pilotPlan','pilotProgress','pilotKpis'];
-const PILOT_DEFAULT_SIZES = { pilotRisk:'lg', pilotSession:'md', pilotPlan:'md', pilotProgress:'lg', pilotKpis:'lg' };
+const PILOT_WIDGET_IDS = ['pilotRisk','pilotPayout','pilotSession','pilotPlan','pilotProgress','pilotKpis'];
+const PILOT_DEFAULT_SIZES = { pilotRisk:'lg', pilotPayout:'md', pilotSession:'md', pilotPlan:'md', pilotProgress:'lg', pilotKpis:'lg' };
 const DASHBOARD_WIDGETS = [
   { id:'pilotRisk',      label:'Alertes de risque', pilot:true },
+  { id:'pilotPayout',    label:'Prochain payout', pilot:true },
   { id:'pilotSession',   label:'P&L du jour', pilot:true },
   { id:'pilotPlan',      label:'Payouts du mois', pilot:true },
   { id:'pilotProgress',  label:'Courbe des payouts', pilot:true },
@@ -7128,7 +7175,7 @@ function viewCatalogue(){
       <td title="${escapeHtml(r.accessNote)}">${actCell(r)}</td>
       <td>${dll(r)}</td>
       ${admin ? `<td>${chkBadge(r)}</td>` : ''}
-      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="Créer un compte ${r.phase==='LIVE'?'Live':'PA'} avec ce programme et cette taille">${icon('plus')}Compte</button><button type="button" class="btn btn-outline btn-sm" onclick="catAddAccount('${r.id}', true)" title="Créer plusieurs comptes identiques avec ce programme et cette taille">${icon('layers')}Plusieurs</button></div></td>
+      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="Créer un compte ${r.phase==='LIVE'?'Live':'PA'} avec cette formule et cette taille">${icon('plus')}Compte</button><button type="button" class="btn btn-outline btn-sm" onclick="catAddAccount('${r.id}', true)" title="Créer plusieurs comptes identiques avec cette formule et cette taille">${icon('layers')}Plusieurs</button></div></td>
     </tr>`).join('');
   return `<div class="cat-page">
     ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
@@ -7140,14 +7187,14 @@ function viewCatalogue(){
       ${hasActive ? '<button type="button" class="pill-reset" onclick="catReset()">Réinitialiser</button>' : ''}
     </div>
     ${admin ? catAdminPanel(c) : ''}
-    <div class="cat-hint-add">${icon('plus')}<span>Trouve le compte que tu as acheté, puis clique <b>Compte</b> (ou <b>Plusieurs</b> pour un lot) au bout de sa ligne : la prop firm, la taille, le programme et le frais d’activation sont préremplis.</span></div>
+    <div class="cat-hint-add">${icon('plus')}<span>Trouve le compte que tu as acheté, puis clique <b>Compte</b> (ou <b>Plusieurs</b> pour un lot) au bout de sa ligne : la prop firm, la taille, la formule et le frais d’activation sont préremplis.</span></div>
     <div class="panel"><div class="table-wrap"><table class="cat-table">
       <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}<th class="cat-add-cell">Ajouter</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
     ${rows.length ? '' : `<div class="cat-empty">Aucun compte ne correspond à ces filtres.<br><button type="button" class="btn btn-ghost btn-sm" onclick="catReset()">Réinitialiser les filtres</button></div>`}
     </div></div>
-    <p class="cat-foot">Règles relevées sur les pages officielles des prop firms et contrôlées avec deux sources indépendantes. Clique sur le nom d’un programme pour ouvrir la page officielle. Les règles peuvent changer : vérifie toujours chez la prop firm avant de demander un payout.</p>
+    <p class="cat-foot">Règles relevées sur les pages officielles des prop firms et contrôlées avec deux sources indépendantes. Clique sur le nom d’une formule pour ouvrir la page officielle. Les règles peuvent changer : vérifie toujours chez la prop firm avant de demander un payout.</p>
   </div>`;
 }
 function catAdminPanel(c){
@@ -7437,7 +7484,7 @@ function acatAddSize(){
   openModal({ title:'Ajouter une taille à ' + escapeHtml(group[0].program),
     bodyHtml:`<div class="field"><label>Taille</label><select id="acat-ns">${opts.map(s=>`<option value="${s}">${acatSizeLabel(s)}</option>`).join('')}<option value="other">Autre…</option></select></div>
       <div class="field" id="acat-ns-other-wrap" style="display:none;"><label>Montant ($)</label><input id="acat-ns-other" type="number" min="1000" step="1000"/></div>
-      <div class="field-hint">La nouvelle taille reprend les conditions communes du programme. Ses valeurs (buffer, plafonds…) sont à remplir ensuite dans le tableau.</div>`,
+      <div class="field-hint">La nouvelle taille reprend les conditions communes de la formule. Ses valeurs (buffer, plafonds…) sont à remplir ensuite dans le tableau.</div>`,
     footHtml:`<button class="btn btn-outline" id="acat-ns-cancel">Annuler</button><button class="btn btn-primary" id="acat-ns-ok">Ajouter</button>`,
     onMount(){
       const sel = document.getElementById('acat-ns');
@@ -7462,10 +7509,10 @@ function acatAddProgram(firmIdPreset, newFirm){
   const firms = sortedFirms().filter(f=>newFirm ? !inCat.has(f.id) : true);
   if(!firms.length){ showToast(newFirm ? 'Toutes les PropFirms de l’app sont déjà dans le catalogue. Crée d’abord la nouvelle prop firm dans la page PropFirms.' : 'Aucune PropFirm.', 'danger'); return; }
   const preset = firmIdPreset || (newFirm ? firms[0].id : (c.sel ? c.sel.split('|')[0] : firms[0].id));
-  openModal({ title: newFirm ? 'Ajouter une prop firm au catalogue' : 'Ajouter un programme',
+  openModal({ title: newFirm ? 'Ajouter une prop firm au catalogue' : 'Ajouter une formule',
     bodyHtml:`<div class="field"><label>Prop firm</label><select id="acat-np-firm">${firms.map(f=>`<option value="${f.id}" ${f.id===preset?'selected':''}>${escapeHtml(f.name)}</option>`).join('')}</select>
         ${newFirm ? '<div class="field-hint">PropFirms de l’app qui ne sont pas encore dans le catalogue. Une prop firm absente se crée d’abord dans la page PropFirms.</div>' : ''}</div>
-      <div class="field"><label>${newFirm ? 'Premier programme' : 'Nom du programme'}</label><input id="acat-np-name" placeholder="ex. Standard MAX"/></div>
+      <div class="field"><label>${newFirm ? 'Première formule' : 'Nom de la formule'}</label><input id="acat-np-name" placeholder="ex. Standard MAX"/></div>
       <div class="field"><label>Phase</label><select id="acat-np-phase"><option value="PA">PA (compte financé)</option><option value="LIVE">Live</option></select></div>
       <div class="field"><label>Tailles</label><div class="acat-chips" id="acat-np-sizes">${ACAT_SIZE_CHOICES.map(s=>`<button type="button" class="acat-chip ${[25000,50000,100000,150000].includes(s)?'on':''}" data-size="${s}">${acatSizeLabel(s)}</button>`).join('')}</div></div>
       <div class="field"><label>Page officielle (optionnel)</label><input id="acat-np-src" placeholder="https://"/></div>`,
@@ -7479,11 +7526,11 @@ function acatAddProgram(firmIdPreset, newFirm){
         const phase = document.getElementById('acat-np-phase').value;
         const sizes = [...document.querySelectorAll('#acat-np-sizes .on')].map(b=>Number(b.dataset.size));
         const src = document.getElementById('acat-np-src').value.trim() || null;
-        if(!name || !sizes.length){ showToast('Indique le nom du programme et au moins une taille.', 'danger'); return; }
-        if((c.raw || []).some(r=>r.propfirm_id===firmId && r.program===name && r.phase===phase)){ showToast('Ce programme existe déjà pour cette prop firm.', 'danger'); return; }
+        if(!name || !sizes.length){ showToast('Indique le nom de la formule et au moins une taille.', 'danger'); return; }
+        if((c.raw || []).some(r=>r.propfirm_id===firmId && r.program===name && r.phase===phase)){ showToast('Cette formule existe déjà pour cette prop firm.', 'danger'); return; }
         const sort = Math.max(0, ...(c.raw || []).map(r=>Number(r.sort) || 0)) + 1;
         const rows = sizes.map(size=>({ propfirm_id:firmId, program:name, phase, size, source_url:src, conf:'partial', active:true, is_default:false, sort,
-          rules:{ check:{ at:todayISO(), factory:'absent', mapropfirm:'absent' } }, change_note:'Création du programme (admin)' }));
+          rules:{ check:{ at:todayISO(), factory:'absent', mapropfirm:'absent' } }, change_note:'Création de la formule (admin)' }));
         const { error } = await supabaseClient.from('propfirm_programs').insert(rows);
         if(error){ showToast('Création impossible : ' + error.message, 'danger'); return; }
         closeModal(); showToast(name + ' créé : remplis ses règles.', 'success');
@@ -7527,11 +7574,11 @@ function viewAdminCatalogue(){
   });
   const side = Object.entries(byFirm).sort((a,b)=>a[1].name.localeCompare(b[1].name, 'fr')).map(([fid, fm])=>{
     const firm = state.propfirms.find(f=>f.id===fid) || { name:fm.name };
-    return `<div class="acat-firm"><div class="acat-firm-h">${firmLogoHtml(firm, 20)}<span>${escapeHtml(fm.name)}</span><button type="button" class="acat-add" title="Ajouter un programme" onclick="acatAddProgram('${fid}')">+</button></div>
+    return `<div class="acat-firm"><div class="acat-firm-h">${firmLogoHtml(firm, 20)}<span>${escapeHtml(fm.name)}</span><button type="button" class="acat-add" title="Ajouter une formule" onclick="acatAddProgram('${fid}')">+</button></div>
       ${fm.items.map(it=>`<button type="button" class="acat-prog${it.k===c.sel?' sel':''}${it.off?' off':''}" onclick='acatSelect(${escapeHtml(JSON.stringify(it.k))})'><span>${escapeHtml(it.r0.program)}</span>${it.r0.phase==='LIVE'?'<span class="badge cat-b-both">Live</span>':''}${it.off?'<span class="badge cat-b-slate">Retiré</span>':''}<span class="acat-n">${it.n} t.</span></button>`).join('')}</div>`;
-  }).join('') || '<div class="cat-sub" style="padding:12px;">Aucun programme.</div>';
+  }).join('') || '<div class="cat-sub" style="padding:12px;">Aucune formule.</div>';
   const group = acatGroup(c.sel);
-  let editor = '<div class="cat-empty">Choisis un programme dans la liste.</div>';
+  let editor = '<div class="cat-empty">Choisis une formule dans la liste.</div>';
   if(group.length){
     const r0 = group[0]; const firm = state.propfirms.find(f=>f.id===r0.propfirm_id) || { name:acatFirmName(r0.propfirm_id) };
     const v = (f)=>acatVal(group, 'g', f);
@@ -7543,8 +7590,8 @@ function viewAdminCatalogue(){
     const confOn = v('conf') === 'official';
     const active = v('active') !== 'false';
     const rules = `
-      <div class="acat-sec"><div class="acat-sec-t">Programme</div><div class="acat-fgrid">
-        <div class="field"><label>Nom du programme</label>${inp('program')}</div>
+      <div class="acat-sec"><div class="acat-sec-t">Formule</div><div class="acat-fgrid">
+        <div class="field"><label>Nom de la formule</label>${inp('program')}</div>
         <div class="field"><label>Phase</label><div class="acat-chips">${chip('phase','PA','PA')}${chip('phase','LIVE','Live')}</div></div>
         <div class="field"><label>En vente depuis</label>${inp('valid_from','type="date"')}</div>
         <div class="field"><label>Jusqu’au (comptes achetés avant)</label>${inp('valid_to','type="date"')}</div>
@@ -7599,10 +7646,10 @@ function viewAdminCatalogue(){
         <div class="recap-granularity acat-tabs"><button type="button" class="recap-gran-btn ${c.tab==='rules'?'active':''}" onclick="acat().tab='rules';acatRerender()">Règles</button><button type="button" class="recap-gran-btn ${c.tab==='hist'?'active':''}" onclick="acat().tab='hist';acatRerender()">Historique</button></div></div>
       ${c.tab === 'hist' ? `<div class="acat-hist">${hist}</div>` : rules}`;
   }
-  return `<div class="acat-top"><div><div class="section-title" style="font-size:16px;">Catalogue prop firm</div><div class="cat-sub">Choisis un programme à gauche, puis clique dans une case pour la modifier. Enregistre avec un motif en bas de la fiche. Chaque modification est gardée dans l’historique.</div></div>
-      <div class="acat-top-actions"><button type="button" class="btn btn-outline btn-sm" onclick="acatAddProgram()">${icon('plus')}Ajouter un programme</button><button type="button" class="btn btn-primary btn-sm" onclick="acatAddProgram(null, true)">${icon('plus')}Ajouter une prop firm</button></div></div>
+  return `<div class="acat-top"><div><div class="section-title" style="font-size:16px;">Catalogue prop firm</div><div class="cat-sub">Choisis une formule à gauche, puis clique dans une case pour la modifier. Enregistre avec un motif en bas de la fiche. Chaque modification est gardée dans l’historique.</div></div>
+      <div class="acat-top-actions"><button type="button" class="btn btn-outline btn-sm" onclick="acatAddProgram()">${icon('plus')}Ajouter une formule</button><button type="button" class="btn btn-primary btn-sm" onclick="acatAddProgram(null, true)">${icon('plus')}Ajouter une prop firm</button></div></div>
     <div class="acat-grid">
-      <aside class="panel acat-side"><input class="acat-search" type="search" placeholder="Rechercher une prop firm ou un programme" value="${escapeHtml(c.q)}" oninput="acat().q=this.value;clearTimeout(window.__acatQ);window.__acatQ=setTimeout(()=>{acatRerender();const s=document.querySelector('.acat-search');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},250)"/>${side}</aside>
+      <aside class="panel acat-side"><input class="acat-search" type="search" placeholder="Rechercher une prop firm ou une formule" value="${escapeHtml(c.q)}" oninput="acat().q=this.value;clearTimeout(window.__acatQ);window.__acatQ=setTimeout(()=>{acatRerender();const s=document.querySelector('.acat-search');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},250)"/>${side}</aside>
       <section class="panel acat-editor">${editor}</section>
     </div>`;
 }
@@ -7632,8 +7679,8 @@ function programPicker(o){
     const sel = catKey ? all.find(p=>keyOf(p.r)===catKey) : null;
     const cur = sizeNum();
     wrap.style.display = 'block';
-    wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et le programme</span></div>
-      <div class="af-cat-row"><select data-pp-prog><option value="">— Programme —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(keyOf(p.r))}" ${keyOf(p.r)===catKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
+    wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et la formule</span></div>
+      <div class="af-cat-row"><select data-pp-prog><option value="">— Formule —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(keyOf(p.r))}" ${keyOf(p.r)===catKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
       ${sel ? `<div class="af-cat-sizes">${sel.sizes.slice().sort((x,y)=>x-y).map(sz=>`<button type="button" class="acat-chip${sz===cur?' on':''}" data-pp-size="${sz}">${acatSizeLabel(sz)}</button>`).join('')}</div>` : ''}</div>`;
     wrap.querySelector('[data-pp-prog]').onchange = (e)=>{
       catKey = e.target.value || null; touched = false;
@@ -7675,9 +7722,9 @@ function programPicker(o){
       const off = (r.validFrom && r.validFrom > date) || (r.validTo && r.validTo < date);
       return `<option value="${r.id}" ${r.id===current?'selected':''}>${escapeHtml(r.program)}${r.dates ? ' · ' + r.dates : ''}${off ? ' (hors dates)' : ''}</option>`;
     }).join('');
-    const hint = (confirmed ? 'Règles de payout du catalogue utilisées.' : (sug && sug.sure ? 'Détecté automatiquement d’après la prop firm, la taille et la date d’activation.' : 'Proposé automatiquement : plusieurs programmes sont possibles. Vérifie, l’enregistrement confirme ce choix.')) + (o.hintAll || '');
+    const hint = (confirmed ? 'Règles de payout du catalogue utilisées.' : (sug && sug.sure ? 'Détectée automatiquement d’après la prop firm, la taille et la date d’activation.' : 'Proposée automatiquement : plusieurs formules sont possibles. Vérifie, l’enregistrement confirme ce choix.')) + (o.hintAll || '');
     wrap.style.display = 'block';
-    wrap.innerHTML = `<label>Programme <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
+    wrap.innerHTML = `<label>Formule <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
       <select><option value="">— Pas dans le catalogue —</option>${opts}</select><div class="field-hint">${hint}</div>`;
     wrap.querySelector('select').onchange = ()=>{ touched = true; renderProg(); };
   }
@@ -7689,6 +7736,206 @@ function programPicker(o){
   api.refresh();
   if(!catState().rows) catLoad().then(api.refresh);
   return api;
+}
+/* ============================================================
+   PROCHAIN PAYOUT (23/11/2026, maquette validée par Mickael)
+   Fiche par compte (bouton « Payout » sur chaque PA / Live actif), badge sur la carte du compte et
+   widget Dashboard « Prochain payout ». Règles = programme du compte (catalogue, accProgram) ;
+   données = solde et P&L journalier Deltalytix si synchronisé, sinon journées saisies (dormancy_logs)
+   + solde saisi sur la fiche (profiles.payout_plan.payoutBalances). Les payouts enregistrés sont des
+   montants reçus (net) : ils servent au numéro du prochain payout et au début du cycle.
+   Verdicts : ready (toutes les conditions), soon (une seule manque), wait, input (solde à saisir).
+============================================================ */
+const PO_SIZE_SPLIT_NOTE = 'Estimation : montant demandé × partage des profits de la formule.';
+function poAt(arr, n){ if(!Array.isArray(arr) || !arr.length) return null; const v = arr[Math.min(n - 1, arr.length - 1)]; return v == null ? null : Number(v); }
+function poMoney(v){ return pilotMoney(v, 'USD'); }
+function poSigned(v){ return (v > 0 ? '+' : '') + poMoney(v); }
+function poManualBalance(accId){ const b = (planSettings().payoutBalances || {})[accId]; return b && Number.isFinite(Number(b.v)) ? { v:Number(b.v), at:b.at || null } : null; }
+async function poSaveManualBalance(accId, v){
+  const cur = planStored() || {};
+  const map = { ...(cur.payoutBalances || {}) };
+  if(v === null) delete map[accId]; else map[accId] = { v, at: new Date().toISOString() };
+  const r = await planWrite({ ...cur, payoutBalances: map });
+  if(!r.ok) showToast('Solde non enregistré : ' + ((r.error && r.error.message) || 'erreur'), 'danger');
+  return r.ok;
+}
+function payoutStatus(a){
+  if(!a || !(a.type === 'PA' || a.type === 'LIVE') || a.status !== 'ACTIF') return null;
+  const pg = accProgram(a);
+  if(!pg) return null;
+  const row = pg.row, R = row.rules || {};
+  const pays = state.payouts.filter(p=>String(p.accountId) === String(a.id) && p.date).sort((x,y)=>x.date.localeCompare(y.date));
+  const n = pays.length + 1;
+  const lastPay = pays.length ? pays[pays.length - 1].date.slice(0,10) : null;
+  const from = lastPay || a.activationDate || a.purchaseDate || '';
+  const days = (state.dormancyLogs || [])
+    .filter(l=>String(l.accountId) === String(a.id) && l.pnl !== null && l.pnl !== undefined && l.pnl !== '' && (lastPay ? l.day > lastPay : (!from || l.day >= from)) && (l.traded || Number(l.pnl) !== 0))
+    .map(l=>({ day:l.day, pnl:Number(l.pnl) || 0, src:l.source }))
+    .sort((x,y)=>x.day.localeCompare(y.day));
+  const h = dlxHealthOf(a.id);
+  const man = poManualBalance(a.id);
+  const dlxBal = h && h.balance != null ? Number(h.balance) : null;
+  const bal = dlxBal != null ? dlxBal : (man ? man.v : null);
+  const size = accSizeNum(a);
+  const start = h && h.startingBalance != null ? Number(h.startingBalance) : size;
+  const profitCycle = days.reduce((s,d)=>s + d.pnl, 0);
+  const best = days.reduce((m,d)=>Math.max(m, d.pnl), 0);
+  const conds = [], miss = [];
+  const sinceTxt = lastPay ? 'depuis le dernier payout (' + fmtDate(lastPay) + ')' : 'depuis l’activation';
+  // 1. Jours
+  const minDays = Number(R.minDays) || 0;
+  if(minDays){
+    const winning = R.dayType === 'winning';
+    const thr = winning ? (Number(R.dayMin) || 0) : 0;
+    const isQ = d => winning ? d.pnl >= thr : true;
+    let q = days.filter(isQ).length;
+    let label = winning ? `${minDays} jours gagnants à +${poMoney(thr).replace(' $','')} $` : `${minDays} jours de trading`;
+    let ok = q >= minDays;
+    if(R.winDays){ // Apex Legacy : X jours de trading dont Y gagnants
+      const w = days.filter(d=>d.pnl >= (Number(R.winMin) || 0)).length;
+      label = `${minDays} jours de trading dont ${R.winDays} à +${R.winMin} $`;
+      ok = q >= minDays && w >= Number(R.winDays);
+    }
+    conds.push({ key:'days', t:label, d:'Comptés ' + sinceTxt, v:`${q} / ${minDays}`, ok, dots: days.map(d=>({ day:d.day, pnl:d.pnl, good:isQ(d) })), todo: Math.max(0, minDays - q) });
+    if(!ok){ const k = Math.max(1, minDays - q); miss.push(k + (winning ? ` jour${k>1?'s':''} gagnant${k>1?'s':''}` : ` jour${k>1?'s':''} de trading`)); }
+  }
+  // 2. Cohérence
+  const coh = poAt(R.consistency, n);
+  if(coh){
+    const pct = profitCycle > 0 ? best / profitCycle * 100 : 0;
+    const ok = profitCycle > 0 && pct <= coh + 1e-9;
+    conds.push({ key:'coh', t:`Cohérence : meilleur jour ≤ ${coh} % du profit`, d:`Meilleur jour ${poSigned(best)} sur ${poSigned(profitCycle)} de profit ${sinceTxt}`, v: profitCycle > 0 ? Math.round(pct) + ' %' : '—', ok, bar:{ fill: Math.min(100, pct), lim: coh } });
+    if(!ok) miss.push(profitCycle > 0 ? 'cohérence (encore ' + poMoney(Math.max(0, best * 100 / coh - profitCycle)) + ' de profit)' : 'du profit pour la cohérence');
+  }
+  // 3. Profit minimum du cycle
+  const cyc = poAt(R.cycleProfit, n);
+  if(cyc && cyc > 1){
+    const ok = profitCycle >= cyc;
+    conds.push({ key:'cycle', t:`Profit ${sinceTxt.replace('depuis', 'depuis')} ≥ ${poMoney(cyc)}`, d:'Profit net du cycle de payout', v: poSigned(profitCycle), ok, bar:{ fill: Math.max(0, Math.min(100, profitCycle / cyc * 100)), lim: 100 } });
+    if(!ok) miss.push(poMoney(cyc - profitCycle) + ' de profit');
+  }
+  // 4. Solde / buffer et montant
+  const buf = poAt(R.bufferSteps, n) || Number(R.buffer) || 0;
+  const minPayout = Number(R.minPayout) || 0;
+  const need = Number(R.minRequestProfit) || (buf + minPayout);
+  let withdrawable = null;
+  if(bal == null){
+    conds.push({ key:'bal', t: buf ? `Buffer de ${poMoney(buf)} à garder` : 'Profit au-dessus du solde de départ', d:'Saisis le solde actuel du compte pour le calculer', v:'—', ok:null });
+  } else if(buf){
+    const reqBal = start + need;
+    const ok = bal >= reqBal;
+    withdrawable = Math.max(0, bal - start - buf);
+    conds.push({ key:'bal', t:`Solde mini pour demander : ${poMoney(reqBal)}`, d:`Buffer de ${poMoney(buf)} à garder après le payout${R.bufferPayouts ? ' (pour les ' + R.bufferPayouts + ' premiers payouts)' : ''}`, v: poMoney(bal), ok, bar:{ fill: need > 0 ? Math.max(0, Math.min(100, (bal - start) / need * 100)) : 100, lim: need > 0 ? buf / need * 100 : 0 } });
+    if(!ok) miss.push(poMoney(reqBal - bal) + ' de solde');
+  } else {
+    withdrawable = Math.max(0, bal - start);
+    // Sans buffer (Fast Pass, Flex, Rapid Pro…) : le montant est aussi limité par le profit du cycle.
+    if(R.capPct || R.cycleProfit) withdrawable = Math.min(withdrawable, Math.max(0, profitCycle));
+    const ok = withdrawable >= minPayout && withdrawable > 0;
+    conds.push({ key:'bal', t:`Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}`, d:'Profit disponible au-dessus du solde de départ', v: poMoney(withdrawable), ok });
+    if(!ok) miss.push(poMoney(Math.max(minPayout, 1) - withdrawable) + ' de profit');
+  }
+  const cap = poAt(R.caps, n);
+  const capPct = poAt(R.capPct, n);
+  let amt = withdrawable;
+  if(amt != null){
+    if(cap) amt = Math.min(amt, cap);
+    if(capPct && profitCycle > 0) amt = Math.min(amt, profitCycle * capPct);
+    amt = Math.max(0, Math.floor(amt));
+  }
+  const maxed = R.maxPayouts && n > Number(R.maxPayouts);
+  if(maxed) miss.unshift('nombre maximum de payouts atteint (' + R.maxPayouts + ')');
+  const condsOk = conds.every(c=>c.ok !== false);
+  const ready = condsOk && bal != null && !maxed && amt != null && amt >= minPayout && amt > 0;
+  const state_ = maxed ? 'wait' : bal == null ? 'input' : ready ? 'ready' : (miss.length <= 1 ? 'soon' : 'wait');
+  let split = R.split != null ? Number(R.split) : null, splitTxt = '';
+  if(R.splitBelow && bal != null && bal - start < Number(R.splitBelow.profit)){ split = Number(R.splitBelow.split); splitTxt = ` (partage ${Math.round(split*100)}/${Math.round(100-split*100)} tant que le profit est sous ${poMoney(R.splitBelow.profit)})`; }
+  return { a, row, pg, R, n, lastPay, days, bal, start, src: dlxBal != null ? 'dlx' : (man ? 'manual' : 'none'), balAt: dlxBal != null ? (dlx().health && dlx().health.at) : (man && man.at),
+    profitCycle, conds, miss, amt, cap, minPayout, net: amt != null && split != null ? amt * split : null, split, splitTxt, state: state_, maxed };
+}
+function poPillHtml(s, short){
+  if(!s) return '';
+  const lab = s.state === 'ready' ? (short ? 'Payout prêt' : 'Prêt') : s.state === 'soon' ? (short ? 'Manque ' + s.miss[0] : 'Bientôt') : s.state === 'input' ? (short ? 'Solde ?' : 'Solde à saisir') : (short ? (s.maxed ? 'Payouts max atteints' : 'Manque ' + (s.miss[0] || '…')) : 'Pas encore');
+  return `<span class="po-pill po-${s.state}" title="${escapeHtml(s.state === 'ready' ? 'Jusqu’à ' + poMoney(s.amt) : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche Payout' : 'Manque : ' + s.miss.join(', '))}">${escapeHtml(lab)}</span>`;
+}
+function poOpen(accId){ payoutFicheModal(accId); }
+function payoutFicheModal(accId){
+  const a = getAccount(accId); if(!a) return;
+  const s = payoutStatus(a);
+  const firm = getFirm(a.propFirmId);
+  if(!s){
+    openModal({ title:'Prochain payout', bodyHtml:`<div class="empty-sub">Aucune formule du catalogue n’est associée à ce compte. Choisis-la dans la fiche du compte (champ « Formule ») pour suivre ses conditions de payout.</div>`,
+      footHtml:`<button class="btn btn-outline" onclick="closeModal()">Fermer</button><button class="btn btn-primary" onclick="closeModal();accountFormModal({ existing:getAccount('${a.id}') })">Ouvrir la fiche du compte</button>` });
+    return;
+  }
+  const vTitle = s.state === 'ready' ? 'Prêt à demander' : s.state === 'input' ? 'Solde à saisir' : s.state === 'soon' ? 'Bientôt prêt' : 'Pas encore';
+  const vSub = s.state === 'ready' ? `Toutes les conditions sont remplies. Retrait entre ${poMoney(s.minPayout)} et ${poMoney(s.amt)}${s.cap ? ` (plafond du payout n°${s.n} : ${poMoney(s.cap)})` : ''}.`
+    : s.state === 'input' ? 'Le buffer et le montant se calculent avec le solde actuel du compte.'
+    : 'Il manque : ' + s.miss.join(' · ') + '.';
+  const ic = c => c.ok === true ? '<span class="po-ic po-ic-ok">✓</span>' : c.ok === false ? '<span class="po-ic po-ic-ko">!</span>' : '<span class="po-ic po-ic-na">?</span>';
+  const conds = s.conds.map(c=>{
+    const col = c.ok ? 'var(--accent)' : 'var(--dm-yellow)';
+    const bar = c.bar ? `<div class="po-bar"><i style="width:${c.bar.fill}%;background:${col}"></i><span class="po-lim" style="left:calc(${Math.min(100, c.bar.lim)}% - 1px)"></span></div>` : '';
+    const dots = c.dots ? `<div class="po-dots">${c.dots.map(d=>`<span class="po-dot ${d.good ? 'ok' : d.pnl < 0 ? 'neg' : 'no'}" title="${fmtDate(d.day)} : ${poSigned(d.pnl)}">${d.day.slice(8,10)}</span>`).join('')}${Array.from({ length:c.todo }).map(()=>'<span class="po-dot todo" title="À faire"></span>').join('')}</div>` : '';
+    return `<div class="po-cond">${ic(c)}<div style="min-width:0"><div class="po-ct">${escapeHtml(c.t)}</div><div class="cat-sub">${escapeHtml(c.d)}</div>${bar}${dots}</div><span class="po-cv mono">${escapeHtml(c.v)}</span></div>`;
+  }).join('') || '<div class="cat-sub" style="padding:12px 0;">Cette formule n’a pas de condition de jours ni de cohérence.</div>';
+  const daysHtml = s.days.length ? `<table class="po-days"><thead><tr><th>Jour</th><th class="num">P&amp;L</th><th>Compte pour le payout</th></tr></thead><tbody>${s.days.slice().reverse().map(d=>{
+      const R = s.R, good = R.dayType === 'winning' ? d.pnl >= (Number(R.dayMin)||0) : (R.minDays ? true : null);
+      return `<tr><td class="mono">${fmtDate(d.day)}</td><td class="num mono" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${poSigned(d.pnl)}</td><td>${good === null ? '—' : good ? (R.dayType === 'winning' ? 'Jour gagnant' : 'Jour de trading') : `Non (sous +${R.dayMin} $)`}</td></tr>`;
+    }).join('')}</tbody></table>` : `<div class="cat-sub">Aucune journée enregistrée ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}. Les journées viennent de Deltalytix ou du Radar d’inactivité.</div>`;
+  const manualBlock = s.src !== 'dlx' ? `<div class="po-sec po-bal">
+      <div class="po-ct">Solde actuel du compte</div>
+      <div class="cat-sub">Ce compte n’est pas synchronisé avec Deltalytix : saisis le solde affiché sur ta plateforme pour calculer le buffer et le montant possible.</div>
+      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
+    </div>` : '';
+  const srcTxt = s.src === 'dlx'
+    ? `Solde et journées : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
+    : `Journées : ${s.days.some(d=>d.src==='deltalytix') ? 'Deltalytix et saisies' : 'saisies à la main'} · solde : ${s.src === 'manual' ? 'saisi sur cette fiche' : 'à saisir'} · payouts : enregistrés dans Contralytix (montant reçu)`;
+  openModal({
+    title: `${escapeHtml(firm ? firm.name : 'Compte')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(a))}`,
+    bodyHtml: `<div class="po-fiche">
+      <div class="po-head">${firmLogoHtml(firm, 34)}<div><div class="po-title">${escapeHtml(maskAccountNumber(a.accountNumber) || '—')}</div><div class="cat-sub">${s.lastPay ? 'Dernier payout le ' + fmtDate(s.lastPay) : 'Aucun payout encore'} · ${s.pg.state === 'todo' ? '<span class="badge badge-todo">Formule à confirmer</span>' : 'formule ' + escapeHtml(s.row.program)}</div></div>
+        <span class="badge badge-slate" style="margin-left:auto">Payout n°${s.n}${s.R.maxPayouts ? ' sur ' + s.R.maxPayouts : ''}</span></div>
+      <div class="po-verdict po-v-${s.state}"><div><div class="po-vt">${vTitle}</div><div class="cat-sub" style="font-size:12.5px;color:var(--text-dim)">${escapeHtml(vSub)}</div></div>
+        ${s.amt != null && s.amt > 0 ? `<div class="po-amt"><div class="mono">jusqu’à ${poMoney(s.amt)}</div><div class="cat-sub">${s.net != null ? '≈ ' + poMoney(s.net) + ' reçus' + (s.split < 1 ? ' à ' + Math.round(s.split * 100) + ' %' : '') + escapeHtml(s.splitTxt) : 'partage des profits non indiqué'}</div></div>` : ''}</div>
+      ${manualBlock}
+      <div class="po-conds">${conds}</div>
+      <div class="po-sec"><div class="po-ct" style="margin-bottom:6px;">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${daysHtml}</div>
+      <div class="po-sec"><div class="cat-sub">${escapeHtml(srcTxt)}</div>
+        <div class="cat-sub" style="margin-top:6px;">Règles de la formule ${escapeHtml(s.row.program)} (catalogue, relevées sur le site officiel). ${s.row.src ? `<a href="${escapeHtml(s.row.src)}" target="_blank" rel="noopener">Page officielle</a> · ` : ''}<a href="#" id="po-open-cat">Voir le catalogue</a>. ${PO_SIZE_SPLIT_NOTE} Vérifie toujours chez la prop firm avant de demander.</div></div>
+    </div>`,
+    footHtml: `<button class="btn btn-outline" onclick="closeModal()">Fermer</button><button class="btn btn-primary" id="po-add-payout">${icon('wallet')}Enregistrer un payout</button>`,
+    onMount(){
+      const save = document.getElementById('po-bal-save');
+      if(save) save.onclick = async ()=>{
+        const raw = document.getElementById('po-bal').value.replace(/\s/g,'').replace(',', '.');
+        const v = raw === '' ? null : Number(raw);
+        if(v !== null && !(v > 0)){ showToast('Solde non reconnu.', 'danger'); return; }
+        if(await poSaveManualBalance(a.id, v)){ closeModal(); payoutFicheModal(a.id); if(state.route === 'dashboard' || state.route === 'accounts') renderView(); }
+      };
+      const cat = document.getElementById('po-open-cat');
+      if(cat) cat.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
+      document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
+    }
+  });
+}
+function pilotPayoutWidgetHtml(pd){
+  const list = pd.paActive.map(a=>payoutStatus(a)).filter(Boolean);
+  const order = { ready:0, soon:1, wait:2, input:3 };
+  list.sort((x,y)=>order[x.state] - order[y.state] || (y.amt || 0) - (x.amt || 0));
+  const ready = list.filter(s=>s.state === 'ready');
+  const noProg = pd.paActive.filter(a=>!accProgram(a)).length;
+  const rows = list.slice(0, 8).map(s=>{
+    const firm = getFirm(s.a.propFirmId);
+    const sub = s.state === 'ready' ? `Jusqu’à ${poMoney(s.amt)}${s.net != null ? ' · ≈ ' + poMoney(s.net) + ' reçus' : ''}` : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche' : 'Manque : ' + s.miss.join(', ');
+    return `<button type="button" class="po-w-row" onclick="poOpen('${s.a.id}')">${firmLogoHtml(firm, 28)}<span class="po-w-t"><b>${escapeHtml(firm ? firm.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b><span class="cat-sub">··${escapeHtml(String(s.a.accountNumber || '').slice(-4))} · ${escapeHtml(sub)}</span></span>${poPillHtml(s)}</button>`;
+  }).join('');
+  return `<div class="panel po-widget">
+    <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('wallet')}Prochain payout</div><span class="cat-sub" style="margin:0">${list.length ? `${ready.length} PA prêt${ready.length>1?'s':''} sur ${list.length}${ready.length ? ' · ' + poMoney(ready.reduce((t,s)=>t + (s.amt||0), 0)) + ' demandables' : ''}` : ''}</span></div>
+    ${rows || `<div class="panel-body"><div class="empty-sub">${pd.paActive.length ? 'Aucun PA actif n’a de formule du catalogue. Choisis-la dans la fiche de chaque compte (champ « Formule »).' : 'Aucun PA ou compte Live actif.'}</div></div>`}
+    ${list.length > 8 ? `<div class="po-w-more cat-sub">+ ${list.length - 8} autres PA · <a href="#" onclick="event.preventDefault();state.route='accounts';render();">voir la page Comptes</a></div>` : ''}
+    ${noProg && list.length ? `<div class="po-w-more cat-sub">${noProg} PA sans formule : non suivi${noProg>1?'s':''}.</div>` : ''}
+  </div>`;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
 
@@ -12230,7 +12477,11 @@ function planBufferRule(a, p){
   const bf = ((p || planSettings()).bufferFirms || {})[String(a.propFirmId)];
   if(!bf || !bf.on) return null;
   const amt = Number((bf.amounts || {})[planSizeKey(a)]);
-  return { amount: amt > 0 ? amt : null };
+  if(amt > 0) return { amount: amt };
+  // 3) Catalogue prop firm (23/11/2026) : buffer du programme du compte quand aucun montant n'est saisi.
+  const pg = typeof accProgram === 'function' ? accProgram(a) : null;
+  const cat = pg && pg.row && Number(pg.row.rules && (pg.row.rules.buffer || 0));
+  return { amount: cat > 0 ? cat : null, fromCatalogue: cat > 0 };
 }
 function planCountedPnl(log, a, p){
   const raw = Number(log.pnl) || 0;
@@ -13049,6 +13300,7 @@ function viewDashboard(){
   const pd = pilotOn ? pilotData() : null;
   const widgetHtml = {
     pilotRisk: pilotOn ? pilotRiskWidgetHtml(pd) : undefined,
+    pilotPayout: pilotOn ? pilotPayoutWidgetHtml(pd) : undefined,
     pilotSession: pilotOn ? pilotSessionWidgetHtml(pd) : undefined,
     pilotPlan: pilotOn ? pilotPlanWidgetHtml(pd) : undefined,
     pilotProgress: pilotOn ? pilotProgressWidgetHtml(pd) : undefined,
@@ -15872,6 +16124,8 @@ function accountCard(a){
     actions += `<button class="btn btn-ghost btn-sm" data-resets="${a.id}" title="Resets du challenge">${icon('reset')}Resets${accountResetCount(a.id) ? ` (${accountResetCount(a.id)})` : ''}</button>`;
   } else if(a.type==='PA' || a.type==='LIVE'){
     if(a.status==='ACTIF'){
+      // Prochain payout (23/11/2026) : fiche des conditions du programme (catalogue).
+      if(pilotageEnabled() && accProgram(a)) actions += `<button class="btn btn-primary btn-sm" onclick="poOpen('${a.id}')" title="Conditions du prochain payout">${icon('target')}Payout</button>`;
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
       if(editable){
         if(a.type==='PA'){
@@ -15906,6 +16160,7 @@ function accountCard(a){
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
             ${paymentTypeBadgeHtml(a)}
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
+            ${pilotageEnabled() ? poPillHtml(payoutStatus(a), true).replace('<span class="po-pill', `<span role="button" tabindex="0" onclick="poOpen('${a.id}')" style="cursor:pointer" class="po-pill`) : ''}
             ${needsPa(a) ? `<span class="badge badge-todo" title="Challenge réussi : crée le PA associé pour suivre l’activation et les payouts">PA à créer</span>` : ''}
             ${linkTag}
           </div>
@@ -24384,8 +24639,8 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         const sel = afCatKey ? Object.values(groups).flatMap(g=>Object.values(g.progs)).find(p=>catKeyOf(p.r)===afCatKey) : null;
         const curSize = accSizeNum({ size:document.getElementById('af-size').value, customSize:(document.getElementById('af-customsize')||{}).value });
         wrap.style.display = 'block';
-        wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et le programme</span></div>
-          <div class="af-cat-row"><select id="af-cat-prog"><option value="">— Programme —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(catKeyOf(p.r))}" ${catKeyOf(p.r)===afCatKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
+        wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et la formule</span></div>
+          <div class="af-cat-row"><select id="af-cat-prog"><option value="">— Formule —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(catKeyOf(p.r))}" ${catKeyOf(p.r)===afCatKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
           ${sel ? `<div class="af-cat-sizes">${sel.sizes.sort((x,y)=>x-y).map(sz=>`<button type="button" class="acat-chip${sz===curSize?' on':''}" data-af-cat-size="${sz}">${acatSizeLabel(sz)}</button>`).join('')}</div>` : ''}</div>`;
         document.getElementById('af-cat-prog').onchange = (e)=>{
           afCatKey = e.target.value || null; afProgramTouched = false;
@@ -24438,10 +24693,10 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           return `<option value="${r.id}" ${r.id===current?'selected':''}>${escapeHtml(r.program)}${r.dates ? ' · ' + r.dates : ''}${off ? ' (hors dates)' : ''}</option>`;
         }).join('');
         const hint = confirmed ? 'Règles de payout du catalogue utilisées pour ce compte.'
-          : (sug && sug.sure ? 'Détecté automatiquement d’après la prop firm, la taille et la date d’activation.'
-          : 'Proposé automatiquement : plusieurs programmes sont possibles. Vérifie, l’enregistrement confirme ce choix.');
+          : (sug && sug.sure ? 'Détectée automatiquement d’après la prop firm, la taille et la date d’activation.'
+          : 'Proposée automatiquement : plusieurs formules sont possibles. Vérifie, l’enregistrement confirme ce choix.');
         wrap.style.display = 'block';
-        wrap.innerHTML = `<label>Programme <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
+        wrap.innerHTML = `<label>Formule <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
           <select id="af-program"><option value="">— Pas dans le catalogue —</option>${opts}</select>
           <div class="field-hint">${hint} <a href="#" data-af-open-catalogue>Voir le catalogue</a></div>`;
         document.getElementById('af-program').onchange = ()=>{ afProgramTouched = true; afRefreshProgram(); };
