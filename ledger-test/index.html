@@ -1237,6 +1237,25 @@ th.th-sort-active svg{opacity:1;}
 .af-qty-seg button svg{width:13px;height:13px;}
 .af-qty-seg button.on{background:var(--accent);color:var(--bg, #0b0f14);}
 .af-qty-seg button:not(.on):hover{color:var(--text);}
+.acat-ai{border:1px solid var(--border-soft);border-radius:12px;padding:14px;background:var(--surface-2);}
+.acat-ai .acat-sec-t svg{width:14px;height:14px;vertical-align:-2px;color:var(--accent);}
+.acat-ai-bar{display:flex;gap:8px;align-items:center;}
+.acat-ai-bar input{flex:1;min-width:0;}
+.acat-ai-bar .btn svg{width:14px;height:14px;}
+.acat-ai-wait{display:flex;align-items:center;gap:10px;padding:14px 2px 4px;color:var(--text-dim);font-size:13px;}
+.acat-ai-err{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--danger-dim);color:var(--danger);font-size:13px;}
+.acat-ai-sum{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--text-dim);}
+.acat-ai-sum .btn{margin-left:auto;}
+.acat-ai-n{font-size:18px;color:var(--text);margin-right:4px;}
+.acat-ai-n.warn{color:var(--dm-yellow, #e0a12b);} .acat-ai-n.ok{color:var(--accent);}
+.acat-ai-t{width:100%;font-size:12.5px;border-collapse:collapse;}
+.acat-ai-t th{text-align:left;font-size:11px;color:var(--text-faint);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border-soft);}
+.acat-ai-t td{padding:7px 8px;border-bottom:1px solid var(--border-soft);vertical-align:top;}
+.acat-ai-t tr.acat-ai-ok td{color:var(--text-dim);}
+.acat-ai-cit{font-style:italic;color:var(--text-faint);max-width:320px;}
+.acat-ai-more{margin-top:12px;font-size:12.5px;color:var(--text-dim);}
+.acat-ai-more ul{margin:6px 0 0 18px;padding:0;}
+.acat-ai-foot{margin-top:10px;}
 .cat-hint-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--radius-md);background:var(--accent-dim);border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);font-size:12.5px;}
 .cat-hint-add svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 .cat-hint-add span{flex:1;min-width:200px;}
@@ -7411,7 +7430,7 @@ function acatChanges(group){
 function acatSelect(key){
   const c = acat();
   if(c.sel !== key && acatChanges(acatGroup(c.sel)).length && !confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')) return;
-  c.sel = key; c.edits = {}; c.motif = ''; c.tab = 'rules'; c.hist = null; acatRerender();
+  c.sel = key; c.edits = {}; c.motif = ''; c.tab = 'rules'; c.hist = null; c.ai = null; c.aiUrl = null; acatRerender();
 }
 function acatSet(field, value){ const c = acat(); c.edits['g::' + field] = value; acatRerender(); }
 function acatInput(el){
@@ -7584,6 +7603,83 @@ function acatDiffs(h){
   if(!out.length && JSON.stringify(ro.check) !== JSON.stringify(rn.check)) out.push({ label:'Contrôle des sources · ' + sz, old:'', nw:'mis à jour' });
   return out;
 }
+
+/* Contrôle IA d'une formule (23/11/2026) : l'admin indique un lien, le serveur lit la page et l'IA
+   compare avec les valeurs de la fiche (/edge/catalogue-ai, lecture seule). Chaque écart peut être
+   repris dans la fiche (case en vert), puis enregistré avec un motif comme une saisie à la main. */
+const ACAT_AI_GLOBALS = [['ddTypes','Drawdown'],['dayType','Jours comptés'],['activation','Activation'],['payment','Paiement'],['dll','DLL en PA'],['split','Split trader (%)'],['maxPayouts','Payouts max'],['frequency','Fréquence des payouts']];
+function acatAiFields(group){
+  const out = ACAT_AI_GLOBALS.map(([f, lab])=>({ key:'g::' + f, label:lab, value:acatVal(group, 'g', f) }));
+  group.forEach(r=>{ const sz = Number(r.size); ACAT_SIZE_ROWS.forEach(([f, lab])=>out.push({ key:'s:' + sz + ':' + f, label:lab + ' · ' + acatSizeLabel(sz), value:acatVal(group, 's', f, sz) })); });
+  return out;
+}
+function acatAiLabel(key){
+  const [scope, size, field] = key.split(':');
+  const lab = (ACAT_AI_GLOBALS.find(x=>x[0]===field) || ACAT_SIZE_ROWS.find(x=>x[0]===field) || [field, ACAT_LABELS[field] || field])[1];
+  return { lab, size: scope === 's' ? acatSizeLabel(size) : 'Toutes' };
+}
+async function acatAiRun(){
+  const c = acat(); const group = acatGroup(c.sel); if(!group.length) return;
+  const inputEl = document.getElementById('acat-ai-url');
+  const url = (inputEl ? inputEl.value : (c.ai && c.ai.url) || acatVal(group, 'g', 'source_url')).trim();
+  if(!/^https:\/\//i.test(url)){ showToast('Indique un lien https:// vers la page à vérifier.', 'danger'); return; }
+  const r0 = group[0];
+  c.ai = { url, loading:true, res:null, err:null, applied:{} }; acatRerender();
+  try{
+    const res = await fetch('/edge/catalogue-ai', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() },
+      body: JSON.stringify({ url, firm:acatFirmName(r0.propfirm_id), program:acatVal(group, 'g', 'program'), phase:acatVal(group, 'g', 'phase'), fields:acatAiFields(group) }) });
+    let data = null;
+    if(res.status !== 404 && /json/i.test(res.headers.get('content-type') || '')) data = JSON.parse((await res.text()).trim() || '{}');
+    if(!data) throw new Error(res.status === 404 ? 'Le contrôle IA n’est pas encore déployé (netlify/functions/catalogue-ai.js).' : 'Réponse inattendue du serveur.');
+    const st = typeof data.status === 'number' ? data.status : res.status;
+    if(st < 200 || st >= 300 || data.error) throw new Error(data.error || ('erreur ' + st));
+    if(acat().sel !== c.sel) return;
+    c.ai = { url, loading:false, res:data, err:null, applied:{} };
+  }catch(e){
+    c.ai = { url, loading:false, res:null, err:e.message || 'Analyse impossible.', applied:{} };
+  }
+  acatRerender();
+}
+function acatAiApply(keys){
+  const c = acat(); if(!c.ai || !c.ai.res) return;
+  const byKey = {}; c.ai.res.checks.forEach(x=>{ byKey[x.key] = x; });
+  let n = 0;
+  keys.forEach(k=>{ const x = byKey[k]; if(!x || x.status !== 'ecart' || x.page === '') return; c.edits[k] = x.page; c.ai.applied[k] = true; n++; });
+  if(n && !c.motif.trim()) c.motif = 'Contrôle IA : ' + c.ai.url.replace(/^https?:\/\//, '').slice(0, 80);
+  acatRerender();
+  if(n) showToast(n + ' valeur' + (n>1?'s':'') + ' reprise' + (n>1?'s':'') + ' dans la fiche (en vert). Vérifie puis enregistre.', 'success');
+}
+function acatAiHtml(group){
+  const c = acat(); const ai = c.ai || {};
+  const url = c.aiUrl != null ? c.aiUrl : ai.url != null ? ai.url : acatVal(group, 'g', 'source_url');
+  let body = '';
+  if(ai.loading) body = `<div class="acat-ai-wait"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Lecture de la page et comparaison avec la fiche… (jusqu’à une minute)</div>`;
+  else if(ai.err) body = `<div class="acat-ai-err">${escapeHtml(ai.err)}</div>`;
+  else if(ai.res){
+    const r = ai.res; const checks = r.checks || [];
+    const ecarts = checks.filter(x=>x.status === 'ecart'), oks = checks.filter(x=>x.status === 'ok');
+    const pending = ecarts.filter(x=>x.page !== '' && !ai.applied[x.key]).map(x=>x.key);
+    const row = x=>{ const L = acatAiLabel(x.key); const cur = acatVal(group, x.key.split(':')[0], x.key.split(':')[2], x.key.split(':')[1]);
+      return `<tr class="acat-ai-${x.status}"><td>${escapeHtml(L.lab)}</td><td class="mono">${escapeHtml(L.size)}</td><td class="mono">${escapeHtml(cur || '—')}</td><td class="mono"><b>${escapeHtml(x.page || '—')}</b></td>
+        <td><span class="badge ${x.status==='ok'?'cat-b-ok':x.status==='ecart'?'cat-b-warn':'cat-b-slate'}">${x.status==='ok'?'Confirmé':x.status==='ecart'?'Écart':'Absent'}</span></td>
+        <td class="acat-ai-cit">${x.citation ? '« ' + escapeHtml(x.citation) + ' »' : ''}</td>
+        <td>${x.status==='ecart' && x.page !== '' ? (ai.applied[x.key] ? '<span class="cat-sub" style="margin:0">Reprise ✓</span>' : `<button type="button" class="btn btn-outline btn-sm" onclick='acatAiApply([${escapeHtml(JSON.stringify(x.key))}])'>Reprendre</button>`) : ''}</td></tr>`; };
+    const absentN = checks.filter(x=>x.status === 'absent').length;
+    body = `${r.offTopic ? '<div class="acat-ai-err">L’IA estime que cette page ne concerne pas cette formule ou cette phase : vérifie le lien.</div>' : ''}
+      <div class="acat-ai-sum"><span><b class="acat-ai-n warn">${ecarts.length}</b> écart${ecarts.length>1?'s':''}</span><span><b class="acat-ai-n ok">${oks.length}</b> confirmée${oks.length>1?'s':''}</span><span><b class="acat-ai-n">${absentN}</b> absente${absentN>1?'s':''} de la page</span>
+        ${pending.length ? `<button type="button" class="btn btn-primary btn-sm" onclick='acatAiApply(${escapeHtml(JSON.stringify(pending))})'>Reprendre les ${pending.length} écart${pending.length>1?'s':''}</button>` : ''}</div>
+      ${r.resume ? `<div class="cat-sub" style="margin:6px 0 10px;">${escapeHtml(r.resume)}</div>` : ''}
+      ${ecarts.length + oks.length ? `<div class="table-wrap"><table class="acat-ai-t"><thead><tr><th>Règle</th><th>Taille</th><th>Fiche</th><th>Page</th><th></th><th>Preuve sur la page</th><th></th></tr></thead><tbody>${[...ecarts, ...oks].map(row).join('')}</tbody></table></div>` : '<div class="cat-sub">Aucune des valeurs de la fiche n’a été trouvée sur cette page.</div>'}
+      ${(r.autres || []).length ? `<div class="acat-ai-more"><b>Autres règles repérées sur la page</b><ul>${r.autres.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul></div>` : ''}
+      <div class="cat-sub acat-ai-foot">Lecture ${r.read === 'ia' ? 'faite par l’IA (page chargée en JavaScript ou bloquée' + (r.pageWhy ? ' : ' + escapeHtml(r.pageWhy) : '') + ')' : 'de la page par le serveur'} · ${escapeHtml(r.model || '')} · l’IA peut se tromper : chaque valeur reprise reste à vérifier avant d’enregistrer.</div>`;
+  }
+  return `<div class="acat-sec acat-ai"><div class="acat-sec-t">${icon('sparkles')} Contrôle IA <span>· compare la fiche avec une page (rien n’est enregistré sans toi)</span></div>
+    <div class="acat-ai-bar"><input id="acat-ai-url" class="acat-inp" type="url" placeholder="https://… page officielle à vérifier" value="${escapeHtml(url || '')}" oninput="acat().aiUrl=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();acatAiRun();}"/>
+      ${url ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(url)}" target="_blank" rel="noopener" title="Ouvrir la page">↗</a>` : ''}
+      <button type="button" class="btn btn-primary btn-sm" onclick="acatAiRun()" ${ai.loading ? 'disabled' : ''}>${icon('sparkles')}${ai.res || ai.err ? 'Relancer' : 'Vérifier avec l’IA'}</button></div>
+    ${body}</div>`;
+}
+
 function viewAdminCatalogue(){
   const c = acat();
   if(!c.raw){ acatLoad(); return emptyState('book', 'Chargement du catalogue…', ''); }
@@ -7624,6 +7720,7 @@ function viewAdminCatalogue(){
         <div class="field"><label>En vente</label><div class="acat-chips">${chip('active','true','Oui')}${chip('active','false','Non (anciens comptes)')}</div></div>
         <div class="field acat-span2"><label>Note</label>${inp('notes','placeholder="ex. comptes achetés avant le 28/11/2025 : 100 % des premiers 10 000 $"')}</div>
       </div></div>
+      ${acatAiHtml(group)}
       <div class="acat-sec"><div class="acat-sec-t">Conditions <span>· communes à toutes les tailles</span></div><div class="acat-fgrid">
         ${ACAT_COMMONS.map(([f, lab, opts])=>`<div class="field"><label>${lab}</label><div class="acat-chips">${opts.map(o=>chip(f, o[0], o[1])).join('')}</div></div>`).join('')}
         <div class="field"><label>Split trader (%)</label>${inp('split','inputmode="decimal" placeholder="90"')}</div>
