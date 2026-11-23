@@ -1107,6 +1107,9 @@ th.th-sort-active svg{opacity:1;}
 .po-days{width:100%;font-size:12px;}
 .po-days th,.po-days td{padding:6px 8px;}
 .po-days .num{text-align:right;}
+.po-dltx summary{cursor:pointer;list-style:revert;}
+.po-dltx-t td:first-child{color:var(--text-dim);white-space:nowrap;}
+.po-dltx-t td:nth-child(2){white-space:nowrap;}
 .po-w-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 16px;border:0;border-top:1px solid var(--border-soft);background:none;color:var(--text);text-align:left;cursor:pointer;font-family:inherit;}
 .po-w-row:hover{background:var(--surface-2);}
 .po-w-t{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -7333,6 +7336,7 @@ const ACAT_SIZE_ROWS = [
   ['ddAmount','Drawdown max','$'], ['buffer','Buffer','à garder après payout'], ['minRequestProfit','Profit min pour demander','au-dessus du départ'],
   ['minPayout','Retrait min','$'], ['minDays','Jours min','nombre'], ['dayMin','Profit min par jour','jours gagnants'],
   ['consistency','Cohérence','% par payout : 40, 40, 45'], ['caps','Plafond par payout','#1, #2… ; — = sans plafond'], ['activationFee','Frais d’activation','si payante'],
+  ['dllAmount','Perte journalière (DLL)','$ si la formule en a une'], ['trailStop','Stop profit trailing','profit où le drawdown se fige (vide = calculé)'],
 ];
 const ACAT_LIST_FIELDS = ['consistency','caps'];
 const ACAT_COMMONS = [
@@ -7344,7 +7348,7 @@ const ACAT_COMMONS = [
 ];
 const ACAT_LABELS = { program:'Nom', phase:'Phase', valid_from:'En vente depuis', valid_to:'Jusqu’au', source_url:'Page officielle', conf:'Fiabilité', active:'En vente', notes:'Note',
   ddTypes:'Drawdown', dayType:'Jours comptés', activation:'Activation', payment:'Paiement', dll:'DLL en PA', split:'Split', maxPayouts:'Payouts max', frequency:'Fréquence',
-  ddAmount:'Drawdown max', buffer:'Buffer', minRequestProfit:'Profit min pour demander', minPayout:'Retrait min', minDays:'Jours min', dayMin:'Profit min par jour', consistency:'Cohérence', caps:'Plafonds', activationFee:'Frais d’activation', accessNote:'Note accès', check:'Contrôle' };
+  ddAmount:'Drawdown max', buffer:'Buffer', dllAmount:'Perte journalière', trailStop:'Stop profit trailing', minRequestProfit:'Profit min pour demander', minPayout:'Retrait min', minDays:'Jours min', dayMin:'Profit min par jour', consistency:'Cohérence', caps:'Plafonds', activationFee:'Frais d’activation', accessNote:'Note accès', check:'Contrôle' };
 function acat(){
   if(!state.admCat) state.admCat = { raw:null, loading:false, sel:null, tab:'rules', edits:{}, motif:'', q:'', hist:null, saving:false };
   return state.admCat;
@@ -7904,6 +7908,10 @@ function payoutFicheModal(accId){
       ${manualBlock}
       <div class="po-conds">${conds}</div>
       <div class="po-sec"><div class="po-ct" style="margin-bottom:6px;">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${daysHtml}</div>
+      <details class="po-sec po-dltx" ${s.src === 'dlx' ? 'open' : ''}><summary class="po-ct">Réglage Deltalytix conseillé <span class="field-label-note">pour que Deltalytix suive les règles de la formule ${escapeHtml(s.row.program)}</span></summary>
+        <table class="po-days po-dltx-t"><tbody>${poDltxAdvice(s).map(([k,v,note])=>`<tr><td>${escapeHtml(k)}</td><td class="mono"><b>${escapeHtml(v)}</b></td><td class="cat-sub">${escapeHtml(note)}</td></tr>`).join('')}</tbody></table>
+        <div class="cat-sub" style="margin-top:6px;">À saisir dans Deltalytix, fiche du compte. Contralytix ne peut pas lire tes réglages Deltalytix (l’API ne les renvoie pas) : compare-les toi-même.</div>
+      </details>
       <div class="po-sec"><div class="cat-sub">${escapeHtml(srcTxt)}</div>
         <div class="cat-sub" style="margin-top:6px;">Règles de la formule ${escapeHtml(s.row.program)} (catalogue, relevées sur le site officiel). ${s.row.src ? `<a href="${escapeHtml(s.row.src)}" target="_blank" rel="noopener">Page officielle</a> · ` : ''}<a href="#" id="po-open-cat">Voir le catalogue</a>. ${PO_SIZE_SPLIT_NOTE} Vérifie toujours chez la prop firm avant de demander.</div></div>
     </div>`,
@@ -7921,6 +7929,35 @@ function payoutFicheModal(accId){
       document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
     }
   });
+}
+// Réglage Deltalytix conseillé (23/11/2026, demande de Mickael) : valeurs à saisir dans Deltalytix pour que
+// ses calculs (drawdown restant, P&L au-dessus du buffer, cohérence) suivent les règles de la formule.
+// L'API Deltalytix ne renvoie pas les réglages des comptes : pas de comparaison automatique, seulement le conseil.
+function poDltxAdvice(s){
+  const R = s.R, n = s.n;
+  const dd = Number(R.ddAmount) || 0;
+  const t = R.ddTypes || [];
+  const buf = poAt(R.bufferSteps, n) || Number(R.buffer) || 0;
+  let stop, stopNote;
+  if(R.trailStop != null && R.trailStop !== ''){ stop = Number(R.trailStop); stopNote = 'valeur du catalogue'; }
+  else if(buf){ stop = buf; stopNote = `le seuil se fige au solde de départ + ${poMoney(buf - dd).replace(' $','')} $ quand le compte atteint départ + ${poMoney(buf)}`; }
+  else if(R.floorStart){ stop = dd; stopNote = 'le seuil ne dépasse jamais le solde de départ'; }
+  else { stop = dd ? dd + 100 : null; stopNote = 'règle la plus courante (seuil figé au départ + 100 $) : à vérifier chez la prop firm'; }
+  const coh = poAt(R.consistency, n);
+  const target = Number(R.minRequestProfit) || (buf ? buf + (Number(R.minPayout) || 0) : 0);
+  const dll = R.dll === 'yes' ? (R.dllAmount ? poMoney(R.dllAmount) : 'oui, montant de ta formule') : R.dll === 'optional' ? (R.dllAmount ? poMoney(R.dllAmount) + ' si ton option en a une, sinon 0' : 'selon l’option choisie à l’achat (0 si sans DLL)') : '0';
+  return [
+    ['Type de compte', 'Funded', ''],
+    ['Drawdown', dd ? String(dd) : '—', dd ? 'drawdown max de la formule' : 'non renseigné dans le catalogue'],
+    ['Type de drawdown', 'Drawdown trailing', ''],
+    ['Type de trailing', t.includes('EOD') && t.includes('INTRADAY') ? 'Fin de journée (option EOD) ou temps réel (option trailing)' : t.includes('EOD') ? 'Fin de journée' : t.includes('INTRADAY') ? 'Temps réel (intraday)' : '—', ''],
+    ['Stop profit trailing', stop != null ? String(stop) : '—', stopNote],
+    ['Buffer', String(buf || 0), buf ? `à garder après chaque payout${R.bufferSteps ? ' (payout n°' + n + ')' : ''}` : 'pas de buffer sur cette formule'],
+    ['Perte journalière', dll, ''],
+    ['P&L minimum pour compter comme jour', R.dayType === 'winning' ? String(Number(R.dayMin) || 0) : '0', R.dayType === 'winning' ? 'seuil d’un jour gagnant' : R.dayType === 'trading' ? 'tout jour tradé compte' : ''],
+    ['Cohérence', coh ? String(coh) : 'désactivée', coh ? `% du payout n°${n}` : 'pas de règle de cohérence'],
+    ['Objectif', target ? String(target) : '0', target ? 'profit à atteindre pour pouvoir demander un payout' : ''],
+  ];
 }
 function pilotPayoutWidgetHtml(pd){
   const all = pd.paActive.map(a=>payoutStatus(a)).filter(Boolean);
