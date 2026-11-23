@@ -16,7 +16,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const FACTORY_URL = 'https://factory.trade-with-me.fr/api/account-types/?page_size=1000&page=1';
 const MAPROPFIRM_URL = 'https://mapropfirm.fr/funded-data.csv';
-const TIMEOUT_MS = 7000;
+const TIMEOUT_MS = 5500; // 1er essai ; le 2e a 3,5 s (total < 10 s, limite Netlify)
+const RETRY_MS = 3500;
 
 function json(status, body) {
   return { statusCode: status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(body) };
@@ -50,9 +51,28 @@ const num = (v) => { if (v === null || v === undefined || v === '') return null;
 const sizeOf = (v) => { const s = String(v || '').toLowerCase(); const x = num(s); if (x === null) return null; return /k/.test(s) && x < 1000 ? x * 1000 : x; };
 const firmOf = (name) => Object.keys(FIRMS).find((id) => FIRMS[id].test(String(name || ''))) || null;
 
-async function get(url, type) {
+// Raison lisible d'un échec réseau (affichée dans le résumé admin).
+function whyFail(r) {
+  const e = r && r.reason; const m = String((e && (e.cause && e.cause.code)) || (e && e.message) || e || '');
+  if (/abort/i.test(m)) return 'pas de réponse dans le délai (' + (TIMEOUT_MS / 1000) + ' s puis ' + (RETRY_MS / 1000) + ' s)';
+  if (/^HTTP \d+/.test(m)) return 'le site répond ' + m;
+  if (/ENOTFOUND|EAI_AGAIN/.test(m)) return 'adresse introuvable (DNS)';
+  if (/ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ETIMEDOUT|UND_ERR/.test(m)) return 'connexion refusée ou coupée (' + m + ')';
+  return m ? m.slice(0, 80) : 'erreur inconnue';
+}
+
+// Un nouvel essai si le premier échoue (site lent ou coupure passagère).
+async function getRetry(url, type) {
+  try { return await get(url, type); } catch (e) {
+    console.log('[catalogue-check] 1er essai échoué', url, String((e && e.cause && e.cause.code) || (e && e.message) || e));
+    await new Promise((r) => setTimeout(r, 400));
+    return get(url, type, RETRY_MS);
+  }
+}
+
+async function get(url, type, ms) {
   const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  const t = setTimeout(() => ctl.abort(), ms || TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'Contralytix catalogue check (contact: contralytix.fr)', Accept: type === 'json' ? 'application/json' : 'text/csv,text/plain' } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -146,7 +166,9 @@ exports.handler = async (event) => {
   const { data: programs, error: pErr } = await admin.from('propfirm_programs').select('id, propfirm_id, program, phase, size, rules').eq('active', true).eq('phase', 'PA');
   if (pErr) return json(500, { error: 'Lecture du catalogue impossible.' });
 
-  const [fac, mp] = await Promise.allSettled([get(FACTORY_URL, 'json'), get(MAPROPFIRM_URL, 'csv')]);
+  const [fac, mp] = await Promise.allSettled([getRetry(FACTORY_URL, 'json'), getRetry(MAPROPFIRM_URL, 'csv')]);
+  if (fac.status === 'rejected') console.log('[catalogue-check] Factory', whyFail(fac));
+  if (mp.status === 'rejected') console.log('[catalogue-check] MaPropFirm', whyFail(mp));
   const sources = [];
   const ext = []; // { src, firmId, program, size, v }
   if (fac.status === 'fulfilled') {
@@ -160,7 +182,7 @@ exports.handler = async (event) => {
       ext.push({ src: 'PropFirm Factory', firmId, program, size: x.size, v: x.v });
     });
     sources.push('PropFirm Factory : ' + n + ' comptes lus');
-  } else sources.push('PropFirm Factory injoignable');
+  } else sources.push('PropFirm Factory injoignable : ' + whyFail(fac));
   if (mp.status === 'fulfilled') {
     let n = 0;
     parseCsv(mp.value).forEach((r) => {
@@ -171,7 +193,7 @@ exports.handler = async (event) => {
       ext.push({ src: 'MaPropFirm', firmId, program, size: x.size, v: x.v });
     });
     sources.push('MaPropFirm : ' + n + ' comptes lus');
-  } else sources.push('MaPropFirm injoignable');
+  } else sources.push('MaPropFirm injoignable : ' + whyFail(mp));
 
   // Une même valeur peut apparaître plusieurs fois (variantes Trailing / EOD d'un même programme) : dédoublonnée.
   const groups = new Map(); // clé firm|program|champ|source|valeurs → tailles
