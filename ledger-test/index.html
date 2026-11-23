@@ -7179,7 +7179,7 @@ function viewCatalogue(){
       <td title="${escapeHtml(r.accessNote)}">${actCell(r)}</td>
       <td>${dll(r)}</td>
       ${admin ? `<td>${chkBadge(r)}</td>` : ''}
-      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="Créer un compte ${r.phase==='LIVE'?'Live':'PA'} avec cette formule et cette taille">${icon('plus')}Compte</button><button type="button" class="btn btn-outline btn-sm" onclick="catAddAccount('${r.id}', true)" title="Créer plusieurs comptes identiques avec cette formule et cette taille">${icon('layers')}Plusieurs</button></div></td>
+      <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="${r.phase==='LIVE'?'Créer un compte Live':'Démarrer un challenge (ou un PA direct)'} avec cette formule et cette taille">${icon('plus')}Compte</button><button type="button" class="btn btn-outline btn-sm" onclick="catAddAccount('${r.id}', true)" title="Créer plusieurs comptes identiques (challenge ou PA direct) avec cette formule et cette taille">${icon('layers')}Plusieurs</button></div></td>
     </tr>`).join('');
   return `<div class="cat-page">
     ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
@@ -7238,8 +7238,12 @@ function catAddAccount(rowId, multi){
   const prefill = { propFirmId:r.firmId, size:code, programId:r.id };
   if(code === 'AUTRE') prefill.customSize = r.size;
   if(r.act === 'paid' && r.rules.activationFee) prefill.activationFee = Number(r.rules.activationFee) || '';
-  if(multi){ bulkAccountFormModal({ type:r.phase, ...prefill }); return; }
-  accountFormModal({ type:r.phase, prefill });
+  // Démarrage en challenge par défaut (23/11/2026) : le formulaire laisse passer en PA direct ;
+  // la formule choisie est gardée comme formule visée (règles du PA) et reprise au passage en PA.
+  const startType = r.phase === 'LIVE' ? 'LIVE' : 'CHALLENGE';
+  if(startType === 'CHALLENGE') delete prefill.activationFee;
+  if(multi){ bulkAccountFormModal({ type:startType, ...prefill }); return; }
+  accountFormModal({ prefill:{ ...prefill, type:startType } });
 }
 function catToggle(key){ const c = catState(); c.open = (key && c.open !== key) ? key : null; renderView(); }
 function catPick(key, v){
@@ -7299,6 +7303,8 @@ function accProgramCandidates(firmId, type, size, date){
   const valid = rows.filter(r=>(!r.validFrom || r.validFrom <= d) && (!r.validTo || r.validTo >= d));
   return { all:rows, valid: valid.length ? valid : rows };
 }
+// Phase du catalogue à proposer pour un type de compte : un challenge vise les règles du PA.
+const progPhaseOf = t => t === 'CHALLENGE' ? 'PA' : t;
 function accProgramSuggest(a){
   if(!(a.type === 'PA' || a.type === 'LIVE')) return null;
   const size = accSizeNum(a);
@@ -7319,6 +7325,9 @@ function accProgramSuggest(a){
 }
 // { row, state:'confirmed' | 'auto' | 'todo' } ou null (pas de programme connu pour ce compte).
 function accProgram(a){
+  // Un challenge peut porter la formule visée en PA (ajout depuis le catalogue, 23/11/2026) :
+  // ce n'est pas un compte à payout, il n'a donc pas de « programme actif ».
+  if(!(a.type === 'PA' || a.type === 'LIVE')) return null;
   if(a.programId){
     const row = (catState().rows || []).find(r=>r.id === a.programId);
     if(row) return { row, state:'confirmed' };
@@ -7668,13 +7677,13 @@ function programPicker(o){
   const SIZE_CODE = { 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' };
   if(o.initialId){ const r0 = (catState().rows || []).find(r=>r.id===o.initialId); if(r0) catKey = keyOf(r0); }
   const sizeNum = ()=> accSizeNum({ size:$(o.sizeSel).value, customSize:($(o.customSize)||{}).value });
-  const paLike = ()=> o.type()==='PA' || o.type()==='LIVE';
+  const isChal = ()=> o.type()==='CHALLENGE';
   function renderCat(){
     const wrap = $(o.catWrap); if(!wrap) return;
     const rows = catState().rows;
-    if(!pilotageEnabled() || !paLike() || !rows){ wrap.style.display = 'none'; return; }
+    if(!pilotageEnabled() || !rows){ wrap.style.display = 'none'; return; }
     const today = todayISO(); const groups = {};
-    rows.filter(r=>r.active && r.phase===o.type() && (!r.validTo || r.validTo >= today)).forEach(r=>{
+    rows.filter(r=>r.active && r.phase===progPhaseOf(o.type()) && (!r.validTo || r.validTo >= today)).forEach(r=>{
       const k = keyOf(r); const g = (groups[r.firmId] = groups[r.firmId] || { name:r.firm.name, progs:{} });
       (g.progs[k] = g.progs[k] || { r, sizes:[] }).sizes.push(r.size);
     });
@@ -7684,7 +7693,7 @@ function programPicker(o){
     const sel = catKey ? all.find(p=>keyOf(p.r)===catKey) : null;
     const cur = sizeNum();
     wrap.style.display = 'block';
-    wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et la formule</span></div>
+    wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">${isChal() ? 'remplit la prop firm, la taille et la formule visée en PA' : 'remplit la prop firm, la taille et la formule'}</span></div>
       <div class="af-cat-row"><select data-pp-prog><option value="">— Formule —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(keyOf(p.r))}" ${keyOf(p.r)===catKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
       ${sel ? `<div class="af-cat-sizes">${sel.sizes.slice().sort((x,y)=>x-y).map(sz=>`<button type="button" class="acat-chip${sz===cur?' on':''}" data-pp-size="${sz}">${acatSizeLabel(sz)}</button>`).join('')}</div>` : ''}</div>`;
     wrap.querySelector('[data-pp-prog]').onchange = (e)=>{
@@ -7704,7 +7713,7 @@ function programPicker(o){
     const row = (catState().rows || []).find(r=>keyOf(r)===catKey && r.size===size);
     const fee = $(o.feeInput);
     // Frais d'activation : rempli depuis le catalogue tant que l'utilisateur ne l'a pas saisi lui-même.
-    if(fee && (!fee.value || fee.value === String(autoFee))){
+    if(fee && !isChal() && (!fee.value || fee.value === String(autoFee))){
       autoFee = row && row.act==='paid' && row.rules.activationFee ? (Number(row.rules.activationFee) || '') : '';
       fee.value = autoFee;
     }
@@ -7715,27 +7724,37 @@ function programPicker(o){
     const rows = catState().rows;
     const firmId = $(o.firmInput).value;
     const date = ($(o.dateInput)||{}).value || todayISO();
-    const { all } = rows ? accProgramCandidates(firmId, o.type(), sizeNum(), date) : { all:[] };
-    if(!pilotageEnabled() || !paLike() || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    const { all } = rows ? accProgramCandidates(firmId, progPhaseOf(o.type()), sizeNum(), isChal() ? todayISO() : date) : { all:[] };
+    if(!pilotageEnabled() || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
     const prev = wrap.querySelector('select');
     const keep = touched && prev ? prev.value : null;
     const fromCat = catKey && keep === null ? all.find(r=>keyOf(r)===catKey) : null;
-    const sug = accProgramSuggest({ type:o.type(), propFirmId:firmId, size:$(o.sizeSel).value, customSize:($(o.customSize)||{}).value, activationDate:date });
+    const sug = isChal() ? null : accProgramSuggest({ type:o.type(), propFirmId:firmId, size:$(o.sizeSel).value, customSize:($(o.customSize)||{}).value, activationDate:date });
     const current = keep !== null ? keep : (fromCat ? fromCat.id : (sug ? sug.row.id : ''));
     const confirmed = keep !== null || !!fromCat;
     const opts = all.slice().sort((x,y)=>(x.sort||0)-(y.sort||0)).map(r=>{
       const off = (r.validFrom && r.validFrom > date) || (r.validTo && r.validTo < date);
       return `<option value="${r.id}" ${r.id===current?'selected':''}>${escapeHtml(r.program)}${r.dates ? ' · ' + r.dates : ''}${off ? ' (hors dates)' : ''}</option>`;
     }).join('');
-    const hint = (confirmed ? 'Règles de payout du catalogue utilisées.' : (sug && sug.sure ? 'Détectée automatiquement d’après la prop firm, la taille et la date d’activation.' : 'Proposée automatiquement : plusieurs formules sont possibles. Vérifie, l’enregistrement confirme ce choix.')) + (o.hintAll || '');
+    const hint = isChal() ? 'Ce sont les règles du PA (après réussite du challenge), pas celles du challenge. Reprises automatiquement à la création du PA.' : (confirmed ? 'Règles de payout du catalogue utilisées.' : (sug && sug.sure ? 'Détectée automatiquement d’après la prop firm, la taille et la date d’activation.' : 'Proposée automatiquement : plusieurs formules sont possibles. Vérifie, l’enregistrement confirme ce choix.')) + (o.hintAll || '');
     wrap.style.display = 'block';
-    wrap.innerHTML = `<label>Formule <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
-      <select><option value="">— Pas dans le catalogue —</option>${opts}</select><div class="field-hint">${hint}</div>`;
+    wrap.innerHTML = `<label>${isChal() ? 'Formule visée en PA <span class="field-label-note">règles du PA, pas du challenge</span>' : 'Formule <span class="field-label-note">règles de payout</span>'}${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
+      <select><option value="">${isChal() ? '— Pas encore choisie —' : '— Pas dans le catalogue —'}</option>${opts}</select><div class="field-hint">${hint}</div>`;
     wrap.querySelector('select').onchange = ()=>{ touched = true; renderProg(); };
   }
   const api = {
     refresh(){ renderCat(); renderProg(); },
     firmChanged(firmId){ if(catKey && catKey.split('|')[0] !== firmId) catKey = null; renderCat(); renderProg(); },
+    // Passage Challenge → PA : frais d'activation repris du catalogue s'il n'a pas été saisi.
+    typeChanged(){
+      const fee = $(o.feeInput);
+      if(fee && !isChal() && catKey && (!fee.value || fee.value === String(autoFee))){
+        const row = (catState().rows || []).find(r=>keyOf(r)===catKey && r.size===sizeNum());
+        autoFee = row && row.act==='paid' && row.rules.activationFee ? (Number(row.rules.activationFee) || '') : '';
+        fee.value = autoFee;
+      }
+      renderCat(); renderProg();
+    },
     value(){ const sel = $(o.progWrap) && $(o.progWrap).querySelector('select'); return sel ? (sel.value || null) : null; },
   };
   api.refresh();
@@ -24418,6 +24437,8 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
     endDate: null,
     createdAt: new Date().toISOString(),
     createdBy: currentUserId(),
+    // Formule visée choisie sur le challenge (catalogue) : reprise par le PA créé à la réussite.
+    programId: parentChallenge ? (parentChallenge.programId || null) : null,
     ...((!parentChallenge && prefill) || {}),
   };
   const lockTrader = !!parentChallenge;
@@ -24677,11 +24698,11 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         const wrap = document.getElementById('af-cat-wrap');
         if(!wrap) return;
         const rows = catState().rows;
-        const paLike = curType==='PA' || curType==='LIVE';
-        if(!pilotageEnabled() || !paLike || !rows || parentChallenge){ wrap.style.display = 'none'; return; }
+        const phase = progPhaseOf(curType);
+        if(!pilotageEnabled() || !rows || parentChallenge){ wrap.style.display = 'none'; return; }
         const today = todayISO();
         const groups = {};
-        rows.filter(r=>r.active && r.phase===curType && (!r.validTo || r.validTo >= today)).forEach(r=>{
+        rows.filter(r=>r.active && r.phase===phase && (!r.validTo || r.validTo >= today)).forEach(r=>{
           const k = catKeyOf(r);
           (groups[r.firmId] = groups[r.firmId] || { name:r.firm.name, progs:{} }).progs[k] = groups[r.firmId].progs[k] || { r, sizes:[] };
           groups[r.firmId].progs[k].sizes.push(r.size);
@@ -24691,7 +24712,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         const sel = afCatKey ? Object.values(groups).flatMap(g=>Object.values(g.progs)).find(p=>catKeyOf(p.r)===afCatKey) : null;
         const curSize = accSizeNum({ size:document.getElementById('af-size').value, customSize:(document.getElementById('af-customsize')||{}).value });
         wrap.style.display = 'block';
-        wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">remplit la prop firm, la taille et la formule</span></div>
+        wrap.innerHTML = `<div class="af-cat-head">${icon('book')}<span>Choisir dans le catalogue</span><span class="field-label-note">${curType==='CHALLENGE' ? 'remplit la prop firm, la taille et la formule visée en PA' : 'remplit la prop firm, la taille et la formule'}</span></div>
           <div class="af-cat-row"><select id="af-cat-prog"><option value="">— Formule —</option>${firms.map(g=>`<optgroup label="${escapeHtml(g.name)}">${Object.values(g.progs).sort((x,y)=>(x.r.sort||0)-(y.r.sort||0)).map(p=>`<option value="${escapeHtml(catKeyOf(p.r))}" ${catKeyOf(p.r)===afCatKey?'selected':''}>${escapeHtml(g.name)} · ${escapeHtml(p.r.program)}</option>`).join('')}</optgroup>`).join('')}</select>
           ${sel ? `<div class="af-cat-sizes">${sel.sizes.sort((x,y)=>x-y).map(sz=>`<button type="button" class="acat-chip${sz===curSize?' on':''}" data-af-cat-size="${sz}">${acatSizeLabel(sz)}</button>`).join('')}</div>` : ''}</div>`;
         document.getElementById('af-cat-prog').onchange = (e)=>{
@@ -24712,7 +24733,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         if(code==='AUTRE') document.getElementById('af-customsize').value = size;
         const row = (catState().rows || []).find(r=>catKeyOf(r)===afCatKey && r.size===size);
         const feeEl = document.getElementById('af-activation-fee');
-        if(feeEl && (!feeEl.value || feeEl.value === String(afAutoFee))){
+        if(feeEl && curType !== 'CHALLENGE' && (!feeEl.value || feeEl.value === String(afAutoFee))){
           afAutoFee = row && row.act==='paid' && row.rules.activationFee ? (Number(row.rules.activationFee) || '') : '';
           feeEl.value = afAutoFee;
         }
@@ -24728,14 +24749,16 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           accountNumber: document.getElementById('af-number').value.trim(),
           activationDate: (document.getElementById('af-activation-date')||{}).value || a.activationDate };
         const rows = catState().rows;
-        const paLike = curType==='PA' || curType==='LIVE';
-        const { all:cands } = rows ? accProgramCandidates(firmId, curType, accSizeNum(draft), draft.activationDate) : { all:[] };
+        const isChal = curType === 'CHALLENGE';
+        const phase = progPhaseOf(curType);
+        const { all:cands } = rows ? accProgramCandidates(firmId, phase, accSizeNum(draft), isChal ? todayISO() : draft.activationDate) : { all:[] };
         const kept = a.programId && rows ? rows.find(r=>r.id===a.programId && !r.active && r.firmId===firmId) : null;
         const all = kept ? cands.concat([kept]) : cands;
-        if(!pilotageEnabled() || !paLike || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+        if(!pilotageEnabled() || !rows || !all.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
         const prev = document.getElementById('af-program');
         const keep = afProgramTouched && prev ? prev.value : null;
-        const sug = accProgramSuggest(draft);
+        // Challenge : pas de formule devinée, seulement celle choisie dans le catalogue (ou à la main).
+        const sug = isChal ? null : accProgramSuggest(draft);
         const fromCat = afCatKey && keep === null ? all.find(r=>catKeyOf(r)===afCatKey) : null;
         const current = keep !== null ? keep : (fromCat ? fromCat.id : (a.programId && all.some(r=>r.id===a.programId) && firmId===a.propFirmId ? a.programId : (sug ? sug.row.id : '')));
         const confirmed = keep !== null || !!fromCat || (a.programId && current === a.programId);
@@ -24744,12 +24767,15 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           const off = (r.validFrom && r.validFrom > d) || (r.validTo && r.validTo < d);
           return `<option value="${r.id}" ${r.id===current?'selected':''}>${escapeHtml(r.program)}${r.dates ? ' · ' + r.dates : ''}${off ? ' (hors dates)' : ''}</option>`;
         }).join('');
-        const hint = confirmed ? 'Règles de payout du catalogue utilisées pour ce compte.'
+        const inherited = parentChallenge && parentChallenge.programId && current === parentChallenge.programId && keep === null;
+        const hint = isChal ? 'Ce sont les règles du PA (après réussite du challenge) : drawdown, buffer, jours et cohérence de payout. Reprises automatiquement à la création du PA. Les règles du challenge (objectif, durée) ne sont pas dans le catalogue.'
+          : inherited ? 'Reprise du challenge réussi. Règles de payout du catalogue utilisées pour ce PA.'
+          : confirmed ? 'Règles de payout du catalogue utilisées pour ce compte.'
           : (sug && sug.sure ? 'Détectée automatiquement d’après la prop firm, la taille et la date d’activation.'
           : 'Proposée automatiquement : plusieurs formules sont possibles. Vérifie, l’enregistrement confirme ce choix.');
         wrap.style.display = 'block';
-        wrap.innerHTML = `<label>Formule <span class="field-label-note">règles de payout</span>${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
-          <select id="af-program"><option value="">— Pas dans le catalogue —</option>${opts}</select>
+        wrap.innerHTML = `<label>${isChal ? 'Formule visée en PA <span class="field-label-note">règles du PA, pas du challenge</span>' : 'Formule <span class="field-label-note">règles de payout</span>'}${!confirmed && sug && !sug.sure ? ' <span class="badge badge-todo">À confirmer</span>' : ''}</label>
+          <select id="af-program"><option value="">${isChal ? '— Pas encore choisie —' : '— Pas dans le catalogue —'}</option>${opts}</select>
           <div class="field-hint">${hint} <a href="#" data-af-open-catalogue>Voir le catalogue</a></div>`;
         document.getElementById('af-program').onchange = ()=>{ afProgramTouched = true; afRefreshProgram(); };
         const link = wrap.querySelector('[data-af-open-catalogue]');
@@ -24757,7 +24783,16 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
       }
       afRefreshProgram(); afRenderCatPick();
       if(!catState().rows) catLoad().then(()=>{ afRefreshProgram(); afRenderCatPick(); });
-      document.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click', ()=>setTimeout(()=>{ afRefreshProgram(); afRenderCatPick(); })));
+      // Passage Challenge → PA direct : frais d'activation repris du catalogue s'il n'a pas été saisi.
+      function afFeeFromCat(){
+        const feeEl = document.getElementById('af-activation-fee');
+        if(!feeEl || curType === 'CHALLENGE' || !afCatKey || (feeEl.value && feeEl.value !== String(afAutoFee))) return;
+        const sz = accSizeNum({ size:document.getElementById('af-size').value, customSize:(document.getElementById('af-customsize')||{}).value });
+        const row = (catState().rows || []).find(r=>catKeyOf(r)===afCatKey && r.size===sz);
+        afAutoFee = row && row.act==='paid' && row.rules.activationFee ? (Number(row.rules.activationFee) || '') : '';
+        feeEl.value = afAutoFee;
+      }
+      document.querySelectorAll('[data-type]').forEach(el=>el.addEventListener('click', ()=>setTimeout(()=>{ afFeeFromCat(); afRefreshProgram(); afRenderCatPick(); })));
       // Prop firm changée à la main : le choix catalogue ne s'applique plus si elle diffère.
       document.querySelectorAll('[data-firm-pick]').forEach(el=>el.addEventListener('click', ()=>setTimeout(()=>{ if(afCatKey && afCatKey.split('|')[0] !== el.dataset.firmPick) afCatKey = null; afRefreshProgram(); afRenderCatPick(); })));
       ['af-size','af-customsize','af-activation-date','af-number'].forEach(id=>{ const el = document.getElementById(id); if(el) el.addEventListener('change', ()=>{ afRefreshProgram(); if(id==='af-size' || id==='af-customsize') afRenderCatPick(); }); });
@@ -24852,7 +24887,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
         // Programme : enregistré seulement quand le champ est affiché (PA/Live d'une prop firm du catalogue).
         const programSel = document.getElementById('af-program');
         if(programSel) record.programId = programSel.value || null;
-        else if(!(curType==='PA'||curType==='LIVE') || propFirmId !== a.propFirmId) record.programId = null;
+        else if(propFirmId !== a.propFirmId) record.programId = null;
         await upsert('accounts', record);
         const accDesc = `${trader.pseudo} · ${getFirm(propFirmId)?.name||''} · ${TYPE_LABELS[curType]}`;
         await logActivity(isEdit?'UPDATE':'CREATE', 'account', a.id, accDesc);
@@ -25014,7 +25049,7 @@ function bulkAccountFormModal(pre){
         document.querySelectorAll('[data-type]').forEach(c=>c.classList.toggle('selected', c.dataset.type===curType));
         document.getElementById('baf-pa-fields').style.display = (curType==='PA'||curType==='LIVE') ? 'block' : 'none';
         document.getElementById('baf-purchase-date-wrap').style.display = (curType==='PA'||curType==='LIVE') ? 'none' : 'block';
-        bafProg.refresh();
+        bafProg.typeChanged();
       });
       document.querySelectorAll('[data-pay]').forEach(chip=>chip.onclick=()=>{
         curPay = chip.dataset.pay;
@@ -25101,7 +25136,7 @@ function bulkAccountFormModal(pre){
         const allFree = freeFlags.length>0 && freeFlags.every(Boolean);
         if(curPay==='UNIQUE' && !allFree && !(purchasePrice>0)){ errorEl.textContent = 'Le prix d’achat est obligatoire (il s’applique aux comptes non cochés « offert »).'; return; }
         if(curPay==='MENSUEL' && !(monthlyAmount>0)){ errorEl.textContent = 'Le montant mensuel est obligatoire.'; return; }
-        const programId = bafPaLike(curType) ? bafProg.value() : null;
+        const programId = bafProg.value();
 
         let activationDate = null, activationFee = null, purchaseDate;
         if(curType==='PA' || curType==='LIVE'){
