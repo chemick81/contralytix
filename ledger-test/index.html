@@ -1106,6 +1106,28 @@ th.th-sort-active svg{opacity:1;}
 .po-bal-row input{width:160px;font-family:'JetBrains Mono',monospace;}
 .po-days{width:100%;font-size:12px;}
 .po-days th,.po-days td{padding:6px 8px;}
+.po-pnl-edit{background:none;border:1px dashed transparent;border-radius:6px;padding:2px 6px;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.po-pnl-edit:hover{border-color:var(--border);background:var(--surface-2);}
+.po-pnl-pen{display:inline-flex;opacity:0;color:var(--text-faint);} .po-pnl-pen svg{width:11px;height:11px;}
+.po-pnl-edit:hover .po-pnl-pen,.po-pnl-edit:focus-visible .po-pnl-pen{opacity:1;}
+.po-pnl-form{display:inline-flex;gap:6px;align-items:center;justify-content:flex-end;}
+.po-pnl-in{width:92px;text-align:right;padding:4px 6px;border-radius:6px;border:1px solid var(--accent);background:var(--surface);color:var(--text);font-size:12px;}
+.po-edited{margin-left:6px;font-size:10px;padding:1px 6px;}
+.po-pnl-undo{background:none;border:0;color:var(--text-faint);cursor:pointer;padding:0 4px;font-size:13px;}
+.po-pnl-undo:hover{color:var(--accent);}
+.tdv-intro{font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:14px;}
+.tdv-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 16px;border:1.5px dashed var(--border);border-radius:12px;cursor:pointer;text-align:center;color:var(--text-dim);font-size:12.5px;}
+.tdv-drop svg{width:22px;height:22px;color:var(--accent);} .tdv-drop b{color:var(--text);font-size:14px;}
+.tdv-drop:hover,.tdv-drop.over{border-color:var(--accent);background:var(--accent-dim);}
+.tdv-acc{border:1px solid var(--border-soft);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+.tdv-acc.off{opacity:.65;}
+.tdv-acc-h{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;}
+.tdv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 0 26px;}
+.tdv-stats span{display:flex;flex-direction:column;gap:2px;font-size:13px;}
+.tdv-stats small{font-size:11px;color:var(--text-faint);} .tdv-stats em{font-style:normal;font-size:11px;color:var(--text-faint);}
+.tdv-wd{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0 26px;padding:8px 10px;border-radius:8px;background:var(--gold-dim, rgba(224,161,43,.12));color:var(--text-dim);font-size:12px;}
+.tdv-wd svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px;color:var(--gold);}
+@media (max-width:640px){ .tdv-stats{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .po-days .num{text-align:right;}
 .po-dltx summary{cursor:pointer;list-style:revert;}
 .po-dltx-t td:first-child{color:var(--text-dim);white-space:nowrap;}
@@ -7998,6 +8020,217 @@ function poPillHtml(s, short){
   const lab = s.state === 'ready' ? (short ? 'Payout prêt' : 'Prêt') : s.state === 'soon' ? (short ? 'Manque ' + s.miss[0] : 'Bientôt') : s.state === 'input' ? (short ? 'Solde ?' : 'Solde à saisir') : (short ? (s.maxed ? 'Payouts max atteints' : 'Manque ' + (s.miss[0] || '…')) : 'Pas encore');
   return `<span class="po-pill po-${s.state}" title="${escapeHtml(s.state === 'ready' ? 'Jusqu’à ' + poMoney(s.amt) : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche Payout' : 'Manque : ' + s.miss.join(', '))}">${escapeHtml(lab)}</span>`;
 }
+// P&L d'une journée corrigé à la main (23/11/2026, demande de Mickael : « parfois le P&L Deltalytix
+// n'est pas bon »). Source 'edited' : la synchro Deltalytix ne remplace plus cette journée
+// (deltalytix.js). pnl_buffer n'est pas touché ; le P&L du jour recalcule le buffer à partir de pnl.
+async function poSaveDayPnl(a, day, v){
+  const val = Math.round(v * 100) / 100;
+  const logs = state.dormancyLogs || (state.dormancyLogs = []);
+  const ex = logs.find(l=>String(l.accountId) === String(a.id) && l.day === day);
+  const now = new Date().toISOString();
+  if(SUPABASE_CONFIGURED){
+    const q = ex
+      ? supabaseClient.from('dormancy_logs').update({ pnl:val, traded:true, source:'edited', updated_at:now }).eq('account_id', a.id).eq('day', day)
+      : supabaseClient.from('dormancy_logs').upsert({ user_id:currentUserId(), account_id:a.id, day, pnl:val, traded:true, source:'edited', updated_at:now }, { onConflict:'account_id,day' });
+    const { error } = await q;
+    if(error){ showToast('Correction non enregistrée : ' + error.message, 'danger'); return false; }
+  }
+  const before = ex ? ex.pnl : null;
+  if(ex) Object.assign(ex, { pnl:val, traded:true, source:'edited', updatedAt:now });
+  else logs.push({ userId:currentUserId(), accountId:a.id, day, pnl:val, traded:true, source:'edited', updatedAt:now });
+  try{ await logActivity('UPDATE', 'dormancy_logs', a.id, `P&L du ${fmtDate(day)} corrigé à la main : ${before != null ? poSigned(Number(before)) + ' → ' : ''}${poSigned(val)}`); }catch(e){}
+  showToast('P&L du ' + fmtDate(day) + ' corrigé.', 'success');
+  return true;
+}
+async function poUndoDayPnl(a, day){
+  const ex = (state.dormancyLogs || []).find(l=>String(l.accountId) === String(a.id) && l.day === day);
+  if(!ex) return false;
+  if(SUPABASE_CONFIGURED){
+    const { error } = await supabaseClient.from('dormancy_logs').update({ source:'deltalytix' }).eq('account_id', a.id).eq('day', day);
+    if(error){ showToast('Impossible : ' + error.message, 'danger'); return false; }
+  }
+  ex.source = 'deltalytix';
+  showToast('Rendu à Deltalytix : la valeur sera reprise à la prochaine synchro.', 'success');
+  return true;
+}
+/* Import du relevé Tradovate « Account Balance History » (CSV), 23/11/2026, pour les comptes sans
+   Deltalytix : solde actuel (dernière ligne), P&L de chaque journée, jours tradés (P&L ≠ 0) pour le
+   Radar et le Prochain payout. Colonnes : Account ID, Account Name, Trade Date, Total Amount,
+   Total Realized PNL. Écrit dans dormancy_logs (source 'tradovate') ; une journée corrigée à la main
+   (source 'edited') n'est jamais remplacée. Un retrait (baisse de solde non expliquée par le P&L) est
+   signalé, pas enregistré : le payout reste à saisir avec le montant reçu. */
+function tdvNum(t){
+  let x = String(t == null ? '' : t).replace(/[\s  $€]/g, '');
+  if(!x) return null;
+  const lc = x.lastIndexOf(','), ld = x.lastIndexOf('.');
+  if(lc > -1 && ld > -1) x = lc > ld ? x.replace(/\./g, '').replace(',', '.') : x.replace(/,/g, '');
+  else if(lc > -1) x = /^-?\d{1,3}(,\d{3})+$/.test(x) ? x.replace(/,/g, '') : x.replace(',', '.');
+  const n = Number(x.replace(/[()]/g, ''));
+  return Number.isFinite(n) ? (/^\(.*\)$/.test(x) ? -n : n) : null;
+}
+function tdvDate(t){
+  const x = String(t || '').trim();
+  let m = x.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+  return null;
+}
+function tdvCsvRows(text){
+  const lines = String(text || '').replace(/^﻿/, '').split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length) return [];
+  const delim = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
+  const split = line => { const out = []; let cur = '', q = false;
+    for(let i = 0; i < line.length; i++){ const ch = line[i];
+      if(q){ if(ch === '"' && line[i+1] === '"'){ cur += '"'; i++; } else if(ch === '"') q = false; else cur += ch; }
+      else if(ch === '"') q = true; else if(ch === delim){ out.push(cur); cur = ''; } else cur += ch; }
+    out.push(cur); return out.map(v=>v.trim()); };
+  return lines.map(split);
+}
+function tdvNormNum(v){ return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+// Analyse : { error } ou { groups:[{ name, id, acc, rows:[{day,bal,pnl}], bal, balDay, traded, pnl, withdrawals:[] }] }
+function tdvParse(text){
+  const rows = tdvCsvRows(text);
+  if(rows.length < 2) return { error:'Fichier vide ou illisible.' };
+  const head = rows[0].map(h=>h.toLowerCase().replace(/[^a-z]/g, ''));
+  const col = (...names) => head.findIndex(h=>names.includes(h));
+  const iName = col('accountname'), iId = col('accountid'), iDate = col('tradedate', 'date'), iBal = col('totalamount'), iPnl = col('totalrealizedpnl', 'realizedpnl');
+  if(iDate < 0 || iBal < 0 || iPnl < 0 || (iName < 0 && iId < 0)) return { error:'Ce n’est pas un relevé « Account Balance History » de Tradovate (colonnes Trade Date, Total Amount et Total Realized PNL attendues).' };
+  const byAcc = new Map();
+  rows.slice(1).forEach(r=>{
+    const day = tdvDate(r[iDate]), bal = tdvNum(r[iBal]), pnl = tdvNum(r[iPnl]);
+    if(!day || bal == null || pnl == null) return;
+    const name = iName > -1 ? r[iName] : r[iId], id = iId > -1 ? r[iId] : '';
+    const k = tdvNormNum(name) || tdvNormNum(id);
+    if(!byAcc.has(k)) byAcc.set(k, { name, id, rows:[] });
+    byAcc.get(k).rows.push({ day, bal, pnl: Math.round(pnl * 100) / 100 });
+  });
+  if(!byAcc.size) return { error:'Aucune ligne exploitable dans ce fichier.' };
+  const mine = (state.accounts || []).filter(a=>isMineAccount(a) && a.accountNumber);
+  const groups = [...byAcc.values()].map(g=>{
+    g.rows.sort((x,y)=>x.day.localeCompare(y.day));
+    const keys = [tdvNormNum(g.name), tdvNormNum(g.id)].filter(k=>k.length >= 5);
+    const cands = mine.filter(a=>{ const n = tdvNormNum(a.accountNumber); return n.length >= 5 && keys.some(k=>k === n || k.endsWith(n) || n.endsWith(k)); })
+      .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type === 'PA' || y.type === 'LIVE') - (x.type === 'PA' || x.type === 'LIVE')));
+    g.acc = cands[0] || null;
+    const last = g.rows[g.rows.length - 1];
+    g.bal = last.bal; g.balDay = last.day;
+    g.tradedRows = g.rows.filter(r=>Math.abs(r.pnl) >= 0.005);
+    g.pnl = g.tradedRows.reduce((t,r)=>t + r.pnl, 0);
+    g.withdrawals = [];
+    for(let i = 1; i < g.rows.length; i++){
+      const gap = g.rows[i-1].bal + g.rows[i].pnl - g.rows[i].bal;   // > 0 : sortie d'argent non expliquée par le P&L
+      if(gap > 1) g.withdrawals.push({ day:g.rows[i].day, amount: Math.round(gap * 100) / 100 });
+    }
+    return g;
+  });
+  return { groups };
+}
+function tdvPlan(g){
+  const a = g.acc; if(!a) return null;
+  const logs = (state.dormancyLogs || []).filter(l=>String(l.accountId) === String(a.id));
+  const byDay = new Map(logs.map(l=>[l.day, l]));
+  let fresh = 0, upd = 0, kept = 0, same = 0;
+  const write = [];
+  g.tradedRows.forEach(r=>{
+    const ex = byDay.get(r.day);
+    if(ex && ex.source === 'edited'){ kept++; return; }
+    if(!ex) fresh++; else if(Number(ex.pnl) === r.pnl && ex.traded){ same++; } else upd++;
+    if(!ex || Number(ex.pnl) !== r.pnl || !ex.traded || ex.source !== 'tradovate') write.push(r);
+  });
+  return { fresh, upd, kept, same, write, dlx: !!dlxHealthOf(a.id) };
+}
+function tdvImportModal(opts){
+  opts = opts || {};
+  const only = opts.accId ? getAccount(opts.accId) : null;
+  let parsed = null;
+  const body = ()=>{
+    if(!parsed) return `<div class="tdv-intro">Dans Tradovate : <b>Rapports du compte › Account Balance History</b>, choisis la période (par exemple « Cette année »), puis <b>Télécharger le CSV</b>. Le fichier donne le solde de chaque jour et le P&amp;L réalisé : Contralytix en déduit le solde actuel et les jours tradés.</div>
+      <label class="tdv-drop" id="tdv-drop">${icon('download')}<b>Dépose le fichier CSV ici</b><span>ou clique pour le choisir${only ? ' · compte ' + maskAccountNumber(String(only.accountNumber || '')) : ' · un ou plusieurs comptes'}</span><input type="file" id="tdv-file" accept=".csv,text/csv" hidden/></label>`;
+    if(parsed.error) return `<div class="acat-ai-err">${escapeHtml(parsed.error)}</div><button type="button" class="btn btn-outline btn-sm" id="tdv-again" style="margin-top:10px;">Choisir un autre fichier</button>`;
+    return parsed.groups.map((g, i)=>{
+      const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
+      const wrong = only && a && a.id !== only.id;
+      const skip = !a || wrong || (pl && pl.dlx);
+      const head = a ? `${firm ? firmLogoHtml(firm, 22) : ''}<div><b>${escapeHtml(g.name)}</b> → ${escapeHtml((firm || {}).name || '')} · ${escapeHtml(a.type === 'LIVE' ? 'Live' : a.type)} ${escapeHtml(sizeLabelRaw(a) || '')}</div>`
+        : `<div><b>${escapeHtml(g.name)}</b> → <span style="color:var(--danger)">aucun compte avec ce numéro dans Contralytix</span></div>`;
+      const why = !a ? '' : wrong ? 'Ce fichier concerne un autre compte que celui de la fiche : il sera ignoré.' : pl.dlx ? 'Compte synchronisé avec Deltalytix : il fait déjà foi, ce relevé est ignoré.' : '';
+      return `<div class="tdv-acc${skip ? ' off' : ''}"><label class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'}/>${head}</label>
+        ${why ? `<div class="cat-sub" style="margin:6px 0 0 26px;">${why}</div>` : ''}
+        ${a && !skip ? `<div class="tdv-stats">
+          <span><small>Solde au ${fmtDate(g.balDay)}</small><b class="mono">${poMoney(g.bal)}</b></span>
+          <span><small>Journées tradées</small><b>${g.tradedRows.length}</b><em>sur ${g.rows.length} lignes</em></span>
+          <span><small>P&amp;L de la période</small><b class="mono" style="color:${g.pnl < 0 ? 'var(--danger)' : 'var(--accent)'}">${poSigned(Math.round(g.pnl * 100) / 100)}</b></span>
+          <span><small>À écrire</small><b>${pl.fresh} nouvelle${pl.fresh>1?'s':''} · ${pl.upd} mise${pl.upd>1?'s':''} à jour</b>${pl.kept ? `<em>${pl.kept} corrigée${pl.kept>1?'s':''} à la main, gardée${pl.kept>1?'s':''}</em>` : pl.same ? `<em>${pl.same} déjà à jour</em>` : ''}</span>
+        </div>
+        ${g.withdrawals.length ? `<div class="tdv-wd">${icon('wallet')}<span>Retrait${g.withdrawals.length>1?'s':''} repéré${g.withdrawals.length>1?'s':''} : ${g.withdrawals.map(w=>`${fmtDate(w.day)} (${poMoney(w.amount)})`).join(', ')}. Pense à enregistrer le payout avec le montant reçu s’il n’y est pas.</span></div>` : ''}` : ''}
+      </div>`;
+    }).join('') + `<button type="button" class="btn btn-ghost btn-sm" id="tdv-again" style="margin-top:6px;">Choisir un autre fichier</button>`;
+  };
+  const okCount = ()=> parsed && parsed.groups ? [...document.querySelectorAll('[data-tdv-i]:checked')].length : 0;
+  const paint = ()=>{
+    document.getElementById('tdv-body').innerHTML = body();
+    const btn = document.getElementById('tdv-go'); if(btn){ btn.disabled = !okCount(); }
+    const f = document.getElementById('tdv-file');
+    if(f) f.onchange = ()=>{ const file = f.files && f.files[0]; if(file) read(file); };
+    const drop = document.getElementById('tdv-drop');
+    if(drop){
+      drop.ondragover = e=>{ e.preventDefault(); drop.classList.add('over'); };
+      drop.ondragleave = ()=>drop.classList.remove('over');
+      drop.ondrop = e=>{ e.preventDefault(); drop.classList.remove('over'); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if(file) read(file); };
+    }
+    const again = document.getElementById('tdv-again'); if(again) again.onclick = ()=>{ parsed = null; paint(); };
+    document.querySelectorAll('[data-tdv-i]').forEach(cb=>cb.onchange = ()=>{ const b = document.getElementById('tdv-go'); if(b) b.disabled = !okCount(); });
+  };
+  const read = file=>{
+    if(file.size > 5e6){ parsed = { error:'Fichier trop gros (5 Mo maximum).' }; paint(); return; }
+    const fr = new FileReader();
+    fr.onload = ()=>{ parsed = tdvParse(String(fr.result || '')); paint(); };
+    fr.onerror = ()=>{ parsed = { error:'Lecture du fichier impossible.' }; paint(); };
+    fr.readAsText(file);
+  };
+  openModal({
+    title: 'Importer un relevé Tradovate',
+    wide: true,
+    bodyHtml: `<div id="tdv-body"></div>`,
+    footHtml: `<button class="btn btn-outline" onclick="closeModal()">Annuler</button><button class="btn btn-primary" id="tdv-go" disabled>${icon('download')}Importer</button>`,
+    onMount: ()=>{
+      paint();
+      document.getElementById('tdv-go').onclick = async ()=>{
+        const btn = document.getElementById('tdv-go');
+        const picked = [...document.querySelectorAll('[data-tdv-i]:checked')].map(cb=>parsed.groups[Number(cb.dataset.tdvI)]).filter(g=>g && g.acc);
+        if(!picked.length) return;
+        btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Import…';
+        let days = 0;
+        try{
+          for(const g of picked){
+            const pl = tdvPlan(g); const a = g.acc; const now = new Date().toISOString();
+            const payload = pl.write.map(r=>({ user_id:currentUserId(), account_id:a.id, day:r.day, traded:true, pnl:r.pnl, source:'tradovate', updated_at:now }));
+            for(let i = 0; i < payload.length; i += 500){
+              const { error } = await supabaseClient.from('dormancy_logs').upsert(payload.slice(i, i + 500), { onConflict:'account_id,day' });
+              if(error) throw error;
+            }
+            const logs = state.dormancyLogs || (state.dormancyLogs = []);
+            pl.write.forEach(r=>{
+              const ex = logs.find(l=>String(l.accountId) === String(a.id) && l.day === r.day);
+              if(ex) Object.assign(ex, { pnl:r.pnl, traded:true, source:'tradovate', updatedAt:now });
+              else logs.push({ userId:currentUserId(), accountId:a.id, day:r.day, pnl:r.pnl, traded:true, source:'tradovate', updatedAt:now });
+            });
+            days += payload.length;
+            // Solde : seulement s'il est plus récent que celui déjà saisi.
+            const man = poManualBalance(a.id);
+            if(!man || !man.at || String(man.at).slice(0,10) <= g.balDay) await poSaveManualBalance(a.id, g.bal);
+            try{ await logActivity('UPDATE', 'dormancy_logs', a.id, `Relevé Tradovate importé : ${payload.length} journée(s), solde ${poMoney(g.bal)} au ${fmtDate(g.balDay)}`); }catch(e){}
+          }
+          closeModal();
+          showToast(`Relevé importé : ${picked.length} compte${picked.length>1?'s':''}, ${days} journée${days>1?'s':''} écrite${days>1?'s':''}, solde mis à jour.`, 'success');
+          if(opts.accId) payoutFicheModal(opts.accId); else renderView();
+        }catch(e){
+          btn.disabled = false; btn.innerHTML = icon('download') + 'Importer';
+          showToast('Import interrompu : ' + (e.message || e), 'danger');
+        }
+      };
+    },
+  });
+}
 function poOpen(accId){ payoutFicheModal(accId); }
 // Instantané pour l'email « Résumé de performance » (23/11/2026) : le serveur n'a pas les moteurs du
 // Radar ni du Prochain payout, l'app lui laisse leur état dans profiles.payout_plan.mailSnapshot.
@@ -8066,12 +8299,17 @@ function payoutFicheModal(accId){
   }).join('') || '<div class="cat-sub" style="padding:12px 0;">Cette formule n’a pas de condition de jours ni de cohérence.</div>';
   const daysHtml = s.days.length ? `<table class="po-days"><thead><tr><th>Jour</th><th class="num">P&amp;L</th><th>Compte pour le payout</th></tr></thead><tbody>${s.days.slice().reverse().map(d=>{
       const R = s.R, good = R.dayType === 'winning' ? d.pnl >= (Number(R.dayMin)||0) : (R.minDays ? true : null);
-      return `<tr><td class="mono">${fmtDate(d.day)}</td><td class="num mono" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${poSigned(d.pnl)}</td><td>${good === null ? '—' : good ? (R.dayType === 'winning' ? 'Jour gagnant' : 'Jour de trading') : `Non (sous +${R.dayMin} $)`}</td></tr>`;
+      const editable = isMineAccount(a);
+      const pnlCell = editable
+        ? `<button type="button" class="po-pnl-edit" data-po-day="${d.day}" data-po-pnl="${d.pnl}" title="Corriger le P&amp;L de cette journée" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${poSigned(d.pnl)}<span class="po-pnl-pen">${icon('edit')}</span></button>`
+        : poSigned(d.pnl);
+      const edited = d.src === 'edited' ? `<span class="badge badge-todo po-edited" title="P&amp;L corrigé à la main : la synchro Deltalytix ne le remplace plus">corrigé</span>${editable ? `<button type="button" class="po-pnl-undo" data-po-undo="${d.day}" title="Rendre la main à Deltalytix (valeur reprise à la prochaine synchro)">↺</button>` : ''}` : '';
+      return `<tr><td class="mono">${fmtDate(d.day)}${edited}</td><td class="num mono" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${pnlCell}</td><td>${good === null ? '—' : good ? (R.dayType === 'winning' ? 'Jour gagnant' : 'Jour de trading') : `Non (sous +${R.dayMin} $)`}</td></tr>`;
     }).join('')}</tbody></table>` : `<div class="cat-sub">Aucune journée enregistrée ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}. Les journées viennent de Deltalytix ou du Radar d’inactivité.</div>`;
   const manualBlock = s.src !== 'dlx' ? `<div class="po-sec po-bal">
       <div class="po-ct">Solde actuel du compte</div>
       <div class="cat-sub">Ce compte n’est pas synchronisé avec Deltalytix : saisis le solde affiché sur ta plateforme pour calculer le buffer et le montant possible.</div>
-      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
+      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button><button class="btn btn-outline btn-sm" id="po-tdv" title="Relevé Account Balance History de Tradovate : solde et journées tradées">${icon('download')}Relevé Tradovate</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
     </div>` : '';
   const srcTxt = s.src === 'dlx'
     ? `Solde et journées : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
@@ -8104,7 +8342,22 @@ function payoutFicheModal(accId){
       };
       const cat = document.getElementById('po-open-cat');
       if(cat) cat.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
+      const tdv = document.getElementById('po-tdv'); if(tdv) tdv.onclick = ()=>{ closeModal(); tdvImportModal({ accId }); };
       document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
+      // Correction du P&L d'une journée (23/11/2026) : clic sur le montant, saisie, Entrée.
+      document.querySelectorAll('.po-pnl-edit').forEach(btn=>btn.onclick = ()=>{
+        const td = btn.parentElement, day = btn.dataset.poDay;
+        td.innerHTML = `<span class="po-pnl-form"><input class="po-pnl-in mono" inputmode="decimal" value="${btn.dataset.poPnl}" aria-label="P&L du ${fmtDate(day)}"/><button type="button" class="btn btn-primary btn-sm po-pnl-ok">OK</button></span>`;
+        const inp = td.querySelector('input'); inp.focus(); inp.select();
+        const go = async ()=>{
+          const v = Number(String(inp.value).replace(/\s/g,'').replace(',', '.').replace(/[^0-9.\-]/g,''));
+          if(!Number.isFinite(v) || String(inp.value).trim() === ''){ showToast('Montant invalide.', 'danger'); return; }
+          if(await poSaveDayPnl(a, day, v)) payoutFicheModal(accId);
+        };
+        td.querySelector('.po-pnl-ok').onclick = go;
+        inp.onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); go(); } if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); payoutFicheModal(accId); } };
+      });
+      document.querySelectorAll('[data-po-undo]').forEach(b=>b.onclick = async ()=>{ if(await poUndoDayPnl(a, b.dataset.poUndo)) payoutFicheModal(accId); });
     }
   });
 }
@@ -8733,7 +8986,7 @@ function renderTopbarActions(){
   else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? `<button class="btn btn-primary" onclick="accountFormModal({})">${icon('plus')}Nouveau compte</button>` : '';
   else if(state.route==='plan-seance') el.innerHTML = `<button class="btn btn-primary" id="sp-open-cockpit">${icon('play')}Ouvrir le cockpit</button>`;
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + ((state.accounts || []).some(a=>isMineAccount(a) && (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF' && !dlxHealthOf(a.id)) ? `<button class="btn btn-ghost" onclick="tdvImportModal()" title="Relevé Account Balance History de Tradovate (CSV) : solde et journées tradées des comptes sans Deltalytix">${icon('download')}Relevé Tradovate</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
