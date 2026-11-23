@@ -57,14 +57,58 @@ function whyFail(r) {
   if (/abort/i.test(m)) return 'pas de réponse dans le délai (' + (TIMEOUT_MS / 1000) + ' s puis ' + (RETRY_MS / 1000) + ' s)';
   if (/^HTTP \d+/.test(m)) return 'le site répond ' + m;
   if (/ENOTFOUND|EAI_AGAIN/.test(m)) return 'adresse introuvable (DNS)';
+  if (CHAIN_ERR.test(m)) return 'certificat du site incomplet (' + m + ')';
   if (/ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ETIMEDOUT|UND_ERR/.test(m)) return 'connexion refusée ou coupée (' + m + ')';
   return m ? m.slice(0, 80) : 'erreur inconnue';
+}
+
+// Certains serveurs (dont PropFirm Factory) n'envoient pas le certificat intermédiaire :
+// les navigateurs le téléchargent eux-mêmes, Node refuse (UNABLE_TO_VERIFY_LEAF_SIGNATURE).
+// On fait comme le navigateur : on lit l'adresse « CA Issuers » du certificat du site,
+// on télécharge l'intermédiaire et on refait l'appel en le fournissant. La chaîne reste
+// entièrement vérifiée jusqu'aux autorités racines de Node.
+const https = require('https');
+const tls = require('tls');
+const crypto = require('crypto');
+const CHAIN_ERR = /UNABLE_TO_VERIFY_LEAF_SIGNATURE|UNABLE_TO_GET_ISSUER_CERT_LOCALLY/;
+const errCode = (e) => String((e && e.cause && e.cause.code) || (e && e.code) || (e && e.message) || e || '');
+
+function issuerUrl(host, port, ms) {
+  return new Promise((resolve, reject) => {
+    const sock = tls.connect({ host, port, servername: host, rejectUnauthorized: false, timeout: ms }, () => {
+      const c = sock.getPeerCertificate(); sock.end();
+      const ia = c && c.infoAccess; const u = ia && ia['CA Issuers - URI'] && ia['CA Issuers - URI'][0];
+      u ? resolve(u) : reject(new Error('pas d’adresse CA Issuers'));
+    });
+    sock.on('timeout', () => { sock.destroy(); reject(new Error('aborted')); });
+    sock.on('error', reject);
+  });
+}
+
+async function getWithIssuer(url, type, ms) {
+  const u = new URL(url);
+  const aia = await issuerUrl(u.hostname, Number(u.port) || 443, ms);
+  const der = Buffer.from(await (await fetch(aia)).arrayBuffer());
+  const pem = new crypto.X509Certificate(der).toString();
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { ca: [...tls.rootCertificates, pem], timeout: ms, headers: { 'User-Agent': 'Contralytix catalogue check (contact: contralytix.fr)', Accept: type === 'json' ? 'application/json' : 'text/csv,text/plain' } }, (res) => {
+      let body = ''; res.setEncoding('utf8');
+      res.on('data', (d) => { body += d; });
+      res.on('end', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) return reject(new Error('HTTP ' + res.statusCode));
+        try { resolve(type === 'json' ? JSON.parse(body) : body); } catch (e) { reject(e); }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('aborted')));
+    req.on('error', reject);
+  });
 }
 
 // Un nouvel essai si le premier échoue (site lent ou coupure passagère).
 async function getRetry(url, type) {
   try { return await get(url, type); } catch (e) {
-    console.log('[catalogue-check] 1er essai échoué', url, String((e && e.cause && e.cause.code) || (e && e.message) || e));
+    console.log('[catalogue-check] 1er essai échoué', url, errCode(e));
+    if (CHAIN_ERR.test(errCode(e))) return getWithIssuer(url, type, RETRY_MS);
     await new Promise((r) => setTimeout(r, 400));
     return get(url, type, RETRY_MS);
   }
