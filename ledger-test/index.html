@@ -1174,6 +1174,10 @@ th.th-sort-active svg{opacity:1;}
 .po-bal-top .btn svg{width:13px;height:13px;}
 .po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
 .po-days-acts{display:flex;gap:4px;flex-wrap:wrap;}
+.po-w-norules{display:flex;flex-direction:column;gap:6px;}
+.po-w-nr{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--text-dim);font:inherit;font-size:12px;text-align:left;cursor:pointer;}
+.po-w-nr:hover{border-color:var(--accent);color:var(--text);}
+.po-w-nr b{color:var(--text);font-weight:600;}
 .po-add-day{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:12px;margin:4px 0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
 .po-add-day[hidden],#po-add-day[hidden]{display:none;}   /* le bloc ne s'ouvre qu'au clic sur « Ajouter une journée » */
 .po-add-day .field{margin:0;}
@@ -8734,7 +8738,7 @@ function pilotPayoutWidgetHtml(pd){
     ${rows || `<div class="panel-body"><div class="empty-sub">${pd.paActive.length ? 'Aucun PA actif n’a de formule du catalogue. Choisis-la dans la fiche de chaque compte (champ « Formule »).' : 'Aucun PA ou compte Live actif.'}</div></div>`}
     ${list.length > 8 ? `<div class="po-w-more cat-sub">+ ${list.length - 8} autres PA · <a href="#" onclick="event.preventDefault();state.route='accounts';render();">voir la page Comptes</a></div>` : ''}
     ${noProg && list.length ? `<div class="po-w-more cat-sub">${noProg} PA sans formule : non suivi${noProg>1?'s':''}.</div>` : ''}
-    ${noRulesN ? `<div class="po-w-more cat-sub">${noRulesN} compte${noRulesN>1?'s':''} dont la formule n’a pas encore de règles de payout dans le catalogue.</div>` : ''}
+    ${noRulesN ? `<div class="po-w-more cat-sub po-w-norules">${noRulesN > 1 ? `${noRulesN} comptes non suivis : leur formule` : '1 compte non suivi : sa formule'} n’a pas encore de règles de payout dans le catalogue.${all.filter(s=>s.state === 'norules').map(s=>{ const f = getFirm(s.a.propFirmId); return `<button type="button" class="po-w-nr" onclick="poOpen('${s.a.id}')" title="Ouvrir la fiche Payout de ce compte">${firmLogoHtml(f, 18)}<span><b>${escapeHtml(f ? f.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b>${s.a.accountNumber ? ' · ' + maskAccountNumber(String(s.a.accountNumber)) : ''}</span></button>`; }).join('')}</div>` : ''}
   </div>`;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && state.route === 'catalogue' && state.cat && state.cat.open){ state.cat.open = null; renderView(); } });
