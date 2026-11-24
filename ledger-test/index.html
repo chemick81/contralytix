@@ -8049,7 +8049,8 @@ function payoutStatus(a){
   const useMan = man && (man.override || dlxBal == null);
   const bal = useMan ? man.v : dlxBal;
   const size = accSizeNum(a);
-  const start = h && h.startingBalance != null ? Number(h.startingBalance) : size;
+  // Solde de départ : réglage Deltalytix, sinon celui de la formule (ex. TPT PRO+ part de 0 $), sinon la taille.
+  const start = h && h.startingBalance != null ? Number(h.startingBalance) : (R.startBalance != null && R.startBalance !== '' ? Number(R.startBalance) : size);
   const profitCycle = days.reduce((s,d)=>s + d.pnl, 0);
   const best = days.reduce((m,d)=>Math.max(m, d.pnl), 0);
   const conds = [], miss = [];
@@ -8109,7 +8110,10 @@ function payoutStatus(a){
     // Sans buffer (Fast Pass, Flex, Rapid Pro…) : le montant est aussi limité par le profit du cycle.
     if(R.capPct || R.cycleProfit) withdrawable = Math.min(withdrawable, Math.max(0, profitCycle));
     const ok = withdrawable >= minPayout && withdrawable > 0;
-    conds.push({ key:'bal', t: minPayout ? `Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}` : 'Profit au-dessus du solde de départ', d:'Profit disponible au-dessus du solde de départ', v: poMoney(withdrawable), ok });
+    // Frais sur les petits retraits (ex. TPT : 50 $ pour 250 $ ou moins) : signalés, sans bloquer.
+    const fee = R.feeBelow && Number(R.feeBelow.amount) ? `Frais de ${poMoney(Number(R.feeBelow.fee) || 0)} sur un retrait de ${poMoney(Number(R.feeBelow.amount))} ou moins` : '';
+    const dTxt = R.payoutAnyDay ? `Payout possible chaque jour, sans montant minimum${fee ? ' · ' + fee : ''}` : 'Profit disponible au-dessus du solde de départ';
+    conds.push({ key:'bal', t: minPayout ? `Retrait minimum ${poMoney(minPayout)}${R.floorStart ? ', jamais sous le solde de départ' : ''}` : (R.payoutAnyDay ? `Profit disponible${start ? ' au-dessus de ' + poMoney(start) : ''}` : 'Profit au-dessus du solde de départ'), d: dTxt, v: poMoney(withdrawable), ok });
     prog.push(ok ? 1 : Math.max(0, withdrawable / Math.max(minPayout, 1)));
     if(!ok) miss.push(poMoney(Math.max(minPayout, 1) - withdrawable) + ' de profit');
   }
@@ -8123,7 +8127,8 @@ function payoutStatus(a){
   }
   const maxed = R.maxPayouts && n > Number(R.maxPayouts);
   // Formule sans aucune règle de payout dans le catalogue (ex. Live TPT PRO+) : pas de verdict inventé.
-  const noRules = !minPayout && !buf && !minDays && !coh && !(cyc && cyc > 1) && !cap && !capPct && !R.minRequestProfit;
+  // payoutAnyDay : formule sans condition, payout possible chaque jour dès qu'il y a du profit (TPT PRO+).
+  const noRules = !R.payoutAnyDay && !minPayout && !buf && !minDays && !coh && !(cyc && cyc > 1) && !cap && !capPct && !R.minRequestProfit;
   if(maxed) miss.unshift('nombre maximum de payouts atteint (' + R.maxPayouts + ')');
   const condsOk = conds.every(c=>c.ok !== false);
   const ready = condsOk && bal != null && !maxed && amt != null && amt >= minPayout && amt > 0;
