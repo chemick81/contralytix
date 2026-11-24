@@ -13631,7 +13631,7 @@ function viewDashboard(){
       cfConfigured = false;
     }
   } else {
-    cfKeys = buildPeriodKeys(cfGran, cfGran==='year' ? 3 : cfGran==='quarter' ? 4 : 6);
+    cfKeys = buildPeriodKeys(cfGran, cfGran==='year' ? 3 : cfGran==='quarter' ? 4 : 12);   // Mois : 12 barres (24/11/2026)
   }
 
   const chartData = cfKeys.map(mk=>{
@@ -13664,7 +13664,7 @@ function viewDashboard(){
   const cfSubtitle = cfGran==='year' ? `${cfKeys.length||3} dernières années`
     : cfGran==='quarter' ? `${cfKeys.length||4} derniers trimestres`
     : cfGran==='custom' ? (cfConfigured ? 'période personnalisée' : 'à configurer')
-    : `${cfKeys.length||6} derniers mois`;
+    : `${cfKeys.length||12} derniers mois`;
 
   // Délais moyens (payouts, breach, passage en PA) — on garde le détail par compte pour le drill-down.
   // Un délai négatif signifie une incohérence de dates (ex: payout daté avant l'ouverture du compte,
