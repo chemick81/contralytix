@@ -1,9 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://contralytix.fr/</loc>
-    <lastmod>2026-08-18</lastmod>
-    <changefreq>monthly</changefreq>
+    <lastmod>2026-11-24</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/03-dashboard.jpg</image:loc>
+      <image:title>Tableau de bord Contralytix de gestion des comptes prop firm</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/06c-comptes-inactivite.jpg</image:loc>
+      <image:title>Liste des comptes prop firm avec net réel et suivi d’inactivité</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/06d-import-capture.jpg</image:loc>
+      <image:title>Import de comptes prop firm par capture d’écran</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/09-bilan.jpg</image:loc>
+      <image:title>Bilan visuel mensuel des traders prop firm</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/12-comparatif.jpg</image:loc>
+      <image:title>Comparatif des PropFirms</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/17-rentabilite.jpg</image:loc>
+      <image:title>Rentabilité réelle d’un trader prop firm</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/19-radar.jpg</image:loc>
+      <image:title>Radar inactivité des comptes financés</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://contralytix.fr/assets/manuel/18b-bilan-public.jpg</image:loc>
+      <image:title>Bilan public d’une communauté de traders</image:title>
+    </image:image>
   </url>
 </urlset>

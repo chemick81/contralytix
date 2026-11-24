@@ -11,8 +11,8 @@
      Mots-clés ciblés (gestion financière prop firm) répartis naturellement entre title,
      description, JSON-LD "keywords" et le contenu visible de la page d'accueil ci-dessous —
      jamais de bourrage de mots-clés invisible, Google le pénalise. -->
-<meta name="description" content="Contralytix, l'outil de gestion financière pour traders prop firm : suivi de vos comptes Challenge, PA (compte financé) et Live, dépenses, payouts et comptabilité de trading centralisés en un seul tableau de bord." />
-<meta name="keywords" content="gestion propfirm, gestion financière prop firm, suivi comptes prop firm, logiciel prop firm, tracker trading, comptabilité trader, suivi payout, compte financé, funded trader, challenge prop firm, PA prop firm" />
+<meta name="description" content="Contralytix, la gestion financière des traders prop firm : comptes Challenge, PA et Live, dépenses, payouts et net réel, prochain payout calculé selon les règles de ta prop firm, Radar inactivité et import Tradovate / R|Trader Pro." />
+<meta name="keywords" content="gestion propfirm, gestion financière prop firm, suivi comptes prop firm, logiciel prop firm, tracker trading, comptabilité trader, suivi payout, compte financé, funded trader, challenge prop firm, PA prop firm, prochain payout prop firm, règles payout prop firm, buffer prop firm, catalogue prop firm, import Tradovate, R|Trader Pro, Rithmic, Apex Trader Funding, Lucid Trading, Bulenox, TradeDay" />
 <link rel="canonical" href="https://contralytix.fr/" />
 <meta name="theme-color" content="#0B0F14" />
 
@@ -21,14 +21,14 @@
 <meta property="og:locale" content="fr_FR" />
 <meta property="og:url" content="https://contralytix.fr/" />
 <meta property="og:title" content="Contralytix — Gestion Financière de Comptes Prop Firm" />
-<meta property="og:description" content="Suivi financier de comptes prop firm (Challenge, PA, Live), dépenses, payouts et comptabilité pour traders, en un seul endroit." />
+<meta property="og:description" content="Comptes prop firm (Challenge, PA, Live), dépenses, payouts et net réel, prochain payout selon les règles de ta prop firm, Radar inactivité et import Tradovate / R|Trader Pro." />
 <meta property="og:image" content="https://contralytix.fr/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Contralytix — Gestion Financière de Comptes Prop Firm" />
-<meta name="twitter:description" content="Suivi financier de comptes prop firm (Challenge, PA, Live), dépenses, payouts et comptabilité pour traders, en un seul endroit." />
+<meta name="twitter:description" content="Comptes prop firm (Challenge, PA, Live), dépenses, payouts et net réel, prochain payout selon les règles de ta prop firm, Radar inactivité et import Tradovate / R|Trader Pro." />
 <meta name="twitter:image" content="https://contralytix.fr/og-image.png" />
 
 <!-- Données structurées (schema.org) pour aider Google à comprendre la nature du site
@@ -41,7 +41,19 @@
   "alternateName": "Contralytix — Gestion Financière Prop Firm",
   "url": "https://contralytix.fr/",
   "description": "Contralytix est l'outil de gestion financière de comptes prop firm pour traders : suivi des comptes Challenge, PA (compte financé) et Live, des dépenses, des payouts, de la comptabilité et du bilan de performance, en un seul endroit.",
-  "keywords": "gestion propfirm, gestion financière prop firm, suivi comptes prop firm, comptabilité trader, suivi payout, compte financé, funded trader, challenge prop firm",
+  "keywords": "gestion propfirm, gestion financière prop firm, suivi comptes prop firm, comptabilité trader, suivi payout, prochain payout prop firm, règles payout prop firm, compte financé, funded trader, challenge prop firm, import Tradovate, R|Trader Pro",
+  "featureList": [
+    "Suivi des comptes prop firm Challenge, PA et Live",
+    "Dépenses, payouts et rentabilité réelle (net réel)",
+    "Prochain payout calculé selon les règles de la prop firm",
+    "Catalogue des règles des comptes financés (drawdown, buffer, cohérence, split)",
+    "Radar inactivité",
+    "Import des relevés Tradovate et R|Trader Pro (CSV)",
+    "Import des comptes par capture d'écran et Deltalytix",
+    "Trading plan et objectif de payouts",
+    "Fiscalité micro-BNC et exports comptables"
+  ],
+  "screenshot": "https://contralytix.fr/assets/manuel/03-dashboard.jpg",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
   "inLanguage": "fr-FR",
@@ -68,6 +80,21 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Comment savoir quand demander un payout sur mon compte financé prop firm ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "La fiche « Prochain payout » de Contralytix applique les règles de payout de ta prop firm (jours minimum, cohérence, buffer, retrait minimum, plafond) à ton compte PA : elle indique si tu peux demander ton payout, le montant possible, le montant reçu estimé selon le split, et ce qu'il te manque sinon." }
+    },
+    {
+      "@type": "Question",
+      "name": "Puis-je importer mon historique Tradovate ou R|Trader Pro (Rithmic) ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui : dépose l'export « Account Balance History » de Tradovate, ou les exports « Performance » et « Trader Dashboard » de R|Trader Pro. Contralytix importe le solde, le P&L de chaque journée et les jours tradés, et propose de créer les comptes qui manquent. Aucune connexion ni mot de passe n'est demandé." }
+    },
+    {
+      "@type": "Question",
+      "name": "Où trouver les règles des comptes financés Apex, Lucid, Bulenox ou TradeDay ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Dans le catalogue prop firm de Contralytix : drawdown EOD ou intraday, buffer, jours minimum, cohérence, retrait minimum, plafonds, split et DLL de chaque formule financée, relevés sur les sites officiels et contrôlés avec deux sources indépendantes." }
+    },
     {
       "@type": "Question",
       "name": "Qu'est-ce que Contralytix ?",
@@ -3437,6 +3464,21 @@ th.th-sort-active svg{opacity:1;}
           <h3>Import par capture d'écran</h3>
           <p>Une capture de ta plateforme (Rithmic, ATAS, Tradovate, dashboard prop firm) suffit pour créer tes comptes : numéros lus automatiquement, comptes démo ignorés, rien n'est créé sans ta validation.</p>
         </article>
+        <article class="ml-feature-card" id="ml-feature-payout">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <h3>Prochain payout calculé pour chaque PA</h3>
+          <p>Jours minimum, cohérence, buffer, retrait minimum, plafond : les règles de payout de ta prop firm appliquées à ton compte financé, avec le montant possible et ce qu'il te manque. Le Dashboard classe tes PA du plus proche au plus loin.</p>
+        </article>
+        <article class="ml-feature-card" id="ml-feature-catalogue">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H19v14H5.5A1.5 1.5 0 0 0 4 19.5v-14Z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19"/><path d="M8 8h7M8 11.5h5"/></svg></div>
+          <h3>Catalogue des règles prop firm</h3>
+          <p>Apex, Lucid, Bulenox, TradeDay, Funded Futures Family, Take Profit Trader, FundedNext… Les règles des comptes financés (drawdown EOD ou intraday, buffer, cohérence, split, DLL) relevées sur les sites officiels, contrôlées et comparables d'un coup d'œil.</p>
+        </article>
+        <article class="ml-feature-card" id="ml-feature-releves">
+          <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
+          <h3>Import des relevés Tradovate et R|Trader Pro</h3>
+          <p>Dépose l'export CSV de ta plateforme : solde, P&amp;L de chaque journée et jours tradés importés pour le Radar inactivité et le prochain payout, comptes manquants créés dans la foulée. Sans connexion, sans mot de passe.</p>
+        </article>
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12M6 22h12"/><path d="M7 2c0 5 10 5 10 10S7 17 7 22"/><path d="M17 2c0 5-10 5-10 10s10 5 10 10"/></svg></div>
           <h3>Radar inactivité</h3>
@@ -3490,14 +3532,14 @@ th.th-sort-active svg{opacity:1;}
         <article class="ml-feature-card">
           <div class="ml-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></div>
           <h3>Résumé de performance par email</h3>
-          <p>Un récapitulatif hebdomadaire de votre activité — payouts reçus, dépenses, évolution des comptes — directement dans votre boîte mail, activable ou non depuis vos préférences.</p>
+          <p>Un récapitulatif hebdomadaire de votre activité — payouts reçus, dépenses, comptes à trader avant l’échéance d’inactivité et prochains payouts — directement dans votre boîte mail, activable ou non depuis vos préférences.</p>
         </article>
       </div>
     </section>
 
     <section class="ml-integrations" id="ml-integrations">
       <h2>Compatible avec tes outils</h2>
-      <p class="ml-features-sub">Contralytix gère tes comptes, tes dépenses et tes payouts. Pour le reste, il se branche sur ce que tu utilises déjà.</p>
+      <p class="ml-features-sub">Contralytix gère tes comptes, tes dépenses et tes payouts. Pour le reste, il se branche sur ce que tu utilises déjà : Deltalytix, et les relevés CSV de Tradovate et R|Trader Pro (Rithmic).</p>
       <div class="ml-integ-card">
         <img class="ml-integ-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAABr0lEQVR42r2WsUorQRSGv90xC4tprIIk5AG8kKyNXWobH+LqE6h94BaBtBbpAlmbPEGEYBtS2Sl4HyCFQooV5FhkCZlbOJsb7sXgTNj94TQzzPz8Z84583unl2dkuL+5awBXwAlwCOwDAXZIgQ/gBXgAbk4vz56yTX+DbAA8Aj+BI+DAgQxz5gD4AZwDj+buTxiFA0DnHIMsm40CyLJoKKALHFMMQt8UiBWiKHIlPAFIbNISRZFOksQ1pQnAwubQeDzWIqLb7bYL4QJbdSKikyTRs9nMSaUCfn33AeI4plqtorWmXC6jlGIymVg9om9TKK1Wi9VqtV6rVCrWVfNtwm63y3K53LkvfFt1IpI/YaYuCAL6/f7OKq0rU0S0iOher2ddpX7R6nDpu9wU5qEOl6mSi8JNdZ1O57991570zEAN/u276XRKmqbWF4oI9Xr9S7+jgGsg3FwdDofUajW01nietzVKpRJKqXWEYbhtxr7vAa/G9Kwxn88ZjUbORbFlxr4AxAV6mkHhJqpwm+gbb3phUpsXYsPx97cwC01D/Ay8Gdtui9Sc/Q3cAs2MDOAPQSLitYMNBdkAAAAASUVORK5CYII=" alt="" width="48" height="48"/>
         <div class="ml-integ-text">
@@ -3553,6 +3595,18 @@ th.th-sort-active svg{opacity:1;}
     <section class="ml-faq">
       <h2>Questions fréquentes</h2>
       <div class="ml-faq-list">
+        <details class="ml-faq-item">
+          <summary>Comment savoir quand demander un payout sur mon compte financé prop firm ?</summary>
+          <p>La fiche « Prochain payout » de Contralytix applique les règles de payout de ta prop firm (jours minimum, cohérence, buffer, retrait minimum, plafond) à ton compte PA : elle indique si tu peux demander ton payout, le montant possible, le montant reçu estimé selon le split, et ce qu'il te manque sinon.</p>
+        </details>
+        <details class="ml-faq-item">
+          <summary>Puis-je importer mon historique Tradovate ou R|Trader Pro (Rithmic) ?</summary>
+          <p>Oui : dépose l'export « Account Balance History » de Tradovate, ou les exports « Performance » et « Trader Dashboard » de R|Trader Pro. Contralytix importe le solde, le P&amp;L de chaque journée et les jours tradés, et propose de créer les comptes qui manquent. Aucune connexion ni mot de passe n'est demandé.</p>
+        </details>
+        <details class="ml-faq-item">
+          <summary>Où trouver les règles des comptes financés Apex, Lucid, Bulenox ou TradeDay ?</summary>
+          <p>Dans le catalogue prop firm de Contralytix : drawdown EOD ou intraday, buffer, jours minimum, cohérence, retrait minimum, plafonds, split et DLL de chaque formule financée, relevés sur les sites officiels et contrôlés avec deux sources indépendantes.</p>
+        </details>
         <details class="ml-faq-item">
           <summary>Qu'est-ce que Contralytix ?</summary>
           <p>Contralytix est un outil de gestion financière pour traders prop firm : il centralise le suivi de tes comptes Challenge, PA (compte financé) et Live, toutes PropFirms confondues, avec tes dépenses, tes payouts et ta comptabilité de trading dans un seul tableau de bord.</p>
@@ -8128,6 +8182,8 @@ function tdvParseFile(text, fileName){
       const bal = tdvNum(r[iBal]); if(bal == null) return;
       const g = add(byAcc, r[iAcc], iName > -1 ? r[iName] : ''); if(!g) return;
       g.bal = bal; g.balDay = todayISO(); g.minBal = iMin > -1 ? tdvNum(r[iMin]) : null;
+      // Compte liquidé : solde au plancher (ou en dessous) d'après le Trader Dashboard.
+      g.liquidated = g.minBal != null && g.minBal > 0 && bal <= g.minBal + 0.01;
     });
     return byAcc.size ? { kind:'rithmic-dashboard', groups:[...byAcc.values()] } : { error:'Aucun compte lisible dans ce Trader Dashboard.' };
   }
@@ -8167,6 +8223,7 @@ function tdvMerge(results){
     if(g.rows.length){ const m = new Map(cur.rows.map(x=>[x.day, x])); g.rows.forEach(x=>m.set(x.day, { ...(m.get(x.day) || {}), ...x })); cur.rows = [...m.values()].sort((x,y)=>x.day.localeCompare(y.day)); }
     if(g.bal != null && (cur.bal == null || (g.balDay || '') >= (cur.balDay || ''))){ cur.bal = g.bal; cur.balDay = g.balDay; }
     if(g.minBal != null) cur.minBal = g.minBal;
+    if(g.liquidated) cur.liquidated = true;
   }));
   if(!byAcc.size) return { error: errors.join(' ') || 'Aucune donnée exploitable.' };
   const mine = (state.accounts || []).filter(a=>isMineAccount(a) && a.accountNumber);
@@ -8219,14 +8276,25 @@ function tdvImportModal(opts){
       .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type !== 'CHALLENGE') - (x.type !== 'CHALLENGE')) || String(x.accountNumber || '').localeCompare(String(y.accountNumber || '')));
     const accLabel = x => { const f = getFirm(x.propFirmId); return `${(f || {}).name || 'PropFirm'} · ${x.type === 'LIVE' ? 'Live' : x.type === 'CHALLENGE' ? 'Challenge' : 'PA'} ${sizeLabelRaw(x) || ''} · ${String(x.accountNumber || 'sans n°')}${x.status !== 'ACTIF' ? ' (' + String(x.status).toLowerCase() + ')' : ''}${dlxHealthOf(x.id) ? ' · Deltalytix' : ''}`; };
     return warn + parsed.groups.map((g, i)=>{
+      if(!g._init){ g._init = true; if(!g.acc && !g.liquidated) g.createNew = true; }
       const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
       const srcTag = `<span class="badge cat-b-slate" style="margin-left:6px;">${g.source === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}</span>`;
-      const skip = !a;
-      const sel = `<select class="tdv-target" data-tdv-target="${i}" aria-label="Compte Contralytix pour ${escapeHtml(g.name)}"><option value="">— Ne pas importer —</option>${targets.map(x=>`<option value="${escapeHtml(x.id)}" ${a && a.id === x.id ? 'selected' : ''}>${escapeHtml(accLabel(x))}</option>`).join('')}</select>`;
-      const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b>${srcTag} <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? 'trouvé par le numéro' : 'compte choisi') : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
+      const skip = !a && !g.createNew;
+      const canCreate = !g.auto && !g.liquidated;
+      const sel = `<select class="tdv-target" data-tdv-target="${i}" aria-label="Compte Contralytix pour ${escapeHtml(g.name)}"><option value="">— Ne pas importer —</option>${canCreate ? `<option value="__new" ${g.createNew ? 'selected' : ''}>+ Créer ce compte</option>` : ''}${targets.map(x=>`<option value="${escapeHtml(x.id)}" ${a && a.id === x.id ? 'selected' : ''}>${escapeHtml(accLabel(x))}</option>`).join('')}</select>`;
+      const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b>${srcTag} ${g.createNew ? ' <span class="badge badge-accent" style="margin-left:4px;">Nouveau</span>' : ''}${g.liquidated ? ' <span class="badge badge-danger" style="margin-left:4px;">Liquidé</span>' : ''} <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? 'trouvé par le numéro' : 'compte choisi') : g.createNew ? 'pas encore dans Contralytix' : g.liquidated ? 'compte liquidé : non proposé à la création' : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
+      const guess = g.createNew ? (()=>{ const ia = tdvAsImportAccount(g), sz = tdvGuessSize(g), fm = tdvGuessFirm(g.name), det = cimKeywordDetection(g.name);
+        return `<div class="tdv-guess">${icon('sparkles')}<span>Déduit : ${fm ? `<b>${escapeHtml(fm.name)}</b> (${fm.why})` : '<b>prop firm à choisir</b>'} · <b>${det.type === 'CHALLENGE' ? 'Challenge' : det.type === 'LIVE' ? 'Live' : 'PA'}</b>${det.type ? '' : ' (à confirmer)'} · ${sz ? `<b>${acatSizeLabel(sz.size)}</b> (${sz.why})` : '<b>taille à choisir</b>'}${ia.firstTradeDay ? ` · début <b>${fmtDate(ia.firstTradeDay)}</b>` : ''}</span></div>`; })() : '';
       const why = a && pl.dlx ? 'Compte synchronisé avec Deltalytix : les journées du relevé remplaceront celles de Deltalytix et ne seront plus écrasées par la synchro. Le solde affiché reste celui de Deltalytix.' : '';
-      return `<div class="tdv-acc${skip ? ' off' : ''}"><div class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'} aria-label="Importer ce compte"/>${head}</div>
+      return `<div class="tdv-acc${skip ? ' off' : ''}${g.createNew ? ' tdv-new' : ''}"><div class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'} aria-label="Importer ce compte"/>${head}</div>
         ${why ? `<div class="cat-sub" style="margin:6px 0 0 26px;">${why}</div>` : ''}
+        ${guess}
+        ${g.createNew ? `<div class="tdv-stats">
+          <span><small>${g.bal != null ? 'Solde au ' + fmtDate(g.balDay) : 'Solde'}</small><b class="mono">${g.bal != null ? poMoney(g.bal) : '—'}</b>${g.minBal ? `<em>solde minimum ${poMoney(g.minBal)}</em>` : ''}</span>
+          <span><small>Journées tradées</small><b>${g.tradedRows.length}</b><em>${g.tradedRows.length ? 'du ' + fmtDate(g.tradedRows[0].day) + ' au ' + fmtDate(g.tradedRows[g.tradedRows.length-1].day) : (g.source === 'rithmic' ? 'ajoute son export Performance' : '—')}</em></span>
+          <span><small>P&amp;L de la période</small><b class="mono" style="color:${g.pnl < 0 ? 'var(--danger)' : 'var(--accent)'}">${g.tradedRows.length ? poSigned(Math.round(g.pnl * 100) / 100) : '—'}</b></span>
+          <span><small>Ensuite</small><b>création${g.tradedRows.length ? ' + journées' : ''}${g.bal != null ? ' + solde' : ''}</b></span>
+        </div>` : ''}
         ${a && !skip ? `<div class="tdv-stats">
           <span><small>${g.bal != null ? 'Solde au ' + fmtDate(g.balDay) : 'Solde'}</small><b class="mono">${g.bal != null ? poMoney(g.bal) : '—'}</b>${g.bal == null ? `<em>non fourni${g.source === 'rithmic' ? ' : ajoute le Trader Dashboard' : ''}</em>` : g.minBal ? `<em>solde minimum ${poMoney(g.minBal)}</em>` : ''}</span>
           <span><small>Journées tradées</small><b>${g.tradedRows.length}</b>${g.rows.length ? `<em>${g.tradedRows.length ? 'du ' + fmtDate(g.tradedRows[0].day) + ' au ' + fmtDate(g.tradedRows[g.tradedRows.length-1].day) : ''}</em>` : `<em>${g.source === 'rithmic' ? 'ajoute l’export Performance' : 'aucune'}</em>`}</span>
@@ -8235,7 +8303,7 @@ function tdvImportModal(opts){
         </div>
         ${g.withdrawals.length ? `<div class="tdv-wd">${icon('wallet')}<span>Retrait${g.withdrawals.length>1?'s':''} repéré${g.withdrawals.length>1?'s':''} : ${g.withdrawals.map(w=>`${fmtDate(w.day)} (${poMoney(w.amount)})`).join(', ')}. Pense à enregistrer le payout avec le montant reçu s’il n’y est pas.</span></div>` : ''}` : ''}
       </div>`;
-    }).join('') + `<button type="button" class="btn btn-ghost btn-sm" id="tdv-again" style="margin-top:6px;">Choisir d’autres fichiers</button>`;
+    }).join('') + (parsed.groups.some(g=>g.createNew) ? `<div class="tdv-wd">${icon('info')}<span><b>${parsed.groups.filter(g=>g.createNew).length} compte${parsed.groups.filter(g=>g.createNew).length>1?'s':''} à créer</b> : à l’étape suivante tu vérifies la prop firm, le type et la taille déduits, et tu ajoutes le prix et le paiement (absents des fichiers), comme pour l’import par capture.</span></div>` : '') + `<button type="button" class="btn btn-ghost btn-sm" id="tdv-again" style="margin-top:6px;">Choisir d’autres fichiers</button>`;
   };
   const okCount = ()=> parsed && parsed.groups ? [...document.querySelectorAll('[data-tdv-i]:checked')].length : 0;
   const paint = ()=>{
@@ -8251,7 +8319,9 @@ function tdvImportModal(opts){
     }
     const again = document.getElementById('tdv-again'); if(again) again.onclick = ()=>{ parsed = null; paint(); };
     document.querySelectorAll('[data-tdv-i]').forEach(cb=>cb.onchange = ()=>{ const b = document.getElementById('tdv-go'); if(b) b.disabled = !okCount(); });
-    document.querySelectorAll('[data-tdv-target]').forEach(se=>se.onchange = ()=>{ const g = parsed.groups[Number(se.dataset.tdvTarget)]; g.acc = se.value ? getAccount(se.value) : null; paint(); });
+    document.querySelectorAll('[data-tdv-target]').forEach(se=>se.onchange = ()=>{ const g = parsed.groups[Number(se.dataset.tdvTarget)]; g.createNew = se.value === '__new'; g.acc = se.value && se.value !== '__new' ? getAccount(se.value) : null; paint(); });
+    const go = document.getElementById('tdv-go');
+    if(go && parsed && parsed.groups){ const nNew = [...document.querySelectorAll('[data-tdv-i]:checked')].filter(cb=>parsed.groups[Number(cb.dataset.tdvI)].createNew).length; go.innerHTML = nNew ? `${icon('arrowRight')}Continuer : vérifier ${nNew} nouveau${nNew>1?'x':''} compte${nNew>1?'s':''}` : `${icon('download')}Importer`; }
   };
   const readOne = file => new Promise(res=>{
     if(file.size > 5e6) return res({ error:`${file.name} : fichier trop gros (5 Mo maximum).` });
@@ -8276,30 +8346,20 @@ function tdvImportModal(opts){
       paint();
       document.getElementById('tdv-go').onclick = async ()=>{
         const btn = document.getElementById('tdv-go');
-        const picked = [...document.querySelectorAll('[data-tdv-i]:checked')].map(cb=>parsed.groups[Number(cb.dataset.tdvI)]).filter(g=>g && g.acc);
-        if(!picked.length) return;
+        const picked = [...document.querySelectorAll('[data-tdv-i]:checked')].map(cb=>parsed.groups[Number(cb.dataset.tdvI)]).filter(g=>g && g.acc && !g.createNew);
+        if(!picked.length && !parsed.groups.some(g=>g.createNew)) return;
         btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Import…';
+        const toCreate = parsed.groups.filter((g, i)=>g.createNew && document.querySelector(`[data-tdv-i="${i}"]`) && document.querySelector(`[data-tdv-i="${i}"]`).checked);
         let days = 0;
         try{
-          for(const g of picked){
-            const pl = tdvPlan(g); const a = g.acc; const now = new Date().toISOString();
-            const src = g.source || 'tradovate';
-            const payload = pl.write.map(r=>({ user_id:currentUserId(), account_id:a.id, day:r.day, traded:true, pnl:r.pnl, source:src, updated_at:now }));
-            for(let i = 0; i < payload.length; i += 500){
-              const { error } = await supabaseClient.from('dormancy_logs').upsert(payload.slice(i, i + 500), { onConflict:'account_id,day' });
-              if(error) throw error;
-            }
-            const logs = state.dormancyLogs || (state.dormancyLogs = []);
-            pl.write.forEach(r=>{
-              const ex = logs.find(l=>String(l.accountId) === String(a.id) && l.day === r.day);
-              if(ex) Object.assign(ex, { pnl:r.pnl, traded:true, source:src, updatedAt:now });
-              else logs.push({ userId:currentUserId(), accountId:a.id, day:r.day, pnl:r.pnl, traded:true, source:src, updatedAt:now });
-            });
-            days += payload.length;
-            // Solde : seulement s'il est fourni et plus récent que celui déjà saisi.
-            const man = poManualBalance(a.id);
-            if(g.bal != null && (!man || !man.at || String(man.at).slice(0,10) <= g.balDay)) await poSaveManualBalance(a.id, g.bal);
-            try{ await logActivity('UPDATE', 'dormancy_logs', a.id, `Relevé ${src === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} importé : ${payload.length} journée(s)${g.bal != null ? `, solde ${poMoney(g.bal)} au ${fmtDate(g.balDay)}` : ''}`); }catch(e){}
+          days = await tdvApplyGroups(picked);
+          if(toCreate.length){
+            // Comptes absents : on passe par l'écran « Importer mes comptes » (prix, paiement…),
+            // puis leurs journées et soldes sont importés juste après la création.
+            closeModal();
+            if(days) showToast(`Relevé importé pour ${picked.length} compte${picked.length>1?'s':''} existant${picked.length>1?'s':''}. Vérifie maintenant les nouveaux comptes.`, 'success');
+            captureImportModal({ statementGroups: toCreate });
+            return;
           }
           closeModal();
           showToast(`Relevé importé : ${picked.length} compte${picked.length>1?'s':''}, ${days} journée${days>1?'s':''} écrite${days>1?'s':''}, solde mis à jour.`, 'success');
@@ -8311,6 +8371,61 @@ function tdvImportModal(opts){
       };
     },
   });
+}
+// Écrit les journées (dormancy_logs) et le solde de groupes de relevé déjà rattachés à un compte (g.acc).
+async function tdvApplyGroups(list){
+  let days = 0;
+  for(const g of list){
+    const pl = tdvPlan(g); const a = g.acc; if(!pl || !a) continue;
+    const now = new Date().toISOString();
+    const src = g.source || 'tradovate';
+    const payload = pl.write.map(r=>({ user_id:currentUserId(), account_id:a.id, day:r.day, traded:true, pnl:r.pnl, source:src, updated_at:now }));
+    if(SUPABASE_CONFIGURED) for(let i = 0; i < payload.length; i += 500){
+      const { error } = await supabaseClient.from('dormancy_logs').upsert(payload.slice(i, i + 500), { onConflict:'account_id,day' });
+      if(error) throw error;
+    }
+    const logs = state.dormancyLogs || (state.dormancyLogs = []);
+    pl.write.forEach(r=>{
+      const ex = logs.find(l=>String(l.accountId) === String(a.id) && l.day === r.day);
+      if(ex) Object.assign(ex, { pnl:r.pnl, traded:true, source:src, updatedAt:now });
+      else logs.push({ userId:currentUserId(), accountId:a.id, day:r.day, pnl:r.pnl, traded:true, source:src, updatedAt:now });
+    });
+    days += payload.length;
+    // Solde : seulement s'il est fourni et plus récent que celui déjà saisi.
+    const man = poManualBalance(a.id);
+    if(g.bal != null && (!man || !man.at || String(man.at).slice(0,10) <= g.balDay)) await poSaveManualBalance(a.id, g.bal);
+    try{ await logActivity('UPDATE', 'dormancy_logs', a.id, `Relevé ${src === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} importé : ${payload.length} journée(s)${g.bal != null ? `, solde ${poMoney(g.bal)} au ${fmtDate(g.balDay)}` : ''}`); }catch(e){}
+  }
+  return days;
+}
+// Taille standard déduite d'un relevé : solde de départ (Tradovate), solde minimum (R|Trader : départ
+// + 100 environ) ou chiffres du préfixe (LFF050 → 50K).
+const TDV_SIZES = [10000, 25000, 50000, 75000, 100000, 150000, 200000, 250000, 300000];
+function tdvGuessSize(g){
+  const first = g.rows.find(r=>r.bal != null);
+  if(first){ const start = first.bal - (first.pnl || 0); const s = TDV_SIZES.find(x=>Math.abs(x - start) <= Math.max(150, x * 0.002)); if(s) return { size:s, why:'solde de départ du relevé' }; }
+  if(g.minBal){ const s = [...TDV_SIZES].reverse().find(x=>x <= g.minBal && g.minBal - x <= x * 0.12); if(s) return { size:s, why:'solde minimum du relevé' }; }
+  const m = String(g.name || '').toUpperCase().match(/^[A-Z]{2,5}0?(\d{2,3})(?=[-_A-Z]|$)/);
+  if(m){ const s = Number(m[1]) * 1000; if(TDV_SIZES.includes(s)) return { size:s, why:'préfixe du numéro' }; }
+  return null;
+}
+// Prop firm déduite du numéro : d'abord le préfixe de tes comptes existants, puis quelques préfixes connus.
+const TDV_FIRM_HINTS = [[/^LF[FEP]|^LT-|LUCID/i, 'lucid'], [/^FFF|FUNDEDFUTURES/i, 'funded futures'], [/^APEX|^PA-?APEX/i, 'apex'], [/^TDY|^TD\d|TRADEDAY/i, 'tradeday'], [/^BX|BULENOX/i, 'bulenox'], [/^TPT|TAKEPROFIT/i, 'take profit'], [/^FNF|FUNDEDNEXT/i, 'fundednext'], [/^MFF|MYFUNDED/i, 'myfunded'], [/^TOP|TOPSTEP/i, 'topstep']];
+function tdvGuessFirm(num){
+  const sug = cimSuggestion([num]);
+  if(sug && sug.propfirm) return { name:sug.propfirm, why:'comme tes autres comptes' };
+  const hit = TDV_FIRM_HINTS.find(([re])=>re.test(String(num || '')));
+  if(!hit) return null;
+  const f = (state.propfirms || []).find(x=>String(x.name || '').toLowerCase().includes(hit[1]));
+  return f ? { name:f.name, why:'préfixe du numéro' } : null;
+}
+// Groupe de relevé → compte au format de l'import (même entrée que Deltalytix).
+function tdvAsImportAccount(g){
+  const sz = tdvGuessSize(g), firm = tdvGuessFirm(g.name);
+  const traded = g.rows.filter(r=>Math.abs(r.pnl || 0) >= 0.005);
+  const firstDay = g.source === 'tradovate' && g.rows.length ? g.rows[0].day : traded.length ? traded[0].day : null;
+  return { number:g.name, propfirm: firm ? firm.name : '', size: sz ? sz.size : null, breached: !!g.liquidated,
+    firstTradeDay:firstDay, lastTradeDay: traded.length ? traded[traded.length - 1].day : null, platform: g.source === 'rithmic' ? 'RITHMIC' : 'TRADOVATE' };
 }
 function poOpen(accId){ payoutFicheModal(accId); }
 // Instantané pour l'email « Résumé de performance » (23/11/2026) : le serveur n'a pas les moteurs du
@@ -15396,6 +15511,10 @@ const HELP_CATEGORIES = [
     { q:"Comment gérer les emails que Contralytix m'envoie ?", a:"Depuis Paramètres > Notifications, trois interrupteurs indépendants : rappels d'échéance URSSAF, résumé de performance hebdomadaire, et annonces produit (désactivé par défaut). Chacun se coche ou se décoche à tout moment." },
   ]},
   { id:'comptes', label:'Comptes & PropFirms', icon:'card', questions:[
+    { q:"Puis-je importer mes journées et mon solde depuis Tradovate ou R|Trader Pro ?", a:"Oui, sans connexion : sur la page Comptes, « Relevé Tradovate / R|Trader » lit l'export « Account Balance History » de Tradovate, ou les exports « Performance » et « Trader Dashboard » de R|Trader Pro. Les journées tradées alimentent le Radar inactivité et le Prochain payout, et le solde est mis à jour. Les comptes absents peuvent être créés dans la foulée (il reste le prix et le paiement à compléter)." },
+    { q:"Comment savoir quand demander mon prochain payout ?", a:"La fiche « Prochain payout » (pastille à côté du statut du compte, ou module du Dashboard) applique les règles de la formule de ton PA : jours minimum, cohérence, buffer, retrait minimum, plafond. Elle indique si tu es prêt, ce qu'il manque et le montant possible." },
+    { q:"D'où viennent les règles du catalogue prop firm ?", a:"Des pages officielles de chaque PropFirm, contrôlées avec deux sources indépendantes et datées. Chaque formule garde un lien vers sa page officielle." },
+    { q:"Le P&L ou le solde de Deltalytix est faux, puis-je le corriger ?", a:"Oui, sur la fiche Prochain payout : clique le montant d'une journée pour corriger son P&L, ou « Corriger » pour le solde. Les corrections sont marquées « corrigé » et ne sont plus remplacées par la synchronisation ; ↺ rend la main à Deltalytix." },
     { q:"Quels types de comptes puis-je suivre ?", a:"Trois types : Challenge (évaluation en cours), PA (compte financé après réussite d'un challenge) et Live (compte financé en argent réel). Chaque compte est rattaché à un trader et à une PropFirm." },
     { q:"Combien de traders puis-je créer en formule Free ?", a:"2 traders maximum par compte. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de traders illimité." },
     { q:"Combien de comptes puis-je suivre en formule Free ?", a:"3 comptes gratuits par trader. Au-delà, il faut passer en Premium ou Lifetime pour un nombre de comptes illimité." },
@@ -15678,10 +15797,19 @@ const MANUAL_CHAPTERS = [
     <p>Des onglets <b>Tous / Challenge / PA · financé / Live</b>, avec leur compteur, filtrent la liste d'un clic. Le menu « Regrouper par… » organise ensuite les cartes par PropFirm, type, taille ou statut. Le regroupement par type réorganise la liste en trois blocs — Challenges, PA, Live — chacun avec son propre en-tête et son compteur, plutôt que de mélanger tous les comptes par date d'achat. Pratique pour comparer d'un coup d'œil tous les Challenges entre eux, ou tous les PA entre eux.</p>
     <h3>Créer un compte</h3>
     <p>Le bouton « Nouveau compte » ouvre un formulaire comprenant le trader et la PropFirm, le type de compte (Challenge, PA, Live), la taille du compte, le numéro de compte, la plateforme de trading (facultative), le mode de paiement (unique ou mensualités), les dates d'achat/activation, et — pour un PA ou Live — un lien manuel optionnel vers le Challenge d'origine.</p>
+    <p>En haut du formulaire, <b>« Choisir dans le catalogue »</b> remplit la PropFirm, la taille, la <b>formule</b> (EOD, Intraday, Master, Momentum, LucidFlex…) et le frais d'activation connu. Sur un Challenge, le champ s'appelle <b>« Formule visée en PA »</b> : ce sont les règles du compte financé (drawdown, buffer, jours et cohérence de payout), reprises automatiquement quand tu crées le PA après la réussite du challenge. La formule d'un PA ou Live sert à la fiche <b>Prochain payout</b> (chapitre 7b).</p>
     <h3>Ajout en masse</h3>
     <p>Dans « Nouveau compte », le choix <b>Plusieurs identiques</b> (en haut du formulaire) permet de créer d'un coup plusieurs comptes identiques (même trader, même PropFirm, même type/taille, même prix ou mensualité, même devise) achetés ensemble : seul le numéro de compte diffère d'un exemplaire à l'autre. Indique la quantité, un champ « Numéro de compte » est généré pour chacun. Un numéro manquant, en doublon dans le lot ou déjà utilisé chez cette PropFirm bloque tout l'enregistrement — rien n'est créé tant que tous les numéros ne sont pas valides. La limite de comptes gratuits par trader (formule Free) s'applique aussi au lot dans son ensemble.</p>
     <h3>Importer mes comptes</h3>
-    <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant <b>Deltalytix</b>, ou à partir de <b>captures d'écran</b> de la liste de tes comptes. Les deux se combinent dans le même import.</p>
+    <p>Le bouton <b>« Importer mes comptes »</b> crée tes comptes sans recopier les numéros un par un : en connectant <b>Deltalytix</b>, à partir de <b>captures d'écran</b> de la liste de tes comptes, ou d'un <b>relevé CSV</b> Tradovate ou R|Trader Pro (bouton « Ajouter un relevé »). Les trois se combinent dans le même import.</p>
+    <h3>Importer un relevé Tradovate ou R|Trader Pro</h3>
+    <p>Le bouton <b>« Relevé Tradovate / R|Trader »</b> (page Comptes) ou <b>« Importer un relevé »</b> (fiche Prochain payout) lit les exports CSV de ta plateforme, sans connexion ni mot de passe :</p>
+    <ul>
+      <li><b>Tradovate</b> : Rapports du compte › <b>Account Balance History</b>, période « Cette année », puis « Télécharger le CSV ». Donne le solde et le P&amp;L réalisé de chaque jour.</li>
+      <li><b>R|Trader Pro</b> : l'export <b>Performance</b> (tous les trades de la période : P&amp;L net par jour, frais déduits) et l'export du <b>Trader Dashboard</b> (solde actuel et solde minimum de chaque compte). Dépose-les ensemble. L'historique des ordres n'est pas utile (limité à une semaine).</li>
+    </ul>
+    <p>Chaque fichier est reconnu tout seul et regroupé par compte. Pour chaque compte, l'aperçu montre le compte Contralytix trouvé par le numéro (modifiable dans la liste), le solde, les journées tradées (P&amp;L différent de 0), le P&amp;L de la période et ce qui sera écrit. Les journées importées alimentent le <b>Radar inactivité</b> et le <b>Prochain payout</b> ; le solde remplace la saisie manuelle. Une journée corrigée à la main n'est jamais remplacée, et la synchronisation Deltalytix ne remplace plus les journées importées d'un relevé. Une baisse de solde que le P&amp;L n'explique pas est signalée comme retrait : enregistre alors le payout avec le montant reçu.</p>
+    <p><b>Comptes absents de Contralytix</b> : ils sont proposés avec <b>« + Créer ce compte »</b> et ce qui a pu être déduit (PropFirm d'après le préfixe ou tes autres comptes, type d'après le numéro, taille d'après le solde de départ ou le solde minimum, date de début d'après le premier jour du relevé). « Continuer » ouvre l'écran de vérification d'« Importer mes comptes » : complète le prix et le paiement (absents des fichiers), puis « Créer ». Les journées et soldes de ces comptes sont importés juste après leur création. Un compte <b>liquidé</b> d'après le Trader Dashboard (solde au plancher) n'est pas proposé à la création.</p>
     <h3>Importer depuis Deltalytix (beta)</h3>
     <p>Si tu suis déjà tes trades dans Deltalytix, clique « Connecter Deltalytix » : une petite fenêtre Deltalytix s'ouvre, tu te connectes et tu autorises Contralytix à <b>lire</b> tes comptes (aucun mot de passe n'est recopié, rien n'est modifié chez Deltalytix). Tes comptes arrivent ensuite dans l'écran de vérification :</p>
     <ul>
@@ -15750,6 +15878,23 @@ const MANUAL_CHAPTERS = [
     </ul>
     <h3>Alertes</h3>
     <p>À la connexion, une fenêtre s'ouvre (une fois par jour au maximum) dès qu'un compte arrive à 3 jours ou moins de son échéance, ou en alerte de fin de mois pour un quota mensuel. Tu peux y cocher les comptes tradés aujourd'hui. Un bandeau rouge en haut de l'application rappelle les comptes à trader en priorité, et le menu affiche leur nombre. Sur la page Comptes, une bande « Inactivité » sous chaque compte financé montre la même information.</p>` },
+  { n:'7b', id:'m-payout', title:"Prochain payout, catalogue et trading plan", html:`
+    <p>Contralytix connaît les règles de payout des principales PropFirms (catalogue) et les applique à chacun de tes comptes financés pour te dire quand demander ton prochain payout, et combien.</p>
+    <h3>Catalogue prop firm</h3>
+    <p>La page <b>Catalogue prop firm</b> (menu Comptes) liste les formules financées par PropFirm et par taille : drawdown EOD ou intraday, buffer à garder, jours minimum, cohérence, retrait minimum, plafonds, split, activation, DLL. Les règles sont relevées sur les sites officiels puis contrôlées avec deux sources indépendantes. Filtre, trie, puis clique <b>Ajouter</b> au bout d'une ligne pour créer un compte prérempli (en challenge par défaut, ou en PA direct).</p>
+    <h3>Formule d'un compte</h3>
+    <p>Chaque PA ou Live peut être relié à sa formule (champ « Formule » du compte). Quand plusieurs formules sont possibles, Contralytix propose la plus probable avec la mention « À confirmer ».</p>
+    <h3>Fiche Prochain payout</h3>
+    <p>La pastille à côté du statut d'un compte (et le module <b>Prochain payout</b> du Dashboard) ouvre la fiche : verdict (Prêt, Bientôt, Pas encore, Solde à saisir), montant possible et montant reçu estimé selon le split, puis chaque condition avec son avancement — jours gagnants ou de trading depuis le dernier payout, cohérence (meilleur jour / profit du cycle), profit minimum du cycle, buffer et solde minimum pour demander.</p>
+    <ul>
+      <li><b>Solde</b> : lu dans Deltalytix, importé d'un relevé ou saisi sur la fiche. Un solde Deltalytix faux se corrige avec <b>« Corriger »</b> (badge « corrigé », bouton ↺ pour revenir à Deltalytix).</li>
+      <li><b>Journées</b> : clique un montant du tableau pour corriger le P&amp;L d'une journée (badge « corrigé », ↺ pour rendre la main à Deltalytix).</li>
+      <li><b>Réglage Deltalytix conseillé</b> : les valeurs à saisir dans Deltalytix (drawdown, stop profit trailing, buffer, perte journalière, P&amp;L minimum, cohérence, objectif) pour qu'il suive les règles de ta formule.</li>
+      <li><b>Enregistrer un payout</b> : le bouton « Payouts » d'une carte ouvre directement l'ajout d'un payout (montant reçu, net).</li>
+    </ul>
+    <p>Le module <b>Prochain payout</b> du Dashboard classe tes PA du plus proche au plus loin (prêts d'abord, puis par avancement de la condition la plus en retard). Le résumé hebdomadaire par e-mail reprend ce classement et les comptes à trader du Radar.</p>
+    <h3>Trading plan</h3>
+    <p>Dans Profil, le Trading plan fixe ton objectif de payouts par mois et ton budget. Le calcul se fait sur tes <b>PA et Live en cours</b> et les règles de leur formule : split réel de chaque PropFirm, plafonds et rythme de payout (jours minimum entre deux payouts, nombre maximum), buffer restant à construire. Il affiche le payout moyen par PA, le maximum possible selon les règles et le P&amp;L à produire par jour de trading, avec un verdict (Cohérent, Tenable, Impossible).</p>` },
   { n:'8', id:'m-profil', title:"Profil et Paramètres", html:`
     <p>Deux pages personnelles, accessibles depuis la barre latérale, regroupent les réglages propres à ton compte — distinctes de l'espace Admin, qui concerne l'ensemble du site.</p>
     <h3>Profil</h3>
@@ -23415,7 +23560,7 @@ const GD_HELP = {
       { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
     ] },
   accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
-    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix ou une capture de ta plateforme, sans recopier les numéros.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix, une capture de ta plateforme ou un relevé CSV Tradovate / R|Trader Pro, sans recopier les numéros.','<b>Relevé Tradovate / R|Trader</b> importe le solde et les journées tradées (Radar, Prochain payout).','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
     actions:[{ icon:'download', label:'Importer mes comptes', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
     glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net réel','payouts − toutes les dépenses, challenges ratés compris.'],['Net du parcours','net d’un PA/Live, Challenge d’origine inclus.'],['ROI','net réel ÷ dépenses.']],
     tour:[
@@ -23426,6 +23571,10 @@ const GD_HELP = {
       { sel:'.acc-card', title:'La carte d’un compte', text:'Statut, dépenses, payouts et net. Les boutons changent selon l’étape : marquer réussi, créer le PA, payouts, passer en Live…' },
       { sel:'.gd-next', title:'La prochaine étape', text:'Quand un compte attend quelque chose de toi (créer le PA, enregistrer un payout, indiquer ton dernier trade), c’est écrit ici, avec le bon bouton.' },
     ] },
+  catalogue: { manual:'m-payout', intro:'Les règles des comptes financés des PropFirms, relevées sur les sites officiels et contrôlées.',
+    points:['Filtre par taille, drawdown, buffer, jours minimum, cohérence, activation ou DLL, et trie les colonnes.','<b>Ajouter</b> au bout d’une ligne crée un compte prérempli (challenge par défaut, ou PA direct).','La formule choisie sur un compte sert à la fiche <b>Prochain payout</b>.'],
+    actions:[{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' }],
+    glossary:[['Buffer','montant à garder au-dessus du solde de départ après un payout.'],['Cohérence','part maximale du meilleur jour dans le profit du cycle.'],['EOD / Intraday','drawdown calculé en fin de journée ou en temps réel.']] },
   radar: { manual:'m-radar', intro:'Évite qu’un compte financé soit fermé parce que tu n’as pas tradé à temps.',
     points:['<b>Optionnel</b> : tu l’actives si tu veux, et tu le coupes à tout moment dans ton Profil (rien n’est supprimé).','Chaque compte suit la <b>règle officielle de sa PropFirm</b> (catalogue vérifié et sourcé). Tu peux la remplacer par ta propre règle dans ton Profil.','<b>Pointe tes journées</b> en un clic pour plusieurs comptes, ou <b>connecte Deltalytix</b> (beta) pour qu’elles se pointent toutes seules.','Les comptes sont <b>triés par urgence</b>. Une alerte s’affiche à la connexion dès qu’il reste 3 jours.'],
     actions:[{ icon:'check', label:'Pointer une journée', run:"gdCloseHelp();typeof dmOpenPointage==='function'&&dmOpenPointage()" },{ icon:'edit', label:'Indiquer mon dernier trade', run:"gdCloseHelp();dmOpenActivation(['all'])" },{ icon:'gear', label:'Régler ma règle (Profil)', run:"gdGo('profil');gdCloseHelp()" }],
@@ -25914,7 +26063,7 @@ function cimSuggestion(numbers){
 }
 // Tailles standard de l'appli (SIZE_LABELS) à partir d'un montant en dollars lu sur la capture.
 const CIM_SIZE_KEYS = { 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' };
-const CIM_SOURCE_LABELS = { screen:'lu sur la capture', number:'déduit du numéro', history:'d’après tes comptes', deltalytix:'donné par Deltalytix' };
+const CIM_SOURCE_LABELS = { screen:'lu sur la capture', number:'déduit du numéro', history:'d’après tes comptes', deltalytix:'donné par Deltalytix', statement:'d’après le relevé' };
 // Ce que l'on présélectionne pour une ligne, champ par champ : d'abord ce que Gemini a lu
 // (PropFirm affichée à l'écran ou déduite du numéro, taille, type), sinon l'historique des
 // comptes du trader ayant le même préfixe, sinon rien (choix à la main à l'étape suivante).
@@ -26075,7 +26224,8 @@ async function cimLocalRead(dataUrl){
   }
 }
 
-function captureImportModal(){
+function captureImportModal(opts){
+  opts = opts || {};
   if(state.traders.length===0 || state.propfirms.length===0){
     showToast('Crée d’abord au moins un trader et une PropFirm.', 'danger');
     return;
@@ -26110,6 +26260,8 @@ function captureImportModal(){
   const fxCache = {};        // date -> taux BCE (texte), pour la devise en cours
   const fxPending = {};
   let gidSeq = 0;
+  // Relevés Tradovate / R|Trader (24/11/2026) : comptes à créer, puis journées et soldes importés après la création.
+  let stmtGroups = (opts.statementGroups || []).slice();
 
   const root = ()=>document.getElementById('cim-root');
   const foot = ()=>document.getElementById('cim-foot');
@@ -26526,7 +26678,8 @@ function captureImportModal(){
     const near = firms.filter(f=>{ const n = f.name.trim().toLowerCase(); return n.length>=4 && (l.includes(n) || n.includes(l.split(/\s+/)[0]) && l.split(/\s+/)[0].length>=4); });
     return near.length===1 ? near[0].name : null;
   }
-  function ingestDlx(accounts, append){
+  function ingestDlx(accounts, append, srcLabel){
+    srcLabel = srcLabel || 'Deltalytix';
     const found = [], demo = [];
     let hiddenDlx = 0;
     accounts.forEach(a=>{
@@ -26536,18 +26689,19 @@ function captureImportModal(){
       if(a.hidden){ hiddenDlx++; return; }   // masqué dans Deltalytix (si l'API le précise)
       const det = cimKeywordDetection(num);
       const firm = dlxFirmName(a.propfirm);
-      if(firm){ det.propfirm = firm; det.propfirmSource = 'deltalytix'; }
-      if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = 'deltalytix'; }
+      const srcKey = srcLabel === 'Deltalytix' ? 'deltalytix' : 'statement';
+      if(firm){ det.propfirm = firm; det.propfirmSource = srcKey; }
+      if(a.size){ det.size = Math.round(Number(a.size)); det.sizeSource = srcKey; }
       found.push({ value:num, det, dlxBreached: !!a.breached, dlxLastDay: a.lastTradeDay || null, dlxFirstDay: a.firstTradeDay || null, dlxHidden: !!a.hidden, platform: PLATFORMS[a.platform] ? a.platform : null });
     });
     demo.forEach(x=>{ if(!ignoredDemo.includes(x)) ignoredDemo.push(x); });
     if(!found.length){
-      const msg = accounts.length ? 'Seuls des comptes de démo ont été trouvés dans Deltalytix.' : 'Deltalytix n’a renvoyé aucun compte : relie d’abord tes comptes dans Deltalytix.';
+      const msg = srcLabel !== 'Deltalytix' ? 'Aucun compte à créer dans ce relevé.' : accounts.length ? 'Seuls des comptes de démo ont été trouvés dans Deltalytix.' : 'Deltalytix n’a renvoyé aucun compte : relie d’abord tes comptes dans Deltalytix.';
       if(append){ notice = { text:msg, danger:true }; renderReview(); } else renderDrop(msg);
       return;
     }
     if(!rows.length){ rows = []; groups = []; shots = []; }
-    dlxDone = true;
+    if(srcLabel === 'Deltalytix') dlxDone = true;
     const known = new Set(rows.map(r=>normAccNum(r.value)));
     let added = 0, existing = 0, overflow = 0, completed = 0;
     found.forEach(f=>{
@@ -26577,13 +26731,13 @@ function captureImportModal(){
     groups.forEach(g=>ensureFx(g.date));
     rows.forEach(r=>{ if(r.dlxFirstDay) ensureFx(r.dlxFirstDay); });
     const newCount = rows.filter(r=>!cimExistingAccount(r.value)).length;
-    const parts = [`Deltalytix : ${added} compte${added>1?'s':''}${append?' ajouté'+(added>1?'s':''):''}`];
-    if(completed) parts.push(`${completed} déjà lu${completed>1?'s':''} sur ta capture, complété${completed>1?'s':''} avec Deltalytix`);
+    const parts = [`${srcLabel} : ${added} compte${added>1?'s':''}${append?' ajouté'+(added>1?'s':''):''}`];
+    if(completed) parts.push(`${completed} déjà lu${completed>1?'s':''} sur ta capture, complété${completed>1?'s':''} avec ${srcLabel === 'Deltalytix' ? 'Deltalytix' : 'le relevé'}`);
     if(existing) parts.push(`${existing} déjà dans Contralytix`);
     if(demo.length) parts.push(`${demo.length} de démo ignoré${demo.length>1?'s':''}`);
     if(overflow) parts.push(`${overflow} au-delà de ${CIM_MAX_ACCOUNTS}`);
     const nBr = rows.filter(r=>r.dlxBreached && !cimExistingAccount(r.value)).length;
-    if(nBr) parts.push(`${nBr} breached mis de côté (case « Afficher » pour les importer)`);
+    if(nBr) parts.push(`${nBr} ${srcLabel === 'Deltalytix' ? 'breached' : 'liquidé' + (nBr>1?'s':'')} mis de côté (case « Afficher » pour les importer)`);
     if(hiddenDlx) parts.push(`${hiddenDlx} masqué${hiddenDlx>1?'s':''} dans Deltalytix ignoré${hiddenDlx>1?'s':''}`);
     if(newCount) parts.push('Type déduit du numéro : vérifie chaque groupe, puis complète le prix');
     notice = { text: parts.join(' · '), warn: !!newCount };
@@ -26748,7 +26902,7 @@ function captureImportModal(){
     return main
       + platformChipHtml(r.platform)
       + (r.capSel ? `<span class="cim-row-cap" title="Visible sur ta capture">${icon('camera')}capture</span>` : '')
-      + (r.dlxFirstDay ? `<span class="cim-row-date" title="Date de début (activation pour un PA ou un Live, achat pour un challenge) : premier jour tradé sur ce compte d’après Deltalytix. Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : '');
+      + (r.dlxFirstDay ? `<span class="cim-row-date" title="Date de début (activation pour un PA ou un Live, achat pour un challenge) : premier jour connu sur ce compte (Deltalytix ou relevé importé). Pour la changer, utilise « Personnaliser ».">${icon('calendar')}${escapeHtml(fmtDate(r.dlxFirstDay))}</span>` : '');
   }
   function rowMainBadgeHtml(r){
     const value = r.value;
@@ -26858,11 +27012,13 @@ function captureImportModal(){
               ? `<button class="btn btn-primary" id="cim-sel-more" ${busy?'disabled':''} title="Les comptes visibles sur cette capture sont cochés en plus ; rien n’est décoché.">${icon('camera')}Ajouter une capture à la sélection</button>
                  <button class="btn btn-ghost" id="cim-sel-end" ${busy?'disabled':''} title="Les captures suivantes ajouteront des comptes sans toucher à la sélection.">Terminer la sélection</button>`
               : `<button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
+                 <button class="btn btn-outline" id="cim-add-stmt" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''} title="Relevé Tradovate (Account Balance History) ou R|Trader Pro (Trader Dashboard, Performance) : les comptes absents sont ajoutés à cette liste, leurs journées et soldes importés après la création.">${icon('download')}Ajouter un relevé</button>
                  ${dlxDone ? `<button class="btn ${selectMode?'btn-primary':'btn-outline'}" id="cim-select-cap" ${busy?'disabled':''} title="Choisis une ou plusieurs captures de tes comptes actifs : seuls les comptes visibles dessus restent cochés, les autres sont décochés.">${icon(selectMode?'x':'check')}${selectMode?'Annuler la sélection':'Sélectionner d’après une capture'}</button>` : ''}`}
             ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true"></span>Ajouter Deltalytix</button>`}
           </div>
           <span class="cim-top-hint">${(selectMode||selActive) ? (isTouch ? 'Tu peux choisir plusieurs captures d’un coup.' : 'Plusieurs captures possibles : dépose-les ici, choisis-les ensemble ou colle-les (Ctrl + V).') : (isTouch ? 'Pour compléter la liste avec d’autres comptes.' : 'Captures : tu peux aussi les déposer ici ou les coller (Ctrl + V).')}</span>
           <input type="file" id="cim-file-more" accept="image/png,image/jpeg,image/webp" multiple style="display:none;"/>
+          <input type="file" id="cim-stmt-more" accept=".csv,text/csv" multiple style="display:none;"/>
         </div>
       </div>
       ${groups.length>1 ? `<div class="cim-hint">${icon('layers')}<span>Les comptes sont regroupés par PropFirm, type et taille. Complète chaque groupe ; pour un compte différent de son groupe (autre date, prix promo, autre taille…), utilise « Personnaliser » : il s’ouvre dans le formulaire « Nouveau compte ».</span></div>` : ''}
@@ -26923,6 +27079,11 @@ function captureImportModal(){
       const inp = document.getElementById('cim-file-more');
       if(inp) inp.click();
     };
+    const addStmt = document.getElementById('cim-add-stmt'), stmtIn = document.getElementById('cim-stmt-more');
+    if(addStmt && stmtIn){
+      addStmt.onclick = ()=>stmtIn.click();
+      stmtIn.onchange = async ()=>{ const files = Array.from(stmtIn.files || []); stmtIn.value = ''; if(files.length) await addStatementFiles(files); };
+    }
     const addDlx = document.getElementById('cim-add-dlx');
     if(addDlx) addDlx.onclick = importFromDlx;
     // Plusieurs captures d'un coup : lues l'une après l'autre.
@@ -27106,9 +27267,31 @@ function captureImportModal(){
     const nbFree = records.filter(x=>x.free).length;
     const msgs = [];
     if(records.length) msgs.push(`${records.length} compte${records.length>1?'s':''} créé${records.length>1?'s':''}${nbFree?` dont ${nbFree} offert${nbFree>1?'s':''}`:''}`);
+    const stmtDays = records.length ? await applyStatementsAfterCreate() : 0;
+    if(stmtDays) msgs.push(`${stmtDays} journée${stmtDays>1?'s':''} et solde${records.length>1?'s':''} importés des relevés`);
     showToast((msgs.join(' · ') || 'Rien à créer') + '.');
     document.removeEventListener('paste', onPaste);
     closeModal(); render();
+  }
+
+  // Relevés déposés dans l'écran de vérification : lecture, puis ajout des comptes comme Deltalytix.
+  async function addStatementFiles(files){
+    const read = f => new Promise(res=>{ const fr = new FileReader(); fr.onload = ()=>res(tdvParseFile(String(fr.result || ''), f.name)); fr.onerror = ()=>res({ error:f.name + ' : lecture impossible.' }); fr.readAsText(f); });
+    const merged = tdvMerge(await Promise.all(files.slice(0, 10).map(read)));
+    if(merged.error){ notice = { text: merged.error, danger:true }; renderReview(); return; }
+    const fresh = merged.groups.filter(g=>!g.acc);
+    const known = merged.groups.filter(g=>g.acc);
+    if(known.length){ try{ await tdvApplyGroups(known); }catch(e){ /* signalé plus bas */ } }
+    fresh.forEach(g=>{ if(!stmtGroups.some(x=>x.key === g.key)) stmtGroups.push(g); });
+    if(!fresh.length){ notice = { text:`Relevé : aucun compte nouveau${known.length ? ` · journées et soldes importés pour ${known.length} compte${known.length>1?'s':''} existant${known.length>1?'s':''}` : ''}.` }; renderReview(); return; }
+    ingestDlx(fresh.map(tdvAsImportAccount), true, 'Relevé');
+  }
+  // Après la création : journées et soldes des relevés pour les comptes qui existent maintenant.
+  async function applyStatementsAfterCreate(){
+    if(!stmtGroups.length) return 0;
+    const ready = stmtGroups.map(g=>{ const ex = cimExistingAccount(g.name); return ex ? Object.assign(g, { acc:ex, createNew:false }) : null; }).filter(Boolean);
+    if(!ready.length) return 0;
+    try{ return await tdvApplyGroups(ready); }catch(e){ showToast('Comptes créés, mais import des journées interrompu : ' + (e.message || e), 'danger'); return 0; }
   }
 
   // ---------- Ouverture ----------
@@ -27143,7 +27326,8 @@ function captureImportModal(){
       }
     });
   }
-  openShell(()=>renderDrop());
+  if(stmtGroups.length) openShell(()=>ingestDlx(stmtGroups.map(tdvAsImportAccount), false, 'Relevé'));
+  else openShell(()=>renderDrop());
 }
 
 /* ============================================================
