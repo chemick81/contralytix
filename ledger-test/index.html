@@ -8229,9 +8229,24 @@ function tdvMerge(results){
   const mine = (state.accounts || []).filter(a=>isMineAccount(a) && a.accountNumber);
   const groups = [...byAcc.values()].map(g=>{
     const keys = [tdvNormNum(g.name), tdvNormNum(g.id)].filter(k=>k.length >= 5);
-    const cands = mine.filter(a=>{ const n = tdvNormNum(a.accountNumber); return n.length >= 5 && keys.some(k=>k === n || k.endsWith(n) || n.endsWith(k)); })
-      .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type === 'PA' || y.type === 'LIVE') - (x.type === 'PA' || x.type === 'LIVE')));
-    g.acc = cands[0] || null;
+    const rank = (x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type === 'PA' || y.type === 'LIVE') - (x.type === 'PA' || x.type === 'LIVE'));
+    const cands = mine.filter(a=>{ const n = tdvNormNum(a.accountNumber); return n.length >= 5 && keys.some(k=>k === n || k.endsWith(n) || n.endsWith(k)); }).sort(rank);
+    g.acc = cands[0] || null; g.matchWhy = g.acc ? 'num' : null;
+    // Beaucoup de traders ne saisissent que la fin du numéro (« 414 » pour TDYG150414…) : on accepte
+    // 3-4 caractères en fin de numéro, filtrés par la prop firm du préfixe, et seulement sans ambiguïté
+    // (un seul compte actif possible, ou un challenge et son PA qui gardent le même numéro).
+    if(!g.acc && keys.length){
+      const hint = TDV_FIRM_HINTS.find(([re])=>keys.some(k=>re.test(k)) || re.test(String(g.name || '')));
+      let weak = mine.filter(a=>{ const n = tdvNormNum(a.accountNumber); return n.length >= 3 && n.length < 5 && /\d/.test(n) && keys.some(k=>k.endsWith(n)); });
+      if(hint) weak = weak.filter(a=>{ const f = getFirm(a.propFirmId); return !f || String(f.name || '').toLowerCase().replace(/\s+/g, ' ').includes(hint[1]); });
+      weak.sort(rank);
+      const active = weak.filter(a=>a.status === 'ACTIF');
+      const related = (x, y)=>x.parentChallengeId === y.id || y.parentChallengeId === x.id;
+      const pool = active.length ? active : weak;
+      const ok = pool.length === 1 || (pool.length === 2 && related(pool[0], pool[1]));
+      if(weak.length && ok){ g.acc = weak[0]; g.matchWhy = 'end'; }
+      else if(weak.length) g.maybe = weak.map(a=>a.id);   // plusieurs comptes possibles : le trader choisit
+    }
     g.auto = !!g.acc; g.matchId = g.acc ? g.acc.id : null;   // trouvé par le numéro ; sinon le trader choisit le compte
     g.source = g.kinds.includes('tradovate') ? 'tradovate' : 'rithmic';
     g.tradedRows = g.rows.filter(r=>Math.abs(r.pnl) >= 0.005);
@@ -8276,13 +8291,13 @@ function tdvImportModal(opts){
       .sort((x,y)=>(y.status === 'ACTIF') - (x.status === 'ACTIF') || ((y.type !== 'CHALLENGE') - (x.type !== 'CHALLENGE')) || String(x.accountNumber || '').localeCompare(String(y.accountNumber || '')));
     const accLabel = x => { const f = getFirm(x.propFirmId); return `${(f || {}).name || 'PropFirm'} · ${x.type === 'LIVE' ? 'Live' : x.type === 'CHALLENGE' ? 'Challenge' : 'PA'} ${sizeLabelRaw(x) || ''} · ${String(x.accountNumber || 'sans n°')}${x.status !== 'ACTIF' ? ' (' + String(x.status).toLowerCase() + ')' : ''}${dlxHealthOf(x.id) ? ' · Deltalytix' : ''}`; };
     return warn + parsed.groups.map((g, i)=>{
-      if(!g._init){ g._init = true; if(!g.acc && !g.liquidated) g.createNew = true; }
+      if(!g._init){ g._init = true; if(!g.acc && !g.liquidated && !g.maybe) g.createNew = true; }
       const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
       const srcTag = `<span class="badge cat-b-slate" style="margin-left:6px;">${g.source === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}</span>`;
       const skip = !a && !g.createNew;
-      const canCreate = !g.auto && !g.liquidated;
+      const canCreate = (!g.auto || g.matchWhy === 'end') && !g.liquidated;
       const sel = `<select class="tdv-target" data-tdv-target="${i}" aria-label="Compte Contralytix pour ${escapeHtml(g.name)}"><option value="">— Ne pas importer —</option>${canCreate ? `<option value="__new" ${g.createNew ? 'selected' : ''}>+ Créer ce compte</option>` : ''}${targets.map(x=>`<option value="${escapeHtml(x.id)}" ${a && a.id === x.id ? 'selected' : ''}>${escapeHtml(accLabel(x))}</option>`).join('')}</select>`;
-      const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b>${srcTag} ${g.createNew ? ' <span class="badge badge-accent" style="margin-left:4px;">Nouveau</span>' : ''}${g.liquidated ? ' <span class="badge badge-danger" style="margin-left:4px;">Liquidé</span>' : ''} <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? 'trouvé par le numéro' : 'compte choisi') : g.createNew ? 'pas encore dans Contralytix' : g.liquidated ? 'compte liquidé : non proposé à la création' : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
+      const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b>${srcTag} ${g.createNew ? ' <span class="badge badge-accent" style="margin-left:4px;">Nouveau</span>' : ''}${g.liquidated ? ' <span class="badge badge-danger" style="margin-left:4px;">Liquidé</span>' : ''} <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? (g.matchWhy === 'end' ? `trouvé par la fin du numéro (${escapeHtml(String(a.accountNumber))}) : vérifie` : 'trouvé par le numéro') : 'compte choisi') : g.createNew ? 'pas encore dans Contralytix' : g.liquidated ? 'compte liquidé : non proposé à la création' : g.maybe ? 'plusieurs comptes finissent par ce numéro : choisis le bon' : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
       const guess = g.createNew ? (()=>{ const ia = tdvAsImportAccount(g), sz = tdvGuessSize(g), fm = tdvGuessFirm(g.name), det = cimKeywordDetection(g.name);
         return `<div class="tdv-guess">${icon('sparkles')}<span>Déduit : ${fm ? `<b>${escapeHtml(fm.name)}</b> (${fm.why})` : '<b>prop firm à choisir</b>'} · <b>${det.type === 'CHALLENGE' ? 'Challenge' : det.type === 'LIVE' ? 'Live' : 'PA'}</b>${det.type ? '' : ' (à confirmer)'} · ${sz ? `<b>${acatSizeLabel(sz.size)}</b> (${sz.why})` : '<b>taille à choisir</b>'}${ia.firstTradeDay ? ` · début <b>${fmtDate(ia.firstTradeDay)}</b>` : ''}</span></div>`; })() : '';
       const why = a && pl.dlx ? 'Compte synchronisé avec Deltalytix : les journées du relevé remplaceront celles de Deltalytix et ne seront plus écrasées par la synchro. Le solde affiché reste celui de Deltalytix.' : '';
@@ -23552,7 +23567,7 @@ const GD_HELP = {
     actions:[{ icon:'target', label:'Voir le Coach rentabilité', run:"gdCloseHelp();gdGo('coach')" }] },
   dashboard: { manual:'m-dashboard', intro:'Ta vue d’ensemble : ce que tu as dépensé, encaissé et gagné, et ce qui demande ton attention.',
     points:['Les <b>filtres</b> (trader, PropFirm, période) s’appliquent à tous les modules.','<b>Personnaliser</b> : choisis les modules, leur ordre et leur taille (SM, MD, LG). Ta disposition suit ton compte.','Le <b>Net</b> = payouts − dépenses. Le <b>Net global</b> ajoute tes frais généraux.','Les petites flèches ▲▼ comparent à la période précédente.'],
-    actions:[{ icon:'target', label:'Écrire ou modifier mon trading plan', run:"gdCloseHelp();gdGo('mon-plan')", show:()=>pilotageEnabled() },{ icon:'layout', label:'Personnaliser le Dashboard', run:"document.getElementById('dash-customize-btn')&&document.getElementById('dash-customize-btn').click()" },{ icon:'check', label:'Afficher la checklist « Bien démarrer »', run:'gdShowStart()' }],
+    actions:[{ icon:'target', label:'Écrire ou modifier mon trading plan', run:"gdCloseHelp();gdGo('mon-plan')", show:()=>pilotageEnabled() },{ icon:'layout', label:'Personnaliser le Dashboard', run:"document.getElementById('dash-customize-btn')&&document.getElementById('dash-customize-btn').click()" },{ icon:'check', label:'Afficher la checklist « Bien démarrer »', run:'gdShowStart()', show:()=>gdStartSteps().some(st=>!st.done) }],
     tour:[
       { sel:'.gd-start', title:'Bien démarrer', text:'Les étapes clés pour voir ton vrai résultat. Elles se cochent toutes seules.' },
       { sel:'.filter-bar', title:'Filtres', text:'Trader, PropFirm et période : tout le Dashboard suit ces filtres.' },
@@ -27279,11 +27294,14 @@ function captureImportModal(opts){
     const read = f => new Promise(res=>{ const fr = new FileReader(); fr.onload = ()=>res(tdvParseFile(String(fr.result || ''), f.name)); fr.onerror = ()=>res({ error:f.name + ' : lecture impossible.' }); fr.readAsText(f); });
     const merged = tdvMerge(await Promise.all(files.slice(0, 10).map(read)));
     if(merged.error){ notice = { text: merged.error, danger:true }; renderReview(); return; }
-    const fresh = merged.groups.filter(g=>!g.acc);
+    const fresh = merged.groups.filter(g=>!g.acc && !g.maybe && !g.liquidated);
     const known = merged.groups.filter(g=>g.acc);
+    const unsure = merged.groups.filter(g=>!g.acc && g.maybe);
     if(known.length){ try{ await tdvApplyGroups(known); }catch(e){ /* signalé plus bas */ } }
     fresh.forEach(g=>{ if(!stmtGroups.some(x=>x.key === g.key)) stmtGroups.push(g); });
-    if(!fresh.length){ notice = { text:`Relevé : aucun compte nouveau${known.length ? ` · journées et soldes importés pour ${known.length} compte${known.length>1?'s':''} existant${known.length>1?'s':''}` : ''}.` }; renderReview(); return; }
+    const unsureTxt = unsure.length ? ` · ${unsure.map(g=>g.name).join(', ')} : plusieurs comptes existants ont la même fin de numéro, importe ce relevé depuis « Importer un relevé » pour choisir le bon` : '';
+    if(!fresh.length){ notice = { text:`Relevé : aucun compte nouveau${known.length ? ` · journées et soldes importés pour ${known.length} compte${known.length>1?'s':''} existant${known.length>1?'s':''}` : ''}${unsureTxt}.` }; renderReview(); return; }
+    if(unsure.length) notice = { text:`Relevé${unsureTxt}.` };
     ingestDlx(fresh.map(tdvAsImportAccount), true, 'Relevé');
   }
   // Après la création : journées et soldes des relevés pour les comptes qui existent maintenant.
