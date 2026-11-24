@@ -1194,6 +1194,20 @@ th.th-sort-active svg{opacity:1;}
 .tdv-acc-t{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
 .tdv-target{max-width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;}
 .tdv-src{margin-bottom:6px;}
+.tdv-guide{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tdv-plat{border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:9px;}
+.tdv-plat-h{font-weight:700;color:var(--text);font-size:13px;}
+.tdv-file-t{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--text);}
+.tdv-file-t svg{width:14px;height:14px;color:var(--accent);}
+.tdv-file-t .badge{font-size:10.5px;}
+.tdv-gives{color:var(--text-dim);}
+.tdv-files{display:flex;flex-wrap:wrap;gap:6px 12px;margin:6px 0 0 26px;}
+.tdv-fok,.tdv-fmiss{display:inline-flex;align-items:center;gap:4px;}
+.tdv-fok svg,.tdv-fmiss svg{width:12px;height:12px;}
+.tdv-fok svg{color:var(--accent);}
+.tdv-fmiss{color:var(--dm-yellow,#F5C542);}
+.tdv-fmiss.is-opt{color:var(--text-faint);}
+@media (max-width:640px){ .tdv-guide{grid-template-columns:1fr;} }
 .tdv-intro{font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:14px;}
 .tdv-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 16px;border:1.5px dashed var(--border);border-radius:12px;cursor:pointer;text-align:center;color:var(--text-dim);font-size:12.5px;}
 .tdv-drop svg{width:22px;height:22px;color:var(--accent);} .tdv-drop b{color:var(--text);font-size:14px;}
@@ -8025,11 +8039,11 @@ const PO_SIZE_SPLIT_NOTE = 'Estimation : montant demandé × partage des profits
 function poAt(arr, n){ if(!Array.isArray(arr) || !arr.length) return null; const v = arr[Math.min(n - 1, arr.length - 1)]; return v == null ? null : Number(v); }
 function poMoney(v){ return pilotMoney(v, 'USD'); }
 function poSigned(v){ return (v > 0 ? '+' : '') + poMoney(v); }
-function poManualBalance(accId){ const b = (planSettings().payoutBalances || {})[accId]; return b && Number.isFinite(Number(b.v)) ? { v:Number(b.v), at:b.at || null, override:!!b.override } : null; }
-async function poSaveManualBalance(accId, v, override){
+function poManualBalance(accId){ const b = (planSettings().payoutBalances || {})[accId]; return b && Number.isFinite(Number(b.v)) ? { v:Number(b.v), at:b.at || null, override:!!b.override, src:b.src || null, day:b.day || null } : null; }
+async function poSaveManualBalance(accId, v, override, meta){
   const cur = planStored() || {};
   const map = { ...(cur.payoutBalances || {}) };
-  if(v === null) delete map[accId]; else map[accId] = { v, at: new Date().toISOString(), ...(override ? { override:true } : {}) };
+  if(v === null) delete map[accId]; else map[accId] = { v, at: new Date().toISOString(), ...(override ? { override:true } : {}), ...(meta && meta.src ? { src:meta.src, day:meta.day || null } : {}) };
   const r = await planWrite({ ...cur, payoutBalances: map });
   if(!r.ok) showToast('Solde non enregistré : ' + ((r.error && r.error.message) || 'erreur'), 'danger');
   return r.ok;
@@ -8168,6 +8182,7 @@ function payoutStatus(a){
   let split = R.split != null ? Number(R.split) : null, splitTxt = '';
   if(R.splitBelow && bal != null && bal - start < Number(R.splitBelow.profit)){ split = Number(R.splitBelow.split); splitTxt = ` (partage ${Math.round(split*100)}/${Math.round(100-split*100)} tant que le profit est sous ${poMoney(R.splitBelow.profit)})`; }
   return { a, row, pg, R, n, lastPay, days, bal, start, dlxBal, src: useMan ? (man.override && dlxBal != null ? 'override' : 'manual') : dlxBal != null ? 'dlx' : 'none', balAt: useMan ? man.at : dlxBal != null ? (dlx().health && dlx().health.at) : null,
+    balSrc: useMan ? man.src : null, balDay: useMan ? man.day : null,
     profitCycle, conds, miss, amt, cap, minPayout, fmStart, progress: maxed ? 0 : Math.min(1, ...prog.map(v=>Math.min(1, v)), 1), net: amt != null && split != null ? amt * split : null, split, splitTxt, state: state_, maxed };
 }
 function poPillHtml(s, short){
@@ -8352,7 +8367,7 @@ function tdvParseFile(text, fileName){
   }
   if(rows.some(r=>r.map(norm).includes('completedorders') || norm(r[0]) === 'completedorders' || norm(r[0]) === 'workingorders'))
     return { error:`${fileName ? fileName + ' : ' : ''}l’historique des ordres de R|Trader Pro n’est pas nécessaire. Utilise l’export « Performance » (journées et P&L) et, pour le solde, le « Trader Dashboard ».` };
-  return { error:`${fileName ? fileName + ' : ' : ''}format non reconnu. Fichiers acceptés : Tradovate « Account Balance History », R|Trader Pro « Performance » et « Trader Dashboard ».` };
+  return { error:`${fileName ? fileName + ' : ' : ''}format non reconnu. Fichiers acceptés : Tradovate « Account Balance History » (et « Cash History » en plus), R|Trader Pro « Performance » et « Trader Dashboard ».` };
 }
 // Plusieurs fichiers : on regroupe par compte (journées d'un fichier, solde d'un autre), puis on
 // cherche le compte Contralytix par son numéro.
@@ -8429,8 +8444,7 @@ function tdvImportModal(opts){
   const only = opts.accId ? getAccount(opts.accId) : null;
   let parsed = null;
   const body = ()=>{
-    if(!parsed) return `<div class="tdv-intro"><div class="tdv-src"><b>Tradovate</b> : Rapports du compte › <b>Account Balance History</b>, période « Cette année », puis <b>Télécharger le CSV</b>. Donne le solde et le P&amp;L de chaque jour. Ajoute le <b>Cash History</b> pour les retraits vers le wallet et les frais.</div>
-        <div class="tdv-src"><b>R|Trader Pro</b> : l’export <b>Performance</b> (tous les trades de la période, P&amp;L net par jour) et, pour le solde actuel, l’export du <b>Trader Dashboard</b>. Dépose les deux ensemble. L’historique des ordres n’est pas utile (limité à une semaine).</div></div>
+    if(!parsed) return `<div class="tdv-intro">${tdvFilesGuideHtml()}</div>
       <label class="tdv-drop" id="tdv-drop">${icon('download')}<b>Dépose le ou les fichiers CSV ici</b><span>ou clique pour les choisir${only ? ' · compte ' + maskAccountNumber(String(only.accountNumber || '')) : ' · un ou plusieurs comptes'}</span><input type="file" id="tdv-file" accept=".csv,text/csv" multiple hidden/></label>`;
     if(parsed.error) return `<div class="acat-ai-err">${escapeHtml(parsed.error)}</div><button type="button" class="btn btn-outline btn-sm" id="tdv-again" style="margin-top:10px;">Choisir d’autres fichiers</button>`;
     const warn = (parsed.warnings || []).length ? `<div class="tdv-wd" style="margin:0 0 10px;">${icon('alertTriangle')}<span>${parsed.warnings.map(escapeHtml).join('<br>')}</span></div>` : '';
@@ -8441,15 +8455,18 @@ function tdvImportModal(opts){
       if(!g._init){ g._init = true; if(!g.acc && !g.liquidated && !g.maybe) g.createNew = true; }
       const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
       const srcTag = `<span class="badge cat-b-slate" style="margin-left:6px;">${g.source === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}</span>`;
+      const miss = tdvMissingFiles(g);
+      const filesLine = `<div class="tdv-files cat-sub">${[...new Set(g.kinds || [])].map(k=>`<span class="tdv-fok">${icon('check')}${escapeHtml(TDV_KIND_NAME[k] || k)}</span>`).join('')}${miss.map(m=>`<span class="tdv-fmiss ${m.opt ? 'is-opt' : ''}">${icon(m.opt ? 'plus' : 'alertTriangle')}${m.opt ? 'Ajoute' : 'Manque'} « ${escapeHtml(m.name)} » : ${escapeHtml(m.why)}</span>`).join('')}</div>`;
       const skip = !a && !g.createNew;
       const canCreate = (!g.auto || g.matchWhy === 'end') && !g.liquidated;
       const sel = `<select class="tdv-target" data-tdv-target="${i}" aria-label="Compte Contralytix pour ${escapeHtml(g.name)}"><option value="">— Ne pas importer —</option>${canCreate ? `<option value="__new" ${g.createNew ? 'selected' : ''}>+ Créer ce compte</option>` : ''}${targets.map(x=>`<option value="${escapeHtml(x.id)}" ${a && a.id === x.id ? 'selected' : ''}>${escapeHtml(accLabel(x))}</option>`).join('')}</select>`;
       const head = `${firm ? firmLogoHtml(firm, 22) : '<span style="width:22px"></span>'}<div class="tdv-acc-t"><div><b>${escapeHtml(g.name)}</b>${srcTag} ${g.createNew ? ' <span class="badge badge-accent" style="margin-left:4px;">Nouveau</span>' : ''}${g.liquidated ? ' <span class="badge badge-danger" style="margin-left:4px;">Liquidé</span>' : ''} <span class="cat-sub" style="margin:0">${a ? (g.auto && a.id === g.matchId ? (g.matchWhy === 'end' ? `trouvé par la fin du numéro (${escapeHtml(String(a.accountNumber))}) : vérifie` : 'trouvé par le numéro') : 'compte choisi') : g.createNew ? 'pas encore dans Contralytix' : g.liquidated ? 'compte liquidé : non proposé à la création' : g.maybe ? 'plusieurs comptes finissent par ce numéro : choisis le bon' : 'aucun compte avec ce numéro : choisis-le'}</span></div>${sel}</div>`;
       const guess = g.createNew ? (()=>{ const ia = tdvAsImportAccount(g), sz = tdvGuessSize(g), fm = tdvGuessFirm(g.name), det = cimKeywordDetection(g.name);
         return `<div class="tdv-guess">${icon('sparkles')}<span>Déduit : ${fm ? `<b>${escapeHtml(fm.name)}</b> (${fm.why})` : '<b>prop firm à choisir</b>'} · <b>${det.type === 'CHALLENGE' ? 'Challenge' : det.type === 'LIVE' ? 'Live' : 'PA'}</b>${det.type ? '' : ' (à confirmer)'} · ${sz ? `<b>${acatSizeLabel(sz.size)}</b> (${sz.why})` : '<b>taille à choisir</b>'}${ia.firstTradeDay ? ` · début <b>${fmtDate(ia.firstTradeDay)}</b>` : ''}</span></div>`; })() : '';
-      const why = a && pl.dlx ? 'Compte synchronisé avec Deltalytix : les journées du relevé remplaceront celles de Deltalytix et ne seront plus écrasées par la synchro. Le solde affiché reste celui de Deltalytix.' : '';
+      const why = a && pl.dlx ? 'Compte synchronisé avec Deltalytix : les journées et le solde du relevé remplaceront ceux de Deltalytix (ils viennent de ta plateforme). « ↺ Deltalytix » sur la fiche Payout rend la main.' : '';
       return `<div class="tdv-acc${skip ? ' off' : ''}${g.createNew ? ' tdv-new' : ''}"><div class="tdv-acc-h"><input type="checkbox" data-tdv-i="${i}" ${skip ? 'disabled' : 'checked'} aria-label="Importer ce compte"/>${head}</div>
         ${why ? `<div class="cat-sub" style="margin:6px 0 0 26px;">${why}</div>` : ''}
+        ${filesLine}
         ${guess}
         ${g.createNew ? `<div class="tdv-stats">
           <span><small>${g.bal != null ? 'Solde au ' + fmtDate(g.balDay) : 'Solde'}</small><b class="mono">${g.bal != null ? poMoney(g.bal) : '—'}</b>${g.minBal ? `<em>solde minimum ${poMoney(g.minBal)}</em>` : ''}</span>
@@ -8554,8 +8571,10 @@ async function tdvApplyGroups(list){
     });
     days += payload.length;
     // Solde : seulement s'il est fourni et plus récent que celui déjà saisi.
+    // Solde du relevé (24/11/2026) : c'est celui de la plateforme, il passe devant Deltalytix (dont le solde
+    // dépend de son propre réglage de départ) jusqu'à « ↺ Deltalytix ». Seulement s'il est plus récent.
     const man = poManualBalance(a.id);
-    if(g.bal != null && (!man || !man.at || String(man.at).slice(0,10) <= g.balDay)) await poSaveManualBalance(a.id, g.bal);
+    if(g.bal != null && (!man || !(man.day || man.at) || String(man.day || man.at).slice(0,10) <= g.balDay)) await poSaveManualBalance(a.id, g.bal, true, { src: src === 'rithmic' ? 'rithmic' : 'tradovate', day: g.balDay });
     if(g.cash || g.peak) await poSaveWallet(a.id, g);
     try{ await logActivity('UPDATE', 'dormancy_logs', a.id, `Relevé ${src === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} importé : ${payload.length} journée(s)${g.bal != null ? `, solde ${poMoney(g.bal)} au ${fmtDate(g.balDay)}` : ''}`); }catch(e){}
   }
@@ -8573,6 +8592,32 @@ function tdvGuessSize(g){
   return null;
 }
 // Prop firm déduite du numéro : d'abord le préfixe de tes comptes existants, puis quelques préfixes connus.
+// Fichiers attendus par plateforme (24/11/2026, demande de Mickael : toujours dire quel fichier exporter).
+const TDV_FILES = [
+  { plat:'Tradovate', files:[
+    { kind:'tradovate', name:'Account Balance History', need:'Indispensable', how:'Rapports du compte › onglet Account Balance History, période « Cette année », puis Télécharger le CSV.', gives:'Solde et P&L de chaque jour (jours tradés, Radar, Prochain payout).' },
+    { kind:'tradovate-cash', name:'Cash History', need:'Facultatif', how:'Rapports du compte › onglet Cash History, même période, puis Télécharger le CSV.', gives:'Retraits du compte (wallet), frais de trading et plus haut solde (marge avant liquidation).' } ] },
+  { plat:'R|Trader Pro', files:[
+    { kind:'rithmic-performance', name:'Performance', need:'Indispensable', how:'Fenêtre Performance (Trades), toute la période, puis export CSV.', gives:'P&L net de chaque jour (jours tradés, Radar, Prochain payout).' },
+    { kind:'rithmic-dashboard', name:'Trader Dashboard', need:'Indispensable pour le solde', how:'Trader Dashboard, puis export CSV (tous tes comptes en une fois).', gives:'Solde actuel et solde minimum de chaque compte (compte liquidé repéré).' } ] },
+];
+const TDV_KIND_NAME = { tradovate:'Account Balance History', 'tradovate-cash':'Cash History', 'rithmic-performance':'Performance', 'rithmic-dashboard':'Trader Dashboard' };
+function tdvFilesGuideHtml(){
+  return `<div class="tdv-guide">${TDV_FILES.map(p=>`<div class="tdv-plat"><div class="tdv-plat-h">${escapeHtml(p.plat)}</div>${p.files.map(f=>`<div class="tdv-file"><div class="tdv-file-t">${icon('fileText')}<b>${escapeHtml(f.name)}</b><span class="badge ${f.need === 'Facultatif' ? 'badge-slate' : 'badge-accent'}">${escapeHtml(f.need)}</span></div><div class="cat-sub">${escapeHtml(f.how)}</div><div class="cat-sub tdv-gives">→ ${escapeHtml(f.gives)}</div></div>`).join('')}</div>`).join('')}</div>
+    <div class="cat-sub" style="margin-top:8px;">Dépose tous les fichiers d’une plateforme ensemble. Inutile : l’historique des ordres R|Trader (limité à une semaine).</div>`;
+}
+// Ce qui manque pour un compte, d'après les fichiers déposés.
+function tdvMissingFiles(g){
+  const k = g.kinds || [];
+  if(g.source === 'rithmic'){
+    if(!k.includes('rithmic-performance')) return [{ name:'Performance', why:'pas de journées ni de P&L par jour' }];
+    if(!k.includes('rithmic-dashboard')) return [{ name:'Trader Dashboard', why:'solde non mis à jour' }];
+    return [];
+  }
+  if(!k.includes('tradovate-cash')) return [{ name:'Cash History', why:'facultatif : retraits vers le wallet, frais, marge avant liquidation', opt:true }];
+  if(!k.includes('tradovate')) return [{ name:'Account Balance History', why:'facultatif avec le Cash History : ajoute les jours sans trade', opt:true }];
+  return [];
+}
 const TDV_FIRM_HINTS = [[/^LF[FEP]|^LT-|LUCID/i, 'lucid'], [/^FFF|FUNDEDFUTURES/i, 'funded futures'], [/^APEX|^PA-?APEX/i, 'apex'], [/^TDY|^TD\d|TRADEDAY/i, 'tradeday'], [/^BX|BULENOX/i, 'bulenox'], [/^TPT|TAKEPROFIT/i, 'take profit'], [/^FNF|FUNDEDNEXT/i, 'fundednext'], [/^MFF|MYFUNDED/i, 'myfunded'], [/^TOP|TOPSTEP/i, 'topstep']];
 function tdvGuessFirm(num){
   const sug = cimSuggestion([num]);
@@ -8665,7 +8710,7 @@ function payoutFicheModal(accId){
       <div class="po-add-day-btns"><button type="button" class="btn btn-ghost btn-sm" id="po-ad-cancel">Annuler</button><button type="button" class="btn btn-primary btn-sm" id="po-ad-save">Ajouter</button></div>
       <div class="cat-sub po-add-day-hint">Pour les jours absents de ton relevé (compte ouvert avant la période exportée). Elle compte pour le payout, la cohérence et le Radar, et ne sera remplacée ni par la synchro ni par un relevé.</div>
     </div>` : '';
-  const tdvBtn = isMineAccount(a) ? `<button type="button" class="btn btn-ghost btn-sm po-tdv-days" id="po-tdv-days" title="Relevé Tradovate (Account Balance History) ou R|Trader Pro (Performance + Trader Dashboard)">${icon('download')}Importer un relevé</button>` : '';
+  const tdvBtn = isMineAccount(a) ? `<button type="button" class="btn btn-ghost btn-sm po-tdv-days" id="po-tdv-days" title="Tradovate : Account Balance History (+ Cash History pour le wallet et les frais) · R|Trader Pro : Performance + Trader Dashboard">${icon('download')}Importer un relevé</button>` : '';
   const daysHtml = s.days.length ? `<table class="po-days"><thead><tr><th>Jour</th><th class="num">P&amp;L</th><th>Compte pour le payout</th></tr></thead><tbody>${s.days.slice().reverse().map(d=>{
       const R = s.R, good = R.dayType === 'winning' ? d.pnl >= (Number(R.dayMin)||0) : (R.minDays ? true : null);
       const editable = isMineAccount(a);
@@ -8688,35 +8733,36 @@ function payoutFicheModal(accId){
       <div class="cat-sub">Seuil à ${poMoney(thr)} : plus haut solde de fin de journée ${poMoney(Number(wal.peak.v))} le ${fmtDate(wal.peak.day)} − drawdown ${poMoney(dd)}${thr >= s.fmStart ? ' (seuil bloqué au solde de départ)' : ''}, d’après tes relevés importés. Un retrait ne fait pas redescendre le seuil.</div></div></div>
       ${s.amt > 0 ? `<div class="po-marge-after">${icon('alertTriangle')}<span>Après un retrait de ${poMoney(s.amt)}, il te resterait <b class="mono">${poMoney(after)}</b> avant liquidation.</span></div>` : ''}</div>`;
   }
-  let walletBlock = '';
+  let walletBlock = '', walletPending = 0;
   const outs = wal && Array.isArray(wal.moves) ? wal.moves.filter(m=>Number(m.amt) < 0) : [];
   if(outs.length){
     const sp = s.split != null && s.split > 0 && s.split <= 1 ? s.split : 1;
     const gross = outs.reduce((t,m)=>t - Number(m.amt), 0);
     const pend = outs.filter(m=>!s.lastPay || m.day > s.lastPay);
     const pendNet = Math.round(pend.reduce((t,m)=>t - Number(m.amt), 0) * sp * 100) / 100;
+    walletPending = pendNet;
     const nPay = state.payouts.filter(p=>String(p.accountId) === String(a.id)).length;
     walletBlock = `<div class="po-sec po-wallet"><div class="po-bal-top"><div><div class="po-ct">${icon('wallet')}Wallet ${escapeHtml(firm ? firm.name : '')}</div>
         <div class="cat-sub">Retraits du compte vers le wallet, lus dans ton Cash History. Un payout Contralytix = l’argent arrivé sur ta banque.</div></div>
-        ${pendNet > 0 && isMineAccount(a) ? `<button type="button" class="btn btn-outline btn-sm" id="po-wallet-pay" data-amt="${pendNet}">${icon('wallet')}Enregistrer le virement</button>` : ''}</div>
+</div>
       <table class="po-days po-wallet-t"><tbody>
         <tr><td>Envoyé au wallet</td><td class="num mono">${poMoney(gross * sp)}</td><td class="cat-sub">${outs.length} retrait${outs.length>1?'s':''} du compte (${poMoney(gross)}${sp < 1 ? ', moins ' + Math.round(100 - sp * 100) + ' % pour la prop firm' : ''})</td></tr>
         <tr><td>Viré sur ta banque</td><td class="num mono">${nPay}</td><td class="cat-sub">${nPay ? `payout${nPay>1?'s':''} enregistré${nPay>1?'s':''}${s.lastPay ? ', dernier le ' + fmtDate(s.lastPay) : ''}` : 'aucun payout enregistré'}</td></tr>
-        <tr class="po-wallet-pend"><td><b>En attente sur le wallet</b></td><td class="num mono"><b>${poMoney(pendNet)}</b></td><td class="cat-sub">${pend.length ? `retrait${pend.length>1?'s':''} du ${pend.map(m=>fmtDate(m.day)).join(', ')}${s.lastPay ? ', après ton dernier payout' : ''}` : 'tout a été viré'}</td></tr>
+        <tr class="po-wallet-pend"><td><b>En attente sur le wallet</b></td><td class="num mono"><b>${poMoney(pendNet)}</b></td><td class="cat-sub">${pend.length ? `retrait${pend.length>1?'s':''} du ${pend.map(m=>fmtDate(m.day)).join(', ')}${s.lastPay ? ', après ton dernier payout' : ''}. Quand tu le vires sur ta banque, « Enregistrer un payout » le pré-remplit.` : 'tout a été viré'}</td></tr>
         ${wal.fees ? `<tr><td>Frais de trading</td><td class="num mono">${poMoney(wal.fees)}</td><td class="cat-sub">commissions et frais de marché du ${fmtDate(wal.feesFrom)} au ${fmtDate(wal.feesTo)}, déjà déduits de ton P&amp;L</td></tr>` : ''}
       </tbody></table>
       <div class="cat-sub" style="margin-top:6px;">Calcul : retraits faits après ton dernier payout, en supposant qu’un virement vide le wallet.</div></div>`;
   }
   const dlxBalBlock = (s.src === 'dlx' || s.src === 'override') && isMineAccount(a) ? `<div class="po-sec po-bal">
-      <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? ' <span class="badge badge-todo po-edited">corrigé</span>' : ''}</div>
-        <div class="cat-sub">${s.src === 'override' ? `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))} · Deltalytix indique ${poMoney(s.dlxBal)}. Ta correction reste utilisée tant que tu ne rends pas la main${s.R.startBalance != null && s.R.startBalance !== '' ? ` (compte qui part de ${poMoney(Number(s.R.startBalance))})` : ''}.` : `Lu dans Deltalytix, pour un solde de départ de ${poMoney(s.start)}. S’il diffère de ta plateforme, corrige-le avec le solde affiché sur la plateforme${s.R.startBalance != null && s.R.startBalance !== '' && Number(s.R.startBalance) !== s.start ? ` (ce compte part de ${poMoney(Number(s.R.startBalance))})` : ''}.`}</div></div>
+      <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? (s.balSrc ? ' <span class="badge badge-slate po-edited">relevé</span>' : ' <span class="badge badge-todo po-edited">corrigé</span>') : ''}</div>
+        <div class="cat-sub">${s.src === 'override' ? `${s.balSrc ? `Relevé ${s.balSrc === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} du ${fmtDate(String(s.balDay || s.balAt).slice(0,10))}` : `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))}`} · Deltalytix indique ${poMoney(s.dlxBal)}. ${s.balSrc ? 'Le solde du relevé' : 'Ta correction'} reste utilisé${s.balSrc ? '' : 'e'} tant que tu ne rends pas la main${s.R.startBalance != null && s.R.startBalance !== '' ? ` (compte qui part de ${poMoney(Number(s.R.startBalance))})` : ''}.` : `Lu dans Deltalytix, pour un solde de départ de ${poMoney(s.start)}. S’il diffère de ta plateforme, corrige-le avec le solde affiché sur la plateforme${s.R.startBalance != null && s.R.startBalance !== '' && Number(s.R.startBalance) !== s.start ? ` (ce compte part de ${poMoney(Number(s.R.startBalance))})` : ''}.`}</div></div>
         <div style="display:flex;gap:6px;">${s.src === 'override' ? `<button class="btn btn-ghost btn-sm" id="po-bal-undo" title="Revenir au solde de Deltalytix">↺ Deltalytix</button>` : ''}<button class="btn btn-outline btn-sm" id="po-bal-edit">${icon('edit')}Corriger</button></div></div>
       <div class="po-bal-row" id="po-bal-editrow" hidden><input id="po-bal" inputmode="decimal" value="${s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save" data-override="1">Enregistrer</button></div>
     </div>` : '';
   const manualBlock = s.src !== 'dlx' && s.src !== 'override' ? `<div class="po-sec po-bal">
       <div class="po-ct">Solde actuel du compte</div>
       <div class="cat-sub">Ce compte n’est pas synchronisé avec Deltalytix : saisis le solde affiché sur ta plateforme pour calculer le buffer et le montant possible.</div>
-      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' && s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
+      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' && s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">${s.balSrc ? `relevé ${s.balSrc === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} du ${fmtDate(String(s.balDay || s.balAt).slice(0,10))}` : 'saisi le ' + fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
     </div>` : '';
   const srcTxt = s.src === 'dlx' || s.src === 'override'
     ? `${s.src === 'override' ? 'Solde : corrigé à la main · journées' : 'Solde et journées'} : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
@@ -8756,7 +8802,7 @@ function payoutFicheModal(accId){
       const cat = document.getElementById('po-open-cat');
       if(cat) cat.onclick = (e)=>{ e.preventDefault(); closeModal(); state.route = 'catalogue'; render(); };
       ['po-tdv', 'po-tdv-days'].forEach(id=>{ const b = document.getElementById(id); if(b) b.onclick = ()=>{ closeModal(); tdvImportModal({ accId }); }; });
-      document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
+      if(!(walletPending > 0)) document.getElementById('po-add-payout').onclick = ()=>{ closeModal(); payoutsModal(a); };
       // Correction du P&L d'une journée (23/11/2026) : clic sur le montant, saisie, Entrée.
       document.querySelectorAll('.po-pnl-edit').forEach(btn=>btn.onclick = ()=>{
         const td = btn.parentElement, day = btn.dataset.poDay;
@@ -8771,9 +8817,9 @@ function payoutFicheModal(accId){
         inp.onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); go(); } if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); payoutFicheModal(accId); } };
       });
       document.querySelectorAll('[data-po-undo]').forEach(b=>b.onclick = async ()=>{ if(await poUndoDayPnl(a, b.dataset.poUndo)) payoutFicheModal(accId); });
-      const wpb = document.getElementById('po-wallet-pay');
-      if(wpb) wpb.onclick = ()=>{
-        const amt = wpb.dataset.amt; closeModal(); payoutsModal(a);
+      const wpb = document.getElementById('po-add-payout');
+      if(wpb && walletPending > 0) wpb.onclick = ()=>{
+        const amt = walletPending; closeModal(); payoutsModal(a);
         setTimeout(()=>{ const el = document.getElementById('pm-amount'); if(el){ el.value = amt; el.focus(); } const cu = document.getElementById('pm-currency'); if(cu && [...cu.options].some(o=>o.value === 'USD')) cu.value = 'USD'; showToast('Montant du wallet pré-rempli en dollars : mets le montant reçu sur ta banque, et sa devise, s’il diffère.'); }, 40);
       };
       const adBtn = document.getElementById('po-add-day'), adForm = document.getElementById('po-add-day-form');
@@ -24045,7 +24091,7 @@ const ACC_MORE = {};
 function accImportItems(){
   const items = [];
   if(dlx().connected && !dlx().syncing) items.push({ icon:'reset', label:'Synchro Deltalytix', sub:'Dernier trade, comptes breached, plateformes et radar.', run: ()=>dlxSync() });
-  if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', label:'Relevé Tradovate / R|Trader Pro', sub:'Journées, P&L et solde depuis un CSV. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
+  if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', label:'Relevé Tradovate / R|Trader Pro', sub:'Tradovate : Account Balance History (+ Cash History). R|Trader Pro : Performance + Trader Dashboard. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
   items.push({ icon:'camera', label:'Capture d’écran ou Deltalytix', sub:'Crée tes comptes en une fois : les numéros sont lus pour toi.', run: ()=>captureImportModal() });
   return items;
 }
@@ -27366,7 +27412,7 @@ function captureImportModal(opts){
               ? `<button class="btn btn-primary" id="cim-sel-more" ${busy?'disabled':''} title="Les comptes visibles sur cette capture sont cochés en plus ; rien n’est décoché.">${icon('camera')}Ajouter une capture à la sélection</button>
                  <button class="btn btn-ghost" id="cim-sel-end" ${busy?'disabled':''} title="Les captures suivantes ajouteront des comptes sans toucher à la sélection.">Terminer la sélection</button>`
               : `<button class="btn btn-outline" id="cim-add-capture" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''}>${icon('camera')}Ajouter une capture</button>
-                 <button class="btn btn-outline" id="cim-add-stmt" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''} title="Relevé Tradovate (Account Balance History) ou R|Trader Pro (Trader Dashboard, Performance) : les comptes absents sont ajoutés à cette liste, leurs journées et soldes importés après la création.">${icon('download')}Ajouter un relevé</button>
+                 <button class="btn btn-outline" id="cim-add-stmt" ${busy||rows.length>=CIM_MAX_ACCOUNTS?'disabled':''} title="Tradovate : Account Balance History (+ Cash History). R|Trader Pro : Trader Dashboard + Performance. Les comptes absents sont ajoutés à la liste.">${icon('download')}Ajouter un relevé</button>
                  ${dlxDone ? `<button class="btn ${selectMode?'btn-primary':'btn-outline'}" id="cim-select-cap" ${busy?'disabled':''} title="Choisis une ou plusieurs captures de tes comptes actifs : seuls les comptes visibles dessus restent cochés, les autres sont décochés.">${icon(selectMode?'x':'check')}${selectMode?'Annuler la sélection':'Sélectionner d’après une capture'}</button>` : ''}`}
             ${dlxDone ? '' : `<button class="btn btn-outline" id="cim-add-dlx" ${busy?'disabled':''} title="Ajoute tes comptes Deltalytix à cette liste : ceux déjà lus sur la capture sont complétés (date de début, taille, breached)."><span class="dlx-logo dlx-logo-sm" aria-hidden="true"></span>Ajouter Deltalytix</button>`}
           </div>
