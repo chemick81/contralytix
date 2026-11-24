@@ -268,6 +268,23 @@ a{color:var(--accent);text-decoration:none;}
 .nav-sep{height:1px;background:var(--border-soft);margin:6px 10px 10px;}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
+.nav-group-head.nav-group-static{cursor:default;}
+/* Menu contextuel flottant (popMenu, 24/11/2026) */
+.pop-menu{position:fixed;z-index:400;min-width:220px;max-width:min(340px,calc(100vw - 16px));background:var(--surface-2);border:1px solid var(--border);border-radius:11px;box-shadow:0 14px 34px rgba(0,0,0,.45);padding:6px;display:flex;flex-direction:column;animation:fadeIn .1s ease;}
+.pop-menu.is-wide{width:320px;}
+.pop-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);padding:6px 10px 3px;}
+.pop-sep{height:1px;background:var(--border-soft);margin:5px 4px;}
+.pop-item{display:flex;align-items:flex-start;gap:10px;width:100%;padding:8px 10px;border:none;border-radius:8px;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer;}
+.pop-item:hover,.pop-item:focus-visible{background:var(--surface-3);outline:none;}
+.pop-item svg{width:15px;height:15px;flex-shrink:0;margin-top:1px;color:var(--text-dim);}
+.pop-item b{display:block;font-size:12.5px;font-weight:600;}
+.pop-item small{display:block;font-size:11.5px;line-height:1.45;color:var(--text-faint);margin-top:2px;}
+.pop-item.is-danger b,.pop-item.is-danger svg{color:var(--danger);}
+.acc-more-btn{width:32px;padding:0;justify-content:center;}
+#capture-import-account svg + svg{width:13px;height:13px;margin-left:-2px;}
+@media (max-width:520px){ .gd-help-lbl{display:none;} }
+.acc-more-btn svg{width:16px;height:16px;}
+.nav-group-head.nav-group-static:hover{background:none;color:var(--text-faint);}
 .nav-group-chev{display:flex;width:11px;height:11px;flex-shrink:0;transition:transform .15s;}
 .nav-group-chev svg{width:11px;height:11px;flex-shrink:0;}
 /* Chevron de repli du panneau "Alertes" du Dashboard : même bug que le cadenas de
@@ -347,8 +364,9 @@ a{color:var(--accent);text-decoration:none;}
 .stat-sub{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
 
 /* BULLE D'INFO (ⓘ) — réutilisable partout (KPI, titres de section, libellés de champ...) */
-.info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;padding:0;margin-left:4px;border:none;background:transparent;color:var(--text-faint);cursor:pointer;vertical-align:-2px;flex-shrink:0;}
-.info-tip svg{width:14px;height:14px;display:block;}
+.info-tip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;margin-left:4px;border:none;border-radius:50%;background:transparent;color:var(--text-dim);cursor:help;vertical-align:-3px;flex-shrink:0;position:relative;}
+.info-tip::before{content:"";position:absolute;inset:-5px;}   /* zone de clic plus large, sans changer le dessin */
+.info-tip svg{width:15px;height:15px;display:block;}
 .info-tip:hover,.info-tip:focus-visible,.info-tip.active{color:var(--accent);}
 .info-tip-bubble{position:fixed;z-index:4000;max-width:280px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.5;font-weight:400;text-transform:none;letter-spacing:normal;color:var(--text,#E8EDF2);box-shadow:0 8px 24px rgba(0,0,0,.28);animation:infoTipIn .12s ease-out;}
 @keyframes infoTipIn{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:translateY(0);}}
@@ -573,7 +591,10 @@ th.th-sort-active svg{opacity:1;}
 .gd-link{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 
 /* --- Bouton « ? » + panneau d'aide --- */
-.gd-help-btn{position:relative;}
+.gd-help-btn{position:relative;border:1px solid rgba(62,214,181,.35);background:var(--accent-dim);color:var(--accent);}
+.gd-help-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+[data-theme="light"] .gd-help-btn{border-color:rgba(20,154,128,.35);}
+[data-theme="premium"] .gd-help-btn{border-color:rgba(227,181,100,.4);}
 .gd-help-btn.is-pulse::after{content:"";position:absolute;inset:-3px;border-radius:10px;border:2px solid var(--accent);animation:gdPulse 1.6s ease-out infinite;pointer-events:none;}
 @keyframes gdPulse{0%{opacity:.9;transform:scale(.92);}100%{opacity:0;transform:scale(1.25);}}
 .gd-drawer-back{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.45);animation:fadeIn .15s ease;}
@@ -600,6 +621,13 @@ th.th-sort-active svg{opacity:1;}
 .gd-gloss dd{display:inline;margin:0;}
 .gd-drawer-foot{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
 .gd-drawer-foot .btn{flex:1;justify-content:center;}
+.gd-search{width:100%;margin:0;}
+.gd-search input{width:100%;height:38px;padding:0 12px 0 32px;font:inherit;font-size:13px;border-radius:var(--radius-md);background:var(--bg);border:1px solid var(--border);color:var(--text);-webkit-appearance:none;appearance:none;}
+.gd-search input:focus{outline:none;border-color:var(--accent);}
+.gd-more{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.gd-tile{display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer;}
+.gd-tile:hover{border-color:var(--accent);}
+.gd-tile svg{width:15px;height:15px;color:var(--accent);flex-shrink:0;}
 
 /* --- Proposition de visite (première visite d'une page) --- */
 .gd-nudge{position:fixed;z-index:230;width:280px;padding:14px;border:1px solid color-mix(in srgb, var(--accent) 45%, var(--border));border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 14px 40px rgba(0,0,0,.4);animation:gdSlide .2s ease;}
@@ -2526,6 +2554,15 @@ th.th-sort-active svg{opacity:1;}
 /* CHATBOT IA — bulle flottante + panneau de discussion (assistant Contralytix) */
 .chat-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-text);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.35);z-index:150;transition:transform .12s ease;}
 .chat-fab:hover{transform:scale(1.06);}
+.chat-fab-lbl{position:absolute;right:calc(100% + 10px);top:50%;transform:translateY(-50%);white-space:nowrap;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font:600 12.5px Inter,inherit;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .12s ease;}
+.chat-fab:hover .chat-fab-lbl,.chat-fab:focus-visible .chat-fab-lbl{opacity:1;}
+.chat-suggs{display:flex;flex-direction:column;gap:6px;}
+.chat-sugg{display:flex;align-items:center;gap:8px;width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+.chat-sugg:hover{border-color:var(--accent);}
+.chat-sugg svg{width:14px;height:14px;color:var(--accent);flex-shrink:0;}
+.chat-links{display:flex;gap:14px;flex-wrap:wrap;padding:2px 2px 0;}
+.chat-links button{background:none;border:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;}
+.chat-links button:hover{text-decoration:underline;}
 .chat-fab svg{width:23px;height:23px;}
 .chat-panel{position:fixed;bottom:86px;right:22px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 120px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;z-index:150;animation:fadeIn .12s ease;}
 .chat-panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -3827,6 +3864,9 @@ const ICONS = {
   userCircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M5.5 19c1-3 3.5-4.5 6.5-4.5s5.5 1.5 6.5 4.5"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.8a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V2.8a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.05" fill="currentColor" stroke="none"/></svg>',
+  fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
+  moreH: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
 
@@ -3836,7 +3876,10 @@ function icon(name){ return ICONS[name] || ''; }
 // initInfoTips() (délégation d'événements globale, voir BOOT) — pas de logique par page à
 // dupliquer. `text` peut contenir du HTML simple (ex: <br>, <strong>) déjà échappé si besoin.
 function infoTip(text){
-  return `<button type="button" class="info-tip" data-info-tip="${escapeHtml(text)}" aria-label="Explication" onclick="event.stopPropagation();toggleInfoTip(this)">${icon('info')}</button>`;
+  // aria-label explicite (24/11/2026) : le lecteur d'écran annonce le début de l'explication.
+  const plain = String(text || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  const short = plain.length > 70 ? plain.slice(0, 68).replace(/\s+\S*$/, '') + '…' : plain;
+  return `<button type="button" class="info-tip" data-info-tip="${escapeHtml(text)}" aria-label="${escapeHtml('Explication : ' + short)}" onclick="event.stopPropagation();toggleInfoTip(this, true)">${icon('info')}</button>`;
 }
 
 // Numéro de version de l'application, affiché en bas de la barre latérale.
@@ -8710,8 +8753,10 @@ const NAV_GROUPS = [
   { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
   { id:'trading',    label:'Trading',      items:['sessions','meteo','plan-seance','cockpit'] },
   { id:'communaute', flat:true,            items:['ecole'] },
+  // Aide (24/11/2026) : toujours ouverte et placée avant « Mon compte », avec le support dedans,
+  // pour que l'aide se trouve sans avoir à déplier un groupe en bas du menu.
+  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true, alwaysOpen:true, support:true },
   { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true },
-  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true },
 ];
 // Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
 // mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
@@ -8993,6 +9038,15 @@ function renderNavGroups(){
     items.forEach(it=>usedIds.add(it.id));
     if(g.bottom && !bottomStarted){ bottomStarted = true; html += `<div class="nav-sep" role="separator"></div>`; }
     if(g.flat){ html += `<div class="nav-flat">${items.map(navItemHtml).join('')}</div>`; return; }
+    if(g.alwaysOpen){
+      const sup = g.support ? `<div class="nav-item" role="button" tabindex="0" id="nav-support" title="Contacter le support">${icon('mail')}<span class="nav-label">Contacter le support</span></div>` : '';
+      html += `
+      <div class="nav-group nav-group-open">
+        <div class="nav-group-head nav-group-static"><span class="nav-label">${g.label}</span></div>
+        <div class="nav-group-items" style="display:flex;">${items.map(navItemHtml).join('')}${sup}</div>
+      </div>`;
+      return;
+    }
     const isOpen = state.navOpenGroups.includes(g.id);
     html += `
       <div class="nav-group">
@@ -9067,7 +9121,6 @@ function render(){
           <button class="side-tool" id="numbers-toggle" title="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}" aria-label="${state.numbersVisible?'Masquer les n° de compte':'Afficher les n° de compte'}">${icon(state.numbersVisible?'eyeOff':'eye')}</button>
           <button class="side-tool" id="theme-toggle" title="Thème : passer en ${themeToggleTarget().label.toLowerCase()}" aria-label="Changer de thème">${icon(themeToggleTarget().icon)}</button>
           ${isAdmin() ? `<button class="side-tool ${state.adminDebugView?'on-gold':''}" id="admin-debug-toggle" title="${state.adminDebugView ? 'Vue debug (admin) : ON — cliquer pour désactiver' : 'Vue debug (admin) : OFF — voir les données de tous les utilisateurs'}" aria-label="Vue debug admin">${icon('shield')}</button>` : ''}
-          <button class="side-tool" id="contact-btn" title="Contacter le support" aria-label="Contact">${icon('mail')}</button>
           <button class="side-tool danger" id="logout-btn" title="Déconnexion" aria-label="Déconnexion">${icon('x')}</button>
         </div>
         ${legalFooterLinksHtml()}
@@ -9098,7 +9151,7 @@ function render(){
           `}
         </div>
         <div class="topbar-actions">
-          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `${gdHelpBtnHtml()}<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale">${icon('search')}</button>`}
+          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale" aria-label="Recherche globale">${icon('search')}</button>${gdHelpBtnHtml()}`}
           <div class="topbar-actions" id="topbar-actions"></div>
         </div>
       </div>
@@ -9149,7 +9202,8 @@ function render(){
     render();
   };
   document.getElementById('logout-btn').onclick = ()=>{ confirmModal('Te déconnecter ?', signOut, false); };
-  document.getElementById('contact-btn').onclick = openContactModal;
+  const supBtn = document.getElementById('nav-support');
+  if(supBtn){ supBtn.onclick = openContactModal; supBtn.onkeydown = e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openContactModal(); } }; }
   const resetBtn = document.getElementById('reset-data');
   if(resetBtn) resetBtn.onclick = ()=>{
     confirmModal('Cette action supprime définitivement toutes les données (traders, propfirms, comptes, payouts) pour TOUT LE MONDE utilisant ce site. Continuer ?', async ()=>{
@@ -9209,7 +9263,11 @@ function renderTopbarActions(){
   else if(state.route==='catalogue') el.innerHTML = pilotageEnabled() ? `<button class="btn btn-primary" onclick="accountFormModal({})">${icon('plus')}Nouveau compte</button>` : '';
   else if(state.route==='plan-seance') el.innerHTML = `<button class="btn btn-primary" id="sp-open-cockpit">${icon('play')}Ouvrir le cockpit</button>`;
   else if(state.route==='radar') el.innerHTML = perms().isPremium && state.dormancyReady && dmOptedIn() ? `<button class="btn btn-outline" onclick="dmOpenActivation(['all'])">${icon('edit')}Dernier trade connu</button><button class="btn btn-primary" onclick="dmOpenPointage()" title="Pointer la même journée pour tous tes comptes funded">${icon('check')}Pointer une journée · multi-comptes</button>` : '';
-  else if(state.route==='accounts') el.innerHTML = (dlx().connected ? `<button class="btn btn-ghost" data-dlx-sync ${dlx().syncing?'disabled':''} title="Met à jour depuis Deltalytix : dernier trade, comptes breached, plateformes et radar">${dlx().syncing ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…' : `<span class="dlx-logo xs" aria-hidden="true"></span><span class="dlx-sync-label">Synchroniser</span>`}</button>` : '') + ((state.accounts || []).some(a=>isMineAccount(a)) ? `<button class="btn btn-ghost" onclick="tdvImportModal()" title="Relevé Account Balance History de Tradovate (CSV), un ou plusieurs comptes : solde et journées tradées, appliqués au compte de ton choix">${icon('download')}Relevé Tradovate / R|Trader</button>` : '') + `<button class="btn btn-outline" id="capture-import-account" title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d'écran de ta plateforme (Tradovate, Rithmic, NinjaTrader…)">${icon('download')}Importer mes comptes</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
+  // Un seul « Importer ▾ » (24/11/2026) pour les 3 sources : synchro Deltalytix, relevé Tradovate /
+  // R|Trader Pro, capture ou connexion Deltalytix (accImportItems). Sans autre source que la capture,
+  // le bouton ouvre directement l'import.
+  else if(state.route==='accounts') el.innerHTML = (dlx().syncing ? `<span class="btn btn-ghost" aria-live="polite"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…</span>` : '')
+    + `<button class="btn btn-outline" id="capture-import-account" ${accImportItems().length > 1 ? 'aria-haspopup="menu" title="Synchro Deltalytix, relevé Tradovate / R|Trader Pro ou capture d’écran"' : 'title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d’écran de ta plateforme"'}>${icon('download')}${accImportItems().length > 1 ? `Importer${icon('chevDown')}` : 'Importer mes comptes'}</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
       <button class="btn btn-outline" id="export-accounting-xlsx">${icon('sheet')}Excel</button>
@@ -9239,7 +9297,7 @@ function renderTopbarActions(){
   if(document.getElementById('add-firm')) document.getElementById('add-firm').onclick = ()=>firmFormModal();
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
   if(document.getElementById('bulk-add-account')) document.getElementById('bulk-add-account').onclick = ()=>bulkAccountFormModal();
-  if(document.getElementById('capture-import-account')) document.getElementById('capture-import-account').onclick = ()=>captureImportModal();
+  if(document.getElementById('capture-import-account')) document.getElementById('capture-import-account').onclick = e=>{ const items = accImportItems(); if(items.length > 1) popMenu(e.currentTarget, items, { wide:true }); else captureImportModal(); };
   el.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
   if(document.getElementById('export-accounting')) document.getElementById('export-accounting').onclick = exportAccountingCSV;
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
@@ -15705,16 +15763,18 @@ const MANUAL_CHAPTERS = [
       <li><b>Afficher / Masquer les n° de compte</b> — bascule l'affichage des numéros de compte entre version complète et version masquée (seuls les 4 derniers chiffres restent visibles), utile pour partager son écran.</li>
       <li><b>Thème (Sombre / Clair / Premium doré)</b> — un clic fait défiler les 3 thèmes visuels de l'application, dont un thème « Premium doré » à l'ambiance plus chaude. Préférence mémorisée sur cet appareil, disponible sur toutes les formules.</li>
       <li><b>Vue debug</b> (administrateurs uniquement) — affiche les données de tous les utilisateurs pour investiguer un souci.</li>
-      <li><b>Contact</b> — envoie un message au support.</li>
       <li><b>Déconnexion</b> — ferme la session en cours.</li>
     </ul>
     <p>Sous cette rangée : les liens légaux, les liens vers la communauté Contralytix (Discord, YouTube, TikTok) et le numéro de version. Le menu est conçu pour tenir dans la hauteur de l'écran ; sur un petit écran, seule la liste des pages défile, le bas de la barre reste toujours visible.</p>
     <h3>Être guidé</h3>
+    <p>Le groupe <b>Aide</b> du menu reste toujours ouvert, juste au-dessus de « Mon compte » : Centre d'aide, Manuel, Nouveautés et <b>Contacter le support</b>.</p>
     <ul>
-      <li><b>Bien démarrer</b> — en tête du Dashboard, une checklist de 5 étapes (créer ton trader, ajouter tes comptes, enregistrer un payout, découvrir ton net réel, protéger tes comptes financés ou activer ton bilan du lundi). Les étapes se cochent toutes seules ; « Masquer » la range, et le bouton ? permet de la reprendre.</li>
-      <li><b>Le bouton ?</b> — en haut de chaque page, il ouvre « Comment ça marche » : l'essentiel de la page, des actions rapides, un lexique et un lien vers le bon chapitre de ce manuel.</li>
-      <li><b>Visite guidée</b> — sur les pages principales, quelques bulles montrent les zones importantes. Elle est proposée à ta première visite, puis reste disponible depuis le bouton ?.</li>
-      <li><b>Prochaine étape</b> — sur la page Comptes, une ligne indique ce qu'un compte attend de toi (créer le PA, enregistrer un premier payout, indiquer ton dernier trade), avec le bon bouton.</li>
+      <li><b>Bien démarrer</b> — en tête du Dashboard, une checklist de 5 étapes (créer ton trader, ajouter tes comptes, enregistrer un payout, découvrir ton net réel, protéger tes comptes financés ou activer ton bilan du lundi). Les étapes se cochent toutes seules ; « Masquer » la range, et le bouton « Aide » permet de la reprendre. Une fois toutes les étapes faites, elle disparaît.</li>
+      <li><b>Le bouton « Aide »</b> — en haut à droite de chaque page, toujours au même endroit, il ouvre « Comment ça marche » : l'essentiel de la page, des actions rapides, un lexique, une recherche dans le Centre d'aide, et les accès à l'assistant, aux Nouveautés, au support et au bon chapitre de ce manuel.</li>
+      <li><b>Les bulles ⓘ</b> — à côté d'un chiffre ou d'un titre, elles s'ouvrent au survol de la souris (ou d'un appui sur mobile) et expliquent le calcul. Un clic les garde ouvertes.</li>
+      <li><b>L'assistant</b> — la bulle verte en bas à droite (« Une question ? ») répond aux questions sur l'utilisation de Contralytix et propose trois questions types selon la page ouverte.</li>
+      <li><b>Visite guidée</b> — sur les pages principales, quelques bulles montrent les zones importantes. Elle est proposée à ta première visite, puis reste disponible depuis le bouton « Aide ».</li>
+      <li><b>Prochaine étape</b> — sur la page Comptes, une ligne indique ce qu'un compte attend de toi (créer le PA, compléter la date d'achat, indiquer ton dernier trade), avec le bon bouton.</li>
       <li><b>Pages vides</b> — tant qu'une page n'a pas de contenu, elle propose directement les façons de commencer.</li>
     </ul>
     <h3>Recherche globale</h3>
@@ -15791,10 +15851,11 @@ const MANUAL_CHAPTERS = [
     <h3>Cycle de vie d'un compte</h3>
     <ul>
       <li>Un Challenge est créé et passe en statut Actif.</li>
-      <li>Il est ensuite marqué « Réussi » ou « Breached » (échoué) depuis sa carte.</li>
+      <li>Il est ensuite marqué « Réussi » (bouton « Marquer réussi ») ou « Breached » (menu « ⋯ » › « Marquer breached ») depuis sa carte.</li>
       <li>Un Challenge réussi permet de créer directement le compte PA associé (bouton « Créer le PA ») — le lien entre les deux comptes est conservé.</li>
-      <li>Un compte PA actif peut être converti en compte Live (bouton « Passer en Live ») : l'historique est conservé, seul le type change.</li>
-      <li>Un compte PA ou Live peut être fermé, ou marqué Breached, à tout moment depuis sa carte.</li>
+      <li>Un compte PA actif peut être converti en compte Live (menu « ⋯ » › « Passer en Live ») : l'historique est conservé, seul le type change.</li>
+      <li>Un compte PA ou Live peut être clôturé (« Clôturer le compte » : tu l'arrêtes sans breach) ou marqué Breached, à tout moment depuis le menu « ⋯ » de sa carte.</li>
+      <li>Sur chaque carte, les actions du quotidien restent visibles (Payouts, Notes) ; le menu « ⋯ » regroupe les changements de statut, chacun avec sa conséquence, l'historique du statut, la modification et la suppression du compte.</li>
     </ul>
     <h3>Statuts possibles</h3>
     <ul>
@@ -16844,11 +16905,14 @@ function accountCard(a){
   }
 
   let actions = '';
+  const more = [];     // menu « ⋯ » : actions rares, chacune avec sa conséquence (24/11/2026)
+  let hidden = '';     // boutons invisibles portant les data-* déjà gérés par bindViewEvents
   const editable = canEdit(a);
   if(a.type==='CHALLENGE'){
     if(a.status==='ACTIF' && editable){
-      actions += `<button class="btn btn-outline btn-sm" data-mark="REUSSI" data-acc="${a.id}">Marquer réussi</button>`;
-      actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}">Breached</button>`;
+      actions += `<button class="btn btn-outline btn-sm" data-mark="REUSSI" data-acc="${a.id}" title="Le challenge est validé : tu pourras créer le PA obtenu">${icon('check')}Marquer réussi</button>`;
+      more.push({ icon:'alertTriangle', label:'Marquer breached', sub:'La prop firm a fermé le challenge (perte maximale atteinte).', click:`[data-mark="BREACHED"][data-acc="${a.id}"]`, group:'Statut du compte', danger:true });
+      hidden += `<button type="button" data-mark="BREACHED" data-acc="${a.id}"></button>`;
     } else if(a.status==='REUSSI' && !child && editable){
       actions += `<button class="btn btn-primary btn-sm" data-create-pa="${a.id}">${icon('bolt')}Créer le PA</button>`;
     }
@@ -16860,23 +16924,28 @@ function accountCard(a){
       // Un seul bouton Payouts (23/11/2026) : il ouvre directement l'ajout d'un payout (et la liste).
       // La fiche « Prochain payout » (conditions, solde) s'ouvre depuis la pastille à côté du statut.
       actions += `<button class="btn btn-primary btn-sm" data-payouts="${a.id}" title="Ajouter un payout ou voir les payouts reçus">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
+      // Changements de statut (24/11/2026) : dans le menu « ⋯ » avec leur conséquence (accMoreItems).
       if(editable){
-        if(a.type==='PA'){
-          actions += `<button class="btn btn-outline btn-sm" data-to-live="${a.id}">${icon('bolt')}Passer en Live</button>`;
-        }
-        actions += `<button class="btn btn-outline btn-sm" data-mark="FERME" data-acc="${a.id}">Fermer</button>`;
-        actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}">Breached</button>`;
+        if(a.type==='PA') more.push({ icon:'bolt', label:'Passer en Live', sub:'Le PA devient un compte Live. L’historique est gardé.', click:`[data-to-live="${a.id}"]`, group:'Statut du compte' });
+        more.push({ icon:'lock', label:'Clôturer le compte', sub:'Tu arrêtes ce compte sans breach (fin d’abonnement, retrait final…).', click:`[data-mark="FERME"][data-acc="${a.id}"]`, group:'Statut du compte' });
+        more.push({ icon:'alertTriangle', label:'Marquer breached', sub:'La prop firm a fermé le compte (perte maximale atteinte).', click:`[data-mark="BREACHED"][data-acc="${a.id}"]`, group:'Statut du compte', danger:true });
+        hidden += `${a.type==='PA' ? `<button type="button" data-to-live="${a.id}"></button>` : ''}<button type="button" data-mark="FERME" data-acc="${a.id}"></button><button type="button" data-mark="BREACHED" data-acc="${a.id}"></button>`;
       }
     } else {
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
     }
   }
-  actions += `<button class="btn btn-ghost btn-sm" data-notes="${a.id}" title="Notes / journal">${icon('edit')}Notes${state.account_notes.filter(n=>n.accountId===a.id).length ? ` (${state.account_notes.filter(n=>n.accountId===a.id).length})` : ''}</button>`;
-  actions += `<button class="btn btn-ghost btn-sm" data-history="${a.id}" title="Historique du statut">${icon('clock')}</button>`;
+  actions += `<button class="btn btn-ghost btn-sm" data-notes="${a.id}" title="Notes et journal du compte">${icon('fileText')}Notes${state.account_notes.filter(n=>n.accountId===a.id).length ? ` (${state.account_notes.filter(n=>n.accountId===a.id).length})` : ''}</button>`;
+  more.push({ icon:'clock', label:'Historique du statut', click:`[data-history="${a.id}"]`, group:'Compte' });
+  hidden += `<button type="button" data-history="${a.id}"></button>`;
   if(editable){
-    actions += `<button class="btn btn-ghost btn-sm" data-edit-account="${a.id}">${icon('edit')}</button>`;
-    actions += `<button class="btn btn-ghost btn-sm" data-del-account="${a.id}" style="color:var(--danger)">${icon('trash')}</button>`;
-  } else {
+    more.push({ icon:'edit', label:'Modifier le compte', click:`[data-edit-account="${a.id}"]`, group:'Compte' });
+    more.push({ icon:'trash', label:'Supprimer le compte', click:`[data-del-account="${a.id}"]`, group:'Compte', danger:true });
+    hidden += `<button type="button" data-edit-account="${a.id}"></button><button type="button" data-del-account="${a.id}"></button>`;
+  }
+  ACC_MORE[a.id] = more;
+  actions += `<button type="button" class="btn btn-outline btn-sm acc-more-btn" data-acc-more="${a.id}" aria-label="Autres actions sur le compte" title="Statut, historique, modifier, supprimer" aria-haspopup="menu">${icon('moreH')}</button><span class="acc-more-hidden" hidden>${hidden}</span>`;
+  if(!editable){
     actions += `<span class="badge badge-slate" title="Seul le créateur ou un administrateur peut modifier cet enregistrement">${icon('lock')}Lecture seule</span>`;
   }
 
@@ -18988,7 +19057,7 @@ function renderChatWidget(){
   const root = document.getElementById('chat-widget-root');
   if(!root) return;
   root.innerHTML = `
-    <button class="chat-fab" id="chat-fab" title="Assistant Contralytix">${icon(chatOpen ? 'x' : 'chat')}</button>
+    <button class="chat-fab" id="chat-fab" aria-label="${chatOpen ? 'Fermer l’assistant' : 'Une question ? Ouvrir l’assistant Contralytix'}">${icon(chatOpen ? 'x' : 'chat')}${chatOpen ? '' : '<span class="chat-fab-lbl" aria-hidden="true">Une question ?</span>'}</button>
     ${chatOpen ? `
     <div class="chat-panel">
       <div class="chat-panel-head">
@@ -18999,7 +19068,7 @@ function renderChatWidget(){
         <div style="display:flex;align-items:center;gap:6px;">${aik().connected ? `<label for="chat-engine" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Moteur IA de l’assistant</label><select id="chat-engine" class="chat-engine" title="Moteur IA de l’assistant"><option value="site" ${aikEngine('chat')==='site'?'selected':''}>Contralytix</option><option value="mine" ${aikEngine('chat')==='mine'?'selected':''}>Ma clé · ${escapeHtml(aikProv(aik().provider).name)}</option></select>` : ''}<button class="icon-btn-plain" id="chat-close" title="Fermer">${icon('x')}</button></div>
       </div>
       <div class="chat-panel-body" id="chat-body">
-        ${chatMessages.length===0 ? `<div class="chat-empty">Pose-moi une question sur l'utilisation de Contralytix : comptes, payouts, comptabilité, abonnement… Pour toute question précise sur ton compte, utilise plutôt le formulaire de contact.</div>` : ''}
+        ${chatMessages.length===0 ? chatEmptyHtml() : ''}
         ${chatMessages.map(m=>`<div class="chat-msg chat-msg-${m.role}">${escapeHtml(m.text)}</div>${m.role==='assistant' && m.engine==='mine' ? `<div class="chat-msg-meta">Répondu avec ${escapeHtml(aikEngineLabel('mine', m.provider))}</div>` : ''}`).join('')}
         ${chatLoading ? `<div class="chat-msg chat-msg-assistant chat-typing">L\u2019assistant réfléchit…</div>` : ''}
       </div>
@@ -19029,9 +19098,37 @@ function renderChatWidget(){
       sendChatMessage(text);
     };
     document.getElementById('chat-send').onclick = doSend;
+    document.querySelectorAll('[data-chat-sugg]').forEach(b=>b.onclick = ()=>{ if(!chatLoading) sendChatMessage(b.dataset.chatSugg); });
+    document.querySelectorAll('[data-chat-go]').forEach(b=>b.onclick = ()=>{
+      const go = b.dataset.chatGo; chatOpen = false; renderChatWidget();
+      if(go==='support') openContactModal(); else if(go==='tour'){ gdStartTour(); } else gdOpenManual((gdHelpFor(state.route) || {}).manual || '');
+    });
     input.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSend(); } };
     scrollChatToBottom();
   }
+}
+// Questions types selon la page ouverte (24/11/2026) : l'écran vide de l'assistant propose 3 questions.
+const CHAT_SUGGESTIONS = {
+  dashboard: ['Que signifie le Net global ?', 'Comment personnaliser mon Dashboard ?', 'Comment est calculé le prochain payout ?'],
+  accounts: ['Comment importer un relevé Tradovate ?', 'Quand mon PA pourra-t-il demander un payout ?', 'Que veulent dire « Clôturer » et « Marquer breached » ?'],
+  radar: ['Comment fonctionne le Radar inactivité ?', 'Comment pointer une journée tradée ?', 'Que se passe-t-il si un compte reste inactif ?'],
+  catalogue: ['D’où viennent les règles du catalogue ?', 'Comment choisir la formule de mon compte ?', 'Que veut dire « Vérifié » ?'],
+  rentabilite: ['Qu’est-ce que le net réel ?', 'Pourquoi mes challenges ratés comptent dans le net ?', 'Comment lire mon ROI ?'],
+  accounting: ['Comment exporter ma comptabilité ?', 'Comment sont convertis les montants en euros ?', 'Comment ajouter une dépense ?'],
+  calendrier: ['Que montre le calendrier ?', 'Comment sont calculées les échéances ?', 'Comment recevoir les alertes ?'],
+};
+const CHAT_SUGGESTIONS_DEFAULT = ['Comment ajouter mes comptes ?', 'Comment enregistrer un payout ?', 'Qu’est-ce que le net réel ?'];
+function chatEmptyHtml(){
+  const page = (getNav().find(n=>n.id===navRouteOwner(state.route)) || {}).label || '';
+  const list = CHAT_SUGGESTIONS[navRouteOwner(state.route)] || CHAT_SUGGESTIONS_DEFAULT;
+  const hasTour = !!(gdHelpFor(state.route) || {}).tour;
+  return `<div class="chat-empty">${page ? `Une question sur la page <b>${escapeHtml(page)}</b> ? ` : ''}Choisis-en une ou écris la tienne. Pour un problème précis sur ton compte, écris plutôt au support.</div>
+    <div class="chat-suggs">${list.map(q=>`<button type="button" class="chat-sugg" data-chat-sugg="${escapeHtml(q)}">${icon('chevRight')}<span>${escapeHtml(q)}</span></button>`).join('')}</div>
+    <div class="chat-links">${hasTour ? `<button type="button" data-chat-go="tour">Visite guidée</button>` : ''}<button type="button" data-chat-go="manual">Manuel</button><button type="button" data-chat-go="support">Contacter le support</button></div>`;
+}
+function chatOpenPanel(question){
+  chatOpen = true; renderChatWidget(); scrollChatToBottom();
+  setTimeout(()=>{ const inp = document.getElementById('chat-input'); if(inp){ if(question) inp.value = question; inp.focus(); } }, 30);
 }
 function scrollChatToBottom(){
   const body = document.getElementById('chat-body');
@@ -23482,7 +23579,7 @@ function gdStartChecklistHtml(){
         <div class="gd-start-prog">
           <span>${done}/${steps.length}</span>
           <div class="gd-start-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${steps.length}" aria-valuenow="${done}" aria-label="Progression"><span style="width:${pct}%"></span></div>
-          <button type="button" class="gd-start-hide" onclick="gdHideStart()" title="Masquer cette checklist (elle reste accessible depuis le bouton ? de l’en-tête)">Masquer</button>
+          <button type="button" class="gd-start-hide" onclick="gdHideStart()" title="Masquer cette checklist (elle reste accessible depuis le bouton « Aide » de l’en-tête)">Masquer</button>
         </div>
       </div>
       <ol class="gd-steps">
@@ -23498,7 +23595,7 @@ function gdStartChecklistHtml(){
 function gdHideStart(){
   gdSet('start_hidden','1');
   renderView();
-  showToast('Checklist masquée. Tu la retrouves avec le bouton ? en haut de page.');
+  showToast('Checklist masquée. Tu la retrouves avec le bouton « Aide » en haut de page.');
 }
 function gdShowStart(){
   gdSet('start_hidden','0'); gdCloseHelp(); gdGo('dashboard');
@@ -23575,11 +23672,11 @@ const GD_HELP = {
       { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
     ] },
   accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
-    points:['<b>Importer mes comptes</b> crée tes comptes depuis Deltalytix, une capture de ta plateforme ou un relevé CSV Tradovate / R|Trader Pro, sans recopier les numéros.','<b>Relevé Tradovate / R|Trader</b> importe le solde et les journées tradées (Radar, Prochain payout).','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    points:['<b>Importer</b> regroupe la synchro Deltalytix, le relevé CSV Tradovate / R|Trader Pro (solde, journées tradées, comptes manquants) et la capture d’écran de ta plateforme.','Sur chaque carte : <b>Payouts</b> et <b>Notes</b> ; le menu <b>⋯</b> regroupe Passer en Live, Clôturer le compte, Marquer breached, l’historique, Modifier et Supprimer.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
     actions:[{ icon:'download', label:'Importer mes comptes', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
     glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net réel','payouts − toutes les dépenses, challenges ratés compris.'],['Net du parcours','net d’un PA/Live, Challenge d’origine inclus.'],['ROI','net réel ÷ dépenses.']],
     tour:[
-      { sel:'#capture-import-account', title:'Le plus rapide pour démarrer', text:'Colle une capture de Rithmic, ATAS, Tradovate ou du site de ta prop firm : les comptes sont créés pour toi.' },
+      { sel:'#capture-import-account', title:'Le plus rapide pour démarrer', text:'Importe tes comptes : synchro Deltalytix, relevé Tradovate / R|Trader Pro ou capture de ta plateforme. Les comptes sont créés pour toi.' },
       { sel:'.acc-totals', title:'Tes totaux', text:'Dépenses, payouts, net réel et ROI des comptes affichés. Ils suivent tes filtres.' },
       { sel:'.filter-bar', title:'Filtres et regroupement', text:'Cherche un numéro, filtre par trader, PropFirm, taille ou statut, et regroupe la liste.' },
       { sel:'.type-tabs', title:'Par type de compte', text:'Challenge, PA ou Live en un clic, avec leur nombre.' },
@@ -23629,7 +23726,8 @@ const GD_HELP = {
 function gdHelpFor(route){ return GD_HELP[route] || null; }
 function gdHelpBtnHtml(){
   if(['manuel','aide-centre','confidentialite','mentions-legales','cgv'].includes(state.route)) return '';
-  return `<button class="btn btn-ghost btn-sm gd-help-btn" id="gd-help-btn" title="Comment fonctionne cette page ?" aria-label="Aide sur cette page" onclick="gdOpenHelp()">${icon('help')}</button>`;
+  // Bouton libellé « Aide » (24/11/2026), toujours au même endroit : avant les actions de la page.
+  return `<button class="btn btn-sm gd-help-btn" id="gd-help-btn" title="Comment fonctionne cette page, assistant, manuel, support" aria-label="Aide sur cette page" onclick="gdOpenHelp()">${icon('help')}<span class="gd-help-lbl">Aide</span></button>`;
 }
 function gdCloseHelp(){
   document.querySelectorAll('.gd-drawer, .gd-drawer-back').forEach(n=>n.remove());
@@ -23649,9 +23747,16 @@ function gdOpenHelp(){
       <button type="button" class="btn btn-ghost btn-sm" aria-label="Fermer" onclick="gdCloseHelp()">${icon('x')}</button>
     </div>
     <div class="gd-drawer-body">
+      <form class="search-wrap gd-search" id="gd-search" role="search">${icon('search')}<input type="search" id="gd-search-q" placeholder="Chercher dans l’aide…" aria-label="Chercher dans le Centre d’aide"/></form>
       ${h ? `<div class="gd-drawer-intro">${h.intro}</div>` : `<div class="gd-drawer-intro">Le manuel décrit cette page en détail, section par section.</div>`}
       ${h && h.points ? `<div><div class="gd-sec-title">L’essentiel</div><ul class="gd-points">${h.points.map(p=>`<li>${ck}<span>${p}</span></li>`).join('')}</ul></div>` : ''}
       ${h && h.actions ? `<div><div class="gd-sec-title">Actions rapides</div><div class="gd-actions">${h.actions.filter(a=>!a.show || a.show()).map(a=>`<button type="button" class="gd-action" onclick="${a.run}">${icon(a.icon)}<span>${a.label}</span>${icon('chevRight')}</button>`).join('')}</div></div>` : ''}
+      <div><div class="gd-sec-title">Besoin de plus ?</div><div class="gd-more">
+        <button type="button" class="gd-tile" onclick="gdCloseHelp();chatOpenPanel()">${icon('chat')}<span>Poser une question</span></button>
+        <button type="button" class="gd-tile" onclick="gdCloseHelp();gdGo('aide-centre')">${icon('help')}<span>Centre d’aide</span></button>
+        <button type="button" class="gd-tile" onclick="gdCloseHelp();gdGo('changelog')">${icon('sparkles')}<span>Nouveautés</span></button>
+        <button type="button" class="gd-tile" onclick="gdCloseHelp();openContactModal()">${icon('mail')}<span>Contacter le support</span></button>
+      </div></div>
       ${h && h.glossary ? `<div><div class="gd-sec-title">Lexique</div><dl class="gd-gloss">${h.glossary.map(([t,x])=>`<div><dt>${t}</dt> <dd>— ${x}</dd></div>`).join('')}</dl></div>` : ''}
       ${state.route!=='dashboard' && gdGet('start_hidden')==='1' && gdStartSteps().some(s=>!s.done) ? `<div><div class="gd-sec-title">Bien démarrer</div><div class="gd-actions"><button type="button" class="gd-action" onclick="gdShowStart()">${icon('check')}<span>Reprendre la checklist « Bien démarrer »</span>${icon('chevRight')}</button></div></div>` : ''}
     </div>
@@ -23660,6 +23765,7 @@ function gdOpenHelp(){
       <button type="button" class="btn btn-outline" onclick="gdOpenManual('${h ? h.manual : ''}')">${icon('book')}Lire le manuel</button>
     </div>`;
   document.body.appendChild(back); document.body.appendChild(d);
+  d.querySelector('#gd-search').onsubmit = e=>{ e.preventDefault(); const q = d.querySelector('#gd-search-q').value.trim(); gdCloseHelp(); if(state.filters && state.filters.aide) state.filters.aide.q = q; gdGo('aide-centre'); };
   document.addEventListener('keydown', gdHelpKey, true);
   const first = d.querySelector('.gd-drawer-body button, .gd-drawer-foot button'); if(first) first.focus({ preventScroll:true });
 }
@@ -23723,7 +23829,7 @@ function gdStartTour(){
 function gdTourGo(i, keepScroll){
   const t = gdTourState; if(!t) return;
   if(i<0) return;
-  if(i>=t.steps.length){ gdEndTour(); showToast('Visite terminée. Le bouton ? reste là si besoin.'); return; }
+  if(i>=t.steps.length){ gdEndTour(); showToast('Visite terminée. Le bouton « Aide » reste là si besoin.'); return; }
   t.i = i;
   const s = t.steps[i];
   const el = document.querySelector(s.sel);
@@ -23762,6 +23868,67 @@ function gdEndTour(){
   gdTourState = null;
 }
 
+/* ---------- Menu contextuel flottant (24/11/2026) ----------
+   popMenu(bouton, items) : menu ancré au bouton, ajouté au body (ne gêne pas les re-render),
+   fermé au clic extérieur, à Échap, au défilement. items : { icon, label, sub, group, danger, run() }. */
+const ACC_MORE = {};
+function accImportItems(){
+  const items = [];
+  if(dlx().connected && !dlx().syncing) items.push({ icon:'reset', label:'Synchro Deltalytix', sub:'Dernier trade, comptes breached, plateformes et radar.', run: ()=>dlxSync() });
+  if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', label:'Relevé Tradovate / R|Trader Pro', sub:'Journées, P&L et solde depuis un CSV. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
+  items.push({ icon:'camera', label:'Capture d’écran ou Deltalytix', sub:'Crée tes comptes en une fois : les numéros sont lus pour toi.', run: ()=>captureImportModal() });
+  return items;
+}
+function popMenuClose(){
+  document.querySelectorAll('.pop-menu').forEach(m=>m.remove());
+  document.querySelectorAll('[aria-expanded="true"][data-pop-anchor]').forEach(b=>{ b.setAttribute('aria-expanded','false'); b.removeAttribute('data-pop-anchor'); });
+  document.removeEventListener('mousedown', popMenuOutside, true);
+  document.removeEventListener('keydown', popMenuKey, true);
+  window.removeEventListener('scroll', popMenuClose, true);
+  window.removeEventListener('resize', popMenuClose);
+}
+function popMenuOutside(e){ if(!e.target.closest('.pop-menu') && !e.target.closest('[data-pop-anchor]')) popMenuClose(); }
+function popMenuKey(e){
+  const m = document.querySelector('.pop-menu'); if(!m) return;
+  if(e.key==='Escape'){ e.stopPropagation(); const b = document.querySelector('[data-pop-anchor]'); popMenuClose(); if(b) b.focus(); return; }
+  if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+    e.preventDefault();
+    const items = [...m.querySelectorAll('.pop-item')]; const i = items.indexOf(document.activeElement);
+    const n = e.key==='ArrowDown' ? (i+1) % items.length : (i-1+items.length) % items.length;
+    if(items[n]) items[n].focus();
+  }
+}
+function popMenu(btn, items, opts){
+  const wasOpen = btn.getAttribute('aria-expanded')==='true';
+  popMenuClose();
+  if(wasOpen || !items || !items.length) return;
+  const m = document.createElement('div'); m.className = 'pop-menu' + (opts && opts.wide ? ' is-wide' : ''); m.setAttribute('role','menu');
+  let html = '', grp = null;
+  items.forEach((it, i)=>{
+    if(it.group !== grp){ if(grp !== null) html += '<div class="pop-sep" role="separator"></div>'; grp = it.group; if(it.group) html += `<div class="pop-label">${escapeHtml(it.group)}</div>`; }
+    html += `<button type="button" role="menuitem" class="pop-item${it.danger ? ' is-danger' : ''}" data-pop-i="${i}">${icon(it.icon || 'chevRight')}<span><b>${escapeHtml(it.label)}</b>${it.sub ? `<small>${escapeHtml(it.sub)}</small>` : ''}</span></button>`;
+  });
+  m.innerHTML = html;
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  let left = (opts && opts.alignLeft) ? r.left : r.right - w;
+  left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+  let top = r.bottom + 6; if(top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+  m.style.left = left + 'px'; m.style.top = top + 'px';
+  m.querySelectorAll('.pop-item').forEach(b=>b.onclick = ()=>{ const it = items[+b.dataset.popI]; popMenuClose(); if(it && it.run) it.run(); });
+  btn.setAttribute('aria-expanded','true'); btn.setAttribute('data-pop-anchor','1');
+  document.addEventListener('mousedown', popMenuOutside, true);
+  document.addEventListener('keydown', popMenuKey, true);
+  window.addEventListener('scroll', popMenuClose, true);
+  window.addEventListener('resize', popMenuClose);
+  const first = m.querySelector('.pop-item'); if(first) first.focus({ preventScroll:true });
+}
+function accMoreOpen(btn){
+  const id = btn.dataset.accMore, card = btn.closest('.acc-card') || document;
+  const items = (ACC_MORE[id] || []).map(it=>({ ...it, run: ()=>{ const t = card.querySelector(it.click) || document.querySelector(it.click); if(t) t.click(); } }));
+  popMenu(btn, items, { wide:true });
+}
+
 /* ---------- 4. Prochaine action sur une carte compte ---------- */
 function gdNextActionHtml(a, child){
   if(!canEdit(a) || !isMine(a)) return '';
@@ -23776,7 +23943,8 @@ function gdNextActionHtml(a, child){
       let noStart = false; try{ noStart = !dmResult(a).hasStart; }catch(e){}
       if(noStart) return row('<b>Radar inactivité :</b> indique la date de ton dernier trade sur ce compte pour connaître ton vrai délai avant fermeture.', `<button class="btn btn-outline btn-sm" data-dm-activate="${a.id}">${icon('edit')}Dernier trade</button>`, true);
     }
-    if(!(state.payouts||[]).some(p=>p.accountId===a.id)) return row('<b>Premier payout reçu ?</b> Enregistre-le ici : il alimente ton net, ta rentabilité et tes délais.', `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Ajouter un payout</button>`);
+    // « Premier payout reçu ? » retiré (24/11/2026) : doublon du bouton « Payouts » de la carte ;
+    // le rappel reste une étape de la checklist « Bien démarrer ».
   }
   return '';
 }
@@ -24401,6 +24569,7 @@ function bindViewEvents(){
   if(agClearBtn) agClearBtn.onclick = ()=>{ state.filters.accountingGeneral.category = ''; renderView(); };
 
   // Accounts actions
+  document.querySelectorAll('[data-acc-more]').forEach(b=>b.onclick=()=>accMoreOpen(b));
   document.querySelectorAll('[data-edit-account]').forEach(b=>b.onclick=()=>accountFormModal({ existing: getAccount(b.dataset.editAccount) }));
   document.querySelectorAll('[data-del-account]').forEach(b=>b.onclick=()=>{
     const id = b.dataset.delAccount;
@@ -27464,7 +27633,7 @@ function challengePassedCelebration(acc){
    STATUS CHANGE (Réussi / Breached / Fermé)
 ============================================================ */
 function statusChangeModal(acc, newStatus, defaultDate){
-  const labels = { REUSSI:'Marquer comme réussi', BREACHED:'Marquer comme breached', FERME:'Fermer le compte' };
+  const labels = { REUSSI:'Marquer comme réussi', BREACHED:'Marquer comme breached', FERME:'Clôturer le compte' };
   openModal({
     title: labels[newStatus] || 'Changer le statut',
     bodyHtml: `
@@ -28760,6 +28929,7 @@ function initSubscriptionTilt(){
 // dans initInfoTips(), appelé depuis boot().
 let __infoTipBubble = null, __infoTipBtn = null;
 function closeInfoTip(){
+  clearTimeout(__infoTipTimer); __infoTipPinned = false;
   if(__infoTipBubble){ __infoTipBubble.remove(); __infoTipBubble = null; }
   if(__infoTipBtn){ __infoTipBtn.classList.remove('active'); __infoTipBtn = null; }
 }
@@ -28767,9 +28937,14 @@ function closeInfoTip(){
 // pas via une délégation sur document, car event.stopPropagation() doit s'exécuter dès la
 // phase cible pour empêcher un parent cliquable (ex: tuile "Délais moyens") de réagir au même
 // clic ; une fois l'event remonté jusqu'à document il est déjà trop tard pour l'arrêter.
-function toggleInfoTip(btn){
+// Survol (24/11/2026) : la bulle s'ouvre aussi au survol de la souris (et au focus clavier) ;
+// le clic l'épingle (indispensable sur mobile, sans survol). __infoTipPinned : ouverte au clic.
+let __infoTipPinned = false, __infoTipTimer = null;
+function toggleInfoTip(btn, fromClick){
+  if(fromClick && __infoTipBtn === btn && !__infoTipPinned){ __infoTipPinned = true; return; }   // ouverte au survol → le clic l'épingle
   if(__infoTipBtn === btn){ closeInfoTip(); return; }
   closeInfoTip();
+  __infoTipPinned = !!fromClick;
   const bubble = document.createElement('div');
   bubble.className = 'info-tip-bubble';
   bubble.textContent = btn.getAttribute('data-info-tip') || '';
@@ -28795,6 +28970,21 @@ function initInfoTips(){
   window.addEventListener('scroll', closeInfoTip, true);
   window.addEventListener('resize', closeInfoTip);
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeInfoTip(); });
+  const canHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+  const later = (fn, ms)=>{ clearTimeout(__infoTipTimer); __infoTipTimer = setTimeout(fn, ms); };
+  if(canHover){
+    document.addEventListener('mouseover', (e)=>{
+      const btn = e.target.closest && e.target.closest('.info-tip');
+      if(btn){ if(__infoTipBtn !== btn) later(()=>{ if(__infoTipBtn !== btn) toggleInfoTip(btn, false); }, 120); else clearTimeout(__infoTipTimer); return; }
+      if(e.target.closest && e.target.closest('.info-tip-bubble')){ clearTimeout(__infoTipTimer); return; }
+      if(__infoTipBubble && !__infoTipPinned) later(closeInfoTip, 180);
+      else if(!__infoTipBubble) clearTimeout(__infoTipTimer);
+    });
+  }
+  document.addEventListener('focusin', (e)=>{
+    const btn = e.target.closest && e.target.closest('.info-tip');
+    if(btn && __infoTipBtn !== btn && e.target.matches(':focus-visible')) toggleInfoTip(btn, false);
+  });
 }
 
 /* ============================================================
