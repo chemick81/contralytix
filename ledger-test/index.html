@@ -8049,8 +8049,11 @@ function payoutStatus(a){
   const useMan = man && (man.override || dlxBal == null);
   const bal = useMan ? man.v : dlxBal;
   const size = accSizeNum(a);
-  // Solde de départ : réglage Deltalytix, sinon celui de la formule (ex. TPT PRO+ part de 0 $), sinon la taille.
-  const start = h && h.startingBalance != null ? Number(h.startingBalance) : (R.startBalance != null && R.startBalance !== '' ? Number(R.startBalance) : size);
+  // Solde de départ cohérent avec la source du solde (24/11/2026) : un solde Deltalytix va avec le départ
+  // réglé dans Deltalytix ; un solde saisi, corrigé ou importé est celui de la plateforme, donc il va avec
+  // le départ de la formule (ex. TPT PRO+ part de 0 $), sinon la taille du compte.
+  const fmStart = R.startBalance != null && R.startBalance !== '' ? Number(R.startBalance) : size;
+  const start = !useMan && h && h.startingBalance != null ? Number(h.startingBalance) : fmStart;
   const profitCycle = days.reduce((s,d)=>s + d.pnl, 0);
   const best = days.reduce((m,d)=>Math.max(m, d.pnl), 0);
   const conds = [], miss = [];
@@ -8583,7 +8586,7 @@ function payoutFicheModal(accId){
   }
   const vTitle = s.state === 'norules' ? 'Règles de payout non renseignées' : s.state === 'ready' ? 'Prêt à demander' : s.state === 'input' ? 'Solde à saisir' : s.state === 'soon' ? 'Bientôt prêt' : 'Pas encore';
   const vSub = s.state === 'norules' ? `Le catalogue ne connaît pas encore les conditions de payout de la formule ${s.row.program}. Vérifie-les chez la prop firm ; un admin peut les compléter dans Admin › Catalogue.${s.amt != null ? ' Profit au-dessus du solde de départ : ' + poMoney(s.amt) + '.' : ''}`
-    : s.state === 'ready' ? `Toutes les conditions sont remplies. Retrait entre ${poMoney(s.minPayout)} et ${poMoney(s.amt)}${s.cap ? ` (plafond du payout n°${s.n} : ${poMoney(s.cap)})` : ''}.`
+    : s.state === 'ready' ? `Toutes les conditions sont remplies. ${s.minPayout ? `Retrait entre ${poMoney(s.minPayout)} et ${poMoney(s.amt)}` : `Retrait possible jusqu’à ${poMoney(s.amt)}${s.R.payoutAnyDay ? ', aujourd’hui ou un autre jour' : ''}`}${s.cap ? ` (plafond du payout n°${s.n} : ${poMoney(s.cap)})` : ''}.`
     : s.state === 'input' ? 'Le buffer et le montant se calculent avec le solde actuel du compte.'
     : 'Il manque : ' + s.miss.join(' · ') + '.';
   const ic = c => c.ok === true ? '<span class="po-ic po-ic-ok">✓</span>' : c.ok === false ? '<span class="po-ic po-ic-ko">!</span>' : '<span class="po-ic po-ic-na">?</span>';
@@ -8614,7 +8617,7 @@ function payoutFicheModal(accId){
     }).join('')}</tbody></table>` : `<div class="cat-sub">Aucune journée enregistrée ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}. Les journées viennent de Deltalytix, d’un relevé Tradovate / R|Trader Pro, du Radar d’inactivité, ou de « Ajouter une journée ».</div>`;
   const dlxBalBlock = (s.src === 'dlx' || s.src === 'override') && isMineAccount(a) ? `<div class="po-sec po-bal">
       <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? ' <span class="badge badge-todo po-edited">corrigé</span>' : ''}</div>
-        <div class="cat-sub">${s.src === 'override' ? `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))} · Deltalytix indique ${poMoney(s.dlxBal)}. Ta correction reste utilisée tant que tu ne rends pas la main.` : 'Lu dans Deltalytix. S’il est faux, corrige-le : ta valeur sera utilisée à la place.'}</div></div>
+        <div class="cat-sub">${s.src === 'override' ? `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))} · Deltalytix indique ${poMoney(s.dlxBal)}. Ta correction reste utilisée tant que tu ne rends pas la main${s.R.startBalance != null && s.R.startBalance !== '' ? ` (compte qui part de ${poMoney(Number(s.R.startBalance))})` : ''}.` : `Lu dans Deltalytix, pour un solde de départ de ${poMoney(s.start)}. S’il diffère de ta plateforme, corrige-le avec le solde affiché sur la plateforme${s.R.startBalance != null && s.R.startBalance !== '' && Number(s.R.startBalance) !== s.start ? ` (ce compte part de ${poMoney(Number(s.R.startBalance))})` : ''}.`}</div></div>
         <div style="display:flex;gap:6px;">${s.src === 'override' ? `<button class="btn btn-ghost btn-sm" id="po-bal-undo" title="Revenir au solde de Deltalytix">↺ Deltalytix</button>` : ''}<button class="btn btn-outline btn-sm" id="po-bal-edit">${icon('edit')}Corriger</button></div></div>
       <div class="po-bal-row" id="po-bal-editrow" hidden><input id="po-bal" inputmode="decimal" value="${s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save" data-override="1">Enregistrer</button></div>
     </div>` : '';
