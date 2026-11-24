@@ -1172,7 +1172,13 @@ th.th-sort-active svg{opacity:1;}
 .po-pnl-undo:hover{color:var(--accent);}
 .po-bal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
 .po-bal-top .btn svg{width:13px;height:13px;}
-.po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.po-days-acts{display:flex;gap:4px;flex-wrap:wrap;}
+.po-add-day{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:12px;margin:4px 0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
+.po-add-day .field{margin:0;}
+.po-add-day-btns{display:flex;gap:6px;}
+.po-add-day-hint{grid-column:1 / -1;margin:0;}
+@media (max-width:520px){ .po-add-day{grid-template-columns:1fr 1fr;} .po-add-day-btns{grid-column:1 / -1;justify-content:flex-end;} }
 .po-tdv-days svg{width:13px;height:13px;}
 .tdv-acc-t{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
 .tdv-target{max-width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;}
@@ -8149,9 +8155,35 @@ async function poSaveDayPnl(a, day, v){
   showToast('P&L du ' + fmtDate(day) + ' corrigé.', 'success');
   return true;
 }
+// Journée ajoutée à la main (24/11/2026) : pour les jours qu'un relevé ne couvre pas (compte ouvert avant la
+// période exportée). Source 'added' : protégée comme 'edited' (synchro Deltalytix, relevés). Si la journée
+// existe déjà, c'est une correction (poSaveDayPnl).
+async function poAddDay(a, day, v){
+  const logs = state.dormancyLogs || (state.dormancyLogs = []);
+  if(logs.some(l=>String(l.accountId) === String(a.id) && l.day === day)) return poSaveDayPnl(a, day, v);
+  const val = Math.round(v * 100) / 100, now = new Date().toISOString();
+  if(SUPABASE_CONFIGURED){
+    const { error } = await supabaseClient.from('dormancy_logs').upsert({ user_id:currentUserId(), account_id:a.id, day, pnl:val, traded:true, source:'added', updated_at:now }, { onConflict:'account_id,day' });
+    if(error){ showToast('Journée non enregistrée : ' + error.message, 'danger'); return false; }
+  }
+  logs.push({ userId:currentUserId(), accountId:a.id, day, pnl:val, traded:true, source:'added', updatedAt:now });
+  try{ await logActivity('CREATE', 'dormancy_logs', a.id, `Journée du ${fmtDate(day)} ajoutée à la main : ${poSigned(val)}`); }catch(e){}
+  showToast(`Journée du ${fmtDate(day)} ajoutée.`, 'success');
+  return true;
+}
 async function poUndoDayPnl(a, day){
   const ex = (state.dormancyLogs || []).find(l=>String(l.accountId) === String(a.id) && l.day === day);
   if(!ex) return false;
+  if(ex.source === 'added'){
+    if(SUPABASE_CONFIGURED){
+      const { error } = await supabaseClient.from('dormancy_logs').delete().eq('account_id', a.id).eq('day', day);
+      if(error){ showToast('Impossible : ' + error.message, 'danger'); return false; }
+    }
+    state.dormancyLogs = state.dormancyLogs.filter(l=>l !== ex);
+    try{ await logActivity('DELETE', 'dormancy_logs', a.id, `Journée du ${fmtDate(day)} ajoutée à la main retirée`); }catch(e){}
+    showToast('Journée retirée.', 'success');
+    return true;
+  }
   if(SUPABASE_CONFIGURED){
     const { error } = await supabaseClient.from('dormancy_logs').update({ source:'deltalytix' }).eq('account_id', a.id).eq('day', day);
     if(error){ showToast('Impossible : ' + error.message, 'danger'); return false; }
@@ -8314,7 +8346,7 @@ function tdvPlan(g){
   const write = [];
   g.tradedRows.forEach(r=>{
     const ex = byDay.get(r.day);
-    if(ex && ex.source === 'edited'){ kept++; return; }
+    if(ex && (ex.source === 'edited' || ex.source === 'added')){ kept++; return; }
     if(!ex) fresh++; else if(Number(ex.pnl) === r.pnl && ex.traded){ same++; } else upd++;
     if(!ex || Number(ex.pnl) !== r.pnl || !ex.traded || ex.source !== (g.source || 'tradovate')) write.push(r);
   });
@@ -8551,30 +8583,39 @@ function payoutFicheModal(accId){
     const dots = c.dots ? `<div class="po-dots">${c.dots.map(d=>`<span class="po-dot ${d.good ? 'ok' : d.pnl < 0 ? 'neg' : 'no'}" title="${fmtDate(d.day)} : ${poSigned(d.pnl)}">${d.day.slice(8,10)}</span>`).join('')}${Array.from({ length:c.todo }).map(()=>'<span class="po-dot todo" title="À faire"></span>').join('')}</div>` : '';
     return `<div class="po-cond">${ic(c)}<div style="min-width:0"><div class="po-ct">${escapeHtml(c.t)}</div><div class="cat-sub">${escapeHtml(c.d)}</div>${bar}${dots}</div><span class="po-cv mono">${escapeHtml(c.v)}</span></div>`;
   }).join('') || '<div class="cat-sub" style="padding:12px 0;">Cette formule n’a pas de condition de jours ni de cohérence.</div>';
+  // Ajouter une journée (24/11/2026) : jours non couverts par un relevé (export limité dans le temps).
+  const dayMin = s.lastPay ? addDaysISO(s.lastPay, 1) : (a.activationDate || a.purchaseDate || '');
+  const addDayBtn = isMineAccount(a) ? `<button type="button" class="btn btn-ghost btn-sm po-tdv-days" id="po-add-day" title="Ajoute une journée qu’aucun relevé ne contient (compte ouvert avant la période exportée)">${icon('plus')}Ajouter une journée</button>` : '';
+  const addDayForm = isMineAccount(a) ? `<div class="po-add-day" id="po-add-day-form" hidden>
+      <div class="field"><label for="po-ad-date">Jour</label><input type="date" id="po-ad-date" ${dayMin ? `min="${dayMin}"` : ''} max="${todayISO()}"/></div>
+      <div class="field"><label for="po-ad-pnl">P&amp;L du jour ($)</label><input id="po-ad-pnl" inputmode="decimal" placeholder="ex. 350 ou -120"/></div>
+      <div class="po-add-day-btns"><button type="button" class="btn btn-ghost btn-sm" id="po-ad-cancel">Annuler</button><button type="button" class="btn btn-primary btn-sm" id="po-ad-save">Ajouter</button></div>
+      <div class="cat-sub po-add-day-hint">Pour les jours absents de ton relevé (compte ouvert avant la période exportée). Elle compte pour le payout, la cohérence et le Radar, et ne sera remplacée ni par la synchro ni par un relevé.</div>
+    </div>` : '';
   const tdvBtn = isMineAccount(a) ? `<button type="button" class="btn btn-ghost btn-sm po-tdv-days" id="po-tdv-days" title="Relevé Tradovate (Account Balance History) ou R|Trader Pro (Performance + Trader Dashboard)">${icon('download')}Importer un relevé</button>` : '';
   const daysHtml = s.days.length ? `<table class="po-days"><thead><tr><th>Jour</th><th class="num">P&amp;L</th><th>Compte pour le payout</th></tr></thead><tbody>${s.days.slice().reverse().map(d=>{
       const R = s.R, good = R.dayType === 'winning' ? d.pnl >= (Number(R.dayMin)||0) : (R.minDays ? true : null);
       const editable = isMineAccount(a);
       const pnlCell = editable
-        ? `<button type="button" class="po-pnl-edit" data-po-day="${d.day}" data-po-pnl="${d.pnl}" title="Corriger le P&amp;L de cette journée" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${poSigned(d.pnl)}<span class="po-pnl-pen">${icon('edit')}</span></button>`
+        ? `<button type="button" class="po-pnl-edit" data-po-day="${d.day}" data-po-pnl="${Math.round(Number(d.pnl) * 100) / 100}" title="Corriger le P&amp;L de cette journée" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${poSigned(d.pnl)}<span class="po-pnl-pen">${icon('edit')}</span></button>`
         : poSigned(d.pnl);
-      const edited = d.src === 'edited' ? `<span class="badge badge-todo po-edited" title="P&amp;L corrigé à la main : la synchro Deltalytix ne le remplace plus">corrigé</span>${editable ? `<button type="button" class="po-pnl-undo" data-po-undo="${d.day}" title="Rendre la main à Deltalytix (valeur reprise à la prochaine synchro)">↺</button>` : ''}` : '';
+      const edited = d.src === 'added' ? `<span class="badge badge-todo po-edited" title="Journée ajoutée à la main : ni la synchro ni un relevé ne la remplacent">ajoutée</span>${editable ? `<button type="button" class="po-pnl-undo" data-po-undo="${d.day}" title="Retirer cette journée">↺</button>` : ''}` : d.src === 'edited' ? `<span class="badge badge-todo po-edited" title="P&amp;L corrigé à la main : la synchro Deltalytix ne le remplace plus">corrigé</span>${editable ? `<button type="button" class="po-pnl-undo" data-po-undo="${d.day}" title="Rendre la main à Deltalytix (valeur reprise à la prochaine synchro)">↺</button>` : ''}` : '';
       return `<tr><td class="mono">${fmtDate(d.day)}${edited}</td><td class="num mono" style="color:${d.pnl<0?'var(--danger)':'var(--text)'}">${pnlCell}</td><td>${good === null ? '—' : good ? (R.dayType === 'winning' ? 'Jour gagnant' : 'Jour de trading') : `Non (sous +${R.dayMin} $)`}</td></tr>`;
-    }).join('')}</tbody></table>` : `<div class="cat-sub">Aucune journée enregistrée ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}. Les journées viennent de Deltalytix ou du Radar d’inactivité.</div>`;
+    }).join('')}</tbody></table>` : `<div class="cat-sub">Aucune journée enregistrée ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}. Les journées viennent de Deltalytix, d’un relevé Tradovate / R|Trader Pro, du Radar d’inactivité, ou de « Ajouter une journée ».</div>`;
   const dlxBalBlock = (s.src === 'dlx' || s.src === 'override') && isMineAccount(a) ? `<div class="po-sec po-bal">
       <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? ' <span class="badge badge-todo po-edited">corrigé</span>' : ''}</div>
         <div class="cat-sub">${s.src === 'override' ? `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))} · Deltalytix indique ${poMoney(s.dlxBal)}. Ta correction reste utilisée tant que tu ne rends pas la main.` : 'Lu dans Deltalytix. S’il est faux, corrige-le : ta valeur sera utilisée à la place.'}</div></div>
         <div style="display:flex;gap:6px;">${s.src === 'override' ? `<button class="btn btn-ghost btn-sm" id="po-bal-undo" title="Revenir au solde de Deltalytix">↺ Deltalytix</button>` : ''}<button class="btn btn-outline btn-sm" id="po-bal-edit">${icon('edit')}Corriger</button></div></div>
-      <div class="po-bal-row" id="po-bal-editrow" hidden><input id="po-bal" inputmode="decimal" value="${s.bal != null ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save" data-override="1">Enregistrer</button></div>
+      <div class="po-bal-row" id="po-bal-editrow" hidden><input id="po-bal" inputmode="decimal" value="${s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save" data-override="1">Enregistrer</button></div>
     </div>` : '';
   const manualBlock = s.src !== 'dlx' && s.src !== 'override' ? `<div class="po-sec po-bal">
       <div class="po-ct">Solde actuel du compte</div>
       <div class="cat-sub">Ce compte n’est pas synchronisé avec Deltalytix : saisis le solde affiché sur ta plateforme pour calculer le buffer et le montant possible.</div>
-      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' ? s.bal : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
+      <div class="po-bal-row"><input id="po-bal" inputmode="decimal" placeholder="ex. ${(accSizeNum(a) + 3100).toLocaleString('fr-FR')}" value="${s.src === 'manual' && s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save">Enregistrer</button>${s.src === 'manual' && s.balAt ? `<span class="cat-sub" style="margin:0">saisi le ${fmtDate(String(s.balAt).slice(0,10))}</span>` : ''}</div>
     </div>` : '';
   const srcTxt = s.src === 'dlx' || s.src === 'override'
     ? `${s.src === 'override' ? 'Solde : corrigé à la main · journées' : 'Solde et journées'} : Deltalytix${s.balAt ? ', synchronisé le ' + new Date(s.balAt).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(' ', ' à ') : ''} · payouts : enregistrés dans Contralytix (montant reçu)`
-    : `Journées : ${[s.days.some(d=>d.src==='deltalytix') && 'Deltalytix', s.days.some(d=>d.src==='tradovate') && 'relevé Tradovate', s.days.some(d=>d.src==='rithmic') && 'relevé R|Trader Pro', s.days.some(d=>d.src==='edited') && 'corrections', s.days.some(d=>!['deltalytix','tradovate','rithmic','edited'].includes(d.src)) && 'saisies à la main'].filter(Boolean).join(', ') || 'aucune'} · solde : ${s.src === 'manual' ? 'saisi sur cette fiche' : 'à saisir'} · payouts : enregistrés dans Contralytix (montant reçu)`;
+    : `Journées : ${[s.days.some(d=>d.src==='deltalytix') && 'Deltalytix', s.days.some(d=>d.src==='tradovate') && 'relevé Tradovate', s.days.some(d=>d.src==='rithmic') && 'relevé R|Trader Pro', s.days.some(d=>d.src==='edited') && 'corrections', s.days.some(d=>d.src==='added') && 'journées ajoutées', s.days.some(d=>!['deltalytix','tradovate','rithmic','edited','added'].includes(d.src)) && 'saisies à la main'].filter(Boolean).join(', ') || 'aucune'} · solde : ${s.src === 'manual' ? 'saisi sur cette fiche' : 'à saisir'} · payouts : enregistrés dans Contralytix (montant reçu)`;
   openModal({
     title: `${escapeHtml(firm ? firm.name : 'Compte')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(a))}`,
     bodyHtml: `<div class="po-fiche">
@@ -8584,7 +8625,7 @@ function payoutFicheModal(accId){
         ${s.state !== 'norules' && s.amt != null && s.amt > 0 ? `<div class="po-amt"><div class="mono">jusqu’à ${poMoney(s.amt)}</div><div class="cat-sub">${s.net != null ? '≈ ' + poMoney(s.net) + ' reçus' + (s.split < 1 ? ' à ' + Math.round(s.split * 100) + ' %' : '') + escapeHtml(s.splitTxt) : 'partage des profits non indiqué'}</div></div>` : ''}</div>
       ${manualBlock}${dlxBalBlock}
       <div class="po-conds">${conds}</div>
-      <div class="po-sec"><div class="po-days-h"><div class="po-ct">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div>${tdvBtn}</div>${daysHtml}</div>
+      <div class="po-sec"><div class="po-days-h"><div class="po-ct">Journées ${s.lastPay ? 'depuis le dernier payout' : 'depuis l’activation'}</div><div class="po-days-acts">${addDayBtn}${tdvBtn}</div></div>${addDayForm}${daysHtml}</div>
       <details class="po-sec po-dltx" ${s.src === 'dlx' ? 'open' : ''}><summary class="po-ct">Réglage Deltalytix conseillé <span class="field-label-note">pour que Deltalytix suive les règles de la formule ${escapeHtml(s.row.program)}</span></summary>
         <table class="po-days po-dltx-t"><tbody>${poDltxAdvice(s).map(([k,v,note])=>`<tr><td>${escapeHtml(k)}</td><td class="mono"><b>${escapeHtml(v)}</b></td><td class="cat-sub">${escapeHtml(note)}</td></tr>`).join('')}</tbody></table>
         <div class="cat-sub" style="margin-top:6px;">À saisir dans Deltalytix, fiche du compte. Contralytix ne peut pas lire tes réglages Deltalytix (l’API ne les renvoie pas) : compare-les toi-même.</div>
@@ -8624,6 +8665,22 @@ function payoutFicheModal(accId){
         inp.onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); go(); } if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); payoutFicheModal(accId); } };
       });
       document.querySelectorAll('[data-po-undo]').forEach(b=>b.onclick = async ()=>{ if(await poUndoDayPnl(a, b.dataset.poUndo)) payoutFicheModal(accId); });
+      const adBtn = document.getElementById('po-add-day'), adForm = document.getElementById('po-add-day-form');
+      if(adBtn && adForm){
+        adBtn.onclick = ()=>{ adForm.hidden = false; adBtn.hidden = true; document.getElementById('po-ad-date').focus(); };
+        document.getElementById('po-ad-cancel').onclick = ()=>{ adForm.hidden = true; adBtn.hidden = false; };
+        const save = async ()=>{
+          const day = document.getElementById('po-ad-date').value, raw = document.getElementById('po-ad-pnl').value;
+          const v = Number(String(raw).replace(/\s/g,'').replace(',', '.').replace(/[^0-9.\-]/g,''));
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(day)){ showToast('Choisis le jour.', 'danger'); return; }
+          if(day > todayISO()){ showToast('Ce jour est dans le futur.', 'danger'); return; }
+          if(dayMin && day < dayMin){ showToast(`Ce jour est avant ${s.lastPay ? 'le dernier payout' : 'l’activation'} (${fmtDate(dayMin)}) : il ne compterait pas pour ce payout.`, 'danger'); return; }
+          if(String(raw).trim() === '' || !Number.isFinite(v)){ showToast('Indique le P&L du jour.', 'danger'); return; }
+          if(await poAddDay(a, day, v)) payoutFicheModal(accId);
+        };
+        document.getElementById('po-ad-save').onclick = save;
+        document.getElementById('po-ad-pnl').onkeydown = e=>{ if(e.key === 'Enter'){ e.preventDefault(); save(); } };
+      }
     }
   });
 }
@@ -15965,6 +16022,7 @@ const MANUAL_CHAPTERS = [
     <ul>
       <li><b>Solde</b> : lu dans Deltalytix, importé d'un relevé ou saisi sur la fiche. Un solde Deltalytix faux se corrige avec <b>« Corriger »</b> (badge « corrigé », bouton ↺ pour revenir à Deltalytix).</li>
       <li><b>Journées</b> : clique un montant du tableau pour corriger le P&amp;L d'une journée (badge « corrigé », ↺ pour rendre la main à Deltalytix).</li>
+      <li><b>Ajouter une journée</b> : un relevé Tradovate ou R|Trader Pro ne couvre qu'une période limitée. Si ton compte a été ouvert avant, ajoute les journées manquantes (jour + P&amp;L) depuis la fiche. Elles comptent pour les jours gagnants, la cohérence et le Radar, portent le badge « ajoutée », ne sont remplacées ni par la synchro ni par un relevé, et ↺ les retire.</li>
       <li><b>Réglage Deltalytix conseillé</b> : les valeurs à saisir dans Deltalytix (drawdown, stop profit trailing, buffer, perte journalière, P&amp;L minimum, cohérence, objectif) pour qu'il suive les règles de ta formule.</li>
       <li><b>Enregistrer un payout</b> : le bouton « Payouts » d'une carte ouvre directement l'ajout d'un payout (montant reçu, net).</li>
     </ul>
@@ -23020,7 +23078,7 @@ function dmOpenActivation(accountIds){
   // Dernier jour tradé déjà connu par les journées (Deltalytix ou pointage), hors saisie manuelle.
   const knownLog = a => { const ls = dmLogsFor(a).filter(l=>l.traded && l.day); if(!ls.length) return null;
     const day = dmMax(ls.map(l=>l.day)); const l = ls.find(x=>x.day===day);
-    return { day, src: l && l.source==='deltalytix' ? 'Deltalytix' : l && l.source==='tradovate' ? 'ton relevé Tradovate' : l && l.source==='rithmic' ? 'ton relevé R|Trader Pro' : l && l.source==='edited' ? 'ta correction' : 'tes pointages' }; };
+    return { day, src: l && l.source==='deltalytix' ? 'Deltalytix' : l && l.source==='tradovate' ? 'ton relevé Tradovate' : l && l.source==='rithmic' ? 'ton relevé R|Trader Pro' : l && l.source==='edited' ? 'ta correction' : l && l.source==='added' ? 'ta saisie' : 'tes pointages' }; };
   const single = accountIds && accountIds[0]!=='all';
   let hiddenKnown = 0;
   if(single) accounts = accounts.filter(a=>accountIds.includes(a.id));
