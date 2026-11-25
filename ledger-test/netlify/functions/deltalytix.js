@@ -310,6 +310,7 @@ exports.handler = async (event) => {
       // calendrier et le P&L du jour les comptent comme dans Deltalytix. Ils restent hors des compteurs
       // (matched / funded / missingIds), qui ne concernent que les comptes financés du Radar.
       const chAct = allMine.filter((a) => a.type === 'CHALLENGE' && a.status === 'ACTIF');
+      const seenDays = new Map(); // compte → jours (>= since) renvoyés par Deltalytix à cette synchro
       [...mine, ...chAct].forEach((a) => {
         const isCh = a.type === 'CHALLENGE';
         const k = normAccNum(a.account_number);
@@ -327,11 +328,13 @@ exports.handler = async (event) => {
         const hasDp = Object.keys(dp).length > 0;
         const bufOf = (d) => (hasDp ? Math.round((dp[d] || 0) * 100) / 100 : null);
         if (!isCh) matched++;
+        seenDays.set(a.id, new Set());
         let lastOld = null;
         Object.entries(daily).forEach(([day, pnl]) => {
           const d = isoDay(day);
           if (!d || !Number.isFinite(Number(pnl))) return;
           if (d < since) { if (!lastOld || d > lastOld[0]) lastOld = [d, pnl]; return; }
+          seenDays.get(a.id).add(d);
           rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, pnl_buffer: bufOf(d), source: 'deltalytix', updated_at: now });
         });
         // Aucun trade récent : on écrit quand même le dernier jour tradé connu (point de départ du Radar).
@@ -349,6 +352,22 @@ exports.handler = async (event) => {
         if (!edErr && edited && edited.length) {
           const skip = new Set(edited.map((e) => e.account_id + '|' + e.day));
           for (let i = rows.length - 1; i >= 0; i--) if (skip.has(rows[i].account_id + '|' + rows[i].day)) rows.splice(i, 1);
+        }
+      }
+      // Journées Deltalytix disparues (25/11/2026) : un jour écrit par une synchro précédente que Deltalytix
+      // ne renvoie plus (trade supprimé ou rattaché à un autre compte) est retiré, sinon il gonfle le
+      // calendrier P&L. Seulement sur la période lue, pour les comptes trouvés, source 'deltalytix', et
+      // seulement si la lecture des trades est complète (sinon un jour pourrait manquer à tort).
+      if (rows.length && trades.complete && seenDays.size) {
+        const ids = [...seenDays.keys()];
+        const { data: old, error: oldErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).eq('source', 'deltalytix').gte('day', since);
+        if (!oldErr && old && old.length) {
+          const gone = {};
+          old.forEach((r) => { if (!seenDays.get(r.account_id).has(r.day)) (gone[r.account_id] = gone[r.account_id] || []).push(r.day); });
+          for (const [accId, days] of Object.entries(gone)) {
+            const { error: delErr } = await db.from('dormancy_logs').delete().eq('account_id', accId).eq('source', 'deltalytix').in('day', days);
+            if (delErr) console.error('Deltalytix : nettoyage des journées disparues', delErr.message);
+          }
         }
       }
       for (let i = 0; i < rows.length; i += 500) {
