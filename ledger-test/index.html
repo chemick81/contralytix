@@ -15894,7 +15894,7 @@ const HELP_CATEGORIES = [
     { q:"Comment un Challenge devient-il un compte PA ?", a:"Depuis la fiche du compte, marque le Challenge comme « Réussi » — Contralytix propose alors de créer automatiquement le compte PA correspondant, en reprenant les informations du challenge d'origine." },
     { q:"Puis-je masquer mes numéros de compte à l'écran ?", a:"Oui, le bouton « Afficher / Masquer les n° de compte » en bas de la barre latérale bascule entre le numéro complet et une version masquée (4 derniers chiffres visibles), pratique pour partager son écran." },
     { q:"Combien de justificatifs puis-je attacher à un payout ?", a:"Autant que nécessaire : le bouton dédié sur chaque ligne de payout ouvre une fenêtre « Justificatifs » où l'on peut téléverser plusieurs fichiers, les consulter un par un, et supprimer individuellement ceux qui ne sont plus utiles (le créateur du justificatif ou un administrateur uniquement)." },
-    { q:"À quoi sert le bouton « Resets » sur un Challenge ?", a:"Certaines PropFirms permettent de reset un Challenge en échec plutôt que d'en racheter un neuf, moyennant des frais généralement inférieurs au prix d'achat initial. Le bouton « Resets » garde la trace de chaque reset (date, frais, devise, ancien numéro de compte le cas échéant), pour que le coût réel total du Challenge reste visible en Comptabilité." },
+    { q:"À quoi sert « Resets » sur un Challenge ?", a:"Certaines PropFirms permettent de reset un Challenge en échec plutôt que d'en racheter un neuf, moyennant des frais généralement inférieurs au prix d'achat initial. « Resets du challenge », dans le menu « ⋯ » de la carte (absent sur un challenge réussi), garde la trace de chaque reset (date, frais, devise, ancien numéro de compte le cas échéant), pour que le coût réel total du Challenge reste visible en Comptabilité." },
   ]},
   { id:'compta', label:'Comptabilité & Bilan', icon:'book', questions:[
     { q:"Que suit la page Comptabilité ?", a:"Toutes les dépenses (achats de challenge, mensualités, frais d'activation) et tous les payouts reçus, avec un tableau « Performance financière » basculable par mois, trimestre ou année, incluant le ROI." },
@@ -16151,11 +16151,11 @@ const MANUAL_CHAPTERS = [
     <h3>Cycle de vie d'un compte</h3>
     <ul>
       <li>Un Challenge est créé et passe en statut Actif.</li>
-      <li>Il est ensuite marqué « Réussi » (bouton « Marquer réussi ») ou « Breached » (menu « ⋯ » › « Marquer breached ») depuis sa carte.</li>
+      <li>Il est ensuite marqué « Réussi » (bouton « Marquer réussi ») ou « Breached » (bouton « Breached ») depuis sa carte. Les resets se saisissent dans le menu « ⋯ » › « Resets du challenge » ; un challenge réussi n'en propose plus.</li>
       <li>Un Challenge réussi permet de créer directement le compte PA associé (bouton « Créer le PA ») — le lien entre les deux comptes est conservé.</li>
       <li>Un compte PA actif peut être converti en compte Live (menu « ⋯ » › « Passer en Live ») : l'historique est conservé, seul le type change.</li>
-      <li>Un compte PA ou Live peut être clôturé (« Clôturer le compte » : tu l'arrêtes sans breach) ou marqué Breached, à tout moment depuis le menu « ⋯ » de sa carte.</li>
-      <li>Sur chaque carte, les actions du quotidien restent visibles (Payouts, Notes) ; le menu « ⋯ » regroupe les changements de statut, chacun avec sa conséquence, l'historique du statut, la modification et la suppression du compte.</li>
+      <li>Un compte PA ou Live peut être marqué Breached à tout moment avec le bouton « Breached » de sa carte, ou clôturé (menu « ⋯ » › « Clôturer le compte » : tu l'arrêtes sans breach).</li>
+      <li>Sur chaque carte, les actions du quotidien restent visibles (Payouts, Breached, Notes ; Marquer réussi et Breached sur un challenge) ; le menu « ⋯ » regroupe le reste, chacun avec sa conséquence : Passer en Live, Clôturer, Resets, l'historique du statut, la modification et la suppression du compte.</li>
     </ul>
     <h3>Statuts possibles</h3>
     <ul>
@@ -17213,14 +17213,18 @@ function accountCard(a){
   if(a.type==='CHALLENGE'){
     if(a.status==='ACTIF' && editable){
       actions += `<button class="btn btn-outline btn-sm" data-mark="REUSSI" data-acc="${a.id}" title="Le challenge est validé : tu pourras créer le PA obtenu">${icon('check')}Marquer réussi</button>`;
-      more.push({ icon:'alertTriangle', label:'Marquer breached', sub:'La prop firm a fermé le challenge (perte maximale atteinte).', click:`[data-mark="BREACHED"][data-acc="${a.id}"]`, group:'Statut du compte', danger:true });
-      hidden += `<button type="button" data-mark="BREACHED" data-acc="${a.id}"></button>`;
+      // Breached visible (25/11/2026, retour d'un trader) : action fréquente, à portée de clic.
+      actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le challenge comme breached : la prop firm l’a fermé (perte maximale ou règle non respectée). Le compte passe en « Breached » ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
     } else if(a.status==='REUSSI' && !child && editable){
       actions += `<button class="btn btn-primary btn-sm" data-create-pa="${a.id}">${icon('bolt')}Créer le PA</button>`;
     }
-    // Reset : uniquement sur les Challenges (voir resetsModal()) — une propfirm ne propose jamais
-    // de reset sur un PA/Live dans ce modèle de données.
-    actions += `<button class="btn btn-ghost btn-sm" data-resets="${a.id}" title="Resets du challenge">${icon('reset')}Resets${accountResetCount(a.id) ? ` (${accountResetCount(a.id)})` : ''}</button>`;
+    // Reset : uniquement sur les Challenges (voir resetsModal()). 25/11/2026 : dans le menu « ⋯ »,
+    // et plus du tout sur un challenge réussi (on ne le reset plus).
+    if(a.status !== 'REUSSI'){
+      const nRes = accountResetCount(a.id);
+      more.push({ icon:'reset', label:`Resets du challenge${nRes ? ` (${nRes})` : ''}`, sub:'Enregistrer un reset payé ou voir les resets déjà faits.', click:`[data-resets="${a.id}"]`, group:'Challenge' });
+      hidden += `<button type="button" data-resets="${a.id}"></button>`;
+    }
   } else if(a.type==='PA' || a.type==='LIVE'){
     if(a.status==='ACTIF'){
       // Un seul bouton Payouts (23/11/2026) : il ouvre directement l'ajout d'un payout (et la liste).
@@ -17230,8 +17234,8 @@ function accountCard(a){
       if(editable){
         if(a.type==='PA') more.push({ icon:'bolt', label:'Passer en Live', sub:'Le PA devient un compte Live. L’historique est gardé.', click:`[data-to-live="${a.id}"]`, group:'Statut du compte' });
         more.push({ icon:'lock', label:'Clôturer le compte', sub:'Tu arrêtes ce compte sans breach (fin d’abonnement, retrait final…).', click:`[data-mark="FERME"][data-acc="${a.id}"]`, group:'Statut du compte' });
-        more.push({ icon:'alertTriangle', label:'Marquer breached', sub:'La prop firm a fermé le compte (perte maximale atteinte).', click:`[data-mark="BREACHED"][data-acc="${a.id}"]`, group:'Statut du compte', danger:true });
-        hidden += `${a.type==='PA' ? `<button type="button" data-to-live="${a.id}"></button>` : ''}<button type="button" data-mark="FERME" data-acc="${a.id}"></button><button type="button" data-mark="BREACHED" data-acc="${a.id}"></button>`;
+        hidden += `${a.type==='PA' ? `<button type="button" data-to-live="${a.id}"></button>` : ''}<button type="button" data-mark="FERME" data-acc="${a.id}"></button>`;
+      actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le compte comme breached : la prop firm l’a fermé (perte maximale atteinte ou règle non respectée). Le compte passe en « Breached » et sort des comptes actifs ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
       }
     } else {
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
@@ -19412,7 +19416,7 @@ function renderChatWidget(){
 // Questions types selon la page ouverte (24/11/2026) : l'écran vide de l'assistant propose 3 questions.
 const CHAT_SUGGESTIONS = {
   dashboard: ['Que signifie le Net global ?', 'Comment personnaliser mon Dashboard ?', 'Comment est calculé le prochain payout ?'],
-  accounts: ['Comment importer un relevé Tradovate ?', 'Quand mon PA pourra-t-il demander un payout ?', 'Que veulent dire « Clôturer » et « Marquer breached » ?'],
+  accounts: ['Comment importer un relevé Tradovate ?', 'Quand mon PA pourra-t-il demander un payout ?', 'Que veulent dire « Clôturer » et « Breached » ?'],
   radar: ['Comment fonctionne le Radar inactivité ?', 'Comment pointer une journée tradée ?', 'Que se passe-t-il si un compte reste inactif ?'],
   catalogue: ['D’où viennent les règles du catalogue ?', 'Comment choisir la formule de mon compte ?', 'Que veut dire « Vérifié » ?'],
   rentabilite: ['Qu’est-ce que le net réel ?', 'Pourquoi mes challenges ratés comptent dans le net ?', 'Comment lire mon ROI ?'],
@@ -23987,7 +23991,7 @@ const GD_HELP = {
       { sel:'.dash-grid > *', title:'Tes modules', text:'Chaque module se déplace avec les flèches et change de taille (SM, MD, LG) juste au-dessus.' },
     ] },
   accounts: { manual:'m-comptes', intro:'Le cœur de l’app : chaque compte Challenge, PA et Live, avec ses dépenses, ses payouts et son net.',
-    points:['<b>Importer</b> regroupe la synchro Deltalytix, le relevé CSV Tradovate / R|Trader Pro (solde, journées tradées, comptes manquants) et la capture d’écran de ta plateforme.','Sur chaque carte : <b>Payouts</b> et <b>Notes</b> ; le menu <b>⋯</b> regroupe Passer en Live, Clôturer le compte, Marquer breached, l’historique, Modifier et Supprimer.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
+    points:['<b>Importer</b> regroupe la synchro Deltalytix, le relevé CSV Tradovate / R|Trader Pro (solde, journées tradées, comptes manquants) et la capture d’écran de ta plateforme.','Sur chaque carte : <b>Payouts</b>, <b>Breached</b> et <b>Notes</b> (Marquer réussi et Breached sur un challenge) ; le menu <b>⋯</b> regroupe Passer en Live, Clôturer le compte, Resets, l’historique, Modifier et Supprimer.','Les 4 <b>totaux</b> en haut suivent tes filtres : dépenses, payouts, net réel (échecs compris), ROI.','Sur chaque carte, la <b>prochaine étape</b> est indiquée quand il y a quelque chose à faire.','Challenge réussi → <b>Créer le PA</b> : le lien est gardé et ses dépenses comptent dans le net du PA.'],
     actions:[{ icon:'download', label:'Importer mes comptes', run:'gdCloseHelp();captureImportModal()' },{ icon:'plus', label:'Nouveau compte', run:'gdCloseHelp();accountFormModal({})' },{ icon:'layers', label:'Ajout en masse', run:'gdCloseHelp();bulkAccountFormModal()' }],
     glossary:[['Challenge','compte d’évaluation acheté à la PropFirm.'],['PA','compte financé obtenu après un Challenge réussi.'],['Live','compte réel, après un PA.'],['Breached','compte perdu (règle de la PropFirm enfreinte).'],['Reset','remise à zéro payante d’un Challenge.'],['Net réel','payouts − toutes les dépenses, challenges ratés compris.'],['Net du parcours','net d’un PA/Live, Challenge d’origine inclus.'],['ROI','net réel ÷ dépenses.']],
     tour:[
