@@ -345,6 +345,8 @@ a{color:var(--accent);text-decoration:none;}
 .btn-ghost:hover{background:var(--surface-2);color:var(--text);}
 .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
 .btn-danger:hover{background:var(--danger-dim);}
+.btn-breach{color:var(--text-dim);}
+.btn-breach:hover,.btn-breach:focus-visible{color:var(--danger);border-color:var(--danger);background:var(--danger-dim);}
 .btn-sm{padding:5px 10px;font-size:12px;}
 .btn:disabled{opacity:.4;cursor:not-allowed;}
 
@@ -17333,7 +17335,7 @@ function accountCard(a){
     if(a.status==='ACTIF' && editable){
       actions += `<button class="btn btn-outline btn-sm" data-mark="REUSSI" data-acc="${a.id}" title="Le challenge est validé : tu pourras créer le PA obtenu">${icon('check')}Marquer réussi</button>`;
       // Breached visible (25/11/2026, retour d'un trader) : action fréquente, à portée de clic.
-      actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le challenge comme breached : la prop firm l’a fermé (perte maximale ou règle non respectée). Le compte passe en « Breached » ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
+      actions += `<button class="btn btn-outline btn-sm btn-breach" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le challenge comme breached : la prop firm l’a fermé (perte maximale ou règle non respectée). Le compte passe en « Breached » ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
     } else if(a.status==='REUSSI' && !child && editable){
       actions += `<button class="btn btn-primary btn-sm" data-create-pa="${a.id}">${icon('bolt')}Créer le PA</button>`;
     }
@@ -17354,7 +17356,7 @@ function accountCard(a){
         if(a.type==='PA') more.push({ icon:'bolt', label:'Passer en Live', sub:'Le PA devient un compte Live. L’historique est gardé.', click:`[data-to-live="${a.id}"]`, group:'Statut du compte' });
         more.push({ icon:'lock', label:'Clôturer le compte', sub:'Tu arrêtes ce compte sans breach (fin d’abonnement, retrait final…).', click:`[data-mark="FERME"][data-acc="${a.id}"]`, group:'Statut du compte' });
         hidden += `${a.type==='PA' ? `<button type="button" data-to-live="${a.id}"></button>` : ''}<button type="button" data-mark="FERME" data-acc="${a.id}"></button>`;
-      actions += `<button class="btn btn-danger btn-sm" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le compte comme breached : la prop firm l’a fermé (perte maximale atteinte ou règle non respectée). Le compte passe en « Breached » et sort des comptes actifs ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
+      actions += `<button class="btn btn-outline btn-sm btn-breach" data-mark="BREACHED" data-acc="${a.id}" title="Marquer le compte comme breached : la prop firm l’a fermé (perte maximale atteinte ou règle non respectée). Le compte passe en « Breached » et sort des comptes actifs ; tu confirmes la date avant.">${icon('alertTriangle')}Breached</button>`;
       }
     } else {
       actions += `<button class="btn btn-outline btn-sm" data-payouts="${a.id}">${icon('wallet')}Payouts (${state.payouts.filter(p=>p.accountId===a.id).length})</button>`;
