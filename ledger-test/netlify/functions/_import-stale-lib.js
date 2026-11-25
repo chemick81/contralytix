@@ -102,13 +102,20 @@ async function runImportStaleAlert(options = {}) {
   const today = refDate || parisTodayISO();
   if (!isTradingDay(addDays(today, -1)) && !force) return { skipped: 'no trading day yesterday', today };
 
-  let q = db.from('profiles').select('id, display_name, payout_plan');
+  // Alerte réservée à Premium (formules du 25/11/2026) : rôle Premium / Beta / Admin ou essai en cours.
+  let q = db.from('profiles').select('id, display_name, payout_plan, role, trial_ends_at');
   q = onlyUid ? q.eq('id', onlyUid) : q.eq('payout_plan->importAlert->>email', 'true');
-  const { data: profiles, error } = await q;
-  if (error) throw error;
+  let { data: profiles, error } = await q;
+  if (error) {   // migration de l'essai pas encore passée : sans trial_ends_at
+    let q2 = db.from('profiles').select('id, display_name, payout_plan, role');
+    q2 = onlyUid ? q2.eq('id', onlyUid) : q2.eq('payout_plan->importAlert->>email', 'true');
+    ({ data: profiles, error } = await q2);
+    if (error) throw error;
+  }
   const subs = (profiles || []).filter(p => {
     const ia = p.payout_plan && p.payout_plan.importAlert;
-    return ia && (onlyUid || ia.email === true) && Array.isArray(ia.accIds) && ia.accIds.length && (force || ia.sentOn !== today);
+    const prem = ['ADMIN', 'PREMIUM', 'BETA'].includes(p.role) || (p.trial_ends_at && new Date(p.trial_ends_at) > new Date());
+    return ia && prem && (onlyUid || ia.email === true) && Array.isArray(ia.accIds) && ia.accIds.length && (force || ia.sentOn !== today);
   });
   if (!subs.length) return { sent: 0, total: 0, today };
 

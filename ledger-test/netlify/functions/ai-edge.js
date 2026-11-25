@@ -58,13 +58,16 @@ async function getUser(token) {
   if (!res.ok) return null;
   const u = await res.json().catch(() => null);
   if (!u || !u.id) return null;
-  let role = 'FREE';
+  let role = 'FREE', trial = false;
   try {
-    const r = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(u.id)}&select=role`, { headers });
+    // Essai Premium (25/11/2026) : trial_ends_at dans le futur = Premium ; sans la colonne, rôle seul.
+    let r = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(u.id)}&select=role,trial_ends_at`, { headers });
+    if (!r.ok) r = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(u.id)}&select=role`, { headers });
     const rows = r.ok ? await r.json() : [];
     role = (rows[0] && rows[0].role) || 'FREE';
+    trial = !!(rows[0] && rows[0].trial_ends_at && new Date(rows[0].trial_ends_at) > new Date());
   } catch (e) { /* profil illisible : Free */ }
-  return { id: u.id, role, isAdmin: role === 'ADMIN', isPremium: ['ADMIN', 'PREMIUM', 'BETA'].includes(role) };
+  return { id: u.id, role, isAdmin: role === 'ADMIN', isPremium: ['ADMIN', 'PREMIUM', 'BETA'].includes(role) || trial };
 }
 async function loadUserKey(userId) {
   const { url, headers } = sb();

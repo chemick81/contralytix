@@ -102,9 +102,13 @@ async function userFromEvent(client, event) {
   if (!token) return null;
   const { data, error } = await client.auth.getUser(token);
   if (error || !data || !data.user) return null;
-  const { data: prof } = await client.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
+  // Essai Premium d'un mois (25/11/2026) : trial_ends_at dans le futur = Premium. Si la colonne
+  // n'existe pas encore (migration non passée), on relit le rôle seul.
+  let { data: prof, error: pErr } = await client.from('profiles').select('role, trial_ends_at').eq('id', data.user.id).maybeSingle();
+  if (pErr) ({ data: prof } = await client.from('profiles').select('role').eq('id', data.user.id).maybeSingle());
   const role = (prof && prof.role) || 'FREE';
-  return { id: data.user.id, email: data.user.email, role, isAdmin: role === 'ADMIN', isPremium: ['ADMIN', 'PREMIUM', 'BETA'].includes(role) };
+  const trial = !!(prof && prof.trial_ends_at && new Date(prof.trial_ends_at) > new Date());
+  return { id: data.user.id, email: data.user.email, role, isAdmin: role === 'ADMIN', isPremium: ['ADMIN', 'PREMIUM', 'BETA'].includes(role) || trial };
 }
 
 /* ---------- Clé de l'utilisateur ---------- */

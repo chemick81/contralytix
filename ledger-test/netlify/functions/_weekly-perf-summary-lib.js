@@ -556,9 +556,11 @@ async function runWeeklySummary(options = {}) {
   const weekStart = addDays(mondayOf(today), -7);
   const weekEnd = addDays(weekStart, 6);
 
-  let profilesQ = db.from('profiles').select('id, display_name, notif_perf_summary, payout_plan');
-  profilesQ = onlyUid ? profilesQ.eq('id', onlyUid) : profilesQ.eq('notif_perf_summary', true);
-  const { data: profiles, error: profErr } = await profilesQ;
+  // role + trial_ends_at (25/11/2026) : les sections « Comptes à trader » et « Prochain payout »
+  // sont réservées à Premium (ou essai en cours). Sans la colonne d'essai, on relit sans elle.
+  const profQ = (cols) => { const q = db.from('profiles').select(cols); return onlyUid ? q.eq('id', onlyUid) : q.eq('notif_perf_summary', true); };
+  let { data: profiles, error: profErr } = await profQ('id, display_name, notif_perf_summary, payout_plan, role, trial_ends_at');
+  if (profErr) ({ data: profiles, error: profErr } = await profQ('id, display_name, notif_perf_summary, payout_plan, role'));
   if (profErr) throw profErr;
   if (!profiles || !profiles.length) return onlyUid ? { error: 'Aucun profil avec cet uid.', notFound: true } : { sent: 0, skippedNoActivity: 0, failed: 0, total: 0, weekStart, weekEnd };
 
@@ -619,7 +621,8 @@ async function runWeeklySummary(options = {}) {
       firmsById, weekStart, weekEnd,
     });
     // Radar + Prochain payout : instantané laissé par l'app (voir snapshotSections).
-    const sec = snapshotSections(profile.payout_plan && profile.payout_plan.mailSnapshot, today);
+    const premOk = ['ADMIN', 'PREMIUM', 'BETA'].includes(profile.role) || !!(profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date());
+    const sec = premOk ? snapshotSections(profile.payout_plan && profile.payout_plan.mailSnapshot, today) : snapshotSections(null, today);
     // Un compte à trader (Radar, niveau urgent) ou un payout prêt justifie l'email même sans
     // mouvement financier dans la semaine (choix de Mickael, 23/11/2026).
     const alertWorth = !!sec && ((sec.radarOn && sec.radar.some(r => r.level !== 'warn')) || sec.payout.some(p => p.state === 'ready'));
