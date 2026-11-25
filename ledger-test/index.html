@@ -1175,6 +1175,7 @@ th.th-sort-active svg{opacity:1;}
 .po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
 .po-days-acts{display:flex;gap:4px;flex-wrap:wrap;}
 .po-w-norules{display:flex;flex-direction:column;gap:6px;}
+.stmt-health > svg{width:14px;height:14px;color:var(--text-faint);flex-shrink:0;}
 .ia-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(245,197,66,.35);border-radius:var(--radius-md);background:var(--dm-yellow-dim,rgba(245,197,66,.12));}
 .ia-banner > svg{width:18px;height:18px;color:var(--dm-yellow,#F5C542);flex-shrink:0;}
 .ia-banner-t{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px;font-size:13px;}
@@ -22831,12 +22832,24 @@ const ACC_HEALTH_SORTS = {
   bal:  { label:'Solde · le plus élevé d’abord', key: c=>c && c.balance!=null ? -c.balance : null },
   last: { label:'Dernier trade · le plus ancien d’abord', key: c=>c && c.last ? Date.parse(c.last) : null },
 };
+// Solde sans Deltalytix (25/11/2026, choix de Mickael : le solde seulement, pas de drawdown) : solde du
+// dernier relevé Tradovate / R|Trader ou saisi sur la fiche Payout, avec sa date et le dernier jour tradé.
+function stmtCardBalanceHtml(a){
+  if(a.status !== 'ACTIF' || !(a.type === 'PA' || a.type === 'LIVE' || a.type === 'CHALLENGE')) return '';
+  const b = poManualBalance(a.id); if(!b) return '';
+  const usd = v => fmtMoneyCur(v, 'USD').replace(/,00(?=\s)/,'');
+  let lastTrade = null;
+  (state.dormancyLogs || []).forEach(l=>{ if(String(l.accountId) === String(a.id) && l.traded && (!lastTrade || l.day > lastTrade)) lastTrade = l.day; });
+  const when = String(b.day || b.at || '').slice(0,10);
+  const srcTxt = b.src ? `relevé ${b.src === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}${when ? ' du ' + fmtDate(when) : ''}` : (when ? 'saisi le ' + fmtDate(when) : 'saisi à la main');
+  return `<div class="dlx-health stmt-health" title="Solde ${srcTxt}. Importe un nouveau relevé pour le mettre à jour.">${icon('fileText')}<span>Solde <strong>${usd(b.v)}</strong> · <span class="text-dim">${srcTxt}</span>${lastTrade ? ` · Dernier trade : <strong>${fmtDate(lastTrade)}</strong>` : ''}</span></div>`;
+}
 function dlxCardHealthHtml(a){
   if(a.status!=='ACTIF') return '';
   const d = dlx();
-  if(!d.connected) return '';
+  if(!d.connected) return stmtCardBalanceHtml(a);
   const h = dlxHealthOf(a.id);
-  if(!h) return '';
+  if(!h) return stmtCardBalanceHtml(a);
   if(h.breached){
     return `<div class="dlx-health is-danger"><span class="dlx-logo xs" aria-hidden="true"></span><span><strong>Limite de perte atteinte</strong> d’après Deltalytix${h.lastTradeDay ? ` (dernier trade le ${fmtDate(h.lastTradeDay)})` : ''}.</span>${canEdit(a) ? `<button class="btn btn-danger btn-sm" data-dlx-mark="${a.id}">Passer en Breached</button>` : ''}</div>`;
   }
