@@ -5329,8 +5329,12 @@ function computePermissions(){
   const isBetaRole = role === 'BETA';
   // Essai Premium d'un mois (25/11/2026) : rôle FREE + trial_ends_at dans le futur = Premium.
   // Activé par l'utilisateur (trialStart), une seule fois. trialAvailable : jamais commencé.
+  // Le profil est converti en camelCase par fromRow (trialStartedAt, trialEndsAt).
   const pr = state.profile || {};
-  const trialEnds = pr.trial_ends_at ? new Date(pr.trial_ends_at) : null;
+  const trEnd = pr.trialEndsAt !== undefined ? pr.trialEndsAt : pr.trial_ends_at;
+  const trStart = pr.trialStartedAt !== undefined ? pr.trialStartedAt : pr.trial_started_at;
+  const trCol = ('trialStartedAt' in pr) || ('trial_started_at' in pr);
+  const trialEnds = trEnd ? new Date(trEnd) : null;
   const isTrial = role === 'FREE' && !!trialEnds && trialEnds > new Date();
   const isPremiumRole = isAdminRole || role === 'PREMIUM' || isBetaRole || isTrial;
   state.permissions = {
@@ -5338,7 +5342,7 @@ function computePermissions(){
     isBeta: isBetaRole,
     isTrial,
     trialEndsAt: trialEnds ? trialEnds.toISOString() : null,
-    trialAvailable: role === 'FREE' && ('trial_started_at' in pr) && !pr.trial_started_at,
+    trialAvailable: role === 'FREE' && trCol && !trStart,
     trialEnded: role === 'FREE' && !!trialEnds && trialEnds <= new Date(),
     isPremium: isPremiumRole,
     canImport: isPremiumRole,
