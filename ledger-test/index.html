@@ -1175,7 +1175,22 @@ th.th-sort-active svg{opacity:1;}
 .po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
 .po-days-acts{display:flex;gap:4px;flex-wrap:wrap;}
 .po-w-norules{display:flex;flex-direction:column;gap:6px;}
+.po-w-locked{opacity:.6;}
+.po-w-locked:hover{opacity:1;}
+.po-pill.po-locked{background:var(--gold-dim);color:var(--gold);display:inline-flex;align-items:center;gap:4px;}
+.po-pill.po-locked svg{width:11px;height:11px;}
 .stmt-health > svg{width:14px;height:14px;color:var(--text-faint);flex-shrink:0;}
+.trial-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(62,214,181,.35);border-radius:var(--radius-md);background:var(--accent-dim);}
+.trial-banner > svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;}
+.trial-banner.is-end{border-color:rgba(217,166,90,.45);background:var(--gold-dim);}
+.trial-banner.is-end > svg{color:var(--gold);}
+.trial-t{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px;font-size:13px;}
+.trial-t span{color:var(--text-dim);font-size:12.5px;}
+.trial-bar{width:150px;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.trial-bar div{height:100%;background:var(--accent);}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#0B0F14;}
+.trial-offer{display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;margin-bottom:14px;border:1px solid rgba(62,214,181,.35);border-radius:var(--radius-md);background:var(--accent-dim);font-size:13px;}
+.trial-offer span{color:var(--text-dim);font-size:12.5px;}
 .ia-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(245,197,66,.35);border-radius:var(--radius-md);background:var(--dm-yellow-dim,rgba(245,197,66,.12));}
 .ia-banner > svg{width:18px;height:18px;color:var(--dm-yellow,#F5C542);flex-shrink:0;}
 .ia-banner-t{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px;font-size:13px;}
@@ -2784,6 +2799,13 @@ th.th-sort-active svg{opacity:1;}
 .ml-pricing-card li svg{flex-shrink:0;margin-top:2px;color:var(--text-faint);}
 .ml-pricing-card.ml-pricing-highlight li svg{color:var(--accent);}
 .ml-pricing-note{position:relative;z-index:1;text-align:center;font-size:11.5px;color:var(--text-faint);margin:24px 0 0;}
+/* Formules du 25/11/2026 : essai d'un mois, blocs du Premium, nouveautés */
+.ml-pricing-grid{max-width:980px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
+.ml-trial-pill{position:relative;z-index:1;text-align:center;margin:-6px 0 26px;}
+.ml-trial-pill span{display:inline-block;padding:7px 15px;border-radius:999px;border:1px solid rgba(62,214,181,.4);background:rgba(62,214,181,.1);color:var(--accent);font-weight:700;font-size:12.5px;}
+.ml-trial-line{font-size:12px;font-weight:700;color:var(--accent);margin:6px 0 0;}
+.ml-pricing-grp{text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:16px 0 -8px;}
+.ml-new{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:var(--gold-dim);border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:1px;white-space:nowrap;}
 
 /* Page Abonnement (utilisateur connecté, viewSubscription()) — même traitement visuel que la
    page tarifs publique ci-dessus (halos de couleur, carte mise en avant, léger 3D au survol),
@@ -3625,6 +3647,7 @@ th.th-sort-active svg{opacity:1;}
 
     <section class="ml-pricing">
       <h2>Des formules simples, à commencer gratuitement</h2>
+      <p class="ml-trial-pill"><span>1 mois de Premium offert, sans carte bancaire, à activer quand tu veux</span></p>
       <div class="ml-pricing-grid" id="ml-pricing-grid">
         <div class="ml-pricing-card">
           <h3>Free</h3>
@@ -3635,20 +3658,39 @@ th.th-sort-active svg{opacity:1;}
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des payouts</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Rentabilité réelle &amp; Communauté</li>
             <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Import de comptes par capture</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> 5 dernières sessions live</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Catalogue des règles prop firm <span class="ml-new">Nouveau</span></li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Prochain payout sur 1 compte <span class="ml-new">Nouveau</span></li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> 5 dernières sessions de trading</li>
           </ul>
         </div>
         <div class="ml-pricing-card ml-pricing-highlight">
           <span class="ml-pricing-ribbon">Le plus populaire</span>
           <h3>Premium</h3>
           <p class="ml-pricing-tagline" id="ml-price-premium">Mensuel ou annuel</p>
+          <p class="ml-trial-line">1 mois d’essai offert</p>
+          <p class="ml-pricing-grp">Tout le Free, sans limite</p>
           <ul>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Traders illimités</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Comptes illimités par trader</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Exports CSV, Excel &amp; PDF</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Calendrier des échéances</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Bilan visuel</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Radar inactivité</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Traders et comptes illimités</li>
+          </ul>
+          <p class="ml-pricing-grp">Payouts et règles</p>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Prochain payout sur tous tes comptes <span class="ml-new">Nouveau</span></li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Trading plan calé sur tes vrais PA <span class="ml-new">Nouveau</span></li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Coach rentabilité IA</li>
+          </ul>
+          <p class="ml-pricing-grp">Imports automatiques</p>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Synchro Deltalytix : solde et drawdown</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Relevés Tradovate et R|Trader Pro, suivi wallet <span class="ml-new">Nouveau</span></li>
+          </ul>
+          <p class="ml-pricing-grp">Alertes</p>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Radar inactivité et alertes de risque</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Relevés à importer, résumé du lundi enrichi <span class="ml-new">Nouveau</span></li>
+          </ul>
+          <p class="ml-pricing-grp">Gestion</p>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Exports CSV, Excel &amp; PDF · Bilan visuel · Calendrier</li>
             <li id="ml-pricing-fiscalite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Module Fiscalité (micro-BNC)</li>
             <li id="ml-pricing-frais-generaux"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Suivi des frais généraux</li>
           </ul>
@@ -3657,12 +3699,13 @@ th.th-sort-active svg{opacity:1;}
           <h3>Lifetime</h3>
           <p class="ml-pricing-tagline" id="ml-price-lifetime">Paiement unique</p>
           <ul>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Accès à vie à toutes les fonctionnalités Premium</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Aucun renouvellement</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Tout Premium, à vie</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Y compris les modules à venir</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg> Aucun renouvellement, aucun abonnement</li>
           </ul>
         </div>
       </div>
-      <p class="ml-pricing-note">Code promo disponible une fois connecté. Sans engagement, résiliable à tout moment depuis ton espace.</p>
+      <p class="ml-pricing-note">Code promo disponible une fois connecté. Sans engagement, résiliable à tout moment depuis ton espace. À la fin de l’essai, tu repasses en Free si tu ne t’abonnes pas : tes données restent.</p>
     </section>
 
     <section class="ml-faq">
@@ -5284,10 +5327,19 @@ function computePermissions(){
   // fonctionnalités que Premium SANS ligne "subscriptions" ni passage par Stripe — décision du
   // 20/09/2026, pour tester l'app avec des utilisateurs beta sans facturation fictive.
   const isBetaRole = role === 'BETA';
-  const isPremiumRole = isAdminRole || role === 'PREMIUM' || isBetaRole;
+  // Essai Premium d'un mois (25/11/2026) : rôle FREE + trial_ends_at dans le futur = Premium.
+  // Activé par l'utilisateur (trialStart), une seule fois. trialAvailable : jamais commencé.
+  const pr = state.profile || {};
+  const trialEnds = pr.trial_ends_at ? new Date(pr.trial_ends_at) : null;
+  const isTrial = role === 'FREE' && !!trialEnds && trialEnds > new Date();
+  const isPremiumRole = isAdminRole || role === 'PREMIUM' || isBetaRole || isTrial;
   state.permissions = {
     isAdmin: isAdminRole,
     isBeta: isBetaRole,
+    isTrial,
+    trialEndsAt: trialEnds ? trialEnds.toISOString() : null,
+    trialAvailable: role === 'FREE' && ('trial_started_at' in pr) && !pr.trial_started_at,
+    trialEnded: role === 'FREE' && !!trialEnds && trialEnds <= new Date(),
     isPremium: isPremiumRole,
     canImport: isPremiumRole,
     canExportExcel: isPremiumRole,
@@ -5725,7 +5777,7 @@ function planBadgeHtml(){
     BETA:    { label:'BETA',    cls:'badge-beta' },
     FREE:    { label:'FREE',    cls:'badge-free' },
   };
-  const b = map[role] || map.FREE;
+  const b = role === 'FREE' && perms().isTrial ? { label:'ESSAI PREMIUM', cls:'badge-premium' } : (map[role] || map.FREE);
   return `<span class="plan-badge ${b.cls}">${b.label}</span>`;
 }
 
@@ -5786,11 +5838,55 @@ function openUpgradeModal(featureLabel){
     bodyHtml: `
       <div style="text-align:center;padding:8px 0 4px;">
         ${featureLabel ? `<div style="margin-bottom:14px;color:var(--text-dim);font-size:13px;">La fonctionnalité <b>${escapeHtml(featureLabel)}</b> est réservée aux comptes Premium.</div>` : ''}
+        ${perms().trialAvailable ? `<div class="trial-offer"><b>Essaie Premium gratuitement pendant 1 mois</b><span>Sans carte bancaire, quand tu veux. À la fin, tu repasses en Free sans rien perdre.</span><button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="trialStart()">${icon('sparkles')}Activer mon mois d’essai</button></div>` : ''}
         <div style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Consulte les formules disponibles (Mensuel, Annuel, Lifetime) et choisis celle qui te convient.</div>
-        <button class="btn btn-primary" style="width:100%;" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
+        <button class="btn ${perms().trialAvailable ? 'btn-outline' : 'btn-primary'}" style="width:100%;" onclick="closeModal();state.route='subscription';render();">Voir les tarifs</button>
       </div>`,
     footHtml: `<button class="btn" onclick="closeModal()">Fermer</button>`
   });
+}
+/* ---------- Essai Premium d'un mois (25/11/2026) ----------
+   Sans carte bancaire, activé quand l'utilisateur le veut, une seule fois (fonction start-trial,
+   migration_essai_premium_20261125.sql). Bandeaux : trialBannerHtml (Dashboard). */
+let trialBusy = false;
+async function trialStart(){
+  if(trialBusy) return;
+  if(!SUPABASE_CONFIGURED){ showToast('Essai indisponible en mode local.', 'danger'); return; }
+  trialBusy = true;
+  try{
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/api/start-trial', { method:'POST', headers:{ Authorization:'Bearer ' + (session && session.access_token || '') } });
+    const out = await res.json().catch(()=>({}));
+    if(!res.ok || !out.ok){ showToast(out.error || 'Activation impossible, réessaie dans un instant.', 'danger'); if(out.code === 'already_used'){ await loadProfile(); computePermissions(); render(); } return; }
+    await loadProfile(); computePermissions();
+    closeModal(); render();
+    showToast(`Essai Premium activé jusqu’au ${fmtDate(String(out.trialEndsAt).slice(0,10))} : tout est débloqué.`, 'success');
+    try{ await logActivity('UPDATE', 'profiles', currentUserId(), 'Essai Premium d’un mois activé'); }catch(e){}
+  } catch(e){ showToast('Activation impossible : ' + e.message, 'danger'); }
+  finally{ trialBusy = false; }
+}
+function trialDaysLeft(){ const e = perms().trialEndsAt; return e ? Math.max(0, Math.ceil((new Date(e) - new Date()) / 86400000)) : 0; }
+function trialBannerHtml(){
+  const P = perms();
+  if(P.isTrial){
+    const left = trialDaysLeft(), pct = Math.max(0, Math.min(100, (30 - left) / 30 * 100));
+    if(left > 7 && gdGet('trial_hide') === 'on') return '';
+    return `<div class="trial-banner" role="status">${icon('clock')}<div class="trial-t"><b>Essai Premium : ${left} jour${left>1?'s':''} restant${left>1?'s':''}</b><span>Tout est débloqué jusqu’au ${fmtDate(String(P.trialEndsAt).slice(0,10))}. Ensuite tu repasses en Free, tes données restent.</span></div>
+      <div class="trial-bar" aria-hidden="true"><div style="width:${pct.toFixed(0)}%"></div></div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="state.route='subscription';render();">S’abonner</button>
+      ${left > 7 ? `<button type="button" class="btn btn-ghost btn-sm" onclick="gdSet('trial_hide','on');render();" title="Masquer (il revient 7 jours avant la fin)">Masquer</button>` : ''}</div>`;
+  }
+  if(P.trialAvailable && gdGet('trial_offer_hide') !== todayISO()){
+    return `<div class="trial-banner is-offer" role="status">${icon('sparkles')}<div class="trial-t"><b>Essaie Premium gratuitement pendant 1 mois</b><span>Prochain payout sur tous tes comptes, trading plan, imports Tradovate et R|Trader, alertes, exports. Sans carte bancaire, quand tu veux.</span></div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="trialStart()">Activer mon mois d’essai</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="gdSet('trial_offer_hide', todayISO());render();">Plus tard</button></div>`;
+  }
+  if(P.trialEnded && !P.isPremium && gdGet('trial_end_seen') !== 'on'){
+    return `<div class="trial-banner is-end" role="status">${icon('alertTriangle')}<div class="trial-t"><b>Ton essai Premium est terminé</b><span>Prochain payout limité à 1 compte ; imports de relevés, alertes et trading plan en pause. Tes comptes et tes données sont conservés.</span></div>
+      <button type="button" class="btn btn-gold btn-sm" onclick="state.route='subscription';render();">Passer à Premium</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="gdSet('trial_end_seen','on');render();">Fermer</button></div>`;
+  }
+  return '';
 }
 // Connexion/inscription sans mot de passe, par code à 6 chiffres envoyé par e-mail (Supabase
 // Auth OTP). Un seul et même appel crée le compte au premier envoi si l'adresse est inconnue
@@ -8445,6 +8541,8 @@ function tdvPlan(g){
   return { fresh, upd, kept, same, write, dlx: !!dlxHealthOf(a.id) };
 }
 function tdvImportModal(opts){
+  // Import des relevés : Premium (formules du 25/11/2026).
+  if(!perms().isPremium){ openUpgradeModal('L’import des relevés Tradovate et R|Trader Pro'); return; }
   opts = opts || {};
   const only = opts.accId ? getAccount(opts.accId) : null;
   let parsed = null;
@@ -8640,7 +8738,18 @@ function tdvAsImportAccount(g){
   return { number:g.name, propfirm: firm ? firm.name : '', size: sz ? sz.size : null, breached: !!g.liquidated,
     firstTradeDay:firstDay, lastTradeDay: traded.length ? traded[traded.length - 1].day : null, platform: g.source === 'rithmic' ? 'RITHMIC' : 'TRADOVATE' };
 }
-function poOpen(accId){ payoutFicheModal(accId); }
+// Free (formules du 25/11/2026) : Prochain payout sur un seul compte, le plus ancien PA / Live actif
+// (choix stable, qui ne saute pas d'un compte à l'autre). Premium / essai : tous les comptes.
+function poFreeAccountId(){
+  const list = (state.accounts || []).filter(a=>isMineAccount(a) && (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF' && accProgram(a))
+    .sort((x,y)=>String(x.activationDate || x.purchaseDate || x.createdAt || '').localeCompare(String(y.activationDate || y.purchaseDate || y.createdAt || '')) || String(x.id).localeCompare(String(y.id)));
+  return list.length ? list[0].id : null;
+}
+function poAllowed(accId){ return perms().isPremium || String(accId) === String(poFreeAccountId()); }
+function poOpen(accId){
+  if(!poAllowed(accId)){ openUpgradeModal('Le Prochain payout sur tous tes comptes'); return; }
+  payoutFicheModal(accId);
+}
 // Instantané pour l'email « Résumé de performance » (23/11/2026) : le serveur n'a pas les moteurs du
 // Radar ni du Prochain payout, l'app lui laisse leur état dans profiles.payout_plan.mailSnapshot.
 // Écrit seulement quand le contenu change (ou au plus une fois par 12 h pour rafraîchir la date).
@@ -8720,7 +8829,7 @@ function iaStaleList(){
 }
 function iaAccLabel(a){ const f = getFirm(a.propFirmId); return `${escapeHtml(f ? f.name : 'Compte')} ${a.accountNumber ? maskAccountNumber(String(a.accountNumber)) : ''}`.trim(); }   // HTML (numéro masqué)
 function iaBannerHtml(){
-  const st = iaSettings(); if(!st.site) return '';
+  const st = iaSettings(); if(!st.site || !perms().isPremium) return '';
   if(gdGet('ia_hide') === todayISO()) return '';
   const list = iaStaleList(); if(!list.length) return '';
   const n = list.length;
@@ -8729,7 +8838,7 @@ function iaBannerHtml(){
     <button type="button" class="btn btn-primary btn-sm" onclick="tdvImportModal()">${icon('download')}Importer un relevé</button>
     <button type="button" class="btn btn-ghost btn-sm" onclick="gdSet('ia_hide', todayISO()); render();" title="Masquer jusqu’à demain">Plus tard</button></div>`;
 }
-function iaNavCount(){ return iaSettings().site ? iaStaleList().length : 0; }
+function iaNavCount(){ return perms().isPremium && iaSettings().site ? iaStaleList().length : 0; }
 // Liste des comptes suivis pour l'e-mail : écrite seulement quand elle change.
 let iaSyncTimer = null, iaSyncLast = null;
 function iaSync(){
@@ -8764,6 +8873,7 @@ function poAddPayout(accId){
 }
 function payoutFicheModal(accId){
   const a = getAccount(accId); if(!a) return;
+  if(!poAllowed(accId)){ openUpgradeModal('Le Prochain payout sur tous tes comptes'); return; }
   const s = payoutStatus(a);
   const firm = getFirm(a.propFirmId);
   if(!s){
@@ -8962,8 +9072,10 @@ function pilotPayoutWidgetHtml(pd){
   list.sort((x,y)=>rank(x) - rank(y) || (rank(x) === 1 ? (y.progress || 0) - (x.progress || 0) : 0) || (y.amt || 0) - (x.amt || 0));
   const ready = list.filter(s=>s.state === 'ready');
   const noProg = pd.paActive.filter(a=>!accProgram(a)).length;
+  const freeId = perms().isPremium ? null : poFreeAccountId();
   const rows = list.slice(0, 8).map(s=>{
     const firm = getFirm(s.a.propFirmId);
+    if(freeId && String(s.a.id) !== String(freeId)) return `<button type="button" class="po-w-row po-w-locked" onclick="openUpgradeModal('Le Prochain payout sur tous tes comptes')" title="Premium : Prochain payout sur tous tes comptes">${firmLogoHtml(firm, 28)}<span class="po-w-t"><b>${escapeHtml(firm ? firm.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b><span class="cat-sub">${s.a.accountNumber ? maskAccountNumber(String(s.a.accountNumber)) + ' · ' : ''}Premium</span></span><span class="po-pill po-locked">${icon('lock')}Premium</span></button>`;
     const sub = s.state === 'ready' ? `Jusqu’à ${poMoney(s.amt)}${s.net != null ? ' · ≈ ' + poMoney(s.net) + ' reçus' : ''}` : s.state === 'input' ? 'Solde non synchronisé : à saisir sur la fiche' : 'Manque : ' + s.miss.join(', ');
     return `<button type="button" class="po-w-row" onclick="poOpen('${s.a.id}')">${firmLogoHtml(firm, 28)}<span class="po-w-t"><b>${escapeHtml(firm ? firm.name : '—')} · ${escapeHtml(s.row.program)} ${acatSizeLabel(accSizeNum(s.a))}</b><span class="cat-sub">${s.a.accountNumber ? maskAccountNumber(String(s.a.accountNumber)) + ' · ' : ''}${escapeHtml(sub)}</span></span>${poPillHtml(s)}${rank(s) === 1 ? `<span class="po-w-prog" title="Avancement de la condition la plus en retard"><span class="po-w-track"><i style="width:${Math.round((s.progress || 0) * 100)}%"></i></span><em>${Math.round((s.progress || 0) * 100)} %</em></span>` : ''}</button>`;
   }).join('');
@@ -10645,6 +10757,7 @@ function mdToHtml(src){
 }
 
 function renderView(){
+  if(perms().isTrial && perms().trialEndsAt && new Date(perms().trialEndsAt) <= new Date()) computePermissions();   // fin d'essai pendant la session
   mailSnapshotSchedule();
   iaSync();
   const el = document.getElementById('view-root');
@@ -10671,7 +10784,7 @@ function renderView(){
   else if(state.route==='changelog') el.innerHTML = viewChangelog();
   else if(state.route==='subscription') el.innerHTML = viewSubscription();
   else if(state.route==='profil') el.innerHTML = viewProfil();
-  else if(state.route==='mon-plan') el.innerHTML = pilotageEnabled() ? viewMonPlan() : viewProfil();
+  else if(state.route==='mon-plan') el.innerHTML = pilotageEnabled() ? (perms().isPremium ? viewMonPlan() : `${accountTabsHtml('mon-plan')}${lockedFeatureView('Le trading plan')}`) : viewProfil();
   else if(state.route==='parametres') el.innerHTML = viewParametres();
   else if(state.route==='aide-centre') el.innerHTML = viewCentreAide();
   else if(state.route==='manuel') el.innerHTML = viewManuel();
@@ -14504,6 +14617,7 @@ function viewDashboard(){
         <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
+    ${trialBannerHtml()}
     ${iaBannerHtml()}
     ${gdStartChecklistHtml()}
     ${filterBar}
@@ -15878,7 +15992,8 @@ const HELP_CATEGORIES = [
   { id:'general', label:'Général', icon:'chat', questions:[
     { q:"Qu'est-ce que Contralytix ?", a:"Contralytix est un outil de suivi et de gestion pour les traders utilisant des comptes PropFirm (Challenge, PA, Live). Il centralise dépenses, payouts, comptabilité, calendrier des échéances et statistiques, pour un trader indépendant ou une équipe suivant plusieurs traders." },
     { q:"Puis-je suivre plusieurs traders avec un seul compte ?", a:"Oui. Le nombre de traders n'est pas limité, y compris en formule Free. Chaque trader a ses propres comptes PropFirm, et la plupart des pages proposent un filtre pour n'afficher qu'un ou plusieurs traders à la fois." },
-    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, l'historique complet des sessions, les listes complètes sans flou, le Calendrier, le Bilan Visuel et les exports CSV/Excel/PDF. Le détail complet est sur la page Abonnement." },
+    { q:"Quelle est la différence entre les formules Free, Premium et Lifetime ?", a:"Free permet de démarrer avec un nombre limité de traders, de comptes et de sessions ; les Traders et Comptes d'autres utilisateurs y apparaissent floutés (seuls les tiens restent lisibles), et le catalogue PropFirms n'est visible que partiellement. Premium (mensuel ou annuel) et Lifetime (paiement unique) débloquent les traders et comptes illimités, le Prochain payout sur tous tes comptes (en Free : un seul compte), le trading plan, l'import des relevés Tradovate et R|Trader Pro avec le suivi wallet, la synchro Deltalytix avec solde et drawdown, les alertes (radar, risque, relevés à importer), le coach IA, l'historique complet des sessions, le Calendrier, le Bilan Visuel, la fiscalité, les frais généraux et les exports CSV/Excel/PDF. Le détail complet est sur la page Abonnement." },
+    { q:"Comment fonctionne l'essai Premium d'un mois ?", a:"Chaque compte peut activer une fois un mois de Premium offert, sans carte bancaire, quand il le souhaite : bouton « Activer mon mois d'essai » sur le Dashboard, la page Abonnement ou dans toute fenêtre « Passer à Premium ». Tout est débloqué pendant 30 jours ; un bandeau indique les jours restants et un e-mail te prévient 3 jours avant la fin. Sans abonnement, tu repasses en Free à la fin : tes comptes et tes données sont conservés (au-delà de 3 comptes par trader, ils restent visibles mais tu ne peux plus en ajouter). L'essai n'est possible qu'une fois par adresse e-mail." },
     { q:"Comment contacter le support ?", a:"Le bouton « Contact » en bas de la barre latérale, accessible depuis n'importe quelle page, permet d'envoyer un message (bug, question, suggestion ou facturation)." },
     { q:"Puis-je changer le nom affiché dans l'application ?", a:"Oui, depuis la page Profil : un champ « Nom affiché » remplace ton adresse e-mail dans la barre latérale et les échanges avec le support. Purement cosmétique, sans effet sur la connexion." },
     { q:"Comment gérer les emails que Contralytix m'envoie ?", a:"Depuis Paramètres > Notifications, trois interrupteurs indépendants : rappels d'échéance URSSAF, résumé de performance hebdomadaire, et annonces produit (désactivé par défaut). Chacun se coche ou se décoche à tout moment." },
@@ -17268,7 +17383,7 @@ function accountCard(a){
             <span class="tag-pseudo">${trader?trader.pseudo:'—'}</span>
             ${paymentTypeBadgeHtml(a)}
             <span class="badge ${statusBadgeClass(a)}">${statusLabel(a)}</span>
-            ${pilotageEnabled() ? poPillHtml(payoutStatus(a), true).replace('<span class="po-pill', `<span role="button" tabindex="0" onclick="poOpen('${a.id}')" style="cursor:pointer" class="po-pill`) : ''}
+            ${pilotageEnabled() && poAllowed(a.id) ? poPillHtml(payoutStatus(a), true).replace('<span class="po-pill', `<span role="button" tabindex="0" onclick="poOpen('${a.id}')" style="cursor:pointer" class="po-pill`) : ''}
             ${needsPa(a) ? `<span class="badge badge-todo" title="Challenge réussi : crée le PA associé pour suivre l’activation et les payouts">PA à créer</span>` : ''}
             ${linkTag}
           </div>
@@ -20339,8 +20454,11 @@ function viewSubscription(){
     <div class="panel" style="margin-bottom:16px;padding:20px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
         ${planBadgeHtml()}
-        <div style="font-size:16px;font-weight:700;">${role==='ADMIN' ? 'Accès Admin (toutes fonctionnalités)' : (isBeta ? 'Accès Beta (fonctionnalités Premium offertes)' : (isPremium ? 'Formule Premium' : 'Formule Free'))}</div>
+        <div style="font-size:16px;font-weight:700;">${role==='ADMIN' ? 'Accès Admin (toutes fonctionnalités)' : (isBeta ? 'Accès Beta (fonctionnalités Premium offertes)' : (isPremium ? 'Formule Premium' : (perms().isTrial ? 'Essai Premium en cours' : 'Formule Free')))}</div>
       </div>
+      ${perms().isTrial ? `<div class="trial-offer" style="margin-bottom:14px;"><b>Essai Premium : ${trialDaysLeft()} jour${trialDaysLeft()>1?'s':''} restant${trialDaysLeft()>1?'s':''}, jusqu’au ${fmtDate(String(perms().trialEndsAt).slice(0,10))}</b><span>Abonne-toi quand tu veux pour garder Premium ; sinon tu repasses en Free à la fin de l’essai, sans rien perdre.</span></div>`
+        : perms().trialAvailable ? `<div class="trial-offer" style="margin-bottom:14px;"><b>Essaie Premium gratuitement pendant 1 mois</b><span>Sans carte bancaire, une seule fois, quand tu veux. À la fin, tu repasses en Free sans rien perdre.</span><div><button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="trialStart()">${icon('sparkles')}Activer mon mois d’essai</button></div></div>`
+        : perms().trialEnded && !isPremium ? `<div class="text-faint" style="font-size:12.5px;margin-bottom:12px;">Essai Premium terminé le ${fmtDate(String(perms().trialEndsAt).slice(0,10))}.</div>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;font-size:13px;">
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Statut</div>${isBeta ? 'Offert par un admin' : statusLabelFr}</div>
         <div><div class="text-faint" style="font-size:11px;text-transform:uppercase;margin-bottom:3px;">Formule</div>${isBeta ? '—' : cycleLabelFr}</div>
@@ -20378,19 +20496,23 @@ function viewSubscription(){
     'Suivi des payouts',
     'Tes propres Traders et Comptes toujours visibles, ceux des autres floutés',
     'Aperçu partiel du catalogue PropFirms',
+    'Catalogue des règles prop firm',
+    'Prochain payout sur 1 compte',
     'Comptabilité et Dashboard toujours limités à tes propres traders et comptes',
     'Support communautaire',
   ];
+  // Formules du 25/11/2026 : les modules qui font la différence, regroupés comme sur la landing.
   const premiumFeatures = [
-    'Tout Free, plus :',
-    'Traders illimités',
-    'Comptes illimités par trader',
-    'Historique complet des sessions live',
-    'Listes complètes, sans aperçu limité',
-    'Exports CSV, Excel & PDF',
-    'Calendrier (payouts, breach, échéances…)',
-    'Bilan visuel & statistiques avancées',
-    'Support prioritaire',
+    'Tout Free, sans limite : traders et comptes illimités',
+    'Prochain payout sur tous tes comptes',
+    'Trading plan calé sur tes vrais PA · Coach rentabilité IA',
+    'Synchro Deltalytix : solde et drawdown',
+    'Relevés Tradovate et R|Trader Pro, suivi wallet',
+    'Radar inactivité, alertes de risque, relevés à importer',
+    'Résumé du lundi enrichi (comptes à trader, prochains payouts)',
+    'Exports CSV, Excel & PDF · Bilan visuel · Calendrier',
+    'Fiscalité (micro-BNC) et frais généraux',
+    'Historique complet des sessions · Support prioritaire',
   ];
 
   const planCard = ({ name, badge, price, priceNote, features, ctaLabel, ctaAction, highlight, gold, isCurrent }) => `
@@ -24705,6 +24827,7 @@ function bindViewEvents(){
     const k = cb.dataset.notifToggle;
     if(k === 'ia-site' || k === 'ia-email'){
       cb.onchange = async ()=>{
+        if(cb.checked && !perms().isPremium){ cb.checked = false; openUpgradeModal('Les alertes « Relevés à importer »'); return; }
         if(await iaSave(k === 'ia-site' ? { site:cb.checked } : { email:cb.checked, ...(cb.checked && iaTracked() ? { accIds: iaTracked().map(a=>a.id).sort() } : {}) })){
           showToast(cb.checked ? (k === 'ia-site' ? 'Alerte sur le site activée.' : 'Alerte par e-mail activée : un e-mail le matin s’il y a des comptes en retard.') : 'Alerte désactivée.', 'success'); render();
         } else cb.checked = !cb.checked;
@@ -27595,7 +27718,7 @@ function captureImportModal(opts){
     };
     const addStmt = document.getElementById('cim-add-stmt'), stmtIn = document.getElementById('cim-stmt-more');
     if(addStmt && stmtIn){
-      addStmt.onclick = ()=>stmtIn.click();
+      addStmt.onclick = ()=>{ if(!perms().isPremium){ openUpgradeModal('L’import des relevés Tradovate et R|Trader Pro'); return; } stmtIn.click(); };
       stmtIn.onchange = async ()=>{ const files = Array.from(stmtIn.files || []); stmtIn.value = ''; if(files.length) await addStatementFiles(files); };
     }
     const addDlx = document.getElementById('cim-add-dlx');
