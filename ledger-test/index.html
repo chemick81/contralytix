@@ -348,6 +348,82 @@ a{color:var(--accent);text-decoration:none;}
 .btn-breach{color:var(--text-dim);}
 .btn-breach:hover,.btn-breach:focus-visible{color:var(--danger);border-color:var(--danger);background:var(--danger-dim);}
 .btn-sm{padding:5px 10px;font-size:12px;}
+/* Calendrier P&L (module Dashboard pnlCal, 25/11/2026) */
+.pnl-cal{position:relative;}
+.panel-head.pnl-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-start;}
+.pnl-nav{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.pnl-mo{font-weight:600;font-size:12.5px;min-width:112px;text-align:center;white-space:nowrap;}
+.pnl-tot{white-space:nowrap;font:600 16px "JetBrains Mono",ui-monospace,monospace;margin-left:6px;}
+.pnl-cal .pos{color:var(--accent);} .pnl-cal .neg,.pnl-dm .neg,.pnl-dm-f .neg{color:var(--danger);}
+.pnl-dm .pos,.pnl-dm-f .pos{color:var(--accent);}
+.pnl-filt-wrap{position:relative;}
+.pnl-filt-btn svg{width:13px;height:13px;}
+.pnl-filt-btn.act{border-color:rgba(62,214,181,.45);color:var(--accent);background:var(--accent-dim);}
+.pnl-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,.62fr) minmax(0,.62fr) minmax(0,1fr);gap:4px;}
+.pnl-hd{font-size:11px;color:var(--text-faint);text-align:center;padding:0 0 3px;font-weight:600;}
+.pnl-c{min-height:68px;border-radius:8px;background:var(--surface-2);border:1px solid transparent;padding:6px 8px;display:flex;flex-direction:column;gap:1px;min-width:0;overflow:hidden;}
+.pnl-c.we{background:color-mix(in srgb, var(--surface-2) 60%, var(--surface));}
+.pnl-c.out{background:transparent;border-color:var(--border-soft);}
+.pnl-c.today{border-color:var(--accent);}
+.pnl-c.has{cursor:pointer;transition:box-shadow .12s;}
+.pnl-c.has:hover,.pnl-c.has:focus-visible{box-shadow:0 0 0 2px var(--text) inset;outline:none;}
+.pnl-dn{font-size:11px;font-weight:600;color:var(--text-dim);}
+.pnl-v{font:600 13px "JetBrains Mono",ui-monospace,monospace;white-space:nowrap;}
+.pnl-c .pnl-v{margin-top:auto;}
+.pnl-c.we .pnl-v{font-size:11.5px;}
+.pnl-na{font-size:10.5px;color:var(--text-dim);white-space:nowrap;}
+.pnl-c.wk{background:transparent;border-color:var(--border);align-items:flex-end;justify-content:center;}
+.pnl-wl{font-size:10.5px;color:var(--text-faint);}
+.pnl-ft{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--border-soft);font-size:12px;color:var(--text-dim);}
+.pnl-ft b{font:600 12.5px "JetBrains Mono",ui-monospace,monospace;color:var(--text);margin-left:5px;}
+.pnl-ft i{font-style:normal;color:var(--text-faint);margin-left:5px;}
+.pnl-src{margin-left:auto;color:var(--text-faint);}
+.pnl-empty{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.pnl-list{display:none;}
+.pnl-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;width:340px;max-width:calc(100vw - 32px);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px;}
+.pnl-srch{width:100%;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:0 10px;font-size:12.5px;}
+.pnl-qa{display:flex;gap:12px;align-items:center;margin:9px 2px 4px;font-size:12px;}
+.pnl-qa button{background:none;border:0;padding:0;color:var(--accent);font-weight:600;cursor:pointer;font-size:12px;}
+.pnl-qa span{margin-left:auto;color:var(--text-faint);}
+.pnl-flist{max-height:320px;overflow:auto;}
+.pnl-fgrp[hidden],.pnl-fi[hidden]{display:none;}
+.pnl-fgrp-h{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-faint);margin:9px 4px 3px;}
+.pnl-fgrp-h button{background:none;border:0;color:var(--text-dim);font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500;}
+.pnl-fgrp-h button:hover{color:var(--accent);}
+.pnl-fi{display:flex;align-items:center;gap:9px;width:100%;padding:6px;border-radius:7px;border:0;background:none;color:var(--text);font-size:12.5px;text-align:left;cursor:pointer;}
+.pnl-fi:hover{background:var(--surface-3);}
+.pnl-fi.off .pnl-fn{color:var(--text-dim);}
+.pnl-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--text-faint);display:flex;align-items:center;justify-content:center;color:var(--accent-text);flex-shrink:0;}
+.pnl-cb.on{background:var(--accent);border-color:var(--accent);}
+.pnl-cb svg{width:11px;height:11px;stroke-width:3;}
+.pnl-fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pnl-ty{font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;color:var(--c);background:color-mix(in srgb, var(--c) 15%, transparent);}
+.pnl-cl{font-size:10px;color:var(--text-faint);}
+.pnl-fempty{padding:10px 4px;color:var(--text-dim);font-size:12px;}
+.pnl-tg{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:9px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim);cursor:pointer;}
+.pnl-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:inherit;background:color-mix(in srgb, var(--bg) 35%, transparent);}
+.pnl-cal.is-locked .panel-body{filter:blur(5px);pointer-events:none;user-select:none;}
+.pnl-lock-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim);box-shadow:var(--shadow);}
+.pnl-dm-r{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px;}
+.pnl-dm-nm small{display:block;color:var(--text-faint);font-size:11px;margin-top:2px;}
+.pnl-dm-link{background:none;border:0;padding:0;color:var(--text);text-align:left;cursor:pointer;font-size:12.5px;}
+.pnl-dm-link:hover .pnl-dm-nm{color:var(--accent);}
+.pnl-dm-src{font-size:10.5px;font-weight:600;border-radius:999px;padding:2px 8px;background:var(--surface-3);color:var(--text-dim);white-space:nowrap;}
+.pnl-dm-src.dl{color:var(--accent);background:var(--accent-dim);}
+.pnl-dm-am{font:600 13px "JetBrains Mono",ui-monospace,monospace;text-align:right;min-width:90px;}
+.pnl-dm-f{display:flex;justify-content:space-between;padding-top:12px;font-size:12.5px;color:var(--text-dim);}
+.pnl-dm-f b{font:600 14px "JetBrains Mono",ui-monospace,monospace;margin-left:4px;}
+@media (max-width:640px){
+  .pnl-nav{flex:1 1 100%;order:2;}
+  .pnl-mo{min-width:0;}
+  .pnl-cal .pnl-grid{display:none;}
+  .pnl-list{display:flex;flex-direction:column;gap:2px;}
+  .pnl-li{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:9px 6px;border:0;border-bottom:1px solid var(--border-soft);background:none;color:var(--text);font-size:12.5px;text-align:left;cursor:pointer;}
+  .pnl-li .pnl-v{text-align:right;min-width:80px;}
+  .pnl-li-wk{display:flex;justify-content:space-between;padding:6px 6px 12px;font-size:11.5px;color:var(--text-faint);}
+  .pnl-src{margin-left:0;}
+  .pnl-pop{position:fixed;left:16px;right:16px;top:auto;bottom:16px;width:auto;}
+}
 .btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* STAT TILES */
@@ -3947,6 +4023,7 @@ const ICONS = {
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.05" fill="currentColor" stroke="none"/></svg>',
   fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
   moreH: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.5V19l-4 2v-8.5z"/></svg>',
   chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
@@ -4012,6 +4089,7 @@ const DASHBOARD_WIDGETS = [
   { id:'pilotPlan',      label:'Payouts du mois', pilot:true },
   { id:'pilotProgress',  label:'Courbe des payouts', pilot:true },
   { id:'pilotKpis',      label:'KPI du mois', pilot:true },
+  { id:'pnlCal',         label:'Calendrier P&L' },
   { id:'alerts',         label:'Alertes' },
   { id:'kpi',            label:'Indicateurs clés' },
   { id:'decisionRepurchase', label:'Puis-je racheter un compte cette semaine ?' },
@@ -9254,6 +9332,8 @@ function normalizeDashboardLayout(parsed){
   // Modules de pilotage (22/11/2026) : ajoutés EN TÊTE la première fois (décision de Mickael), pas en fin de liste.
   const missingPilot = PILOT_WIDGET_IDS.filter(id=>!order.includes(id));
   if(missingPilot.length) order.unshift(...missingPilot);
+  // Calendrier P&L (25/11/2026) : ajouté juste après les modules de pilotage, pas en fin de liste.
+  if(!order.includes('pnlCal')){ const lastPilot = Math.max(-1, ...PILOT_WIDGET_IDS.map(id=>order.indexOf(id))); order.splice(lastPilot + 1, 0, 'pnlCal'); }
   defaultOrder.forEach(id=>{ if(!order.includes(id)) order.push(id); });
   const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(id=>known.has(id)) : [];
   const rawSizes = (parsed.sizes && typeof parsed.sizes==='object') ? parsed.sizes : {};
@@ -10920,6 +11000,244 @@ function dashboardCalendarWidgetHtml(f, accIds){
         ${legendHtml}
       </div>
     </div>`;
+}
+/* ============================================================
+   CALENDRIER P&L (25/11/2026, maquette validée par Mickael) — module Dashboard « pnlCal ».
+   P&L brut de chaque jour (dormancy_logs : Deltalytix, relevés Tradovate / R|Trader, saisies),
+   additionné sur les comptes cochés dans le filtre du module. Choix des comptes retenu dans
+   profiles.payout_plan.pnlCal = { off:[ids décochés], showClosed } : un nouveau compte est donc
+   coché par défaut. Les filtres Trader / PropFirm du Dashboard s'appliquent en plus.
+============================================================ */
+const PNL_CLOSED = ['BREACHED','REUSSI','FERME'];
+const PNL_DOW = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const PNL_DOW_LONG = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+function pnlCalSettings(){
+  const s = ((planStored() || {}).pnlCal) || {};
+  return { off: Array.isArray(s.off) ? s.off.map(String) : [], showClosed: !!s.showClosed };
+}
+async function pnlCalSave(patch){
+  const cur = planStored() || {};
+  const r = await planWrite({ ...cur, pnlCal: { ...pnlCalSettings(), ...patch } });
+  if(!r.ok) showToast('Choix des comptes non enregistré : ' + ((r.error && r.error.message) || 'réessaie dans un instant.'), 'danger');
+}
+function pnlCalPool(accs){ const s = pnlCalSettings(); return accs.filter(a=>s.showClosed || !PNL_CLOSED.includes(a.status)); }
+function pnlCalSelected(accs){ const off = new Set(pnlCalSettings().off); return pnlCalPool(accs).filter(a=>!off.has(String(a.id))); }
+function pnlAccLabel(a){
+  const num = a.accountNumber ? String(a.accountNumber).trim() : '';
+  return [sizeLabelRaw(a), num ? num.slice(-4) : ''].filter(Boolean).join(' · ') || 'Compte';
+}
+function pnlMoney2(v){
+  const n = Math.round((Number(v) || 0) * 100) / 100;
+  return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }).replace(/ | /g, ' ') + ' $';
+}
+const PNL_SRC_LABEL = { deltalytix:'Deltalytix', tradovate:'relevé Tradovate', rithmic:'relevé R|Trader', manual:'saisi à la main', edited:'corrigé à la main', added:'ajouté à la main' };
+// Jours du mois mk (YYYY-MM) : { 'YYYY-MM-DD': { total, rows:[{a, pnl, src}] } }
+function pnlCalDays(accs, mk){
+  const byId = new Map(accs.map(a=>[String(a.id), a]));
+  const out = {};
+  (state.dormancyLogs || []).forEach(l=>{
+    if(!l.day || l.day.slice(0,7) !== mk) return;
+    if(l.pnl === null || l.pnl === undefined || l.pnl === '') return;
+    const a = byId.get(String(l.accountId)); if(!a) return;
+    const v = Number(l.pnl); if(!isFinite(v)) return;
+    const d = out[l.day] || (out[l.day] = { total:0, rows:[] });
+    d.total += v; d.rows.push({ a, pnl:v, src:l.source || 'manual' });
+  });
+  Object.values(out).forEach(d=>{ d.total = Math.round(d.total * 100) / 100; d.rows.sort((x,y)=>y.pnl - x.pnl); });
+  return out;
+}
+function pnlFiltPopHtml(accountsF){
+  const s = pnlCalSettings(), off = new Set(s.off), pool = pnlCalPool(accountsF);
+  const q = state.filters.dashboard.pnlQ || '';
+  const groups = {};
+  pool.forEach(a=>{ const fm = getFirm(a.propFirmId); const k = fm ? fm.name : 'Autre'; (groups[k] = groups[k] || []).push(a); });
+  const names = Object.keys(groups).sort((x,y)=>x.localeCompare(y, 'fr'));
+  const nOn = pool.filter(a=>!off.has(String(a.id))).length;
+  const body = names.map(n=>{
+    const list = groups[n].sort((x,y)=>pnlAccLabel(x).localeCompare(pnlAccLabel(y), 'fr'));
+    return `<div class="pnl-fgrp" data-pnl-grp>
+      <div class="pnl-fgrp-h"><span>${escapeHtml(n)}</span><button type="button" data-pnl-grp-all="${list.map(a=>a.id).join(',')}">tout</button></div>
+      ${list.map(a=>{ const on = !off.has(String(a.id)); const closed = PNL_CLOSED.includes(a.status);
+        return `<button type="button" class="pnl-fi${on?'':' off'}" data-pnl-acc="${a.id}" data-pnl-q="${escapeHtml((n + ' ' + pnlAccLabel(a) + ' ' + (a.accountNumber || '')).toLowerCase())}" role="menuitemcheckbox" aria-checked="${on}">
+          <span class="pnl-cb${on?' on':''}">${on ? icon('check') : ''}</span>
+          <span class="pnl-fn">${escapeHtml(pnlAccLabel(a))}</span>
+          <span class="pnl-ty" style="--c:${typeColorVar(a.type)}">${TYPE_LABELS[a.type] || a.type}</span>
+          ${closed ? `<span class="pnl-cl">${a.status === 'BREACHED' ? 'breached' : a.status === 'REUSSI' ? 'réussi' : 'clôturé'}</span>` : ''}
+        </button>`; }).join('')}
+    </div>`;
+  }).join('');
+  return `<div class="pnl-pop" role="menu">
+    <input type="search" class="pnl-srch" id="pnl-srch" placeholder="Rechercher un compte…" value="${escapeHtml(q)}" autocomplete="off">
+    <div class="pnl-qa"><button type="button" data-pnl-all="1">Tous</button><button type="button" data-pnl-all="0">Aucun</button><button type="button" data-pnl-actifs>Actifs seulement</button><span>${nOn} coché${nOn > 1 ? 's' : ''}</span></div>
+    <div class="pnl-flist">${body || `<div class="pnl-fempty">Aucun compte${s.showClosed ? '' : ' actif'} avec ces filtres.</div>`}</div>
+    <label class="pnl-tg"><input type="checkbox" id="pnl-show-closed" ${s.showClosed ? 'checked' : ''}><span>Afficher aussi les comptes clôturés et breached</span></label>
+  </div>`;
+}
+function dashboardPnlCalWidgetHtml(accountsF){
+  const f = state.filters.dashboard;
+  const today = todayISO();
+  const mk = f.pnlMonth || today.slice(0,7);
+  const [y, m] = mk.split('-').map(Number);
+  const pool = pnlCalPool(accountsF), sel = pnlCalSelected(accountsF);
+  const days = pnlCalDays(sel, mk);
+  const keys = Object.keys(days).sort();
+  const tot = keys.reduce((t,k)=>t + days[k].total, 0);
+  const mx = Math.max(1, ...keys.map(k=>Math.abs(days[k].total)));
+  const cells = buildCalendarGrid(mk);
+  const cellHtml = (ds, wkIdx)=>{
+    const we = wkIdx >= 5;
+    if(!ds) return `<div class="pnl-c out${we?' we':''}"></div>`;
+    const d = days[ds], n = Number(ds.slice(8,10));
+    let style = '', inner = `<span class="pnl-dn">${n}</span>`;
+    if(d){
+      const pos = d.total >= 0, a = (0.08 + 0.30 * Math.abs(d.total) / mx).toFixed(2);
+      style = ` style="background:rgba(${pos ? '62,214,181' : '232,92,74'},${a})"`;
+      inner += `<span class="pnl-v ${pos?'pos':'neg'}">${pilotSigned(d.total)}</span><span class="pnl-na">${d.rows.length} compte${d.rows.length > 1 ? 's' : ''}</span>`;
+    }
+    const title = d ? `${PNL_DOW_LONG[new Date(ds+'T12:00:00').getDay()]} ${fmtDate(ds)} : ${pnlMoney2(d.total)} sur ${d.rows.length} compte${d.rows.length > 1 ? 's' : ''}. Clique pour le détail.` : '';
+    return `<div class="pnl-c${we?' we':''}${ds === today ? ' today' : ''}${d ? ' has' : ''}"${style}${d ? ` data-pnl-day="${ds}" role="button" tabindex="0" title="${escapeHtml(title)}"` : ''}>${inner}</div>`;
+  };
+  let gridHtml = '', listHtml = '';
+  for(let i = 0; i < cells.length; i += 7){
+    const wk = cells.slice(i, i + 7);
+    const wkDays = wk.filter(ds=>ds && days[ds]);
+    const wkTot = wkDays.reduce((t,ds)=>t + days[ds].total, 0);
+    gridHtml += wk.map((ds,j)=>cellHtml(ds, j)).join('')
+      + `<div class="pnl-c wk"><span class="pnl-wl">Sem.</span><span class="pnl-v ${wkTot >= 0 ? 'pos' : 'neg'}">${wkDays.length ? pilotSigned(wkTot) : '0 $'}</span></div>`;
+    if(wkDays.length){
+      listHtml += wkDays.map(ds=>{ const d = days[ds]; const dt = new Date(ds+'T12:00:00');
+        return `<button type="button" class="pnl-li" data-pnl-day="${ds}"><span>${PNL_DOW[dt.getDay()]} ${ds.slice(8,10)}/${ds.slice(5,7)}</span><span class="pnl-na">${d.rows.length} compte${d.rows.length > 1 ? 's' : ''}</span><span class="pnl-v ${d.total >= 0 ? 'pos' : 'neg'}">${pilotSigned(d.total)}</span></button>`; }).join('')
+        + `<div class="pnl-li-wk"><span>Semaine</span><span class="pnl-v ${wkTot >= 0 ? 'pos' : 'neg'}">${pilotSigned(wkTot)}</span></div>`;
+    }
+  }
+  const wins = keys.filter(k=>days[k].total > 0).length;
+  const best = keys.length ? keys.reduce((b,k)=>days[k].total > days[b].total ? k : b) : null;
+  const worst = keys.length ? keys.reduce((b,k)=>days[k].total < days[b].total ? k : b) : null;
+  const srcs = [...new Set(keys.flatMap(k=>days[k].rows.map(r=>r.src)).map(s=>['manual','edited','added'].includes(s) ? 'saisie' : s === 'deltalytix' ? 'Deltalytix' : 'relevés'))];
+  const dd = ds=>`${ds.slice(8,10)}/${ds.slice(5,7)}`;
+  const footHtml = keys.length ? `<div class="pnl-ft">
+      <span>Jours gagnants<b>${wins} / ${keys.length}</b></span>
+      <span>Meilleur jour<b class="${days[best].total >= 0 ? 'pos' : 'neg'}">${pilotSigned(days[best].total)}</b><i>${dd(best)}</i></span>
+      ${worst !== best ? `<span>Pire jour<b class="${days[worst].total >= 0 ? 'pos' : 'neg'}">${pilotSigned(days[worst].total)}</b><i>${dd(worst)}</i></span>` : ''}
+      <span>Moyenne / jour tradé<b class="${tot >= 0 ? 'pos' : 'neg'}">${pilotSigned(tot / keys.length)}</b></span>
+      <span class="pnl-src">Sources : ${srcs.join(' · ')}</span>
+    </div>` : '';
+  const emptyHtml = !keys.length ? `<div class="pnl-empty">${sel.length
+      ? `Aucune journée tradée en ${MONTH_NAMES_LONG[m-1].toLowerCase()} ${y} sur ${sel.length > 1 ? 'ces comptes' : 'ce compte'}. Les journées viennent de Deltalytix, des relevés Tradovate / R|Trader importés ou de ta saisie dans la fiche Payout.`
+      : 'Aucun compte coché : choisis au moins un compte dans « Comptes ».'}
+      ${sel.length ? `<button type="button" class="btn btn-outline btn-sm" id="pnl-import">${icon('upload')}Importer un relevé</button>` : ''}</div>` : '';
+  const locked = !perms().isPremium;
+  const lockHtml = locked ? `<div class="pnl-lock"><div class="pnl-lock-box">
+      <div class="locked-widget-icon">${icon('lock')}</div>
+      <div>Le calendrier P&amp;L est réservé aux comptes Premium.</div>
+      ${perms().trialAvailable ? `<button type="button" class="btn btn-primary btn-sm" onclick="trialStart()">Activer mon mois d’essai</button>` : `<button type="button" class="btn btn-primary btn-sm upgrade-cta" onclick="openUpgradeModal('Le calendrier P&L')">🚀 Passer à Premium</button>`}
+    </div></div>` : '';
+  const nAll = pool.length;
+  return `<div class="panel pnl-cal${locked ? ' is-locked' : ''}">
+    <div class="panel-head pnl-head">
+      <div class="section-title" style="display:flex;align-items:center;gap:7px;">${icon('calendar')}Calendrier P&amp;L</div>
+      <div class="pnl-nav">
+        <button class="btn btn-ghost btn-sm" id="pnl-prev" aria-label="Mois précédent">${icon('chevLeft')}</button>
+        <div class="pnl-mo">${MONTH_NAMES_LONG[m-1]} ${y}</div>
+        <button class="btn btn-ghost btn-sm" id="pnl-next" aria-label="Mois suivant">${icon('chevRight')}</button>
+        ${keys.length ? `<span class="pnl-tot ${tot >= 0 ? 'pos' : 'neg'}">${pilotSigned(tot)}</span>` : ''}
+      </div>
+      <div class="pnl-filt-wrap">
+        <button type="button" class="btn btn-outline btn-sm pnl-filt-btn${sel.length !== nAll ? ' act' : ''}" id="pnl-filt-btn" aria-expanded="${!!f.pnlFiltOpen}">${icon('filter')}Comptes : ${sel.length === nAll ? 'tous' : sel.length + ' sur ' + nAll}${icon('chevDown')}</button>
+        ${f.pnlFiltOpen && !locked ? pnlFiltPopHtml(accountsF) : ''}
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="pnl-grid">
+        ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim','Semaine'].map(d=>`<div class="pnl-hd">${d}</div>`).join('')}
+        ${gridHtml}
+      </div>
+      ${keys.length ? `<div class="pnl-list">${listHtml}</div>` : ''}
+      ${emptyHtml}
+      ${footHtml}
+    </div>
+    ${lockHtml}
+  </div>`;
+}
+function pnlDayModal(ds){
+  const accs = pnlCalSelected(state.__pnlAccountsF || []);
+  const d = pnlCalDays(accs, ds.slice(0,7))[ds];
+  if(!d) return;
+  const dt = new Date(ds+'T12:00:00');
+  const rows = d.rows.map(r=>{
+    const fm = getFirm(r.a.propFirmId);
+    const funded = r.a.type === 'PA' || r.a.type === 'LIVE';
+    const nm = `<span class="pnl-dm-nm">${escapeHtml(pnlAccLabel(r.a))}<small>${escapeHtml(fm ? fm.name : 'PropFirm')} · ${TYPE_LABELS[r.a.type] || r.a.type}</small></span>`;
+    return `<div class="pnl-dm-r">
+      ${funded ? `<button type="button" class="pnl-dm-link" data-pnl-open="${r.a.id}" title="Ouvrir la fiche Payout de ce compte (pour corriger la journée)">${nm}</button>` : nm}
+      <span class="pnl-dm-src${r.src === 'deltalytix' ? ' dl' : ''}">${PNL_SRC_LABEL[r.src] || r.src}</span>
+      <span class="pnl-dm-am ${r.pnl >= 0 ? 'pos' : 'neg'}">${pnlMoney2(r.pnl)}</span>
+    </div>`;
+  }).join('');
+  openModal({
+    title: `${PNL_DOW_LONG[dt.getDay()]} ${dt.getDate()} ${MONTH_NAMES_LONG[dt.getMonth()].toLowerCase()} ${dt.getFullYear()}`,
+    bodyHtml: `<div class="pnl-dm">${rows}</div>
+      <div class="pnl-dm-f"><span>${d.rows.length} compte${d.rows.length > 1 ? 's' : ''} tradé${d.rows.length > 1 ? 's' : ''}</span><span>Total <b class="${d.total >= 0 ? 'pos' : 'neg'}">${pnlMoney2(d.total)}</b></span></div>
+      <div class="field-hint" style="margin-top:8px;">P&amp;L net du jour tel qu’enregistré pour chaque compte. Pour corriger un PA ou un Live, ouvre sa fiche Payout.</div>`,
+    onMount(){
+      document.querySelectorAll('[data-pnl-open]').forEach(b=>b.onclick=()=>{ closeModal(); poOpen(b.dataset.pnlOpen); });
+    }
+  });
+}
+function bindPnlCal(){
+  const f = state.filters.dashboard;
+  const go = (delta)=>{ const mk = f.pnlMonth || todayISO().slice(0,7); f.pnlMonth = addMonths(mk+'-01', delta).slice(0,7); renderView(); };
+  const pv = document.getElementById('pnl-prev'); if(pv) pv.onclick = ()=>go(-1);
+  const nx = document.getElementById('pnl-next'); if(nx) nx.onclick = ()=>go(1);
+  const fb = document.getElementById('pnl-filt-btn');
+  if(fb) fb.onclick = ()=>{ if(!perms().isPremium){ openUpgradeModal('Le calendrier P&L'); return; } f.pnlFiltOpen = !f.pnlFiltOpen; if(!f.pnlFiltOpen) f.pnlQ = ''; renderView(); if(f.pnlFiltOpen){ const s = document.getElementById('pnl-srch'); if(s) s.focus(); } };
+  document.querySelectorAll('.pnl-cal [data-pnl-day]').forEach(el=>{
+    el.onclick = ()=>{ if(perms().isPremium) pnlDayModal(el.dataset.pnlDay); };
+    el.onkeydown = (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); } };
+  });
+  const imp = document.getElementById('pnl-import'); if(imp) imp.onclick = ()=>tdvImportModal();
+  const accsF = state.__pnlAccountsF || [];
+  const srch = document.getElementById('pnl-srch');
+  const applyQ = ()=>{
+    const q = (f.pnlQ || '').trim().toLowerCase();
+    document.querySelectorAll('.pnl-pop [data-pnl-grp]').forEach(g=>{
+      let any = false;
+      g.querySelectorAll('[data-pnl-acc]').forEach(b=>{ const ok = !q || b.dataset.pnlQ.includes(q); b.hidden = !ok; if(ok) any = true; });
+      g.hidden = !any;
+    });
+  };
+  if(srch){ srch.oninput = ()=>{ f.pnlQ = srch.value; applyQ(); }; applyQ(); }
+  const setOff = async (off, extra)=>{ await pnlCalSave({ off: off.map(String), ...(extra || {}) }); renderView(); };
+  document.querySelectorAll('.pnl-pop [data-pnl-acc]').forEach(b=>b.onclick=()=>{
+    const off = new Set(pnlCalSettings().off), id = String(b.dataset.pnlAcc);
+    off.has(id) ? off.delete(id) : off.add(id);
+    setOff([...off]);
+  });
+  document.querySelectorAll('.pnl-pop [data-pnl-grp-all]').forEach(b=>b.onclick=()=>{
+    const ids = b.dataset.pnlGrpAll.split(',');
+    const off = new Set(pnlCalSettings().off);
+    const allOn = ids.every(id=>!off.has(id));
+    ids.forEach(id=>allOn ? off.add(id) : off.delete(id));
+    setOff([...off]);
+  });
+  document.querySelectorAll('.pnl-pop [data-pnl-all]').forEach(b=>b.onclick=()=>{
+    setOff(b.dataset.pnlAll === '1' ? [] : pnlCalPool(accsF).map(a=>a.id));
+  });
+  const act = document.querySelector('.pnl-pop [data-pnl-actifs]');
+  if(act) act.onclick = ()=>setOff([], { showClosed:false });
+  const sc = document.getElementById('pnl-show-closed');
+  if(sc) sc.onchange = async ()=>{ await pnlCalSave({ showClosed: sc.checked }); renderView(); };
+  if(!window.__pnlDocBound){
+    window.__pnlDocBound = true;
+    document.addEventListener('mousedown', (e)=>{
+      const fd = state.filters && state.filters.dashboard;
+      if(fd && fd.pnlFiltOpen && !e.target.closest('.pnl-filt-wrap')){ fd.pnlFiltOpen = false; fd.pnlQ = ''; renderView(); }
+    });
+    document.addEventListener('keydown', (e)=>{
+      const fd = state.filters && state.filters.dashboard;
+      if(e.key === 'Escape' && fd && fd.pnlFiltOpen){ fd.pnlFiltOpen = false; fd.pnlQ = ''; renderView(); }
+    });
+  }
 }
 // Widget "Récap du mois" — toujours le mois en cours (indépendant du filtre de période du dashboard),
 // même logique de calcul que le tableau "Performance financière" de la page Comptabilité.
@@ -14591,6 +14909,7 @@ function viewDashboard(){
     burnVsFund: dashboardBurnVsFundWidgetHtml({ monthCostEur, monthPayEur, burnFundRatio, fundedByPayoutsEur, paidOutOfPocketEur, usesDateFilter: burnFundUsesDateFilter }),
     accountsByType: dashboardAccountsByTypeWidgetHtml({ challenges, pas, lives, challengeCapitalMoney, capitalActifPA, capitalActifLive, accountStatusSummary }),
     propfirmSplit: dashboardPropfirmSplitWidgetHtml(accountsF, f),
+    pnlCal: (state.__pnlAccountsF = accountsF, dashboardPnlCalWidgetHtml(accountsF)),
     calendar: perms().canCalendar ? dashboardCalendarWidgetHtml(f, accIds) : lockedWidgetInline('Le calendrier'),
     monthRecap: dashboardMonthRecapWidgetHtml(allExpensesUnfiltered, payoutsUnfiltered),
     recentPayouts: dashboardRecentPayoutsWidgetHtml(payoutsUnfiltered),
@@ -24653,6 +24972,7 @@ function bindViewEvents(){
   if(cashSettingsBtn) cashSettingsBtn.onclick = editCashSettingsModal;
   const cashSettingsBtn2 = document.getElementById('cash-settings-edit-2');
   if(cashSettingsBtn2) cashSettingsBtn2.onclick = editCashSettingsModal;
+  bindPnlCal();
   const dashCalPrev = document.getElementById('dashcal-prev');
   if(dashCalPrev) dashCalPrev.onclick = ()=>{
     const mk = state.filters.dashboard.calMonth || todayISO().slice(0,7);
