@@ -1175,6 +1175,10 @@ th.th-sort-active svg{opacity:1;}
 .po-days-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
 .po-days-acts{display:flex;gap:4px;flex-wrap:wrap;}
 .po-w-norules{display:flex;flex-direction:column;gap:6px;}
+.ia-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(245,197,66,.35);border-radius:var(--radius-md);background:var(--dm-yellow-dim,rgba(245,197,66,.12));}
+.ia-banner > svg{width:18px;height:18px;color:var(--dm-yellow,#F5C542);flex-shrink:0;}
+.ia-banner-t{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px;font-size:13px;}
+.ia-banner-t .cat-sub{margin:0;}
 .po-wallet .po-ct svg{width:15px;height:15px;vertical-align:-2px;margin-right:6px;color:var(--accent);}
 .po-wallet-t{margin-top:8px;}
 .po-wallet-t td:first-child,.po-wallet-t td.num{white-space:nowrap;}
@@ -8675,6 +8679,83 @@ function mailSnapshotSchedule(){
     }catch(e){ console.warn('mailSnapshot', e); }
   }, 4000);
 }
+/* ============================================================
+   RELEVÉS À IMPORTER (24/11/2026, demande de Mickael)
+   Comptes PA / Live actifs sans Deltalytix (suivis par relevé Tradovate / R|Trader ou saisie) dont la
+   dernière donnée date de N jours de bourse ou plus (week-ends et fermetures CME exclus, défaut 3).
+   Alerte sur le site (bandeau Dashboard + badge Comptes) et e-mail quotidien si besoin, chacun à
+   autoriser dans Paramètres › Notifications. Réglages : profiles.payout_plan.importAlert
+   { site, email, days, accIds, sentOn }. accIds = comptes suivis, laissé par l'app pour l'e-mail
+   (le serveur ne sait pas quels comptes Deltalytix synchronise). Fonction : import-stale-alert.js.
+============================================================ */
+const IA_DEFAULT = { site:false, email:false, days:3 };
+function iaSettings(){ const st = (planStored() || {}).importAlert || {}; return { ...IA_DEFAULT, ...st, days: Math.min(10, Math.max(1, Number(st.days) || IA_DEFAULT.days)) }; }
+async function iaSave(patch){
+  const cur = planStored() || {};
+  const r = await planWrite({ ...cur, importAlert:{ ...IA_DEFAULT, ...(cur.importAlert || {}), ...patch } });
+  if(!r.ok) showToast('Réglage non enregistré : ' + ((r.error && r.error.message) || 'erreur'), 'danger');
+  return r.ok;
+}
+// Deltalytix connu ? Tant que la synchro n'a pas répondu, on ne sait pas quels comptes elle suit.
+function iaReady(){ const d = dlx(); return !!d.loaded && (!d.connected || !!d.health); }
+function iaTracked(){
+  if(!iaReady()) return null;
+  return (state.accounts || []).filter(a=>isMineAccount(a) && (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF' && !dlxHealthOf(a.id));
+}
+// Dernière donnée connue d'un compte : journée (relevé, saisie, pointage), solde du relevé ou saisi, sinon l'activation.
+function iaLastData(a){
+  let last = null;
+  (state.dormancyLogs || []).forEach(l=>{ if(String(l.accountId) === String(a.id) && l.day && (!last || l.day > last)) last = l.day; });
+  const b = poManualBalance(a.id);
+  const bd = b ? String(b.day || b.at || '').slice(0,10) : '';
+  if(bd && (!last || bd > last)) last = bd;
+  return { day: last || a.activationDate || a.purchaseDate || null, none: !last };
+}
+function iaStaleList(){
+  const list = iaTracked(); if(!list) return [];
+  const days = iaSettings().days, yesterday = dmAdd(todayISO(), -1);
+  return list.map(a=>{ const ld = iaLastData(a); const missing = ld.day ? dmTradingDaysBetween(ld.day, yesterday) : 99; return { a, last:ld.day, none:ld.none, missing }; })
+    .filter(x=>x.missing >= days).sort((x,y)=>y.missing - x.missing);
+}
+function iaAccLabel(a){ const f = getFirm(a.propFirmId); return `${escapeHtml(f ? f.name : 'Compte')} ${a.accountNumber ? maskAccountNumber(String(a.accountNumber)) : ''}`.trim(); }   // HTML (numéro masqué)
+function iaBannerHtml(){
+  const st = iaSettings(); if(!st.site) return '';
+  if(gdGet('ia_hide') === todayISO()) return '';
+  const list = iaStaleList(); if(!list.length) return '';
+  const n = list.length;
+  return `<div class="ia-banner" role="status">${icon('alertTriangle')}<div class="ia-banner-t"><b>${n} compte${n>1?'s':''} sans relevé depuis ${st.days} jour${st.days>1?'s':''} de bourse ou plus</b>
+      <span class="cat-sub">${list.slice(0, 4).map(x=>`${iaAccLabel(x.a)} (${x.none ? 'jamais importé' : 'dernière donnée le ' + fmtDate(x.last)})`).join(' · ')}${n > 4 ? ` · +${n - 4}` : ''}. Tradovate : Account Balance History (+ Cash History) · R|Trader Pro : Performance + Trader Dashboard.</span></div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="tdvImportModal()">${icon('download')}Importer un relevé</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="gdSet('ia_hide', todayISO()); render();" title="Masquer jusqu’à demain">Plus tard</button></div>`;
+}
+function iaNavCount(){ return iaSettings().site ? iaStaleList().length : 0; }
+// Liste des comptes suivis pour l'e-mail : écrite seulement quand elle change.
+let iaSyncTimer = null, iaSyncLast = null;
+function iaSync(){
+  if(iaSyncTimer || !SUPABASE_CONFIGURED || !currentUserId() || !state.profile || !planHasColumn()) return;
+  if(!iaSettings().email) return;
+  iaSyncTimer = setTimeout(async ()=>{
+    iaSyncTimer = null;
+    const list = iaTracked(); if(!list) return;
+    const ids = list.map(a=>a.id).sort();
+    const key = JSON.stringify(ids);
+    const prev = JSON.stringify((iaSettings().accIds || []).slice().sort());
+    if(key === iaSyncLast || key === prev){ iaSyncLast = key; return; }
+    if(await iaSave({ accIds: ids })) iaSyncLast = key;
+  }, 5000);
+}
+function iaSettingsHtml(){
+  const st = iaSettings();
+  return `<div class="ia-set">
+    <div style="font-size:13px;font-weight:600;margin:12px 0 2px;">Relevés à importer</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">Comptes sans Deltalytix dont le dernier relevé Tradovate / R|Trader date de trop longtemps.</div>
+    ${notifToggleRow('ia-site', 'Alerte sur le site', 'Bandeau du Dashboard et pastille sur « Comptes »', st.site)}
+    ${notifToggleRow('ia-email', 'Alerte par e-mail', 'Le matin, seulement s’il y a des comptes en retard', st.email)}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;">
+      <div><div style="font-size:13px;font-weight:600;margin-bottom:2px;">Délai</div><div style="font-size:12px;color:var(--text-dim);">Jours de bourse sans relevé</div></div>
+      <div class="field" style="margin:0;width:110px;"><select id="ia-days" aria-label="Délai avant l’alerte, en jours de bourse">${Array.from({ length:10 }, (_, i)=>i + 1).map(d=>`<option value="${d}" ${d === st.days ? 'selected' : ''}>${d} jour${d>1?'s':''}</option>`).join('')}</select></div>
+    </div></div>`;
+}
 function poAddPayout(accId){
   const a = getAccount(accId); if(!a) return;
   payoutsModal(a);
@@ -9223,6 +9304,8 @@ function navItemHtml(n){
   const dmBadge = dmUrgentN ? ` <span class="badge badge-danger nav-hidden-badge" title="Comptes en danger de fermeture pour inactivité">${dmUrgentN}</span>` : '';
   const riskN = n.id==='accounts' ? pilotRiskCritCount() : 0;
   const riskBadge = riskN ? ` <span class="badge badge-danger nav-hidden-badge" title="Comptes au drawdown critique (Alertes de risque)">${riskN}</span>` : '';
+  const iaN = n.id==='accounts' ? iaNavCount() : 0;
+  const iaBadge = iaN ? ` <span class="badge badge-todo nav-hidden-badge" title="Comptes sans relevé récent (Tradovate / R|Trader)">${iaN}</span>` : '';
   // title = libellé toujours présent (pas seulement le cas "masqué") : en dessous de 880px, la
   // sidebar repasse en icônes seules (voir @media max-width:880px) et sans ce title natif, un
   // item n'était identifiable qu'en cliquant dessus.
@@ -9232,7 +9315,7 @@ function navItemHtml(n){
   const newMsgBadge = (n.id==='admin' && state.support_messages.some(m=>m.status==='nouveau'))
     ? ` <span class="badge badge-danger nav-hidden-badge">${state.support_messages.filter(m=>m.status==='nouveau').length}</span>` : '';
   return `<div class="nav-item ${navRouteOwner(state.route)===n.id?'active':''} ${n.hiddenForOthers?'nav-item-hidden':''}" data-nav="${n.id}" title="${title}">
-    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}${riskBadge}
+    ${icon(n.icon)}<span class="nav-label">${n.label}</span>${n.hiddenForOthers?`<span class="nav-label badge badge-slate nav-hidden-badge">${icon('eyeOff')}</span>`:''}${newMsgBadge}${dmBadge}${riskBadge}${iaBadge}
   </div>`;
 }
 function renderNavGroups(){
@@ -10562,6 +10645,7 @@ function mdToHtml(src){
 
 function renderView(){
   mailSnapshotSchedule();
+  iaSync();
   const el = document.getElementById('view-root');
   if(state.route==='dashboard') el.innerHTML = viewDashboard();
   else if(state.route==='meteo') el.innerHTML = viewMeteo();
@@ -14419,6 +14503,7 @@ function viewDashboard(){
         <div style="font-size:13px;color:var(--text);">Tu es en formule <b>Free</b> (${perms().maxFreeTraders} traders max, ${perms().maxFreeAccounts} comptes gratuits par trader). Passe en Premium pour débloquer traders et comptes illimités, exports, calendrier et statistiques avancées.</div>
         <button class="upgrade-cta" onclick="openUpgradeModal()">🚀 Passer à Premium</button>
       </div>` : ''}
+    ${iaBannerHtml()}
     ${gdStartChecklistHtml()}
     ${filterBar}
     ${widgetsOut}
@@ -21290,6 +21375,7 @@ function viewParametres(){
           ${notifToggleRow('urssaf', 'Échéances URSSAF', 'Rappels avant chaque échéance', notifUrssaf)}
           ${notifToggleRow('perf', 'Résumé de performance', 'Un email chaque semaine', notifPerf)}
           ${notifToggleRow('announce', 'Annonces produit', 'Nouveautés Contralytix', notifAnnounce)}
+          ${iaSettingsHtml()}
         </div>
       </div>
     </div>`;
@@ -24599,8 +24685,19 @@ function bindViewEvents(){
   const paramsDefTrader = document.getElementById('params-default-trader');
   if(paramsDefTrader) paramsDefTrader.onchange = ()=>saveDefaultTrader(paramsDefTrader.value || null);
   document.querySelectorAll('[data-notif-toggle]').forEach(cb=>{
-    cb.onchange = ()=>saveNotifPreference(cb.dataset.notifToggle, cb.checked);
+    const k = cb.dataset.notifToggle;
+    if(k === 'ia-site' || k === 'ia-email'){
+      cb.onchange = async ()=>{
+        if(await iaSave(k === 'ia-site' ? { site:cb.checked } : { email:cb.checked, ...(cb.checked && iaTracked() ? { accIds: iaTracked().map(a=>a.id).sort() } : {}) })){
+          showToast(cb.checked ? (k === 'ia-site' ? 'Alerte sur le site activée.' : 'Alerte par e-mail activée : un e-mail le matin s’il y a des comptes en retard.') : 'Alerte désactivée.', 'success'); render();
+        } else cb.checked = !cb.checked;
+      };
+      return;
+    }
+    cb.onchange = ()=>saveNotifPreference(k, cb.checked);
   });
+  const iaDays = document.getElementById('ia-days');
+  if(iaDays) iaDays.onchange = async ()=>{ if(await iaSave({ days:Number(iaDays.value) })){ showToast('Délai enregistré.', 'success'); render(); } };
   // Traders
   document.querySelectorAll('[data-edit-trader]').forEach(b=>b.onclick=()=>traderFormModal(getTrader(b.dataset.editTrader)));
   // Étoile « trader par défaut » : clic sur l'étoile du trader déjà par défaut = retour en automatique.
