@@ -306,11 +306,16 @@ exports.handler = async (event) => {
       let matched = 0;
       const matchedIds = [];
       const missingIds = [];
-      mine.forEach((a) => {
+      // Challenges actifs (25/11/2026, Calendrier P&L) : leurs journées sont aussi écrites, pour que le
+      // calendrier et le P&L du jour les comptent comme dans Deltalytix. Ils restent hors des compteurs
+      // (matched / funded / missingIds), qui ne concernent que les comptes financés du Radar.
+      const chAct = allMine.filter((a) => a.type === 'CHALLENGE' && a.status === 'ACTIF');
+      [...mine, ...chAct].forEach((a) => {
+        const isCh = a.type === 'CHALLENGE';
         const k = normAccNum(a.account_number);
         const fromTrades = trades.map.get(k);
-        if (!byNum.has(k) && !fromTrades) { missingIds.push(a.id); return; }
-        matchedIds.push(a.id);
+        if (!byNum.has(k) && !fromTrades) { if (!isCh) missingIds.push(a.id); return; }
+        if (!isCh) matchedIds.push(a.id);
         // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
         const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
         // P&L « au-dessus du buffer » (22/11/2026, Trading plan) : c'est exactement metrics.dailyPnL de
@@ -321,7 +326,7 @@ exports.handler = async (event) => {
         Object.entries(dpRaw).forEach(([day, v]) => { const d = isoDay(day); if (d && Number.isFinite(Number(v))) dp[d] = (dp[d] || 0) + Number(v); });
         const hasDp = Object.keys(dp).length > 0;
         const bufOf = (d) => (hasDp ? Math.round((dp[d] || 0) * 100) / 100 : null);
-        matched++;
+        if (!isCh) matched++;
         let lastOld = null;
         Object.entries(daily).forEach(([day, pnl]) => {
           const d = isoDay(day);
