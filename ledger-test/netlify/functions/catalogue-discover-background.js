@@ -19,11 +19,12 @@ const https = require('node:https');
 const tls = require('node:tls');
 const crypto = require('node:crypto');
 
-const TIME_BUDGET_MS = 170000;
+const TIME_BUDGET_MS = 300000;   // 5 min (Netlify laisse 15 min aux fonctions d'arrière-plan)
+const AI_CALL_MS = 90000;         // un appel IA bloqué ne doit pas empêcher d'essayer le modèle suivant
 const PAGE_TIMEOUT_MS = 9000;
 const MAX_PAGES = 14;
 const MAX_PAGE_CHARS = 22000;
-const MAX_TOTAL_CHARS = 140000;
+const MAX_TOTAL_CHARS = 90000;
 const MIN_TEXT_CHARS = 2500;     // en dessous : site chargé en JavaScript, l'IA lit les pages elle-même
 const SITE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
 const RETRY_WAITS_MS = [2000, 5000, 10000];
@@ -198,7 +199,7 @@ function fromMapropfirm(r) {
 function aiError(code, msg) { const e = new Error(msg || code); e.code = code; return e; }
 async function gemini(model, body, deadline) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), Math.max(1000, deadline - Date.now()));
+  const t = setTimeout(() => ctrl.abort(), Math.max(1000, Math.min(AI_CALL_MS, deadline - Date.now())));
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST', signal: ctrl.signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env('GEMINI_API_KEY') || '' }, body: JSON.stringify(body) });
@@ -211,8 +212,10 @@ async function gemini(model, body, deadline) {
     if (cand.finishReason === 'MAX_TOKENS') throw aiError('truncated', 'réponse coupée');
     return (cand.content && (cand.content.parts || []).filter((x) => !x.thought).map((x) => x.text || '').join('')) || '';
   } catch (e) {
-    if (e.code) throw e;
-    throw aiError(e && e.name === 'AbortError' ? 'timeout' : 'unreachable');
+    // AbortError a lui aussi un e.code (20) : il faut le tester avant (bug du 26/11 : « code 20 »).
+    if (e && e.name === 'AbortError') throw aiError('timeout');
+    if (e && typeof e.code === 'string') throw e;
+    throw aiError('unreachable', e && e.message);
   } finally { clearTimeout(t); }
 }
 async function callSite(prompt, { urlContext, deadline }) {
@@ -223,7 +226,7 @@ async function callSite(prompt, { urlContext, deadline }) {
   let last = null;
   for (const model of SITE_MODELS) {
     for (let attempt = 1; attempt <= RETRY_WAITS_MS.length + 1; attempt++) {
-      if (deadline - Date.now() < 5000) throw last || aiError('timeout');
+      if (deadline - Date.now() < 15000) throw last || aiError('timeout');
       try { return { text: await gemini(model, body, deadline), model }; }
       catch (e) {
         last = e;
@@ -231,7 +234,7 @@ async function callSite(prompt, { urlContext, deadline }) {
         if (e.code === 'overloaded' && attempt <= RETRY_WAITS_MS.length && deadline - Date.now() > RETRY_WAITS_MS[attempt - 1] + 10000) {
           await new Promise((r) => setTimeout(r, RETRY_WAITS_MS[attempt - 1])); continue;
         }
-        if (e.code === 'overloaded' || e.code === 'bad_model') break;
+        if (e.code === 'overloaded' || e.code === 'bad_model' || e.code === 'timeout' || e.code === 'truncated') break;
         throw e;
       }
     }
@@ -365,7 +368,7 @@ async function handle(body, step) {
     data = parseJson(res.text); model = res.model;
   } catch (e) {
     safeLog('catalogue-discover IA :', e);
-    const msg = { timeout: 'L’analyse a pris trop de temps. Relance la recherche.', overloaded: 'Les serveurs de l’IA (Google Gemini) sont saturés en ce moment. Réessaie dans quelques minutes.',
+    const msg = { timeout: 'L’IA n’a pas répondu à temps (site trop long à analyser). Relance, ou colle le lien de la page des règles pour cibler la recherche.', unreachable: 'L’IA (Google Gemini) est injoignable pour le moment. Réessaie dans quelques minutes.', provider_error: 'L’IA a refusé la demande (' + String(e.message || '').slice(0, 120) + ').', overloaded: 'Les serveurs de l’IA (Google Gemini) sont saturés en ce moment. Réessaie dans quelques minutes.',
       not_configured: 'IA non configurée sur le serveur (GEMINI_API_KEY).', truncated: 'La réponse de l’IA était trop longue. Relance la recherche.' }[e.code];
     return out(e.code === 'timeout' ? 504 : e.code === 'overloaded' ? 503 : 502, { error: msg || 'Analyse impossible pour le moment. Réessaie.', code: e.code || 'error' });
   }
