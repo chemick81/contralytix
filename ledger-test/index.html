@@ -269,6 +269,23 @@ a{color:var(--accent);text-decoration:none;}
 .nav-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text-faint);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
 .nav-group-head:hover{background:var(--surface-2);color:var(--text-dim);}
 .nav-group-head.nav-group-static{cursor:default;}
+/* Têtes de groupe en carte + cadre animé (26/11/2026, piste C de la maquette « Menu de gauche ») */
+@property --nav-a{syntax:'<angle>';inherits:false;initial-value:0deg;}
+@keyframes navspin{to{--nav-a:360deg;}}
+.nav-group-card{border-radius:11px;margin-bottom:6px;}
+.nav-group-card > .nav-group-head{justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;transition:border-color .15s,color .15s,background .15s;}
+.nav-group-card > .nav-group-head:hover{background:var(--surface-3);color:var(--text);border-color:color-mix(in srgb,var(--gc) 45%,var(--border));}
+.nav-group-card > .nav-group-head.nav-group-static:hover{background:var(--surface-2);color:var(--text);border-color:var(--border);}
+.nav-gi{display:flex;color:var(--gc);flex-shrink:0;}.nav-gi svg{width:15px;height:15px;}
+.nav-gn{flex:1;min-width:0;}
+.nav-gc{font-size:10.5px;color:var(--text-faint);font-weight:500;}
+.nav-group-card .nav-group-chev{color:var(--text-faint);}
+.nav-group-card.is-open > .nav-group-head{color:var(--text);border-color:color-mix(in srgb,var(--gc) 40%,var(--border));}
+.nav-group-card > .nav-group-items{padding:4px 0 2px 12px;gap:2px;}
+.nav-group-card.is-here{padding:1px;background:conic-gradient(from var(--nav-a),transparent 0 60%,var(--gc) 75%,#fff 80%,var(--gc) 85%,transparent 100%);animation:navspin 4s linear infinite;}
+.nav-group-card.is-here > .nav-group-head{border-color:transparent;background:var(--surface-3);}
+.nav-group-card.is-here > .nav-group-items{background:var(--surface);border-radius:0 0 10px 10px;padding:4px 4px 6px 12px;}
+@media (prefers-reduced-motion: reduce){ .nav-group-card.is-here{animation:none;background:color-mix(in srgb,var(--gc) 45%,transparent);} }
 /* Menu contextuel flottant (popMenu, 24/11/2026) */
 .pop-menu{position:fixed;z-index:400;min-width:220px;max-width:min(340px,calc(100vw - 16px));background:var(--surface-2);border:1px solid var(--border);border-radius:11px;box-shadow:0 14px 34px rgba(0,0,0,.45);padding:6px;display:flex;flex-direction:column;animation:fadeIn .1s ease;}
 .pop-menu.is-wide{width:320px;}
@@ -9963,15 +9980,16 @@ function getNav(){
 // par un trait. Traders et PropFirms sont des listes de référence remplies une fois : elles rejoignent
 // « Mon compte ». « flat » = page affichée seule, sans en-tête de groupe ; « bottom » = bloc du bas.
 const NAV_GROUPS = [
-  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier','catalogue'] },
-  { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'] },
-  { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'] },
-  { id:'trading',    label:'Trading',      items:['sessions','meteo','plan-seance','cockpit'] },
+  // icon / color (26/11/2026, piste C de la maquette « Menu de gauche ») : tête de groupe en carte.
+  { id:'comptes',    label:'Comptes',      items:['accounts','radar','calendrier','catalogue'], icon:'card', color:'#3ED6B5' },
+  { id:'perf',       label:'Performance',  items:['rentabilite','comparatif','bilan'], icon:'barChart', color:'#6FA8FF' },
+  { id:'finance',    label:'Comptabilit\u00e9', items:['accounting','frais-generaux','fiscalite'], icon:'receipt', color:'#D9A65A' },
+  { id:'trading',    label:'Trading',      items:['sessions','meteo','plan-seance','cockpit'], icon:'bolt', color:'#B6A6FF' },
   { id:'communaute', flat:true,            items:['ecole'] },
   // Aide (24/11/2026) : toujours ouverte et placée avant « Mon compte », avec le support dedans,
   // pour que l'aide se trouve sans avoir à déplier un groupe en bas du menu.
-  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true, alwaysOpen:true, support:true },
-  { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true },
+  { id:'aide',       label:'Aide',         items:['aide-centre','manuel','changelog'], bottom:true, alwaysOpen:true, support:true, icon:'help', color:'#8B98A5' },
+  { id:'compte',     label:'Mon compte',    items:['profil','parametres','traders','propfirms','subscription'], bottom:true, icon:'userCircle', color:'#8B98A5' },
 ];
 // Pages affichées comme un onglet d'une autre page : elles n'ont pas d'entrée propre dans le menu,
 // mais allument celle de leur page parente (18/10/2026 : le Coach est un onglet de Rentabilité réelle).
@@ -10260,17 +10278,20 @@ function renderNavGroups(){
     if(g.alwaysOpen){
       const sup = g.support ? `<div class="nav-item" role="button" tabindex="0" id="nav-support" title="Contacter le support">${icon('mail')}<span class="nav-label">Contacter le support</span></div>` : '';
       html += `
-      <div class="nav-group nav-group-open">
-        <div class="nav-group-head nav-group-static"><span class="nav-label">${g.label}</span></div>
+      <div class="nav-group nav-group-open nav-group-card" style="--gc:${g.color || 'var(--text-faint)'}">
+        <div class="nav-group-head nav-group-static">${g.icon ? `<span class="nav-gi">${icon(g.icon)}</span>` : ''}<span class="nav-label nav-gn">${g.label}</span></div>
         <div class="nav-group-items" style="display:flex;">${items.map(navItemHtml).join('')}${sup}</div>
       </div>`;
       return;
     }
     const isOpen = state.navOpenGroups.includes(g.id);
+    // Cadre animé seulement sur le groupe ouvert qui contient la page affichée (un seul à la fois).
+    const here = isOpen && items.some(it=>it.id === state.route || NAV_TAB_PARENT[state.route] === it.id);
     html += `
-      <div class="nav-group">
-        <div class="nav-group-head" data-nav-group="${g.id}">
-          <span class="nav-label">${g.label}</span>
+      <div class="nav-group nav-group-card${isOpen ? ' is-open' : ''}${here ? ' is-here' : ''}" style="--gc:${g.color || 'var(--text-faint)'}">
+        <div class="nav-group-head" data-nav-group="${g.id}" role="button" tabindex="0" aria-expanded="${isOpen}">
+          ${g.icon ? `<span class="nav-gi">${icon(g.icon)}</span>` : ''}<span class="nav-label nav-gn">${g.label}</span>
+          ${isOpen ? '' : `<span class="nav-label nav-gc">${items.length}</span>`}
           <span class="nav-group-chev" style="transform:rotate(${isOpen?90:0}deg);">${icon('chevRight')}</span>
         </div>
         <div class="nav-group-items" style="display:${isOpen?'flex':'none'};">
