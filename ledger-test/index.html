@@ -8332,30 +8332,29 @@ async function discRun(firmId, urlOverride){
   if(!acat().raw) acatLoad();
   Object.assign(d, { firmId, running:true, step:null, done:[], res:null, err:null, sel:{}, open:true, url:website });
   discModal();
-  let finalTxt = '';
+  // Fonction d'arrière-plan (26/11/2026) : Netlify coupait la 1re version au bout de 30 s. L'app crée la
+  // ligne de suivi, lance la fonction (réponse 202 immédiate), puis relit la ligne toutes les 2,5 s.
   try{
-    const res = await fetch('/edge/catalogue-discover', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ firm: firm.name, website }) });
-    if(res.status === 404) throw new Error('La recherche n’est pas encore déployée (netlify/functions/catalogue-discover.js).');
-    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    const { data: job, error: jErr } = await supabaseClient.from('catalogue_discoveries').insert({ firm_id: firmId, website }).select('id').single();
+    if(jErr) throw new Error(/catalogue_discoveries/.test(jErr.message) ? 'La table de suivi n’est pas encore installée (migration_recherche_formules_20261126.sql).' : jErr.message);
+    d.jobId = job.id;
+    const res = await fetch('/.netlify/functions/catalogue-discover-background', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ jobId: job.id, firm: firm.name, website }) });
+    if(res.status === 404) throw new Error('La recherche n’est pas encore déployée (netlify/functions/catalogue-discover-background.js).');
+    const order = DISC_STEPS.map(x=>x[0]);
+    const t0 = Date.now();
     for(;;){
-      const { value, done } = await reader.read();
-      if(value) buf += dec.decode(value, { stream:true });
-      let i;
-      while((i = buf.indexOf('\n@@step ')) >= 0){
-        const j = buf.indexOf('\n', i + 8); if(j < 0) break;
-        const name = buf.slice(i + 8, j).trim(); buf = buf.slice(0, i) + buf.slice(j);
-        if(d.step) d.done.push(d.step); d.step = name; discModal(true);
-      }
-      if(done) break;
+      await new Promise(r=>setTimeout(r, 2500));
+      const { data: row, error } = await supabaseClient.from('catalogue_discoveries').select('status, step, result, error').eq('id', job.id).single();
+      if(error) throw new Error(error.message);
+      if(row.step && row.step !== d.step){ const k = order.indexOf(row.step); d.done = order.slice(0, Math.max(0, k)); d.step = row.step; discModal(true); }
+      if(row.status === 'done'){ d.res = row.result; break; }
+      if(row.status === 'error') throw new Error(row.error || 'Recherche impossible.');
+      if(Date.now() - t0 > 4 * 60000) throw new Error('La recherche ne répond plus. Relance-la dans un instant.');
     }
-    const k = buf.indexOf('@@result ');
-    finalTxt = k >= 0 ? buf.slice(k + 9) : buf;
-    const data = JSON.parse(finalTxt.trim());
-    if(data.status !== 200) throw new Error(data.error || 'Recherche impossible.');
-    d.res = data;
+    const data = d.res;
     (data.programs || []).forEach((p, i)=>{ d.sel[i] = !discExisting(p) && (p.sizes || []).length > 0 && (p.confirmed > 0 || Object.values(p.bySize || {}).some(o=>Object.values(o).some(c=>c.st !== 'no'))); });
   }catch(e){
-    d.err = e instanceof SyntaxError ? 'Réponse illisible du serveur. Réessaie.' : (e.message || String(e));
+    d.err = e.message || String(e);
   }
   d.running = false;
   if(d.open && document.querySelector('.disc-modal')) discModal();
@@ -8419,7 +8418,7 @@ function discModal(soft){
   if(d.running){
     body = `<div class="disc-steps">${DISC_STEPS.map(([k, lab])=>{ const st = d.done.includes(k) ? 'ok' : d.step === k ? 'run' : 'wait';
       return `<div class="disc-step ${st}"><span class="disc-ic">${st === 'ok' ? icon('check') : st === 'run' ? '<span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>' : ''}</span>${lab}</div>`; }).join('')}
-      <div class="field-hint">Environ une minute. Tu peux fermer cette fenêtre : une notification te préviendra, et le bouton de recherche rouvrira le résultat.</div></div>`;
+      <div class="field-hint">Une à deux minutes. Tu peux fermer cette fenêtre : une notification te préviendra, et le bouton de recherche rouvrira le résultat.</div></div>`;
     foot = `<button type="button" class="btn btn-outline" onclick="discClose()">Fermer</button>`;
   } else if(d.err){
     body = `<div class="disc-err">${icon('alertTriangle')}<span>${escapeHtml(d.err)}</span></div>
@@ -26421,7 +26420,7 @@ function firmFormModal(existing){
         <input type="file" id="ff-logo-file" accept="image/*" style="display:none;" />
       </div>
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
-      <div class="field"><label>Site web (optionnel)</label>${isAdmin() ? `<div class="disc-ffrow"><input id="ff-web" value="${f.website||''}" placeholder="https://…"/><button type="button" class="btn btn-primary btn-sm" id="ff-disc">${icon('sparkles')}Chercher les formules</button></div><div class="field-hint">Admin : enregistre la prop firm, puis l’IA lit le site officiel, trouve les règles et te propose les formules (environ une minute).</div>` : `<input id="ff-web" value="${f.website||''}" placeholder="https://…"/>`}</div>
+      <div class="field"><label>Site web (optionnel)</label>${isAdmin() ? `<div class="disc-ffrow"><input id="ff-web" value="${f.website||''}" placeholder="https://…"/><button type="button" class="btn btn-primary btn-sm" id="ff-disc">${icon('sparkles')}Chercher les formules</button></div><div class="field-hint">Admin : enregistre la prop firm, puis l’IA lit le site officiel, trouve les règles et te propose les formules (une à deux minutes).</div>` : `<input id="ff-web" value="${f.website||''}" placeholder="https://…"/>`}</div>
       <div class="field"><label>Notes (optionnel)</label><textarea id="ff-notes" rows="3">${f.notes||''}</textarea></div>
       <div id="ff-error" class="error-text"></div>
     `,
