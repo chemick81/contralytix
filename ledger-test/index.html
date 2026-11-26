@@ -405,6 +405,7 @@ a{color:var(--accent);text-decoration:none;}
 .pnl-cal.is-locked .panel-body{filter:blur(5px);pointer-events:none;user-select:none;}
 .pnl-lock-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim);box-shadow:var(--shadow);}
 .pnl-dm-r{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px;}
+.pnl-dm-num{font:600 12.5px "JetBrains Mono",ui-monospace,monospace;word-break:break-all;}
 .pnl-dm-nm small{display:block;color:var(--text-faint);font-size:11px;margin-top:2px;}
 .pnl-dm-link{background:none;border:0;padding:0;color:var(--text);text-align:left;cursor:pointer;font-size:12.5px;}
 .pnl-dm-link:hover .pnl-dm-nm{color:var(--accent);}
@@ -1294,7 +1295,13 @@ th.th-sort-active svg{opacity:1;}
 .tdv-src{margin-bottom:6px;}
 .tdv-guide{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .tdv-plat{border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:9px;}
-.tdv-plat-h{font-weight:700;color:var(--text);font-size:13px;}
+.tdv-plat-h{font-weight:700;color:var(--text);font-size:13px;display:flex;align-items:center;gap:7px;}
+.plat-logo{border-radius:4px;object-fit:contain;background:#fff;flex-shrink:0;vertical-align:middle;}
+.plat-badge{display:inline-flex;align-items:center;gap:5px;}
+.plat-duo{display:inline-flex;align-items:center;flex-shrink:0;}
+.plat-duo .plat-logo,.plat-duo .firm-avatar{box-shadow:0 0 0 2px var(--surface-2);}
+.plat-duo > :last-child{margin-left:-5px;}
+.pnl-dm-src{display:inline-flex;align-items:center;gap:5px;}
 .tdv-file-t{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--text);}
 .tdv-file-t svg{width:14px;height:14px;color:var(--accent);}
 .tdv-file-t .badge{font-size:10.5px;}
@@ -1420,6 +1427,38 @@ th.th-sort-active svg{opacity:1;}
 .cat-table tbody tr:hover{background:var(--surface-2);}
 .cat-table tbody tr:last-child td{border-bottom:none;}
 .cat-firm{display:flex;align-items:center;gap:11px;}
+/* Codes d'affiliation (26/11/2026) */
+.aff-strip .panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.aff-disc{margin-left:auto;font-size:11.5px;color:var(--text-faint);}
+.aff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.aff-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.aff-top{display:flex;align-items:center;gap:9px;}
+.aff-n{flex:1;min-width:0;}.aff-n b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.aff-n small{font-size:11px;color:var(--text-dim);}
+.aff-pct{font:700 14px "Space Grotesk",Inter,sans-serif;color:var(--gold);background:var(--gold-dim);border-radius:8px;padding:3px 7px;white-space:nowrap;}
+.aff-code{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px dashed color-mix(in srgb, var(--accent) 45%, transparent);background:var(--accent-dim);border-radius:8px;padding:5px 5px 5px 10px;}
+.aff-code .mono{font-weight:600;color:var(--accent);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.aff-cp{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:11.5px;font-weight:500;padding:4px 8px;cursor:pointer;flex-shrink:0;}
+.aff-cp svg,.aff-go svg,.aff-pill svg,.aff-hint svg,.aff-fpill svg{width:13px;height:13px;}
+.aff-cp:hover{border-color:var(--accent);color:var(--accent);}
+.aff-go{justify-content:center;width:100%;}
+.aff-pill{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:3px 9px;background:var(--gold-dim);color:var(--gold);font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.aff-pill:hover{background:color-mix(in srgb, var(--gold) 26%, transparent);}
+.aff-fpill{display:inline-flex;align-items:center;gap:6px;}
+.aff-pill-row{margin-top:5px;}
+.cat-ms-btn.aff-fpill.is-on{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.aff-hint{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border-radius:8px;background:var(--gold-dim);color:var(--gold);font-size:12.5px;}
+.aff-hint .btn{margin-left:auto;color:var(--gold);}
+.aff-table td{white-space:nowrap;}
+.aff-codecell{font-weight:600;color:var(--accent);}
+.aff-lnk{max-width:260px;overflow:hidden;text-overflow:ellipsis;}
+.aff-lnk a{color:var(--text-dim);}
+.aff-off td{opacity:.55;}
+.aff-act{display:flex;gap:2px;}
+.aff-form{display:flex;flex-direction:column;gap:12px;}
+.aff-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.aff-active{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;}
+.aff-prev{border-top:1px dashed var(--border);padding-top:12px;}
+@media (max-width:640px){ .aff-row{grid-template-columns:1fr;} .aff-disc{margin-left:0;} }
 .cat-prog{font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .cat-prog a{color:var(--text);}
 .cat-prog a:hover{color:var(--accent);}
@@ -3984,6 +4023,9 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-10"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
   eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 5.2A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a15.6 15.6 0 0 1-3.4 4.4M6.6 6.6C3.9 8.3 2 12 2 12s3.5 7 10 7a10.4 10.4 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  externalLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 15l6-6"/><path d="M10.5 6.5l1.2-1.2a3.5 3.5 0 0 1 5 5L15.5 11.5"/><path d="M13.5 17.5l-1.2 1.2a3.5 3.5 0 0 1-5-5l1.2-1.2"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>',
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-1.5 2.5h15L18 16Z"/><path d="M9.5 20a2.5 2.5 0 0 0 5 0"/></svg>',
@@ -6551,7 +6593,16 @@ function firmLogoHtml(firm, size){
   return `<span class="firm-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;background:${color};">${initials}</span>`;
 }
 
-// Redimensionne une image uploadée (fichier) en la faisant tenir dans un carré de
+// Logos des plateformes d'import (26/11/2026) : favicon officiel du site, comme pour les prop firms,
+// avec repli sur un badge à initiales si l'image ne charge pas.
+const PLAT_LOGO = { tradovate:{ domain:'tradovate.com', name:'Tradovate', ini:'TV', color:'#1F6FEB' }, rithmic:{ domain:'rithmic.com', name:'R|Trader Pro', ini:'R', color:'#C2410C' } };
+function platKey(v){ const x = String(v || '').toLowerCase(); return x.includes('rithmic') || x.includes('r|trader') ? 'rithmic' : x.includes('tradovate') ? 'tradovate' : null; }
+function platLogoHtml(v, size){
+  const k = platKey(v); if(!k) return '';
+  const p = PLAT_LOGO[k]; size = size || 16;
+  return `<img src="https://www.google.com/s2/favicons?domain=${p.domain}&sz=64" class="plat-logo" style="width:${size}px;height:${size}px;" alt="${p.name}" title="${p.name}" loading="lazy" onerror="firmImgError(this,'${p.ini}','${p.color}',${size})" />`;
+}
+
 // `maxSize` px (fond transparent, ratio conservé, centrée) et renvoie un data URL PNG.
 // C'est ce qui permet à l'admin d'ajouter n'importe quelle image de logo sans avoir à
 // la redimensionner elle-même au préalable.
@@ -7522,12 +7573,15 @@ function catFilterHtml(s, idx, all, f, c){
 function catSortVal(r, k){ return k === 'buf' ? r.buf : k === 'days' ? r.days : k === 'coh' ? r.coh : r.size; }
 function viewCatalogue(){
   const c = catState();
+  if(!affState().rows) affLoad();
   if(!c.rows){ catLoad(); return emptyState('layers', 'Chargement du catalogue…', ''); }
   const all = c.rows.filter(r=>r.phase === 'PA' && r.active);
   const f = c.f;
-  const rows = all.filter(r=>catMatch(f, r, null))
+  const promoOnly = !!c.promoOnly;
+  const rows = all.filter(r=>catMatch(f, r, null) && (!promoOnly || affFor(r.firmId)))
     .sort((a,b)=>(catSortVal(a, c.sort) - catSortVal(b, c.sort)) * c.dir || a.size - b.size || a.firm.name.localeCompare(b.firm.name, 'fr') || a.program.localeCompare(b.program, 'fr'));
-  const hasActive = CAT_SECTIONS.some(s=>s.multi ? f[s.key].length : f[s.key] !== 'ALL');
+  const hasActive = CAT_SECTIONS.some(s=>s.multi ? f[s.key].length : f[s.key] !== 'ALL') || promoOnly;
+  const anyAff = affLive().size > 0;
   const admin = isAdmin();
   const th = (label, key, cls) => {
     if(!key) return `<th class="${cls||''}">${label}</th>`;
@@ -7541,7 +7595,7 @@ function viewCatalogue(){
   const body = rows.map(r=>`<tr>
       <td class="cat-first"><div class="cat-firm">${firmLogoHtml(r.firm, 30)}<div style="min-width:0">
         <div class="cat-prog">${r.src ? `<a href="${escapeHtml(r.src)}" target="_blank" rel="noopener" title="Page officielle">${escapeHtml(r.program)}</a>` : escapeHtml(r.program)}${r.partial ? '<span class="cat-pending" title="Une valeur reste à confirmer auprès de la prop firm">À confirmer</span>' : ''}</div>
-        <div class="cat-sub">${escapeHtml(r.firm.name)}${r.dates ? ' · ' + r.dates : ''}</div></div></div></td>
+        <div class="cat-sub">${escapeHtml(r.firm.name)}${r.dates ? ' · ' + r.dates : ''}</div>${affFor(r.firmId) ? `<div class="aff-pill-row">${affPillHtml(r.firmId)}</div>` : ''}</div></div></td>
       <td><span class="cat-size mono"><span class="cat-dot" style="background:${CAT_SIZE_COL[r.size >= 250000 ? 250000 : r.size] || 'var(--slate)'}"></span>${r.sizeTxt}</span></td>
       <td>${ddBadge(r)}${r.ddA ? `<div class="cat-sub mono">${r.ddA}</div>` : ''}</td>
       <td>${r.buf ? `<span class="mono cat-v">${r.bufTxt}</span>` : `<span class="cat-ok">${r.bufTxt}</span>`}${r.bufNote ? `<div class="cat-sub">${r.bufNote}</div>` : ''}</td>
@@ -7559,10 +7613,12 @@ function viewCatalogue(){
     <div class="filter-bar cat-bar" role="toolbar" aria-label="Filtres du catalogue">
       <div class="results-counter"><span class="results-counter-label">Résultats</span><span class="results-counter-value">${rows.length}<span class="rc-total">/${all.length}</span></span></div>
       ${CAT_SECTIONS.map((s,i)=>catFilterHtml(s, i, all, f, c)).join('')}
+      ${anyAff ? `<button type="button" class="cat-ms-btn aff-fpill${promoOnly ? ' is-on' : ''}" aria-pressed="${promoOnly}" onclick="catPromoOnly()">${icon('tag')}Avec code promo</button>` : ''}
       <div class="filter-bar-spacer"></div>
       ${hasActive ? '<button type="button" class="pill-reset" onclick="catReset()">Réinitialiser</button>' : ''}
     </div>
-    ${admin ? catAdminPanel(c) : ''}
+    ${affStripHtml()}
+    ${admin ? catAdminPanel(c) + affAdminPanel() : ''}
     <div class="cat-hint-add">${icon('plus')}<span>Trouve le compte que tu as acheté, puis clique <b>Ajouter</b> au bout de sa ligne : la prop firm, la taille et la formule sont préremplies. Dans le formulaire, choisis <b>Challenge</b> ou <b>PA direct</b>, et <b>Plusieurs identiques</b> pour un lot.</span></div>
     <div class="panel"><div class="table-wrap"><table class="cat-table">
       <thead><tr><th class="cat-first">Prop firm</th>${th('Taille','size')}${th('Drawdown')}${th('Buffer payout','buf')}${th('Jours min en PA','days')}${th('Cohérence','coh')}${th('Retrait min',null,'num')}${th('Activation')}${th('DLL en PA')}${admin ? '<th style="color:var(--gold)">Contrôle</th>' : ''}<th class="cat-add-cell">Ajouter</th></tr></thead>
@@ -7572,6 +7628,184 @@ function viewCatalogue(){
     </div></div>
     <p class="cat-foot">Règles relevées sur les pages officielles des prop firms et contrôlées avec deux sources indépendantes. Clique sur le nom d’une formule pour ouvrir la page officielle. Les règles peuvent changer : vérifie toujours chez la prop firm avant de demander un payout.</p>
   </div>`;
+}
+/* ============================================================
+   CODES D'AFFILIATION du Catalogue (26/11/2026, maquette validée par Mickael).
+   Table affiliate_codes (admin) : prop firm, code, % de réduction, lien, précision, date de fin, actif.
+   Les traders connectés voient les codes actifs et non échus : bloc en haut du Catalogue, colonne
+   « Code promo », filtre « Avec code promo » et rappel dans le formulaire « Nouveau compte ».
+   Chaque copie / ouverture est comptée dans affiliate_clicks (sans donnée personnelle).
+============================================================ */
+function affState(){ if(!state.aff) state.aff = { rows:null, loading:false, missing:false, clicks:{} }; return state.aff; }
+async function affLoad(force){
+  const s = affState();
+  if(s.loading || (s.rows && !force) || !supabaseClient) return;
+  s.loading = true;
+  try{
+    const { data, error } = await supabaseClient.from('affiliate_codes').select('*').order('updated_at', { ascending:false });
+    if(error) throw error;
+    s.rows = (data || []).map(fromRow); s.missing = false;
+    if(isAdmin()){
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data: cl } = await supabaseClient.from('affiliate_clicks').select('code_id').gte('at', since).limit(20000);
+      const m = {}; (cl || []).forEach(r=>{ m[r.code_id] = (m[r.code_id] || 0) + 1; }); s.clicks = m;
+    }
+  }catch(e){
+    s.rows = s.rows || []; s.missing = /affiliate_codes/.test(String(e && e.message));
+  }
+  s.loading = false;
+  if(state.route === 'catalogue') renderView();
+}
+// Code actif d'une prop firm : actif, non échu (date de fin incluse), le plus récent.
+function affLive(){
+  const today = todayISO();
+  const out = new Map();
+  (affState().rows || []).forEach(r=>{ if(r.active && (!r.endsOn || r.endsOn >= today) && !out.has(r.propFirmId)) out.set(r.propFirmId, r); });
+  return out;
+}
+function affFor(firmId){ return firmId ? affLive().get(firmId) || null : null; }
+function affPct(r){ const n = Number(r.discount); return r.discount != null && r.discount !== '' && isFinite(n) && n > 0 ? `−${Math.round(n * 10) / 10} %` : ''; }
+function affUrl(u){ const s = String(u || '').trim(); return !s ? '' : /^https?:\/\//i.test(s) ? s : 'https://' + s; }
+function affTrack(id, kind){ if(supabaseClient && id && !String(id).startsWith('preview')) supabaseClient.from('affiliate_clicks').insert({ code_id:id, kind }).then(()=>{}, ()=>{}); }
+async function affCopy(id){
+  const r = (affState().rows || []).find(x=>x.id === id); if(!r) return;
+  try{ await navigator.clipboard.writeText(r.code); showToast(`Code ${r.code} copié.`); }catch(_){ showToast(`Ton code : ${r.code}`); }
+  affTrack(id, 'copy');
+}
+function affOpen(id, alsoCopy){
+  const r = (affState().rows || []).find(x=>x.id === id); if(!r) return;
+  if(alsoCopy && navigator.clipboard) navigator.clipboard.writeText(r.code).then(()=>showToast(`Code ${r.code} copié : colle-le au paiement.`), ()=>{});
+  window.open(affUrl(r.url), '_blank', 'noopener');
+  affTrack(id, 'open');
+}
+function affCardHtml(r, preview){
+  const fm = getFirm(r.propFirmId);
+  const sub = [r.note, r.endsOn ? 'jusqu’au ' + r.endsOn.slice(8,10) + '/' + r.endsOn.slice(5,7) : ''].filter(Boolean).join(' · ');
+  const pct = affPct(r);
+  const id = preview ? '' : r.id;
+  return `<div class="aff-card">
+    <div class="aff-top">${firmLogoHtml(fm || { name:'?' }, 30)}<div class="aff-n"><b title="${escapeHtml(fm ? fm.name : '')}">${escapeHtml(fm ? fm.name : 'Prop firm')}</b>${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</div>${pct ? `<span class="aff-pct">${pct}</span>` : ''}</div>
+    <div class="aff-code"><span class="mono">${escapeHtml(r.code || 'CODE')}</span><button type="button" class="aff-cp" ${id ? `onclick="affCopy('${id}')"` : 'disabled'} title="Copier le code">${icon('copy')}Copier</button></div>
+    <button type="button" class="btn btn-primary btn-sm aff-go" ${id ? `onclick="affOpen('${id}')"` : 'disabled'}>Profiter de l’offre ${icon('externalLink')}</button>
+  </div>`;
+}
+function affStripHtml(){
+  const live = [...affLive().values()].filter(r=>getFirm(r.propFirmId))
+    .sort((a,b)=>getFirm(a.propFirmId).name.localeCompare(getFirm(b.propFirmId).name, 'fr'));
+  if(!live.length) return '';
+  return `<section class="panel aff-strip" aria-label="Codes de réduction">
+    <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:8px;">${icon('tag')}Codes de réduction</div><span class="aff-disc">Liens affiliés : Contralytix touche une commission, sans surcoût pour toi.</span></div>
+    <div class="panel-body"><div class="aff-grid">${live.map(r=>affCardHtml(r)).join('')}</div></div>
+  </section>`;
+}
+function affPillHtml(firmId){
+  const r = affFor(firmId);
+  if(!r) return '<span class="text-faint">—</span>';
+  const pct = affPct(r);
+  return `<button type="button" class="aff-pill" onclick="affOpen('${r.id}', true)" title="Copier le code ${escapeHtml(r.code)} et ouvrir l’offre${r.note ? ' (' + escapeHtml(r.note) + ')' : ''}">${icon('tag')}<span class="mono">${escapeHtml(r.code)}</span>${pct ? ' ' + pct : ''}</button>`;
+}
+function affFormHintHtml(firmId){
+  const r = affFor(firmId);
+  if(!r) return '';
+  const pct = affPct(r);
+  return `<div class="aff-hint">${icon('tag')}<span>Code <b class="mono">${escapeHtml(r.code)}</b>${pct ? ' : ' + pct : ''}${r.note ? ' ' + escapeHtml(r.note) : ''}.</span><button type="button" class="btn btn-ghost btn-sm" onclick="affOpen('${r.id}', true)">Profiter de l’offre ${icon('externalLink')}</button></div>`;
+}
+function affFormHintRefresh(){ const w = document.getElementById('af-aff-hint'); const f = document.getElementById('af-firm'); if(w && f) w.innerHTML = affFormHintHtml(f.value); }
+function affAdminPanel(){
+  const s = affState();
+  const rows = (s.rows || []).slice().sort((a,b)=>{ const fa = getFirm(a.propFirmId), fb = getFirm(b.propFirmId); return (fa ? fa.name : '').localeCompare(fb ? fb.name : '', 'fr') || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
+  const today = todayISO();
+  const live = affLive();
+  const body = rows.map(r=>{
+    const fm = getFirm(r.propFirmId);
+    const expired = r.endsOn && r.endsOn < today;
+    const shadowed = r.active && !expired && live.get(r.propFirmId) && live.get(r.propFirmId).id !== r.id;
+    const state_ = !r.active ? 'désactivé' : expired ? 'échu' : shadowed ? 'remplacé par un code plus récent' : '';
+    return `<tr class="${state_ ? 'aff-off' : ''}">
+      <td><div class="cat-firm">${firmLogoHtml(fm || { name:'?' }, 24)}<div style="min-width:0"><div class="cat-prog">${escapeHtml(fm ? fm.name : 'Prop firm supprimée')}</div>${state_ ? `<div class="cat-sub">${state_}</div>` : r.note ? `<div class="cat-sub">${escapeHtml(r.note)}</div>` : ''}</div></div></td>
+      <td class="mono aff-codecell">${escapeHtml(r.code)}</td>
+      <td class="mono">${r.discount != null && r.discount !== '' ? escapeHtml(String(r.discount)) + ' %' : '—'}</td>
+      <td class="aff-lnk"><a href="${escapeHtml(affUrl(r.url))}" target="_blank" rel="noopener" title="${escapeHtml(affUrl(r.url))}">${escapeHtml(String(r.url).replace(/^https?:\/\//i, ''))}</a></td>
+      <td>${r.endsOn ? catDate(r.endsOn) : '—'}</td>
+      <td class="mono num">${s.clicks[r.id] || 0}</td>
+      <td><label class="switch" title="${r.active ? 'Désactiver' : 'Activer'} ce code"><input type="checkbox" ${r.active ? 'checked' : ''} onchange="affToggle('${r.id}', this.checked)"><span class="switch-track"></span></label></td>
+      <td class="aff-act"><button type="button" class="btn btn-ghost btn-sm" onclick="affFormModal('${r.id}')" title="Modifier">${icon('edit')}</button><button type="button" class="btn btn-ghost btn-sm" onclick="affDelete('${r.id}')" title="Supprimer">${icon('trash')}</button></td>
+    </tr>`;
+  }).join('');
+  return `<section class="panel" aria-label="Mes affiliations">
+    <div class="panel-head">
+      <div><div class="section-title"><span class="cat-tag-admin">ADMIN</span>Mes affiliations</div>
+      <div class="cat-sub">Un code actif par prop firm (le plus récent l’emporte). Passé la date de fin, il disparaît tout seul pour les traders.</div></div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="affFormModal()" ${s.missing ? 'disabled' : ''}>${icon('plus')}Ajouter un code</button>
+    </div>
+    ${s.missing ? `<div class="panel-body"><div class="cat-sub" style="color:var(--danger)">La table des codes d’affiliation n’est pas encore installée sur la base (migration_affiliation_20261126.sql).</div></div>`
+      : rows.length ? `<div class="table-wrap"><table class="cat-table aff-table"><thead><tr><th>Prop firm</th><th>Code</th><th>%</th><th>Lien</th><th>Fin</th><th class="num">Clics 30 j</th><th>Actif</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
+      : `<div class="panel-body"><div class="cat-sub">Aucun code pour l’instant. Clique « Ajouter un code ».</div></div>`}
+  </section>`;
+}
+function affFormModal(id){
+  const ex = id ? (affState().rows || []).find(r=>r.id === id) : null;
+  const r = ex ? { ...ex } : { propFirmId:'', code:'', discount:'', url:'', note:'', endsOn:'', active:true };
+  const firms = sortedFirms();
+  openModal({
+    title: ex ? 'Modifier le code d’affiliation' : 'Nouveau code d’affiliation',
+    bodyHtml: `<div class="aff-form">
+      <div class="field"><label>Prop firm</label>
+        <div class="firm-picker" id="aff-firm-picker">${firms.map(f=>`<div class="firm-pick ${r.propFirmId===f.id?'selected':''}" data-aff-firm="${f.id}">${firmLogoHtml(f,20)}<span>${escapeHtml(f.name)}</span></div>`).join('')}</div>
+      </div>
+      <div class="aff-row">
+        <div class="field"><label for="aff-code">Code</label><input id="aff-code" class="mono" value="${escapeHtml(r.code || '')}" placeholder="ex. CONTRA" autocomplete="off"/></div>
+        <div class="field"><label for="aff-pct">Réduction (%)</label><input id="aff-pct" type="number" inputmode="decimal" min="0" max="100" step="1" value="${r.discount != null ? escapeHtml(String(r.discount)) : ''}" placeholder="ex. 80"/></div>
+      </div>
+      <div class="field"><label for="aff-url">Lien d’affiliation</label><input id="aff-url" value="${escapeHtml(r.url || '')}" placeholder="https://…" autocomplete="off"/></div>
+      <div class="aff-row">
+        <div class="field"><label for="aff-note">Précision <span class="text-faint">(facultatif)</span></label><input id="aff-note" value="${escapeHtml(r.note || '')}" placeholder="ex. sur l’évaluation"/></div>
+        <div class="field"><label for="aff-end">Fin de l’offre <span class="text-faint">(facultatif)</span></label><input id="aff-end" type="date" value="${r.endsOn || ''}"/></div>
+      </div>
+      <label class="aff-active"><input type="checkbox" id="aff-active" ${r.active ? 'checked' : ''}/> Actif (visible par les traders)</label>
+      <div class="aff-prev"><div class="field-hint" style="margin-bottom:6px;">Aperçu</div><div id="aff-prev-card" style="max-width:270px"></div></div>
+    </div>`,
+    footHtml: `<button type="button" class="btn btn-outline" onclick="closeModal()">Annuler</button><button type="button" class="btn btn-primary" id="aff-save">Enregistrer</button>`,
+    onMount(){
+      let firm = r.propFirmId;
+      const val = ()=>({ propFirmId:firm, code:document.getElementById('aff-code').value.trim(), discount:document.getElementById('aff-pct').value, url:document.getElementById('aff-url').value.trim(), note:document.getElementById('aff-note').value.trim(), endsOn:document.getElementById('aff-end').value || null, active:document.getElementById('aff-active').checked });
+      const prev = ()=>{ document.getElementById('aff-prev-card').innerHTML = affCardHtml(val(), true); };
+      document.querySelectorAll('[data-aff-firm]').forEach(el=>el.onclick=()=>{ document.querySelectorAll('[data-aff-firm]').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); firm = el.dataset.affFirm; prev(); });
+      ['aff-code','aff-pct','aff-url','aff-note','aff-end'].forEach(i=>document.getElementById(i).oninput = prev);
+      prev();
+      document.getElementById('aff-save').onclick = async ()=>{
+        const v = val();
+        if(!v.propFirmId){ showToast('Choisis la prop firm.', 'danger'); return; }
+        if(!v.code){ showToast('Indique le code.', 'danger'); return; }
+        if(!v.url){ showToast('Indique le lien d’affiliation.', 'danger'); return; }
+        const pct = v.discount === '' ? null : Number(v.discount);
+        if(pct != null && (!isFinite(pct) || pct < 0 || pct > 100)){ showToast('La réduction doit être entre 0 et 100 %.', 'danger'); return; }
+        const row = { prop_firm_id:v.propFirmId, code:v.code.toUpperCase(), discount:pct, url:affUrl(v.url), note:v.note || null, ends_on:v.endsOn, active:v.active, updated_at:new Date().toISOString() };
+        const btn = document.getElementById('aff-save'); btn.disabled = true;
+        const { error } = ex ? await supabaseClient.from('affiliate_codes').update(row).eq('id', ex.id) : await supabaseClient.from('affiliate_codes').insert(row);
+        btn.disabled = false;
+        if(error){ showToast('Enregistrement impossible : ' + error.message, 'danger'); return; }
+        closeModal(); showToast(ex ? 'Code mis à jour.' : 'Code ajouté.');
+        await affLoad(true);
+      };
+    }
+  });
+}
+async function affToggle(id, on){
+  const { error } = await supabaseClient.from('affiliate_codes').update({ active:on, updated_at:new Date().toISOString() }).eq('id', id);
+  if(error){ showToast('Modification impossible : ' + error.message, 'danger'); }
+  await affLoad(true);
+}
+async function affDelete(id){
+  const r = (affState().rows || []).find(x=>x.id === id); if(!r) return;
+  const fm = getFirm(r.propFirmId);
+  confirmModal(`Supprimer le code <b>${escapeHtml(r.code)}</b>${fm ? ' de ' + escapeHtml(fm.name) : ''} ? Ses clics comptés seront supprimés aussi. Pour le retirer sans perdre l’historique, désactive-le plutôt.`, ()=>affDeleteNow(id));
+}
+async function affDeleteNow(id){
+  const { error } = await supabaseClient.from('affiliate_codes').delete().eq('id', id);
+  if(error){ showToast('Suppression impossible : ' + error.message, 'danger'); return; }
+  showToast('Code supprimé.');
+  await affLoad(true);
 }
 function catAdminPanel(c){
   const all = c.rows.filter(r=>r.phase === 'PA' && r.active);
@@ -7617,6 +7851,7 @@ function catAddAccount(rowId, multi){
   if(multi){ bulkAccountFormModal({ type:startType, ...prefill }); return; }
   accountFormModal({ prefill:{ ...prefill, type:startType } });
 }
+function catPromoOnly(){ const c = catState(); c.promoOnly = !c.promoOnly; renderView(); }
 function catToggle(key){ const c = catState(); c.open = (key && c.open !== key) ? key : null; renderView(); }
 function catPick(key, v){
   const c = catState(); const s = CAT_SECTIONS.find(x=>x.key===key);
@@ -7625,7 +7860,7 @@ function catPick(key, v){
   renderView();
 }
 function catClear(key){ catState().f[key] = []; renderView(); }
-function catReset(){ const c = catState(); c.f = catEmptyFilters(); c.open = null; renderView(); }
+function catReset(){ const c = catState(); c.f = catEmptyFilters(); c.open = null; c.promoOnly = false; renderView(); }
 function catSort(key){ const c = catState(); if(c.sort === key) c.dir = -c.dir; else { c.sort = key; c.dir = 1; } renderView(); }
 function catToggleEcarts(){ const c = catState(); c.ecartsOpen = !c.ecartsOpen; renderView(); }
 async function catMarkVerified(firmId, program){
@@ -8641,7 +8876,7 @@ function tdvImportModal(opts){
     return warn + parsed.groups.map((g, i)=>{
       if(!g._init){ g._init = true; if(!g.acc && !g.liquidated && !g.maybe) g.createNew = true; }
       const a = g.acc, pl = tdvPlan(g), firm = a ? getFirm(a.propFirmId) : null;
-      const srcTag = `<span class="badge cat-b-slate" style="margin-left:6px;">${g.source === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}</span>`;
+      const srcTag = `<span class="badge cat-b-slate plat-badge" style="margin-left:6px;">${platLogoHtml(g.source === 'rithmic' ? 'rithmic' : 'tradovate', 13)}${g.source === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'}</span>`;
       const miss = tdvMissingFiles(g);
       const filesLine = `<div class="tdv-files cat-sub">${[...new Set(g.kinds || [])].map(k=>`<span class="tdv-fok">${icon('check')}${escapeHtml(TDV_KIND_NAME[k] || k)}</span>`).join('')}${miss.map(m=>`<span class="tdv-fmiss ${m.opt ? 'is-opt' : ''}">${icon(m.opt ? 'plus' : 'alertTriangle')}${m.opt ? 'Ajoute' : 'Manque'} « ${escapeHtml(m.name)} » : ${escapeHtml(m.why)}</span>`).join('')}</div>`;
       const skip = !a && !g.createNew;
@@ -8790,7 +9025,7 @@ const TDV_FILES = [
 ];
 const TDV_KIND_NAME = { tradovate:'Account Balance History', 'tradovate-cash':'Cash History', 'rithmic-performance':'Performance', 'rithmic-dashboard':'Trader Dashboard' };
 function tdvFilesGuideHtml(){
-  return `<div class="tdv-guide">${TDV_FILES.map(p=>`<div class="tdv-plat"><div class="tdv-plat-h">${escapeHtml(p.plat)}</div>${p.files.map(f=>`<div class="tdv-file"><div class="tdv-file-t">${icon('fileText')}<b>${escapeHtml(f.name)}</b><span class="badge ${f.need === 'Facultatif' ? 'badge-slate' : 'badge-accent'}">${escapeHtml(f.need)}</span></div><div class="cat-sub">${escapeHtml(f.how)}</div><div class="cat-sub tdv-gives">→ ${escapeHtml(f.gives)}</div></div>`).join('')}</div>`).join('')}</div>
+  return `<div class="tdv-guide">${TDV_FILES.map(p=>`<div class="tdv-plat"><div class="tdv-plat-h">${platLogoHtml(p.plat, 18)}${escapeHtml(p.plat)}</div>${p.files.map(f=>`<div class="tdv-file"><div class="tdv-file-t">${icon('fileText')}<b>${escapeHtml(f.name)}</b><span class="badge ${f.need === 'Facultatif' ? 'badge-slate' : 'badge-accent'}">${escapeHtml(f.need)}</span></div><div class="cat-sub">${escapeHtml(f.how)}</div><div class="cat-sub tdv-gives">→ ${escapeHtml(f.gives)}</div></div>`).join('')}</div>`).join('')}</div>
     <div class="cat-sub" style="margin-top:8px;">Dépose tous les fichiers d’une plateforme ensemble. Inutile : l’historique des ordres R|Trader (limité à une semaine).</div>`;
 }
 // Ce qui manque pour un compte, d'après les fichiers déposés.
@@ -9030,7 +9265,7 @@ function payoutFicheModal(accId){
       <div class="cat-sub" style="margin-top:6px;">Calcul : retraits faits après ton dernier payout, en supposant qu’un virement vide le wallet.</div></div>`;
   }
   const dlxBalBlock = (s.src === 'dlx' || s.src === 'override') && isMineAccount(a) ? `<div class="po-sec po-bal">
-      <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? (s.balSrc ? ' <span class="badge badge-slate po-edited">relevé</span>' : ' <span class="badge badge-todo po-edited">corrigé</span>') : ''}</div>
+      <div class="po-bal-top"><div><div class="po-ct">Solde du compte : <span class="mono">${poMoney(s.bal)}</span>${s.src === 'override' ? (s.balSrc ? ` <span class="badge badge-slate po-edited plat-badge">${platLogoHtml(s.balSrc, 12)}relevé</span>` : ' <span class="badge badge-todo po-edited">corrigé</span>') : ''}</div>
         <div class="cat-sub">${s.src === 'override' ? `${s.balSrc ? `Relevé ${s.balSrc === 'rithmic' ? 'R|Trader Pro' : 'Tradovate'} du ${fmtDate(String(s.balDay || s.balAt).slice(0,10))}` : `Corrigé le ${fmtDate(String(s.balAt).slice(0,10))}`} · Deltalytix indique ${poMoney(s.dlxBal)}. ${s.balSrc ? 'Le solde du relevé' : 'Ta correction'} reste utilisé${s.balSrc ? '' : 'e'} tant que tu ne rends pas la main${s.R.startBalance != null && s.R.startBalance !== '' ? ` (compte qui part de ${poMoney(Number(s.R.startBalance))})` : ''}.` : `Lu dans Deltalytix, pour un solde de départ de ${poMoney(s.start)}. S’il diffère de ta plateforme, corrige-le avec le solde affiché sur la plateforme${s.R.startBalance != null && s.R.startBalance !== '' && Number(s.R.startBalance) !== s.start ? ` (ce compte part de ${poMoney(Number(s.R.startBalance))})` : ''}.`}</div></div>
         <div style="display:flex;gap:6px;">${s.src === 'override' ? `<button class="btn btn-ghost btn-sm" id="po-bal-undo" title="Revenir au solde de Deltalytix">↺ Deltalytix</button>` : ''}<button class="btn btn-outline btn-sm" id="po-bal-edit">${icon('edit')}Corriger</button></div></div>
       <div class="po-bal-row" id="po-bal-editrow" hidden><input id="po-bal" inputmode="decimal" value="${s.bal != null ? Math.round(s.bal * 100) / 100 : ''}"/><button class="btn btn-primary btn-sm" id="po-bal-save" data-override="1">Enregistrer</button></div>
@@ -11167,10 +11402,12 @@ function pnlDayModal(ds){
   const rows = d.rows.map(r=>{
     const fm = getFirm(r.a.propFirmId);
     const funded = r.a.type === 'PA' || r.a.type === 'LIVE';
-    const nm = `<span class="pnl-dm-nm">${escapeHtml(pnlAccLabel(r.a))}<small>${escapeHtml(fm ? fm.name : 'PropFirm')} · ${TYPE_LABELS[r.a.type] || r.a.type}</small></span>`;
+    // N° de compte complet dans le détail (demande de Mickael du 25/11/2026) ; taille, prop firm et type en dessous.
+    const num = r.a.accountNumber ? String(r.a.accountNumber).trim() : '';
+    const nm = `<span class="pnl-dm-nm"><span class="pnl-dm-num">${escapeHtml(num || 'Sans n° de compte')}</span><small>${escapeHtml([fm ? fm.name : 'PropFirm', TYPE_LABELS[r.a.type] || r.a.type, sizeLabelRaw(r.a)].filter(Boolean).join(' · '))}</small></span>`;
     return `<div class="pnl-dm-r">
       ${funded ? `<button type="button" class="pnl-dm-link" data-pnl-open="${r.a.id}" title="Ouvrir la fiche Payout de ce compte (pour corriger la journée)">${nm}</button>` : nm}
-      <span class="pnl-dm-src${r.src === 'deltalytix' ? ' dl' : ''}">${PNL_SRC_LABEL[r.src] || r.src}</span>
+      <span class="pnl-dm-src${r.src === 'deltalytix' ? ' dl' : ''}">${platLogoHtml(r.src, 12)}${PNL_SRC_LABEL[r.src] || r.src}</span>
       <span class="pnl-dm-am ${r.pnl >= 0 ? 'pos' : 'neg'}">${pnlMoney2(r.pnl)}</span>
     </div>`;
   }).join('');
@@ -24641,7 +24878,7 @@ const ACC_MORE = {};
 function accImportItems(){
   const items = [];
   if(dlx().connected && !dlx().syncing) items.push({ icon:'reset', label:'Synchro Deltalytix', sub:'Dernier trade, comptes breached, plateformes et radar.', run: ()=>dlxSync() });
-  if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', label:'Relevé Tradovate / R|Trader Pro', sub:'Tradovate : Account Balance History (+ Cash History). R|Trader Pro : Performance + Trader Dashboard. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
+  if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', iconHtml:`<span class="plat-duo">${platLogoHtml('tradovate', 15)}${platLogoHtml('rithmic', 15)}</span>`, label:'Relevé Tradovate / R|Trader Pro', sub:'Tradovate : Account Balance History (+ Cash History). R|Trader Pro : Performance + Trader Dashboard. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
   items.push({ icon:'camera', label:'Capture d’écran ou Deltalytix', sub:'Crée tes comptes en une fois : les numéros sont lus pour toi.', run: ()=>captureImportModal() });
   return items;
 }
@@ -24672,7 +24909,7 @@ function popMenu(btn, items, opts){
   let html = '', grp = null;
   items.forEach((it, i)=>{
     if(it.group !== grp){ if(grp !== null) html += '<div class="pop-sep" role="separator"></div>'; grp = it.group; if(it.group) html += `<div class="pop-label">${escapeHtml(it.group)}</div>`; }
-    html += `<button type="button" role="menuitem" class="pop-item${it.danger ? ' is-danger' : ''}" data-pop-i="${i}">${icon(it.icon || 'chevRight')}<span><b>${escapeHtml(it.label)}</b>${it.sub ? `<small>${escapeHtml(it.sub)}</small>` : ''}</span></button>`;
+    html += `<button type="button" role="menuitem" class="pop-item${it.danger ? ' is-danger' : ''}" data-pop-i="${i}">${it.iconHtml || icon(it.icon || 'chevRight')}<span><b>${escapeHtml(it.label)}</b>${it.sub ? `<small>${escapeHtml(it.sub)}</small>` : ''}</span></button>`;
   });
   m.innerHTML = html;
   document.body.appendChild(m);
@@ -26177,6 +26414,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
             ${sortedFirms().map(f=>`<div class="firm-pick ${a.propFirmId===f.id?'selected':''}" data-firm-pick="${f.id}">${firmLogoHtml(f,20)}<span>${f.name}</span></div>`).join('')}
           </div>
           <input type="hidden" id="af-firm" value="${a.propFirmId||''}"/>
+          ${existing ? '' : `<div id="af-aff-hint">${affFormHintHtml(a.propFirmId)}</div>`}
         </div>
       </div>
       <div class="field"><label>Type de compte</label>
@@ -26381,6 +26619,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
           document.querySelectorAll('[data-firm-pick]').forEach(x=>x.classList.remove('selected'));
           el.classList.add('selected');
           document.getElementById('af-firm').value = el.dataset.firmPick;
+          affFormHintRefresh();
         });
       }
       if(curType==='PA'||curType==='LIVE') refreshParentChallengeOptions();
@@ -26425,6 +26664,7 @@ function accountFormModal({ existing, type, parentChallenge, prefill }){
       function afApplyCat(firmId, size){
         document.querySelectorAll('[data-firm-pick]').forEach(x=>x.classList.toggle('selected', x.dataset.firmPick===firmId));
         document.getElementById('af-firm').value = firmId;
+        affFormHintRefresh();
         const code = ({ 25000:'S25K', 50000:'S50K', 100000:'S100K', 150000:'S150K', 250000:'S250K' })[size] || 'AUTRE';
         const sizeSel = document.getElementById('af-size'); sizeSel.value = code; curSize = code;
         document.getElementById('af-customsize-wrap').style.display = code==='AUTRE' ? 'block' : 'none';
