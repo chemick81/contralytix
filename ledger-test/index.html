@@ -1474,6 +1474,12 @@ th.th-sort-active svg{opacity:1;}
 .disc-src{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;font-size:11.5px;color:var(--text-faint);border-top:1px solid var(--border-soft);}
 .disc-foot-hint{font-size:11.5px;color:var(--text-faint);margin-right:auto;max-width:460px;line-height:1.4;}
 .disc-modal .modal-foot{flex-wrap:wrap;}
+.ccsv-same{display:flex;gap:6px;align-items:flex-start;line-height:1.5;margin-top:4px;}.ccsv-same svg{width:13px;height:13px;flex-shrink:0;margin-top:3px;color:var(--accent);}
+.ccsv-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:var(--text-dim);}
+.ccsv-diffs{padding:6px 12px 10px 40px;display:flex;flex-direction:column;gap:2px;}
+.ccsv-d{display:grid;grid-template-columns:18px minmax(150px,220px) minmax(0,1fr) 16px minmax(0,1fr);gap:8px;align-items:center;font-size:12px;padding:3px 0;cursor:pointer;}
+.ccsv-l{color:var(--text-dim);}.ccsv-o{color:var(--text-faint);text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ccsv-a{color:var(--text-faint);}.ccsv-n{color:var(--gold);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* Codes d'affiliation (26/11/2026) */
 .aff-strip .panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -8349,7 +8355,7 @@ async function discRun(firmId, urlOverride){
       if(row.step && row.step !== d.step){ const k = order.indexOf(row.step); d.done = order.slice(0, Math.max(0, k)); d.step = row.step; discModal(true); }
       if(row.status === 'done'){ d.res = row.result; break; }
       if(row.status === 'error') throw new Error(row.error || 'Recherche impossible.');
-      if(Date.now() - t0 > 4 * 60000) throw new Error('La recherche ne répond plus. Relance-la dans un instant.');
+      if(Date.now() - t0 > 6 * 60000) throw new Error('La recherche ne répond plus. Relance-la dans un instant.');
     }
     const data = d.res;
     (data.programs || []).forEach((p, i)=>{ d.sel[i] = !discExisting(p) && (p.sizes || []).length > 0 && (p.confirmed > 0 || Object.values(p.bySize || {}).some(o=>Object.values(o).some(c=>c.st !== 'no'))); });
@@ -8418,7 +8424,7 @@ function discModal(soft){
   if(d.running){
     body = `<div class="disc-steps">${DISC_STEPS.map(([k, lab])=>{ const st = d.done.includes(k) ? 'ok' : d.step === k ? 'run' : 'wait';
       return `<div class="disc-step ${st}"><span class="disc-ic">${st === 'ok' ? icon('check') : st === 'run' ? '<span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>' : ''}</span>${lab}</div>`; }).join('')}
-      <div class="field-hint">Une à deux minutes. Tu peux fermer cette fenêtre : une notification te préviendra, et le bouton de recherche rouvrira le résultat.</div></div>`;
+      <div class="field-hint">Une à trois minutes. Tu peux fermer cette fenêtre : une notification te préviendra, et le bouton de recherche rouvrira le résultat.</div></div>`;
     foot = `<button type="button" class="btn btn-outline" onclick="discClose()">Fermer</button>`;
   } else if(d.err){
     body = `<div class="disc-err">${icon('alertTriangle')}<span>${escapeHtml(d.err)}</span></div>
@@ -8499,6 +8505,246 @@ async function discInsert(){
   const first = (c.raw || []).find(x=>x.propfirm_id === d.firmId && x.program === progs[0].name);
   closeModal(); d.open = false;
   if(first){ c.sel = acatKey(first); state.route = 'admin'; state.adminTab = 'catalogue'; render(); }
+}
+/* ============================================================
+   IMPORT / EXPORT CSV DU CATALOGUE (26/11/2026, demande de Mickael) — admin.
+   Claude cherche les règles (sites officiels, contrôle PropFirm Factory / MaPropFirm) et fournit un CSV ;
+   l'admin l'importe ici. Une ligne = une formule × une taille. Séparateur « ; » (Excel français), « , » accepté.
+   Formule existante : aperçu des écarts case par case (ancienne → nouvelle valeur), cases à cocher, motif
+   obligatoire, historique conservé par le trigger habituel. Formule ou taille absente : créée.
+   Case vide = valeur inchangée ; « VIDE » = effacer la valeur.
+============================================================ */
+const CCSV_COLS = [
+  ['propfirm','Nom de la prop firm (page PropFirm)'], ['formule','Nom de la formule'], ['phase','PA ou LIVE'], ['taille','ex. 50000'],
+  ['en_vente','oui / non'], ['en_vente_depuis','AAAA-MM-JJ'], ['drawdown_type','EOD, INTRADAY ou EOD+INTRADAY'], ['drawdown_max','$'],
+  ['type_jours','winning (gagnants), trading ou vide'], ['jours_min','nombre'], ['profit_min_jour','$'], ['buffer','$ à garder après payout'],
+  ['profit_min_demande','$ au-dessus du départ'], ['retrait_min','$'], ['coherence','% par payout : 40,40,45'], ['plafonds','$ par payout : 1500,2000 ; — = sans plafond'],
+  ['split','% trader : 90'], ['activation','free, paid ou choice'], ['frais_activation','$'], ['paiement','one_time ou monthly'], ['dll','yes, no ou optional'],
+  ['dll_montant','$'], ['stop_trailing','$'], ['payouts_max','nombre'], ['frequence','texte'], ['page_officielle','https://…'], ['fiabilite','official ou partial'],
+  ['controle_factory','ok, ecart ou absent'], ['controle_mapropfirm','ok, ecart ou absent'], ['note_controle','texte'], ['note','texte'],
+];
+// colonne CSV → champ de la fiche admin (scope g = commun, s = par taille, r = colonne de la ligne)
+const CCSV_MAP = { en_vente:['g','active'], en_vente_depuis:['g','valid_from'], drawdown_type:['g','ddTypes'], drawdown_max:['s','ddAmount'], type_jours:['g','dayType'],
+  jours_min:['s','minDays'], profit_min_jour:['s','dayMin'], buffer:['s','buffer'], profit_min_demande:['s','minRequestProfit'], retrait_min:['s','minPayout'],
+  coherence:['s','consistency'], plafonds:['s','caps'], split:['g','split'], activation:['g','activation'], frais_activation:['s','activationFee'], paiement:['g','payment'],
+  dll:['g','dll'], dll_montant:['s','dllAmount'], stop_trailing:['s','trailStop'], payouts_max:['g','maxPayouts'], frequence:['g','frequency'], page_officielle:['g','source_url'],
+  fiabilite:['g','conf'], note:['g','notes'] };
+function ccsvParse(text){
+  text = String(text || '').replace(/^﻿/, '');
+  const first = text.split(/\r?\n/)[0] || '';
+  const sep = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(q){ if(ch === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if(ch === '"') q = true;
+    else if(ch === sep){ row.push(cur); cur = ''; }
+    else if(ch === '\n' || ch === '\r'){ if(ch === '\r' && text[i+1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += ch;
+  }
+  if(cur || row.length){ row.push(cur); rows.push(row); }
+  const head = (rows.shift() || []).map(h=>discNorm(h).replace(/^(.*)$/, x=>x));
+  const key = h=>{ const n = discNorm(h); return (CCSV_COLS.find(c=>discNorm(c[0]) === n) || [null])[0]; };
+  const cols = head.map((h, i)=>key(rows.length ? h : h));
+  return rows.filter(r=>r.some(x=>String(x).trim() !== '')).map((r, i)=>{ const o = { _line: i + 2 }; cols.forEach((c, j)=>{ if(c) o[c] = String(r[j] == null ? '' : r[j]).trim(); }); return o; });
+}
+// Texte du CSV → texte au format de la fiche admin (celui de acatOrig), ou null si non reconnu.
+function ccsvNorm(col, v){
+  const t = String(v || '').trim(); const low = discNorm(t);
+  if(t.toUpperCase() === 'VIDE') return '';
+  switch(col){
+    case 'en_vente': return /^(oui|yes|true|1|o)$/.test(low) ? 'true' : /^(non|no|false|0|n)$/.test(low) ? 'false' : null;
+    case 'drawdown_type': { const s = t.toUpperCase(); const e = /EOD|FIN DE JOURNEE/.test(s), i = /INTRA|TRAIL/.test(s); return e && i ? 'EOD,INTRADAY' : e ? 'EOD' : i ? 'INTRADAY' : null; }
+    case 'type_jours': return /^(winning|gagnant|gagnants|joursgagnants)$/.test(low) ? 'winning' : /^(trading|jourstrades|joursdetrading)$/.test(low) ? 'trading' : /^(aucun|none)$/.test(low) ? '' : null;
+    case 'activation': return /^(free|gratuite?|gratuit)$/.test(low) ? 'free' : /^(paid|payante?)$/.test(low) ? 'paid' : /^(choice|auchoix|choix)$/.test(low) ? 'choice' : null;
+    case 'paiement': return /^(onetime|unique|paiementunique)$/.test(low) ? 'one_time' : /^(monthly|abonnement|mensuel)$/.test(low) ? 'monthly' : null;
+    case 'dll': return /^(yes|oui)$/.test(low) ? 'yes' : /^(no|non)$/.test(low) ? 'no' : /^(optional|auchoix|option)$/.test(low) ? 'optional' : null;
+    case 'fiabilite': return /^(official|officiel|officielle)$/.test(low) ? 'official' : /^(partial|aconfirmer|partiel)$/.test(low) ? 'partial' : null;
+    case 'coherence': case 'plafonds': return t.split(/[,|/]+/).map(x=>x.trim()).filter(Boolean).map(x=>/^[—–-]$/.test(x) || /^sans/i.test(x) ? '—' : String(Number(x.replace(/[\s$%€]/g,'').replace(',','.')))).join(', ');
+    case 'split': { const n = Number(t.replace(/[\s%]/g,'').replace(',','.')); return Number.isFinite(n) ? String(n <= 1 ? Math.round(n * 1000) / 10 : n) : null; }
+    case 'en_vente_depuis': return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : /^\d{2}\/\d{2}\/\d{4}$/.test(t) ? t.slice(6,10) + '-' + t.slice(3,5) + '-' + t.slice(0,2) : null;
+    case 'frequence': case 'note': case 'page_officielle': return t;
+    default: { const n = Number(t.replace(/[\s$€]/g,'').replace(',','.')); return Number.isFinite(n) ? String(n) : null; }
+  }
+}
+function ccsvExport(){
+  const c = acat(); if(!c.raw){ acatLoad(); showToast('Catalogue en cours de chargement, réessaie.'); return; }
+  const esc = v=>{ const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+  const inv = Object.fromEntries(Object.entries(CCSV_MAP).map(([col, [sc, f]])=>[col, [sc, f]]));
+  const lines = [CCSV_COLS.map(x=>x[0]).join(';')];
+  const rows = c.raw.slice().sort((a,b)=>acatFirmName(a.propfirm_id).localeCompare(acatFirmName(b.propfirm_id), 'fr') || a.program.localeCompare(b.program, 'fr') || Number(a.size) - Number(b.size));
+  rows.forEach(r=>{
+    const group = acatGroup(acatKey(r)); const R = r.rules || {}; const ck = R.check || {};
+    const out = CCSV_COLS.map(([col])=>{
+      if(col === 'propfirm') return acatFirmName(r.propfirm_id);
+      if(col === 'formule') return r.program;
+      if(col === 'phase') return r.phase;
+      if(col === 'taille') return Number(r.size);
+      if(col === 'controle_factory') return ck.factory || '';
+      if(col === 'controle_mapropfirm') return ck.mapropfirm || '';
+      if(col === 'note_controle') return ck.note || '';
+      const [sc, f] = inv[col]; let v = acatOrig(group, sc, f, Number(r.size));
+      if(col === 'en_vente') v = v === 'false' ? 'non' : 'oui';
+      if(col === 'drawdown_type') v = v.replace(',', '+');
+      return v;
+    });
+    lines.push(out.map(esc).join(';'));
+  });
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'catalogue-propfirm-' + todayISO() + '.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  showToast(rows.length + ' lignes exportées : c’est aussi le modèle pour l’import.');
+}
+function ccsvImportPick(){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv,text/csv';
+  inp.onchange = async ()=>{ const f = inp.files && inp.files[0]; if(!f) return; const txt = await f.text(); if(!acat().raw) await acatLoad(); ccsvPreview(txt, f.name); };
+  inp.click();
+}
+function ccsvPlan(text){
+  const c = acat(); const lines = ccsvParse(text);
+  const errors = []; const groups = new Map();
+  const firmOf = name=>{ const n = discNorm(name); return state.propfirms.find(f=>discNorm(f.name) === n || f.id === name) || state.propfirms.find(f=>n && (discNorm(f.name).includes(n) || n.includes(discNorm(f.name)))); };
+  lines.forEach(l=>{
+    const firm = firmOf(l.propfirm);
+    const size = Number(String(l.taille || '').replace(/[^\d.]/g,''));
+    const phase = /live/i.test(l.phase || '') ? 'LIVE' : 'PA';
+    if(!firm){ errors.push(`Ligne ${l._line} : prop firm « ${l.propfirm || '?'} » absente de la page PropFirm (crée-la d’abord).`); return; }
+    if(!l.formule){ errors.push(`Ligne ${l._line} : nom de formule manquant.`); return; }
+    if(!(size >= 1000)){ errors.push(`Ligne ${l._line} : taille « ${l.taille || ''} » non reconnue.`); return; }
+    const vals = {}; const bad = [];
+    Object.keys(CCSV_MAP).forEach(col=>{ if(l[col] === undefined || l[col] === '') return; const v = ccsvNorm(col, l[col]); if(v === null) bad.push(col + ' « ' + l[col] + ' »'); else vals[col] = v; });
+    if(bad.length) errors.push(`Ligne ${l._line} (${l.formule} ${acatSizeLabel(size)}) : valeur ignorée — ${bad.join(', ')}.`);
+    const check = {}; ['controle_factory','controle_mapropfirm'].forEach(k=>{ const v = discNorm(l[k]); if(['ok','ecart','absent'].includes(v)) check[k === 'controle_factory' ? 'factory' : 'mapropfirm'] = v; });
+    if(l.note_controle) check.note = l.note_controle;
+    const existing = (c.raw || []).filter(r=>r.propfirm_id === firm.id && r.phase === phase && discNorm(r.program) === discNorm(l.formule));
+    const key = firm.id + '|' + (existing.length ? existing[0].program : l.formule) + '|' + phase;
+    const g = groups.get(key) || { key, firm, program: existing.length ? existing[0].program : l.formule, phase, existing, sizes: [] };
+    g.sizes.push({ size, vals, check, line:l._line });
+    groups.set(key, g);
+  });
+  // Écarts d'une formule existante : une entrée par case qui change.
+  groups.forEach(g=>{
+    g.diffs = []; g.newSizes = [];
+    const group = g.existing.slice().sort((a,b)=>Number(a.size) - Number(b.size));
+    g.sizes.forEach(s=>{
+      const row = group.find(r=>Number(r.size) === s.size);
+      if(!row){ g.newSizes.push(s.size); return; }
+      Object.entries(s.vals).forEach(([col, v])=>{
+        const [sc, f] = CCSV_MAP[col];
+        const old = acatOrig(group, sc, f, s.size);
+        const same = String(old).replace(/\s/g,'') === String(v).replace(/\s/g,'') || (old !== '' && v !== '' && Number(old) === Number(v));
+        if(!same){ const id = g.key + '|' + (sc === 'g' ? 'g' : s.size) + '|' + f; if(!g.diffs.some(d=>d.id === id)) g.diffs.push({ id, scope:sc, size:s.size, field:f, col, old, nw:v, on:true }); }
+      });
+      const ck = (row.rules || {}).check || {};
+      if(Object.keys(s.check).some(k=>s.check[k] !== ck[k])) { const id = g.key + '|' + s.size + '|check'; g.diffs.push({ id, scope:'s', size:s.size, field:'check', col:'controle', old:[ck.factory, ck.mapropfirm].filter(Boolean).join(' / ') || '—', nw:[s.check.factory, s.check.mapropfirm].filter(Boolean).join(' / ') + (s.check.note ? ' · ' + s.check.note : ''), on:true, check:s.check }); }
+    });
+  });
+  return { groups:[...groups.values()].sort((a,b)=>a.firm.name.localeCompare(b.firm.name, 'fr') || a.program.localeCompare(b.program, 'fr')), errors, lines: lines.length };
+}
+function ccsvShow(f, v){ if(v === '') return 'vide'; if(f === 'active') return v === 'false' ? 'non' : 'oui'; return (DISC_VAL[f] && DISC_VAL[f][v]) || v; }
+function ccsvPreview(text, fileName){
+  const plan = ccsvPlan(text);
+  state.ccsv = { plan, motif: 'Import CSV ' + (fileName || '') + ' du ' + fmtDate(todayISO()) + ' (sites officiels, contrôle PropFirm Factory / MaPropFirm)', sel: {} };
+  plan.groups.forEach(g=>{ state.ccsv.sel[g.key] = true; });
+  ccsvRender();
+}
+function ccsvRender(){
+  const st = state.ccsv; const plan = st.plan;
+  const nNew = plan.groups.filter(g=>!g.existing.length).length;
+  const nUpd = plan.groups.filter(g=>g.existing.length && (g.diffs.length || g.newSizes.length)).length;
+  const nSame = plan.groups.filter(g=>g.existing.length && !g.diffs.length && !g.newSizes.length).length;
+  const fl = (f, v)=>escapeHtml(ccsvShow(f, v));
+  const body = `<div class="ccsv-sum"><span>${plan.lines} ligne${plan.lines > 1 ? 's' : ''} lue${plan.lines > 1 ? 's' : ''}</span><span class="disc-tag new">${nNew} nouvelle${nNew > 1 ? 's' : ''} formule${nNew > 1 ? 's' : ''}</span><span class="disc-tag dif">${nUpd} à mettre à jour</span><span class="disc-tag ex">${nSame} identique${nSame > 1 ? 's' : ''}</span></div>
+    ${plan.errors.length ? `<div class="disc-err" style="margin-bottom:10px;">${icon('alertTriangle')}<div>${plan.errors.slice(0, 12).map(e=>`<div>${escapeHtml(e)}</div>`).join('')}${plan.errors.length > 12 ? `<div>+ ${plan.errors.length - 12} autres</div>` : ''}</div></div>` : ''}
+    ${plan.groups.filter(g=>!g.existing.length || g.diffs.length || g.newSizes.length).map(g=>{
+      const isNew = !g.existing.length; const same = !isNew && !g.diffs.length && !g.newSizes.length;
+      const on = !!st.sel[g.key] && !same;
+      return `<div class="disc-prog${on ? ' on' : ''}">
+        <div class="disc-prog-h">${same ? `<span class="disc-cbx dis">${icon('check')}</span>` : `<button type="button" class="disc-cbx${on ? ' on' : ''}" onclick='ccsvToggle(${escapeHtml(JSON.stringify(g.key))})'>${on ? icon('check') : ''}</button>`}
+          ${firmLogoHtml(g.firm, 20)}<b>${escapeHtml(g.firm.name)} · ${escapeHtml(g.program)}</b>${g.phase === 'LIVE' ? '<span class="badge cat-b-both">Live</span>' : ''}
+          ${isNew ? '<span class="disc-tag new">Nouvelle</span>' : same ? '<span class="disc-tag ex">Identique</span>' : `<span class="disc-tag dif">${g.diffs.length} écart${g.diffs.length > 1 ? 's' : ''}${g.newSizes.length ? ' · ' + g.newSizes.length + ' taille' + (g.newSizes.length > 1 ? 's' : '') + ' en plus' : ''}</span>`}
+          <span class="cat-sub">${g.sizes.map(s=>acatSizeLabel(s.size)).join(' · ')}</span></div>
+        ${!isNew && g.diffs.length && on ? `<div class="ccsv-diffs">${g.diffs.map(d=>`<label class="ccsv-d"><input type="checkbox" ${d.on ? 'checked' : ''} onchange='ccsvDiff(${escapeHtml(JSON.stringify(g.key))}, ${escapeHtml(JSON.stringify(d.id))}, this.checked)'/><span class="ccsv-l">${escapeHtml(ACAT_LABELS[d.field] || d.field)}${d.scope === 'g' ? '' : ' · ' + acatSizeLabel(d.size)}</span><span class="ccsv-o">${fl(d.field, d.old)}</span><span class="ccsv-a">→</span><span class="ccsv-n">${fl(d.field, d.nw)}</span></label>`).join('')}</div>` : ''}
+        ${!isNew && g.newSizes.length && on ? `<div class="cat-sub" style="padding:6px 12px 10px 40px;">Tailles ajoutées : ${g.newSizes.map(acatSizeLabel).join(', ')}</div>` : ''}
+      </div>`; }).join('')}
+    ${nSame ? `<div class="cat-sub ccsv-same">${icon('check')}Identiques au catalogue, rien à faire : ${plan.groups.filter(g=>g.existing.length && !g.diffs.length && !g.newSizes.length).map(g=>escapeHtml(g.firm.name + ' · ' + g.program)).join(', ')}.</div>` : ''}
+    <div class="field" style="margin-top:12px;"><label for="ccsv-motif">Motif (obligatoire)</label><input id="ccsv-motif" value="${escapeHtml(st.motif)}" oninput="state.ccsv.motif=this.value; document.getElementById('ccsv-go').disabled = !this.value.trim();"/></div>`;
+  const n = plan.groups.filter(g=>st.sel[g.key] && (!g.existing.length || g.diffs.some(d=>d.on) || g.newSizes.length)).length;
+  const foot = `<button type="button" class="btn btn-outline" onclick="closeModal()">Annuler</button><button type="button" class="btn btn-primary" id="ccsv-go" onclick="ccsvApply()" ${n && st.motif.trim() ? '' : 'disabled'}>Importer ${n} formule${n > 1 ? 's' : ''}</button>`;
+  const m = document.querySelector('.ccsv-modal');
+  if(m){ m.querySelector('.modal-body').innerHTML = body; m.querySelector('.modal-foot').innerHTML = foot; return; }
+  openModal({ title:'Import CSV du catalogue', bodyHtml:body, footHtml:foot, wide:'xwide' });
+  const mod = document.querySelector('#modal-root .modal'); if(mod) mod.classList.add('ccsv-modal', 'disc-modal');
+}
+function ccsvToggle(key){ const st = state.ccsv; st.sel[key] = !st.sel[key]; ccsvRender(); }
+function ccsvDiff(key, id, on){ const g = state.ccsv.plan.groups.find(x=>x.key === key); const d = g && g.diffs.find(x=>x.id === id); if(d) d.on = on; }
+// Applique un texte au format fiche à une ligne (patch + rules), comme acatSave.
+function ccsvApplyField(patch, rules, field, txt){
+  if(['program','phase','conf'].includes(field)) patch[field] = txt;
+  else if(['valid_from','valid_to','source_url','notes'].includes(field)) patch[field] = String(txt).trim() || null;
+  else if(field === 'active') patch.active = txt !== 'false';
+  else if(field === 'ddTypes'){ if(txt) rules.ddTypes = txt.split(','); else delete rules.ddTypes; }
+  else if(field === 'dayType'){ if(txt) rules.dayType = txt; else delete rules.dayType; }
+  else if(['activation','payment','dll'].includes(field)){ if(txt) rules[field] = txt; else delete rules[field]; }
+  else { const v = acatParse(field, txt); if(v === undefined || (typeof v === 'number' && !isFinite(v))) delete rules[field]; else rules[field] = v; }
+}
+async function ccsvApply(){
+  const st = state.ccsv; const c = acat(); const today = todayISO();
+  const motif = st.motif.trim(); if(!motif) return;
+  const btn = document.getElementById('ccsv-go'); if(btn) btn.disabled = true;
+  let sort = Math.max(0, ...(c.raw || []).map(r=>Number(r.sort) || 0));
+  let nIns = 0, nUpd = 0;
+  try{
+    for(const g of st.plan.groups){
+      if(!st.sel[g.key]) continue;
+      const group = g.existing.slice().sort((a,b)=>Number(a.size) - Number(b.size));
+      // 1. tailles nouvelles (ou formule nouvelle)
+      const toCreate = g.sizes.filter(s=>!group.some(r=>Number(r.size) === s.size));
+      if(toCreate.length){
+        const baseSort = group.length ? Number(group[0].sort) || 0 : ++sort;
+        const rows = toCreate.map(s=>{
+          const patch = {}; const rules = {};
+          // valeurs communes reprises des autres lignes de la formule si elles existent
+          if(group.length) Object.assign(rules, JSON.parse(JSON.stringify(group[0].rules || {})));
+          ['ddAmount','buffer','minRequestProfit','minPayout','minDays','dayMin','consistency','caps','activationFee','dllAmount','trailStop'].forEach(f=>delete rules[f]);
+          Object.entries(s.vals).forEach(([col, v])=>ccsvApplyField(patch, rules, CCSV_MAP[col][1], v));
+          rules.check = { at:today, factory:s.check.factory || 'absent', mapropfirm:s.check.mapropfirm || 'absent', ...(s.check.note ? { note:s.check.note } : {}) };
+          return { propfirm_id:g.firm.id, program:g.program, phase:g.phase, size:s.size, sort:baseSort, is_default:false,
+            active: patch.active !== undefined ? patch.active : true, conf: patch.conf || (group[0] && group[0].conf) || 'partial',
+            source_url: patch.source_url !== undefined ? patch.source_url : (group[0] && group[0].source_url) || null,
+            valid_from: patch.valid_from || (group[0] && group[0].valid_from) || null, notes: patch.notes !== undefined ? patch.notes : (group[0] && group[0].notes) || null,
+            rules, change_note: motif };
+        });
+        const { error } = await supabaseClient.from('propfirm_programs').insert(rows);
+        if(error) throw error;
+        nIns += rows.length;
+      }
+      // 2. écarts cochés sur les lignes existantes
+      const diffs = g.diffs.filter(d=>d.on);
+      for(const row of group){
+        const sz = Number(row.size);
+        const mine = diffs.filter(d=>d.scope === 'g' || d.size === sz);
+        if(!mine.length) continue;
+        const patch = {}; const rules = JSON.parse(JSON.stringify(row.rules || {}));
+        mine.forEach(d=>{
+          if(d.field === 'check') rules.check = { ...(rules.check || {}), ...d.check, at:today };
+          else ccsvApplyField(patch, rules, d.field, d.nw);
+        });
+        rules.check = { ...(rules.check || {}), editedAt:today };
+        patch.rules = rules; patch.change_note = motif;
+        const { error } = await supabaseClient.from('propfirm_programs').update(patch).eq('id', row.id);
+        if(error) throw error;
+        nUpd++;
+      }
+    }
+    showToast(`Import terminé : ${nIns} ligne${nIns > 1 ? 's' : ''} créée${nIns > 1 ? 's' : ''}, ${nUpd} mise${nUpd > 1 ? 's' : ''} à jour.`, 'success');
+    try{ await logActivity('UPDATE', 'propfirm_program', 'csv', motif); }catch(e){}
+    closeModal();
+  }catch(e){
+    showToast('Import interrompu : ' + (e.message || e) + '. Les lignes déjà traitées restent enregistrées.', 'danger');
+    if(btn) btn.disabled = false;
+  }
+  c.raw = null; await acatLoad(); catLoad(true); acatRerender();
 }
 function viewAdminCatalogue(){
   const c = acat();
@@ -8588,7 +8834,7 @@ function viewAdminCatalogue(){
       ${c.tab === 'hist' ? `<div class="acat-hist">${hist}</div>` : rules}`;
   }
   return `<div class="acat-top"><div><div class="section-title" style="font-size:16px;">Catalogue prop firm</div><div class="cat-sub">Choisis une formule à gauche, puis clique dans une case pour la modifier. Enregistre avec un motif en bas de la fiche. Chaque modification est gardée dans l’historique.</div></div>
-      <div class="acat-top-actions"><button type="button" class="btn btn-outline btn-sm" onclick="acatAddProgram()">${icon('plus')}Ajouter une formule</button><button type="button" class="btn btn-primary btn-sm" onclick="acatAddProgram(null, true)">${icon('plus')}Ajouter une prop firm</button></div></div>
+      <div class="acat-top-actions"><button type="button" class="btn btn-ghost btn-sm" onclick="ccsvExport()" title="Télécharger tout le catalogue en CSV (sert aussi de modèle pour l’import)">${icon('download')}Exporter CSV</button><button type="button" class="btn btn-outline btn-sm" onclick="ccsvImportPick()" title="Importer un CSV (une ligne par formule et par taille) : aperçu des écarts avant d’enregistrer">${icon('upload')}Importer CSV</button><button type="button" class="btn btn-outline btn-sm" onclick="acatAddProgram()">${icon('plus')}Ajouter une formule</button><button type="button" class="btn btn-primary btn-sm" onclick="acatAddProgram(null, true)">${icon('plus')}Ajouter une prop firm</button></div></div>
     <div class="acat-grid">
       <aside class="panel acat-side"><input class="acat-search" type="search" placeholder="Rechercher une prop firm ou une formule" value="${escapeHtml(c.q)}" oninput="acat().q=this.value;clearTimeout(window.__acatQ);window.__acatQ=setTimeout(()=>{acatRerender();const s=document.querySelector('.acat-search');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},250)"/>${side}</aside>
       <section class="panel acat-editor">${editor}</section>
@@ -26420,7 +26666,7 @@ function firmFormModal(existing){
         <input type="file" id="ff-logo-file" accept="image/*" style="display:none;" />
       </div>
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
-      <div class="field"><label>Site web (optionnel)</label>${isAdmin() ? `<div class="disc-ffrow"><input id="ff-web" value="${f.website||''}" placeholder="https://…"/><button type="button" class="btn btn-primary btn-sm" id="ff-disc">${icon('sparkles')}Chercher les formules</button></div><div class="field-hint">Admin : enregistre la prop firm, puis l’IA lit le site officiel, trouve les règles et te propose les formules (une à deux minutes).</div>` : `<input id="ff-web" value="${f.website||''}" placeholder="https://…"/>`}</div>
+      <div class="field"><label>Site web (optionnel)</label>${isAdmin() ? `<div class="disc-ffrow"><input id="ff-web" value="${f.website||''}" placeholder="https://…"/><button type="button" class="btn btn-primary btn-sm" id="ff-disc">${icon('sparkles')}Chercher les formules</button></div><div class="field-hint">Admin : enregistre la prop firm, puis l’IA lit le site officiel, trouve les règles et te propose les formules (une à trois minutes).</div>` : `<input id="ff-web" value="${f.website||''}" placeholder="https://…"/>`}</div>
       <div class="field"><label>Notes (optionnel)</label><textarea id="ff-notes" rows="3">${f.notes||''}</textarea></div>
       <div id="ff-error" class="error-text"></div>
     `,
