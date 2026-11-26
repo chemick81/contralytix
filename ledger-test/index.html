@@ -21174,25 +21174,39 @@ function viewAdmin(){
   const lifetimeCount = activeSubs.filter(s=>s.billingCycle==='LIFETIME' && s.plan==='PREMIUM').length;
   const cancelledCount = subs.filter(s=>s.status==='CANCELLED').length;
 
-  // Hypothèse de prix par défaut pour le calcul MRR/ARR — ajuste selon tes prix Stripe réels.
-  const PRICE_MONTHLY = 9.9;
-  const PRICE_YEARLY = 90;
-  const mrr = activeSubs.reduce((sum,s)=>{
-    if(s.billingCycle==='MONTHLY') return sum + PRICE_MONTHLY;
-    if(s.billingCycle==='YEARLY') return sum + (PRICE_YEARLY/12);
-    return sum;
-  }, 0);
+  // MRR / ARR (corrigé le 26/11/2026) : seuls les abonnements réellement payés via Stripe comptent
+  // (identifiant d'abonnement Stripe présent). Les Lifetime offerts, la Beta, l'essai et les
+  // abonnements attribués à la main ne sont pas du revenu. Prix = tarifs réglés dans Admin › Paramètres.
+  const realId = v=>!!v && String(v).trim() !== '' && String(v).toUpperCase() !== 'NULL';
+  const priceOf = k=>parsePriceFr(((state.pricingSettings || {})[k] || DEFAULT_PRICING[k] || {}).amount);
+  const pM = priceOf('MONTHLY'), pY = priceOf('YEARLY'), pL = priceOf('LIFETIME');
+  const emailOf = uid=>{ const pr = state.profiles.find(x=>x.id === uid); return pr ? pr.email : uid; };
+  // Comptes de test de Mickael (26/11/2026) et comptes admin : jamais comptés comme revenu.
+  const TEST_EMAILS = ['mickaelchesne2@gmail.com', 'mickaelchesne3@gmail.com'];
+  const isTest = uid=>{ const pr = state.profiles.find(x=>x.id === uid); return !!pr && (TEST_EMAILS.includes(String(pr.email || '').toLowerCase()) || pr.role === 'ADMIN'); };
+  const testRec = activeSubs.filter(s=>s.plan === 'PREMIUM' && ['MONTHLY','YEARLY','LIFETIME'].includes(s.billingCycle) && isTest(s.userId));
+  const paidRec = activeSubs.filter(s=>s.plan === 'PREMIUM' && ['MONTHLY','YEARLY'].includes(s.billingCycle) && realId(s.stripeSubscriptionId) && !isTest(s.userId));
+  const manualRec = activeSubs.filter(s=>s.plan === 'PREMIUM' && ['MONTHLY','YEARLY'].includes(s.billingCycle) && !realId(s.stripeSubscriptionId) && !isTest(s.userId));
+  const mrr = paidRec.reduce((sum,s)=>sum + (s.billingCycle === 'MONTHLY' ? pM : pY / 12), 0);
   const arr = mrr * 12;
-  const totalRevenue = activeSubs.reduce((sum,s)=>{
-    if(s.billingCycle==='LIFETIME') return sum + PRICE_YEARLY*2; // approximation, adapte au vrai prix Lifetime
-    return sum;
-  }, 0) + mrr; // approximation simple, à affiner avec un vrai historique de paiements Stripe
+  const lifeAll = activeSubs.filter(s=>s.billingCycle==='LIFETIME' && s.plan==='PREMIUM');
+  const lifePaid = lifeAll.filter(s=>realId(s.stripeCustomerId) && !isTest(s.userId));
+  const totalRevenue = lifePaid.length * pL;
+  const eur = v=>formatPriceFr(v) + ' €';
+  const tipMrr = `Revenu mensuel récurrent : abonnements mensuels payés via Stripe (${formatPriceFr(pM)} € chacun) + abonnements annuels ramenés au mois (${formatPriceFr(pY)} € / 12). Ne comptent pas : les Lifetime, la Beta, l’essai Premium et les abonnements attribués à la main sans paiement Stripe.`
+    + (paidRec.length ? ` Comptés : ${paidRec.map(s=>emailOf(s.userId)).join(', ')}.` : ' Aucun abonnement payé pour l’instant.')
+    + (manualRec.length ? ` Non comptés (attribués à la main) : ${manualRec.map(s=>emailOf(s.userId)).join(', ')}.` : '')
+    + (testRec.length ? ` Comptes de test exclus : ${testRec.map(s=>emailOf(s.userId)).join(', ')}.` : '');
+  const tipArr = 'Revenu annuel récurrent : MRR × 12, si les abonnements actuels continuent toute l’année.';
+  const nOff = lifeAll.length - lifePaid.length;
+  const tipLife = `${lifeAll.length} Lifetime actif${lifeAll.length > 1 ? 's' : ''}, dont ${nOff} offert${nOff > 1 ? 's' : ''} (sans paiement Stripe) et ${lifePaid.length} payé${lifePaid.length > 1 ? 's' : ''} via Stripe.`;
+  const tipRev = `Estimation des encaissements uniques : Lifetime payés via Stripe × ${formatPriceFr(pL)} €. Les Lifetime offerts ne comptent pas, et les mensualités déjà payées non plus (pas d’historique ici) : le montant exact est dans le tableau de bord Stripe.`;
 
   const lastSignups = [...state.profiles].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
 
-  const statCard = (label, value) => `
+  const statCard = (label, value, tip) => `
     <div class="panel" style="padding:14px 16px;">
-      <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">${label}</div>
+      <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:flex;align-items:center;gap:4px;">${label}${tip ? infoTip(tip) : ''}</div>
       <div style="font-size:22px;font-weight:700;">${value}</div>
     </div>`;
 
@@ -21202,10 +21216,10 @@ function viewAdmin(){
       ${statCard('Premium', premiumCount)}
       ${statCard('Beta', betaCount)}
       ${statCard('Free', freeCount)}
-      ${statCard('Lifetime', lifetimeCount)}
-      ${statCard('MRR', fmtMoney(mrr))}
-      ${statCard('ARR', fmtMoney(arr))}
-      ${statCard('Revenus (approx.)', fmtMoney(totalRevenue))}
+      ${statCard('Lifetime', lifetimeCount, tipLife)}
+      ${statCard('MRR', eur(mrr), tipMrr)}
+      ${statCard('ARR', eur(arr), tipArr)}
+      ${statCard('Lifetime encaissés (approx.)', eur(totalRevenue), tipRev)}
       ${statCard('Résiliations', cancelledCount)}
     </div>
     <div class="panel" style="margin-bottom:16px;">
