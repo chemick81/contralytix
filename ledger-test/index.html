@@ -1427,6 +1427,54 @@ th.th-sort-active svg{opacity:1;}
 .cat-table tbody tr:hover{background:var(--surface-2);}
 .cat-table tbody tr:last-child td{border-bottom:none;}
 .cat-firm{display:flex;align-items:center;gap:11px;}
+.acat-disc svg{width:12px;height:12px;}
+.acat-disc + .acat-add{margin-left:0;}
+.modal.xwide.disc-modal{max-width:1240px;}
+/* Recherche des formules (26/11/2026) */
+.disc-ffrow{display:flex;gap:8px;align-items:center;}.disc-ffrow input{flex:1;min-width:0;}
+.disc-ffrow .btn svg{width:13px;height:13px;}
+.disc-steps{display:flex;flex-direction:column;gap:11px;}
+.disc-step{display:flex;align-items:center;gap:10px;font-size:13px;}
+.disc-step.wait{color:var(--text-faint);}
+.disc-ic{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid var(--border);}
+.disc-step.ok .disc-ic{background:var(--accent);border-color:var(--accent);color:var(--accent-text);}
+.disc-step.ok .disc-ic svg{width:12px;height:12px;stroke-width:3;}
+.disc-step.run .disc-ic{border-color:transparent;}
+.disc-err{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--danger-dim);color:var(--danger);font-size:13px;line-height:1.45;}
+.disc-err svg,.disc-note svg,.disc-links svg,.disc-src svg{width:13px;height:13px;flex-shrink:0;}
+.disc-top{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.disc-links{display:flex;gap:6px;flex-wrap:wrap;}
+.disc-links a,.disc-src a{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:3px 9px;}
+.disc-links a:hover,.disc-src a:hover{color:var(--accent);border-color:var(--accent);}
+.disc-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-dim);}
+.disc-leg span{display:inline-flex;align-items:center;gap:6px;}
+.disc-leg i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.disc-leg i.ok{background:var(--accent);}.disc-leg i.dif{background:var(--gold);}.disc-leg i.one{background:var(--type-challenge);}.disc-leg i.no{background:var(--text-faint);}
+.disc-prog{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.disc-prog.on{border-color:color-mix(in srgb, var(--accent) 45%, var(--border));}
+.disc-prog-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;background:var(--surface-2);}
+.disc-prog-h b{font-size:13.5px;}
+.disc-sp{flex:1;}
+.disc-cbx{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--text-faint);display:flex;align-items:center;justify-content:center;color:var(--accent-text);background:none;padding:0;cursor:pointer;flex-shrink:0;}
+.disc-cbx.on{background:var(--accent);border-color:var(--accent);}
+.disc-cbx.dis{opacity:.35;cursor:not-allowed;color:var(--text-faint);}
+.disc-cbx svg{width:12px;height:12px;stroke-width:3;}
+.disc-tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap;}
+.disc-tag.new{color:var(--accent);background:var(--accent-dim);}
+.disc-tag.ex{color:var(--text-dim);background:var(--surface-3);}
+.disc-tag.dif{color:var(--gold);background:var(--gold-dim);}
+.disc-t{width:100%;border-collapse:collapse;font-size:12px;}
+.disc-t th{text-align:left;font-size:10.5px;color:var(--text-faint);font-weight:600;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.disc-t td{padding:7px 10px;border-bottom:1px solid var(--border-soft);vertical-align:top;white-space:nowrap;}
+.disc-v{font-weight:600;font-size:12px;}
+.disc-s{display:block;font-size:10px;font-weight:600;margin-top:2px;max-width:170px;overflow:hidden;text-overflow:ellipsis;}
+.disc-s.ok{color:var(--accent);}.disc-s.dif{color:var(--gold);}.disc-s.one{color:var(--type-challenge);}.disc-s.no{color:var(--text-faint);}
+.disc-note{display:flex;gap:8px;align-items:flex-start;padding:8px 12px;font-size:12px;color:var(--text-dim);border-top:1px solid var(--border-soft);}
+.disc-diffs{padding:8px 12px 10px 40px;font-size:12px;color:var(--gold);display:flex;flex-direction:column;gap:3px;}
+.disc-src{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;font-size:11.5px;color:var(--text-faint);border-top:1px solid var(--border-soft);}
+.disc-foot-hint{font-size:11.5px;color:var(--text-faint);margin-right:auto;max-width:460px;line-height:1.4;}
+.disc-modal .modal-foot{flex-wrap:wrap;}
+
 /* Codes d'affiliation (26/11/2026) */
 .aff-strip .panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .aff-disc{margin-left:auto;font-size:11.5px;color:var(--text-faint);}
@@ -8132,7 +8180,8 @@ function acatAddProgram(firmIdPreset, newFirm){
   const preset = firmIdPreset || (newFirm ? firms[0].id : (c.sel ? c.sel.split('|')[0] : firms[0].id));
   openModal({ title: newFirm ? 'Ajouter une prop firm au catalogue' : 'Ajouter une formule',
     bodyHtml:`<div class="field"><label>Prop firm</label><select id="acat-np-firm">${firms.map(f=>`<option value="${f.id}" ${f.id===preset?'selected':''}>${escapeHtml(f.name)}</option>`).join('')}</select>
-        ${newFirm ? '<div class="field-hint">PropFirms de l’app qui ne sont pas encore dans le catalogue. Une prop firm absente se crée d’abord dans la page PropFirms.</div>' : ''}</div>
+        ${newFirm ? '<div class="field-hint">PropFirms de l’app qui ne sont pas encore dans le catalogue. Une prop firm absente se crée d’abord dans la page PropFirms.</div>' : ''}
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="const id = document.getElementById('acat-np-firm').value; closeModal(); discRun(id);">${icon('sparkles')}Chercher les formules sur le site officiel</button></div>
       <div class="field"><label>${newFirm ? 'Première formule' : 'Nom de la formule'}</label><input id="acat-np-name" placeholder="ex. Standard MAX"/></div>
       <div class="field"><label>Phase</label><select id="acat-np-phase"><option value="PA">PA (compte financé)</option><option value="LIVE">Live</option></select></div>
       <div class="field"><label>Tailles</label><div class="acat-chips" id="acat-np-sizes">${ACAT_SIZE_CHOICES.map(s=>`<button type="button" class="acat-chip ${[25000,50000,100000,150000].includes(s)?'on':''}" data-size="${s}">${acatSizeLabel(s)}</button>`).join('')}</div></div>
@@ -8258,6 +8307,200 @@ function acatAiHtml(group){
     ${body}</div>`;
 }
 
+/* ============================================================
+   RECHERCHE DES FORMULES D'UNE PROP FIRM (26/11/2026, maquette validée par Mickael) — admin.
+   « Chercher les formules » (Nouvelle PropFirm, fiche PropFirm, Admin › Catalogue) : le serveur
+   (/edge/catalogue-discover, lecture seule) lit le site officiel, trouve les pages de règles, les
+   croise avec PropFirm Factory et MaPropFirm ; l'admin coche les formules à ajouter.
+   Une formule déjà au catalogue n'est jamais écrasée : ses écarts sont montrés, la correction se
+   fait dans la fiche (historique et motif habituels).
+============================================================ */
+const DISC_STEPS = [['site','Lecture du site officiel'],['pages','Recherche des pages de règles'],['comparators','Lecture de PropFirm Factory et MaPropFirm'],['ai','Analyse des règles par l’IA'],['check','Comparaison des sources']];
+const DISC_COMMON = [['ddTypes','Drawdown'],['dayType','Jours comptés'],['activation','Activation'],['payment','Paiement'],['dll','DLL en PA'],['split','Split (%)'],['maxPayouts','Payouts max'],['frequency','Fréquence']];
+const DISC_SIZE = [['ddAmount','Drawdown max'],['buffer','Buffer'],['minRequestProfit','Profit min pour demander'],['minPayout','Retrait min'],['minDays','Jours min'],['dayMin','Profit min / jour'],['consistency','Cohérence (%)'],['caps','Plafonds'],['activationFee','Frais d’activation'],['dllAmount','DLL']];
+const DISC_ST = { ok:['2 sources','ok'], ecart:['écart','dif'], one:['officiel seul','one'], no:['non trouvé','no'] };
+const DISC_VAL = { ddTypes:{ 'EOD':'EOD', 'INTRADAY':'Intraday', 'EOD,INTRADAY':'EOD / Intraday' }, dayType:{ winning:'jours gagnants', trading:'jours de trading' }, activation:{ free:'Gratuite', paid:'Payante', choice:'Au choix' }, payment:{ one_time:'Unique', monthly:'Abonnement' }, dll:{ yes:'Oui', no:'Non', optional:'Au choix' } };
+function disc(){ if(!state.disc) state.disc = { firmId:null, running:false, step:null, res:null, err:null, sel:{}, open:false, url:'' }; return state.disc; }
+const discNorm = s=>String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'');
+async function discRun(firmId, urlOverride){
+  if(!isAdmin()) return;
+  const d = disc();
+  if(d.running){ d.open = true; discModal(); return; }
+  const firm = getFirm(firmId); if(!firm) return;
+  const website = String(urlOverride || firm.website || '').trim();
+  if(!website){ showToast('Indique d’abord le site web officiel de ' + firm.name + ' (fiche PropFirm).', 'danger'); return; }
+  if(!acat().raw) acatLoad();
+  Object.assign(d, { firmId, running:true, step:null, done:[], res:null, err:null, sel:{}, open:true, url:website });
+  discModal();
+  let finalTxt = '';
+  try{
+    const res = await fetch('/edge/catalogue-discover', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization': await aikBearer() }, body: JSON.stringify({ firm: firm.name, website }) });
+    if(res.status === 404) throw new Error('La recherche n’est pas encore déployée (netlify/functions/catalogue-discover.js).');
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    for(;;){
+      const { value, done } = await reader.read();
+      if(value) buf += dec.decode(value, { stream:true });
+      let i;
+      while((i = buf.indexOf('\n@@step ')) >= 0){
+        const j = buf.indexOf('\n', i + 8); if(j < 0) break;
+        const name = buf.slice(i + 8, j).trim(); buf = buf.slice(0, i) + buf.slice(j);
+        if(d.step) d.done.push(d.step); d.step = name; discModal(true);
+      }
+      if(done) break;
+    }
+    const k = buf.indexOf('@@result ');
+    finalTxt = k >= 0 ? buf.slice(k + 9) : buf;
+    const data = JSON.parse(finalTxt.trim());
+    if(data.status !== 200) throw new Error(data.error || 'Recherche impossible.');
+    d.res = data;
+    (data.programs || []).forEach((p, i)=>{ d.sel[i] = !discExisting(p) && (p.sizes || []).length > 0 && (p.confirmed > 0 || Object.values(p.bySize || {}).some(o=>Object.values(o).some(c=>c.st !== 'no'))); });
+  }catch(e){
+    d.err = e instanceof SyntaxError ? 'Réponse illisible du serveur. Réessaie.' : (e.message || String(e));
+  }
+  d.running = false;
+  if(d.open && document.querySelector('.disc-modal')) discModal();
+  else showToast(d.err ? 'Recherche des formules : ' + d.err : 'Recherche des formules terminée pour ' + firm.name + ' : clique pour voir le résultat.', d.err ? 'danger' : 'success', ()=>{ d.open = true; discModal(); });
+}
+// Groupe déjà au catalogue pour ce nom de formule (PA), s'il existe.
+function discExisting(p){
+  const d = disc(); const n = discNorm(p.name);
+  const rows = (acat().raw || []).filter(r=>r.propfirm_id === d.firmId && r.phase === 'PA' && discNorm(r.program) === n);
+  return rows.length ? rows : null;
+}
+function discCompare(p, rows){
+  const group = rows.slice().sort((a,b)=>Number(a.size) - Number(b.size));
+  const diffs = []; const newSizes = [];
+  const zero = v=>String(v).trim() === '' || /^0([.,]0+)?$/.test(String(v).trim());
+  const same = (a, b)=>String(a).replace(/\s/g,'').toLowerCase() === String(b).replace(/\s/g,'').toLowerCase() || (Number(a) === Number(b) && String(a).trim() !== '' && String(b).trim() !== '') || (zero(a) && zero(b));
+  const show = (f, v)=>v === '' ? 'non renseigné' : ((DISC_VAL[f] && DISC_VAL[f][v]) || v);
+  DISC_COMMON.forEach(([f, lab])=>{ const c = p.common[f]; if(!c || !c.v) return; const mine = acatOrig(group, 'g', f); if(mine !== '' && !same(mine, c.v)) diffs.push(`${lab} : ${show(f, mine)} → ${show(f, c.v)}`); });
+  (p.sizes || []).forEach(z=>{
+    if(!group.some(r=>Number(r.size) === z)){ newSizes.push(acatSizeLabel(z)); return; }
+    DISC_SIZE.forEach(([f, lab])=>{ const c = (p.bySize[z] || {})[f]; if(!c || !c.v) return; const mine = acatOrig(group, 's', f, z); if(!same(mine, c.v)) diffs.push(`${lab} ${acatSizeLabel(z)} : ${show(f, mine)} → ${show(f, c.v)}`); });
+  });
+  return { diffs, newSizes, key: acatKey(group[0]) };
+}
+function discCell(c, f){
+  if(!c) return '<td class="text-faint">—</td>';
+  const [lab, cls] = DISC_ST[c.st] || DISC_ST.no;
+  const shown = c.v ? ((DISC_VAL[f] && DISC_VAL[f][c.v]) || c.v) : '—';
+  const alt = c.alt ? (c.st === 'no' ? ' · ' + c.alt : ' : ' + c.alt) : '';
+  return `<td><span class="disc-v mono">${escapeHtml(shown)}</span><span class="disc-s ${cls}" title="${escapeHtml(lab + alt)}">${escapeHtml(lab + alt)}</span></td>`;
+}
+function discProgHtml(p, i){
+  const d = disc(); const ex = discExisting(p);
+  const cmp = ex ? discCompare(p, ex) : null;
+  const on = !!d.sel[i] && !ex;
+  const sizes = p.sizes || [];
+  const flag = ex ? (cmp.diffs.length ? `<span class="disc-tag dif">Déjà au catalogue · ${cmp.diffs.length} écart${cmp.diffs.length > 1 ? 's' : ''}</span>` : `<span class="disc-tag ex">Déjà au catalogue · identique</span>`) : '<span class="disc-tag new">Nouvelle</span>';
+  const sub = [p.ecarts ? p.ecarts + ' écart' + (p.ecarts > 1 ? 's' : '') + ' à regarder' : '', p.missing ? p.missing + ' valeur' + (p.missing > 1 ? 's' : '') + ' non trouvée' + (p.missing > 1 ? 's' : '') : ''].filter(Boolean).join(' · ');
+  const commonRow = DISC_COMMON.filter(([f])=>p.common[f] && (p.common[f].v || ['ddTypes','activation','payment','dll','split'].includes(f)));
+  return `<div class="disc-prog${on ? ' on' : ''}">
+    <div class="disc-prog-h">
+      ${ex ? `<span class="disc-cbx dis" title="Déjà au catalogue : corrige-la dans sa fiche">${icon('check')}</span>` : `<button type="button" class="disc-cbx${on ? ' on' : ''}" onclick="discToggle(${i})" aria-pressed="${on}" aria-label="Ajouter ${escapeHtml(p.name)}">${on ? icon('check') : ''}</button>`}
+      <b>${escapeHtml(p.name)}</b>${flag}
+      <span class="cat-sub">${sizes.length ? sizes.map(acatSizeLabel).join(' · ') : 'aucune taille trouvée'}</span>
+      <span class="disc-sp"></span>
+      ${ex ? `<button type="button" class="btn btn-outline btn-sm" onclick='discOpenFiche(${escapeHtml(JSON.stringify(cmp.key))})'>Voir dans la fiche</button>` : `<span class="cat-sub">${sub}</span>`}
+    </div>
+    ${p.note ? `<div class="disc-note">${icon('info')}<span>${escapeHtml(p.note)}</span></div>` : ''}
+    ${ex ? (cmp.diffs.length || cmp.newSizes.length ? `<div class="disc-diffs">${cmp.diffs.slice(0, 8).map(x=>`<div>${escapeHtml(x)}</div>`).join('')}${cmp.diffs.length > 8 ? `<div class="text-faint">+ ${cmp.diffs.length - 8} autres</div>` : ''}${cmp.newSizes.length ? `<div>Tailles absentes du catalogue : ${cmp.newSizes.join(', ')} (ajoute-les dans la fiche avec « + Taille »)</div>` : ''}</div>` : '')
+      : sizes.length ? `<div class="table-wrap"><table class="disc-t">
+        <thead><tr><th>Commun</th>${commonRow.map(([f, lab])=>`<th>${lab}</th>`).join('')}</tr></thead>
+        <tbody><tr><td class="text-faint">toutes tailles</td>${commonRow.map(([f])=>discCell(p.common[f], f)).join('')}</tr></tbody></table>
+        <table class="disc-t"><thead><tr><th>Taille</th>${DISC_SIZE.map(([f, lab])=>`<th>${lab}</th>`).join('')}</tr></thead>
+        <tbody>${sizes.map(z=>`<tr><td class="mono"><b>${acatSizeLabel(z)}</b></td>${DISC_SIZE.map(([f])=>discCell((p.bySize[z] || {})[f], f)).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
+    <div class="disc-src">${p.source ? `<a href="${escapeHtml(p.source)}" target="_blank" rel="noopener">${icon('externalLink')}Page officielle</a>` : ''}${p.comparators.factory.length ? `<span>Factory : ${escapeHtml(p.comparators.factory.join(', '))}</span>` : ''}${p.comparators.mapropfirm.length ? `<span>MaPropFirm : ${escapeHtml(p.comparators.mapropfirm.join(', '))}</span>` : ''}${!p.comparators.factory.length && !p.comparators.mapropfirm.length ? '<span>Aucun comparateur ne connaît cette formule : valeurs du site officiel seul.</span>' : ''}</div>
+  </div>`;
+}
+function discModal(soft){
+  const d = disc(); const firm = getFirm(d.firmId) || { name:'?' };
+  let body = '', foot = '';
+  if(d.running){
+    body = `<div class="disc-steps">${DISC_STEPS.map(([k, lab])=>{ const st = d.done.includes(k) ? 'ok' : d.step === k ? 'run' : 'wait';
+      return `<div class="disc-step ${st}"><span class="disc-ic">${st === 'ok' ? icon('check') : st === 'run' ? '<span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>' : ''}</span>${lab}</div>`; }).join('')}
+      <div class="field-hint">Environ une minute. Tu peux fermer cette fenêtre : une notification te préviendra, et le bouton de recherche rouvrira le résultat.</div></div>`;
+    foot = `<button type="button" class="btn btn-outline" onclick="discClose()">Fermer</button>`;
+  } else if(d.err){
+    body = `<div class="disc-err">${icon('alertTriangle')}<span>${escapeHtml(d.err)}</span></div>
+      <div class="field" style="margin-top:12px;"><label for="disc-url">Lien de la page des règles (facultatif)</label><input id="disc-url" placeholder="https://…" value="${escapeHtml(d.url)}"/><div class="field-hint">Si le site se lit mal, colle l’adresse de la page d’aide qui décrit les règles du compte financé.</div></div>`;
+    foot = `<button type="button" class="btn btn-outline" onclick="discClose()">Fermer</button><button type="button" class="btn btn-primary" onclick="discRun(disc().firmId, document.getElementById('disc-url').value)">${icon('reset')}Relancer</button>`;
+  } else if(d.res){
+    const r = d.res; const progs = r.programs || [];
+    const n = progs.filter((p, i)=>d.sel[i] && !discExisting(p)).length;
+    body = `<div class="disc-top">
+        <div class="disc-links">${(r.pages || []).slice(0, 5).map(u=>`<a href="${escapeHtml(u)}" target="_blank" rel="noopener">${icon('externalLink')}${escapeHtml(u.replace(/^https?:\/\/(www\.)?/,'').slice(0, 48))}</a>`).join('')}</div>
+        <div class="cat-sub">${escapeHtml(r.sources || '')}${r.read === 'ia' ? ' · site chargé en JavaScript : pages lues directement par l’IA' : ' · ' + r.pagesRead + ' pages lues'}</div>
+        <div class="disc-leg"><span><i class="ok"></i>2 sources : site officiel et un comparateur</span><span><i class="dif"></i>écart : un comparateur dit autre chose (valeur officielle proposée)</span><span><i class="one"></i>officiel seul</span><span><i class="no"></i>non trouvé</span></div>
+      </div>
+      ${progs.length ? progs.map(discProgHtml).join('') : '<div class="cat-empty">Aucune formule de compte financé trouvée sur le site. Relance avec le lien de la page des règles.</div>'}
+      ${r.remark ? `<div class="disc-note">${icon('info')}<span>${escapeHtml(r.remark)}</span></div>` : ''}`;
+    foot = `<span class="disc-foot-hint">Les formules ajoutées gardent la page officielle et la date ; avec un écart ou une valeur clé manquante, elles entrent « À confirmer ».</span>
+      <button type="button" class="btn btn-outline" onclick="discClose()">Fermer</button>
+      <button type="button" class="btn btn-outline" onclick="discRun(disc().firmId)">${icon('reset')}Relancer</button>
+      <button type="button" class="btn btn-primary" id="disc-add" onclick="discInsert()" ${n ? '' : 'disabled'}>Ajouter ${n} formule${n > 1 ? 's' : ''} au catalogue</button>`;
+  }
+  const title = `${d.running ? 'Recherche des formules' : d.res ? 'Formules trouvées' : 'Recherche des formules'} · ${escapeHtml(firm.name)}`;
+  const m = document.querySelector('.disc-modal');
+  if(soft && !m) return;
+  if(m){
+    m.querySelector('.modal-title, h3') && (m.querySelector('.modal-title, h3').innerHTML = title);
+    const b = m.querySelector('.modal-body'); if(b) b.innerHTML = body;
+    const f = m.querySelector('.modal-foot, .modal-footer'); if(f) f.innerHTML = foot;
+    return;
+  }
+  openModal({ title, bodyHtml:body, footHtml:foot, wide:'xwide' });
+  const mod = document.querySelector('#modal-root .modal'); if(mod) mod.classList.add('disc-modal');
+}
+function discClose(){ disc().open = false; closeModal(); }
+function discToggle(i){ const d = disc(); d.sel[i] = !d.sel[i]; discModal(); }
+function discOpenFiche(key){ closeModal(); disc().open = false; const c = acat(); c.sel = key; c.edits = {}; c.motif = ''; c.tab = 'rules'; state.route = 'admin'; state.adminTab = 'catalogue'; render(); }
+async function discInsert(){
+  const d = disc(); const r = d.res; if(!r) return;
+  const progs = (r.programs || []).filter((p, i)=>d.sel[i] && !discExisting(p) && (p.sizes || []).length);
+  if(!progs.length) return;
+  const btn = document.getElementById('disc-add'); if(btn) btn.disabled = true;
+  const c = acat(); if(!c.raw) await acatLoad();
+  let sort = Math.max(0, ...(c.raw || []).map(x=>Number(x.sort) || 0));
+  const today = todayISO();
+  const rows = [];
+  progs.forEach(p=>{
+    sort++;
+    const srcSt = k=>{ const names = p.comparators[k] || []; if(!names.length) return 'absent'; return p.ecarts ? 'ecart' : 'ok'; };
+    p.sizes.forEach(z=>{
+      const rules = {};
+      const g = f=>(p.common[f] && p.common[f].v) || '';
+      if(g('ddTypes')) rules.ddTypes = g('ddTypes').split(',').map(x=>x.trim().toUpperCase()).filter(x=>['EOD','INTRADAY'].includes(x));
+      if(['winning','trading'].includes(g('dayType'))) rules.dayType = g('dayType');
+      if(['free','paid','choice'].includes(g('activation'))) rules.activation = g('activation');
+      if(['one_time','monthly'].includes(g('payment'))) rules.payment = g('payment');
+      if(['yes','no','optional'].includes(g('dll'))) rules.dll = g('dll');
+      ['split','maxPayouts','frequency'].forEach(f=>{ const v = acatParse(f, g(f)); if(v !== undefined && !(typeof v === 'number' && !isFinite(v))) rules[f] = v; });
+      const S = p.bySize[z] || {};
+      let issue = false;
+      DISC_SIZE.forEach(([f])=>{
+        const cell = S[f]; if(!cell) return;
+        if(cell.st === 'ecart') issue = true;
+        if(!cell.v) return;
+        const v = acatParse(f, cell.v);
+        const bad = Array.isArray(v) ? v.some(x=>x !== null && !Number.isFinite(x)) : (typeof v === 'number' && !Number.isFinite(v));
+        if(v !== undefined && !bad) rules[f] = v;
+      });
+      if(rules.ddAmount == null || rules.minPayout == null) issue = true;
+      rules.check = { at:today, factory:srcSt('factory'), mapropfirm:srcSt('mapropfirm'), note:'Recherche IA du site officiel le ' + fmtDate(today) + (p.ecarts ? ' : ' + p.ecarts + ' écart(s) avec les comparateurs' : '') + (p.missing ? ', ' + p.missing + ' valeur(s) non trouvée(s)' : '') + '.' };
+      rows.push({ propfirm_id:d.firmId, program:p.name, phase:'PA', size:z, source_url:p.source || r.website, conf: issue || p.missing ? 'partial' : 'official', active:true, is_default:false, sort,
+        notes:p.note || null, rules, change_note:'Ajout depuis la recherche des formules (site officiel + comparateurs)' });
+    });
+  });
+  const { error } = await supabaseClient.from('propfirm_programs').insert(rows);
+  if(error){ showToast('Ajout impossible : ' + error.message, 'danger'); if(btn) btn.disabled = false; return; }
+  try{ await logActivity('CREATE', 'propfirm_program', d.firmId, (getFirm(d.firmId) || {}).name + ' · ' + progs.map(p=>p.name).join(', ')); }catch(e){}
+  showToast(progs.length + ' formule' + (progs.length > 1 ? 's' : '') + ' ajoutée' + (progs.length > 1 ? 's' : '') + ' au catalogue.', 'success');
+  c.raw = null; await acatLoad(); catLoad(true);
+  const first = (c.raw || []).find(x=>x.propfirm_id === d.firmId && x.program === progs[0].name);
+  closeModal(); d.open = false;
+  if(first){ c.sel = acatKey(first); state.route = 'admin'; state.adminTab = 'catalogue'; render(); }
+}
 function viewAdminCatalogue(){
   const c = acat();
   if(!c.raw){ acatLoad(); return emptyState('book', 'Chargement du catalogue…', ''); }
@@ -8272,7 +8515,7 @@ function viewAdminCatalogue(){
   });
   const side = Object.entries(byFirm).sort((a,b)=>a[1].name.localeCompare(b[1].name, 'fr')).map(([fid, fm])=>{
     const firm = state.propfirms.find(f=>f.id===fid) || { name:fm.name };
-    return `<div class="acat-firm"><div class="acat-firm-h">${firmLogoHtml(firm, 20)}<span>${escapeHtml(fm.name)}</span><button type="button" class="acat-add" title="Ajouter une formule" onclick="acatAddProgram('${fid}')">+</button></div>
+    return `<div class="acat-firm"><div class="acat-firm-h">${firmLogoHtml(firm, 20)}<span>${escapeHtml(fm.name)}</span><button type="button" class="acat-add acat-disc" title="Rechercher de nouvelles formules sur le site officiel" onclick="discRun('${fid}')">${icon('search')}</button><button type="button" class="acat-add" title="Ajouter une formule" onclick="acatAddProgram('${fid}')">+</button></div>
       ${fm.items.map(it=>`<button type="button" class="acat-prog${it.k===c.sel?' sel':''}${it.off?' off':''}" onclick='acatSelect(${escapeHtml(JSON.stringify(it.k))})'><span>${escapeHtml(it.r0.program)}</span>${it.r0.phase==='LIVE'?'<span class="badge cat-b-both">Live</span>':''}${it.off?'<span class="badge cat-b-slate">Retiré</span>':''}<span class="acat-n">${it.n} t.</span></button>`).join('')}</div>`;
   }).join('') || '<div class="cat-sub" style="padding:12px;">Aucune formule.</div>';
   const group = acatGroup(c.sel);
@@ -26178,7 +26421,7 @@ function firmFormModal(existing){
         <input type="file" id="ff-logo-file" accept="image/*" style="display:none;" />
       </div>
       <div class="field"><label>Nom</label><input id="ff-name" value="${f.name}"/></div>
-      <div class="field"><label>Site web (optionnel)</label><input id="ff-web" value="${f.website||''}" placeholder="https://…"/></div>
+      <div class="field"><label>Site web (optionnel)</label>${isAdmin() ? `<div class="disc-ffrow"><input id="ff-web" value="${f.website||''}" placeholder="https://…"/><button type="button" class="btn btn-primary btn-sm" id="ff-disc">${icon('sparkles')}Chercher les formules</button></div><div class="field-hint">Admin : enregistre la prop firm, puis l’IA lit le site officiel, trouve les règles et te propose les formules (environ une minute).</div>` : `<input id="ff-web" value="${f.website||''}" placeholder="https://…"/>`}</div>
       <div class="field"><label>Notes (optionnel)</label><textarea id="ff-notes" rows="3">${f.notes||''}</textarea></div>
       <div id="ff-error" class="error-text"></div>
     `,
@@ -26210,16 +26453,21 @@ function firmFormModal(existing){
         e.target.value = '';
       });
       document.getElementById('ff-cancel').onclick = closeModal;
-      document.getElementById('ff-save').onclick = async ()=>{
+      const ffSave = async (thenSearch)=>{
         const name = document.getElementById('ff-name').value.trim();
         if(!name){ document.getElementById('ff-error').textContent = 'Le nom est obligatoire.'; return; }
         const dup = state.propfirms.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.id!==f.id);
         if(dup){ document.getElementById('ff-error').textContent = 'Cette PropFirm existe déjà.'; return; }
-        await upsert('propfirms', { ...f, name, website: document.getElementById('ff-web').value.trim(), notes: document.getElementById('ff-notes').value.trim(), logoUrl });
+        const web = document.getElementById('ff-web').value.trim();
+        if(thenSearch && !web){ document.getElementById('ff-error').textContent = 'Indique le site web officiel pour chercher les formules.'; return; }
+        await upsert('propfirms', { ...f, name, website: web, notes: document.getElementById('ff-notes').value.trim(), logoUrl });
         await logActivity(existing?'UPDATE':'CREATE', 'propfirm', f.id, `${name}`);
         showToast(existing ? 'PropFirm mise à jour.' : 'PropFirm créée.');
         closeModal(); render();
+        if(thenSearch) discRun(f.id);
       };
+      document.getElementById('ff-save').onclick = ()=>ffSave(false);
+      const ffDisc = document.getElementById('ff-disc'); if(ffDisc) ffDisc.onclick = ()=>ffSave(true);
     }
   });
 }
