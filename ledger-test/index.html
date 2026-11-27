@@ -1453,6 +1453,32 @@ th.th-sort-active svg{opacity:1;}
 .cat-table tbody tr:hover{background:var(--surface-2);}
 .cat-table tbody tr:last-child td{border-bottom:none;}
 .cat-firm{display:flex;align-items:center;gap:11px;}
+.tk{display:flex;align-items:center;height:34px;background:var(--surface);border:1px solid var(--border);font-size:12px;overflow:hidden;}
+.tk-cat{border-radius:10px;margin-bottom:14px;}
+.tk-landing{margin:0 calc(50% - 50vw);border-width:0 0 1px;}
+html{overflow-x:clip;}
+.tk-l{display:flex;align-items:center;gap:6px;padding:0 12px;height:100%;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--gold);border-right:1px solid var(--border);background:var(--surface-2);flex-shrink:0;}
+.tk-l svg{width:12px;height:12px;}
+.tk-l .info-tip{margin-left:0;}
+.tk-v{flex:1;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);}
+.tk-t{display:inline-flex;align-items:center;white-space:nowrap;animation:tkscroll 40s linear infinite;will-change:transform;}
+.tk-dup{display:inline-flex;align-items:center;}
+.tk:hover .tk-t,.tk:focus-within .tk-t{animation-play-state:paused;}
+@keyframes tkscroll{to{transform:translateX(-50%);}}
+.tk-i{display:inline-flex;align-items:center;gap:8px;padding:0 6px;background:none;border:0;color:var(--text-dim);font-size:12px;cursor:pointer;height:34px;}
+.tk-i .firm-avatar,.tk-i img{flex-shrink:0;}
+.tk-i b{font-weight:600;color:var(--text);}
+.tk-i:hover b{color:var(--accent);}
+.tk-pct{font:700 11px "Space Grotesk",Inter,sans-serif;color:var(--gold);background:var(--gold-dim);border-radius:5px;padding:2px 6px;}
+.tk-cd{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:11px;color:var(--accent);border:1px dashed color-mix(in srgb,var(--accent) 45%,transparent);border-radius:5px;padding:1px 6px;}
+.tk-cd svg{width:11px;height:11px;}
+.tk-nt{color:var(--text-faint);font-size:11.5px;}
+.tk-dot{color:var(--border);padding:0 8px;}
+.tk-x{width:34px;height:100%;display:flex;align-items:center;justify-content:center;background:none;border:0;border-left:1px solid var(--border);color:var(--text-faint);cursor:pointer;flex-shrink:0;}
+.tk-x svg{width:13px;height:13px;}.tk-x:hover{color:var(--text);}
+@media (prefers-reduced-motion: reduce){ .tk-t{animation:none;} .tk-v{overflow-x:auto;} .tk-dup{display:none;} }
+@media (max-width:640px){ .tk-nt{display:none;} .tk-l span{display:none;} }
+
 .acat-disc svg{width:12px;height:12px;}
 .acat-disc + .acat-add{margin-left:0;}
 .modal.xwide.disc-modal{max-width:1240px;}
@@ -3600,6 +3626,7 @@ th.th-sort-active svg{opacity:1;}
 <body>
 
 <div id="marketing-landing" class="marketing-landing">
+  <div id="aff-ticker-landing"></div>
   <header class="ml-topbar">
     <div class="ml-brand ml-brand-home" role="link" tabindex="0" title="Retour en haut de la page" aria-label="Contralytix — retour en haut de la page" onclick="window.scrollTo({top:0,behavior:'smooth'})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
       <img src="/favicon.png" alt="Contralytix" width="28" height="28" style="border-radius:6px;" onerror="this.style.display='none'"/>
@@ -7687,7 +7714,7 @@ function viewCatalogue(){
       ${admin ? `<td>${chkBadge(r)}</td>` : ''}
       <td class="cat-add-cell"><div class="cat-add-btns"><button type="button" class="btn btn-primary btn-sm" onclick="catAddAccount('${r.id}')" title="${r.phase==='LIVE'?'Créer un compte Live':'Démarrer un challenge (ou un PA direct)'} avec cette formule et cette taille">${icon('plus')}Ajouter</button></div></td>
     </tr>`).join('');
-  return `<div class="cat-page">
+  return `${tickerHtml(tickItemsFromLive(), 'cat')}<div class="cat-page">
     ${c.open ? '<div class="cat-overlay" onclick="catToggle(null)"></div>' : ''}
     ${c.error ? `<div class="search-hidden-note">${icon('alertTriangle')}<span>${c.error}</span></div>` : ''}
     <div class="filter-bar cat-bar" role="toolbar" aria-label="Filtres du catalogue">
@@ -7746,7 +7773,8 @@ function affLive(){
 function affFor(firmId){ return firmId ? affLive().get(firmId) || null : null; }
 function affPct(r){ const n = Number(r.discount); return r.discount != null && r.discount !== '' && isFinite(n) && n > 0 ? `−${Math.round(n * 10) / 10} %` : ''; }
 function affUrl(u){ const s = String(u || '').trim(); return !s ? '' : /^https?:\/\//i.test(s) ? s : 'https://' + s; }
-function affTrack(id, kind){ if(supabaseClient && id && !String(id).startsWith('preview')) supabaseClient.from('affiliate_clicks').insert({ code_id:id, kind }).then(()=>{}, ()=>{}); }
+// Compte un clic via la fonction affiliate_click (marche aussi sans connexion, page d'accueil). 27/11/2026
+function affTrack(id, kind){ if(supabaseClient && id && !String(id).startsWith('preview')) supabaseClient.rpc('affiliate_click', { p_code_id:id, p_kind:kind }).then(()=>{}, ()=>{}); }
 async function affCopy(id){
   const r = (affState().rows || []).find(x=>x.id === id); if(!r) return;
   try{ await navigator.clipboard.writeText(r.code); showToast(`Code ${r.code} copié.`); }catch(_){ showToast(`Ton code : ${r.code}`); }
@@ -7886,6 +7914,58 @@ async function affDeleteNow(id){
   if(error){ showToast('Suppression impossible : ' + error.message, 'danger'); return; }
   showToast('Code supprimé.');
   await affLoad(true);
+}
+/* ============================================================
+   BANDEAU DÉFILANT DES CODES PROMO (27/11/2026, maquette validée par Mickael)
+   Page d'accueil publique (lecture via la fonction public_affiliate_codes, sans connexion) et page
+   Catalogue. Clic = copie du code + ouverture du lien + clic compté. Croix = masqué sur cet appareil
+   jusqu'à ce qu'un code soit ajouté ou modifié (signature des codes dans localStorage).
+============================================================ */
+function tickItemsFromLive(){
+  return [...affLive().values()].map(r=>{ const fm = getFirm(r.propFirmId) || { name:'?' }; return { id:r.id, code:r.code, discount:r.discount, note:r.note, url:r.url, updatedAt:r.updatedAt, firm:fm }; })
+    .sort((a,b)=>a.firm.name.localeCompare(b.firm.name, 'fr'));
+}
+function tickSig(items){ return items.map(i=>i.id + '@' + (i.updatedAt || '')).sort().join('|'); }
+function tickHidden(items){ try{ return localStorage.getItem('cx_tick_hide') === tickSig(items); }catch(e){ return false; } }
+function tickShort(t){ const s = String(t || '').split(/[,;(]/)[0].trim(); return s.length > 42 ? s.slice(0, 40).trim() + '…' : s; }
+function tickerHtml(items, where){
+  if(!items || !items.length || tickHidden(items)) return '';
+  window.__tickItems = items;
+  const one = items.map(i=>{
+    const pct = Number(i.discount) > 0 ? `<span class="tk-pct">−${Math.round(Number(i.discount) * 10) / 10} %</span>` : '';
+    return `<button type="button" class="tk-i" onclick="tickClick('${i.id}')" title="Copier le code ${escapeHtml(i.code)} et ouvrir l’offre ${escapeHtml(i.firm.name)}">${firmLogoHtml(i.firm, 18)}<b>${escapeHtml(i.firm.name)}</b>${pct}<span class="tk-cd mono">${escapeHtml(i.code)}${icon('copy')}</span>${i.note ? `<span class="tk-nt">${escapeHtml(tickShort(i.note))}</span>` : ''}</button><span class="tk-dot" aria-hidden="true">•</span>`;
+  }).join('');
+  const reps = Math.max(2, Math.ceil(6 / items.length));
+  const half = one.repeat(reps);
+  const dur = Math.max(30, items.length * reps * 7);
+  return `<div class="tk tk-${where}" role="region" aria-label="Codes promo">
+    <div class="tk-l">${icon('tag')}<span>CODES PROMO</span>${infoTip('Liens affiliés : Contralytix touche une commission, sans surcoût pour toi. Clique sur un code pour le copier et ouvrir l’offre.')}</div>
+    <div class="tk-v"><div class="tk-t" style="animation-duration:${dur}s">${half}<span aria-hidden="true" class="tk-dup">${half}</span></div></div>
+    <button type="button" class="tk-x" onclick="tickHide()" title="Masquer (revient si un nouveau code est publié)" aria-label="Masquer le bandeau des codes promo">${icon('x')}</button>
+  </div>`;
+}
+function tickClick(id){
+  const i = (window.__tickItems || []).find(x=>x.id === id); if(!i) return;
+  if(navigator.clipboard) navigator.clipboard.writeText(i.code).then(()=>showToast(`Code ${i.code} copié : colle-le au paiement.`), ()=>showToast(`Ton code : ${i.code}`));
+  else showToast(`Ton code : ${i.code}`);
+  window.open(affUrl(i.url), '_blank', 'noopener');
+  affTrack(id, 'open');
+}
+function tickHide(){
+  const items = window.__tickItems || [];
+  try{ localStorage.setItem('cx_tick_hide', tickSig(items)); }catch(e){}
+  document.querySelectorAll('.tk').forEach(el=>el.remove());
+}
+async function tickLoadLanding(){
+  const host = document.getElementById('aff-ticker-landing');
+  if(!host || !supabaseClient) return;
+  try{
+    const { data, error } = await supabaseClient.rpc('public_affiliate_codes');
+    if(error || !data) return;
+    const items = data.map(r=>({ id:r.id, code:r.code, discount:r.discount, note:r.note, url:r.url, updatedAt:r.updated_at, firm:{ id:r.firm_id, name:r.firm_name, logoUrl:r.firm_logo, website:r.firm_website } }))
+      .sort((a,b)=>a.firm.name.localeCompare(b.firm.name, 'fr'));
+    host.innerHTML = tickerHtml(items, 'landing');
+  }catch(e){ /* bandeau facultatif */ }
 }
 function catAdminPanel(c){
   const all = c.rows.filter(r=>r.phase === 'PA' && r.active);
@@ -30716,6 +30796,7 @@ function applyLandingPricing(){
   // défaut de state.pricingSettings si la lecture anonyme d'app_settings n'est pas autorisée.
   await loadPricingSettings();
   applyLandingPricing();
+  tickLoadLanding();   // bandeau des codes promo (27/11/2026), sans bloquer
   // Retour d'une connexion Google (OAuth) : contrairement au flux email+code (100% côté
   // client, jamais de rechargement de page), signInWithOAuth() fait quitter puis revenir
   // le navigateur sur cette page — un vrai rechargement complet. #marketing-landing est
@@ -30844,6 +30925,7 @@ function applyLandingPricing(){
       applyFraisGenerauxLandingVisibility();
       await loadPricingSettings();
       applyLandingPricing();
+      tickLoadLanding();
     }
   });
 
