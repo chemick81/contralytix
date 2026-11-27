@@ -22,6 +22,11 @@
 [functions."trial-reminder"]
   schedule = "20 8 * * *"
 
+# Synchro Deltalytix automatique (Tradovate / Rithmic → Deltalytix → Contralytix) : à 22h et 6h UTC
+# (23h et 7h à Paris en hiver, minuit et 8h en été). Voir deltalytix-autosync.js.
+[functions."deltalytix-autosync"]
+  schedule = "0 22,6 * * *"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

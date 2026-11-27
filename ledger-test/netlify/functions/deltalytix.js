@@ -205,6 +205,151 @@ async function userAccounts(db, userId, email) {
   return accounts || [];
 }
 
+// Synchro « lecture » (radar, santé des comptes, P&L) pour un utilisateur. Partagée par le bouton
+// (action 'sync') et par la fonction d'arrière-plan deltalytix-refresh-background (synchro auto, 27/11/2026).
+async function runSync(db, user, token, { radar, deadline }) {
+  const saveState = (patch) => db.from('broker_connections').update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('user_id', user.id).eq('provider', L.PROVIDER);
+  const remote = await allAccounts(token, deadline);
+  const byNum = new Map();
+  const remoteByNum = new Map();
+  remote.forEach((a) => {
+    const n = normAccNum(a.number || a.accountNumber);
+    if (!n) return;
+    remoteByNum.set(n, a);
+    byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
+  });
+  const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
+  const allMine = await userAccounts(db, user.id, user.email);
+  // Connexions broker : plateforme de chaque compte + connexions en retard de synchro
+  // (portée connections:read ; absente des autorisations données avant le 13/10/2026).
+  const conns = await connectionsOf(token, deadline);
+  const connectionsScope = conns.scope;
+  const plat = platformMap(conns.list);
+  const trades = await recentTradesDaily(token, since, deadline);
+  // Santé des comptes (tous types) trouvés dans Deltalytix : actifs, ou sans plateforme connue.
+  const health = [];
+  allMine.forEach((a) => {
+    const k = normAccNum(a.account_number);
+    const r = remoteByNum.get(k);
+    if (!r && !plat.has(k)) return;
+    if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r, trades.map.get(k)), platform: plat.get(k) || null });
+    else if (plat.has(k)) health.push({ accountId: a.id, platform: plat.get(k), inactive: a.status !== 'ACTIF' });
+  });
+  // Connexions en retard (corrigé le 23/10/2026) : on renvoie l'identifiant Contralytix des comptes
+  // concernés (accountIds) pour que l'alerte nomme exactement les bons. Un trader peut avoir plusieurs
+  // connexions de la même plateforme (un login Rithmic par prop firm) : la plateforme ne suffit pas.
+  // Un compte présent aussi dans une connexion À JOUR n'est pas signalé (il est bien suivi).
+  const stale = [];
+  const activeIdByNum = new Map(allMine.filter((a) => a.status === 'ACTIF').map((a) => [normAccNum(a.account_number), a.id]));
+  const limit = Date.now() - STALE_DAYS * 86400000;
+  const isStale = (c) => { const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0; return !last || last < limit; };
+  const freshNums = new Set();
+  conns.list.filter((c) => !isStale(c)).forEach((c) => (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).forEach((n) => freshNums.add(normAccNum(n))));
+  conns.list.filter(isStale).forEach((c) => {
+    const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).map(normAccNum)
+      .filter((n) => activeIdByNum.has(n) && !freshNums.has(n));
+    if (!nums.length) return;
+    stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length, accountIds: [...new Set(nums.map((n) => activeIdByNum.get(n)))] });
+  });
+  const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
+  const now = new Date().toISOString();
+  const rows = [];
+  let matched = 0;
+  const matchedIds = [];
+  const missingIds = [];
+  // Challenges actifs (25/11/2026, Calendrier P&L) : leurs journées sont aussi écrites, pour que le
+  // calendrier et le P&L du jour les comptent comme dans Deltalytix. Ils restent hors des compteurs
+  // (matched / funded / missingIds), qui ne concernent que les comptes financés du Radar.
+  const chAct = allMine.filter((a) => a.type === 'CHALLENGE' && a.status === 'ACTIF');
+  const seenDays = new Map(); // compte → jours (>= since) renvoyés par Deltalytix à cette synchro
+  [...mine, ...chAct].forEach((a) => {
+    const isCh = a.type === 'CHALLENGE';
+    const k = normAccNum(a.account_number);
+    const fromTrades = trades.map.get(k);
+    if (!byNum.has(k) && !fromTrades) { if (!isCh) missingIds.push(a.id); return; }
+    if (!isCh) matchedIds.push(a.id);
+    // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
+    const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
+    // P&L « au-dessus du buffer » (22/11/2026, Trading plan) : c'est exactement metrics.dailyPnL de
+    // Deltalytix (considerBuffer). Gardé à part dans pnl_buffer ; pnl reste le P&L brut (Radar).
+    // Un jour tradé absent de dailyPnL = tout sous le buffer → 0. Pas de dailyPnL du tout → inconnu.
+    const dpRaw = byNum.get(k) || {};
+    const dp = {};
+    Object.entries(dpRaw).forEach(([day, v]) => { const d = isoDay(day); if (d && Number.isFinite(Number(v))) dp[d] = (dp[d] || 0) + Number(v); });
+    const hasDp = Object.keys(dp).length > 0;
+    const bufOf = (d) => (hasDp ? Math.round((dp[d] || 0) * 100) / 100 : null);
+    if (!isCh) matched++;
+    seenDays.set(a.id, new Set());
+    let lastOld = null;
+    Object.entries(daily).forEach(([day, pnl]) => {
+      const d = isoDay(day);
+      if (!d || !Number.isFinite(Number(pnl))) return;
+      if (d < since) { if (!lastOld || d > lastOld[0]) lastOld = [d, pnl]; return; }
+      seenDays.get(a.id).add(d);
+      rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, pnl_buffer: bufOf(d), source: 'deltalytix', updated_at: now });
+    });
+    // Aucun trade récent : on écrit quand même le dernier jour tradé connu (point de départ du Radar).
+    if (lastOld && !rows.some((r) => r.account_id === a.id)) {
+      rows.push({ user_id: user.id, account_id: a.id, day: lastOld[0], traded: true, pnl: Math.round(Number(lastOld[1]) * 100) / 100, pnl_buffer: bufOf(lastOld[0]), source: 'deltalytix', updated_at: now });
+    }
+  });
+  // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
+  if (radar === false) rows.length = 0;
+  // Journées corrigées à la main (source 'edited') ou importées d'un relevé Tradovate / R|Trader Pro
+  // (source 'tradovate' / 'rithmic'), 23/11/2026 : jamais remplacées par la synchro, c'est le choix du trader.
+  if (rows.length) {
+    const ids = [...new Set(rows.map((r) => r.account_id))];
+    const { data: edited, error: edErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).in('source', ['edited', 'added', 'tradovate', 'rithmic']).gte('day', since);
+    if (!edErr && edited && edited.length) {
+      const skip = new Set(edited.map((e) => e.account_id + '|' + e.day));
+      for (let i = rows.length - 1; i >= 0; i--) if (skip.has(rows[i].account_id + '|' + rows[i].day)) rows.splice(i, 1);
+    }
+  }
+  // Journées Deltalytix disparues (25/11/2026) : un jour écrit par une synchro précédente que Deltalytix
+  // ne renvoie plus (trade supprimé ou rattaché à un autre compte) est retiré, sinon il gonfle le
+  // calendrier P&L. Seulement sur la période lue, pour les comptes trouvés, source 'deltalytix', et
+  // seulement si la lecture des trades est complète (sinon un jour pourrait manquer à tort).
+  if (rows.length && trades.complete && seenDays.size) {
+    const ids = [...seenDays.keys()];
+    const { data: old, error: oldErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).eq('source', 'deltalytix').gte('day', since);
+    if (!oldErr && old && old.length) {
+      const gone = {};
+      old.forEach((r) => { if (!seenDays.get(r.account_id).has(r.day)) (gone[r.account_id] = gone[r.account_id] || []).push(r.day); });
+      for (const [accId, days] of Object.entries(gone)) {
+        const { error: delErr } = await db.from('dormancy_logs').delete().eq('account_id', accId).eq('source', 'deltalytix').in('day', days);
+        if (delErr) console.error('Deltalytix : nettoyage des journées disparues', delErr.message);
+      }
+    }
+  }
+  for (let i = 0; i < rows.length; i += 500) {
+    let { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
+    // Colonne pnl_buffer absente (migration 20261122 pas jouée) : on écrit sans, la synchro ne casse pas.
+    if (error && /pnl_buffer/.test(error.message || '')) {
+      ({ error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500).map(({ pnl_buffer, ...r }) => r), { onConflict: 'account_id,day' }));
+    }
+    if (error) throw new Error(`dormancy_logs : ${error.message}`);
+  }
+  const dltxPlan = await deltalytixPlanOf(token, deadline);
+  await saveState({ last_sync_at: now, last_error: null });
+  return { matched, funded: mine.length, matchedIds, missingIds, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete, dltxPlan };
+}
+
+// Une connexion dont l'e-mail Deltalytix est celui d'un AUTRE utilisateur Contralytix (par ex. inscrit
+// après coup) est coupée, jetons révoqués chez Deltalytix (18/10/2026). Renvoie l'e-mail si coupée, sinon null.
+async function guardOwner(db, user) {
+  const { data: conn } = await db.from('broker_connections').select('account_email, token_enc')
+    .eq('user_id', user.id).eq('provider', L.PROVIDER).maybeSingle();
+  const de = conn && conn.account_email ? String(conn.account_email).trim() : '';
+  const same = de && String(user.email || '').trim().toLowerCase() === de.toLowerCase();
+  const taken = conn && de && !same ? await L.otherUserWithEmail(db, de, user.id) : false;
+  if (taken !== true) return null;
+  const t = L.unpackTokens(conn.token_enc);
+  if (t) await Promise.all([L.revokeToken(t.refresh_token), L.revokeToken(t.access_token)]);
+  await db.from('broker_connections').delete().eq('user_id', user.id).eq('provider', L.PROVIDER);
+  return de;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Méthode non autorisée' });
   if (!L.configured()) return json(501, { error: 'not_configured' });
@@ -230,21 +375,9 @@ exports.handler = async (event) => {
       return json(200, { connected: false });
     }
 
-    // Contrôle à chaque action (18/10/2026) : une connexion dont l'e-mail Deltalytix est celui d'un AUTRE
-    // utilisateur Contralytix (par ex. inscrit après coup) est coupée, jetons révoqués chez Deltalytix.
-    {
-      const { data: conn } = await db.from('broker_connections').select('account_email, token_enc')
-        .eq('user_id', user.id).eq('provider', L.PROVIDER).maybeSingle();
-      const de = conn && conn.account_email ? String(conn.account_email).trim() : '';
-      const same = de && String(user.email || '').trim().toLowerCase() === de.toLowerCase();
-      const taken = conn && de && !same ? await L.otherUserWithEmail(db, de, user.id) : false;
-      if (taken === true) {
-        const t = L.unpackTokens(conn.token_enc);
-        if (t) await Promise.all([L.revokeToken(t.refresh_token), L.revokeToken(t.access_token)]);
-        await db.from('broker_connections').delete().eq('user_id', user.id).eq('provider', L.PROVIDER);
-        return json(409, { error: 'email_other_user', code: 'email_other_user', email: de });
-      }
-    }
+    // Contrôle à chaque action (18/10/2026) : voir guardOwner.
+    const cut = await guardOwner(db, user);
+    if (cut) return json(409, { error: 'email_other_user', code: 'email_other_user', email: cut });
     const token = await L.accessTokenFor(db, user.id);
 
     if (action === 'accounts') {
@@ -257,131 +390,7 @@ exports.handler = async (event) => {
       return json(200, { accounts, connectionsScope: conns.scope });
     }
 
-    if (action === 'sync') {
-      const remote = await allAccounts(token, deadline);
-      const byNum = new Map();
-      const remoteByNum = new Map();
-      remote.forEach((a) => {
-        const n = normAccNum(a.number || a.accountNumber);
-        if (!n) return;
-        remoteByNum.set(n, a);
-        byNum.set(n, (a.metrics && a.metrics.dailyPnL && typeof a.metrics.dailyPnL === 'object') ? a.metrics.dailyPnL : {});
-      });
-      const since = new Date(Date.now() - SYNC_DAYS * 86400000).toISOString().slice(0, 10);
-      const allMine = await userAccounts(db, user.id, user.email);
-      // Connexions broker : plateforme de chaque compte + connexions en retard de synchro
-      // (portée connections:read ; absente des autorisations données avant le 13/10/2026).
-      const conns = await connectionsOf(token, deadline);
-      const connectionsScope = conns.scope;
-      const plat = platformMap(conns.list);
-      const trades = await recentTradesDaily(token, since, deadline);
-      // Santé des comptes (tous types) trouvés dans Deltalytix : actifs, ou sans plateforme connue.
-      const health = [];
-      allMine.forEach((a) => {
-        const k = normAccNum(a.account_number);
-        const r = remoteByNum.get(k);
-        if (!r && !plat.has(k)) return;
-        if (a.status === 'ACTIF' && r) health.push({ accountId: a.id, ...healthOf(r, trades.map.get(k)), platform: plat.get(k) || null });
-        else if (plat.has(k)) health.push({ accountId: a.id, platform: plat.get(k), inactive: a.status !== 'ACTIF' });
-      });
-      // Connexions en retard (corrigé le 23/10/2026) : on renvoie l'identifiant Contralytix des comptes
-      // concernés (accountIds) pour que l'alerte nomme exactement les bons. Un trader peut avoir plusieurs
-      // connexions de la même plateforme (un login Rithmic par prop firm) : la plateforme ne suffit pas.
-      // Un compte présent aussi dans une connexion À JOUR n'est pas signalé (il est bien suivi).
-      const stale = [];
-      const activeIdByNum = new Map(allMine.filter((a) => a.status === 'ACTIF').map((a) => [normAccNum(a.account_number), a.id]));
-      const limit = Date.now() - STALE_DAYS * 86400000;
-      const isStale = (c) => { const last = c.lastSyncedAt ? Date.parse(c.lastSyncedAt) : 0; return !last || last < limit; };
-      const freshNums = new Set();
-      conns.list.filter((c) => !isStale(c)).forEach((c) => (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).forEach((n) => freshNums.add(normAccNum(n))));
-      conns.list.filter(isStale).forEach((c) => {
-        const nums = (Array.isArray(c.accountNumbers) ? c.accountNumbers : []).map(normAccNum)
-          .filter((n) => activeIdByNum.has(n) && !freshNums.has(n));
-        if (!nums.length) return;
-        stale.push({ service: String(c.service || ''), lastSyncedAt: c.lastSyncedAt || null, accounts: nums.length, accountIds: [...new Set(nums.map((n) => activeIdByNum.get(n)))] });
-      });
-      const mine = allMine.filter((a) => (a.type === 'PA' || a.type === 'LIVE') && a.status === 'ACTIF');
-      const now = new Date().toISOString();
-      const rows = [];
-      let matched = 0;
-      const matchedIds = [];
-      const missingIds = [];
-      // Challenges actifs (25/11/2026, Calendrier P&L) : leurs journées sont aussi écrites, pour que le
-      // calendrier et le P&L du jour les comptent comme dans Deltalytix. Ils restent hors des compteurs
-      // (matched / funded / missingIds), qui ne concernent que les comptes financés du Radar.
-      const chAct = allMine.filter((a) => a.type === 'CHALLENGE' && a.status === 'ACTIF');
-      const seenDays = new Map(); // compte → jours (>= since) renvoyés par Deltalytix à cette synchro
-      [...mine, ...chAct].forEach((a) => {
-        const isCh = a.type === 'CHALLENGE';
-        const k = normAccNum(a.account_number);
-        const fromTrades = trades.map.get(k);
-        if (!byNum.has(k) && !fromTrades) { if (!isCh) missingIds.push(a.id); return; }
-        if (!isCh) matchedIds.push(a.id);
-        // dailyPnL d'abord, puis les journées des trades bruts (prioritaires sur la période lue).
-        const daily = { ...(byNum.get(k) || {}), ...(fromTrades || {}) };
-        // P&L « au-dessus du buffer » (22/11/2026, Trading plan) : c'est exactement metrics.dailyPnL de
-        // Deltalytix (considerBuffer). Gardé à part dans pnl_buffer ; pnl reste le P&L brut (Radar).
-        // Un jour tradé absent de dailyPnL = tout sous le buffer → 0. Pas de dailyPnL du tout → inconnu.
-        const dpRaw = byNum.get(k) || {};
-        const dp = {};
-        Object.entries(dpRaw).forEach(([day, v]) => { const d = isoDay(day); if (d && Number.isFinite(Number(v))) dp[d] = (dp[d] || 0) + Number(v); });
-        const hasDp = Object.keys(dp).length > 0;
-        const bufOf = (d) => (hasDp ? Math.round((dp[d] || 0) * 100) / 100 : null);
-        if (!isCh) matched++;
-        seenDays.set(a.id, new Set());
-        let lastOld = null;
-        Object.entries(daily).forEach(([day, pnl]) => {
-          const d = isoDay(day);
-          if (!d || !Number.isFinite(Number(pnl))) return;
-          if (d < since) { if (!lastOld || d > lastOld[0]) lastOld = [d, pnl]; return; }
-          seenDays.get(a.id).add(d);
-          rows.push({ user_id: user.id, account_id: a.id, day: d, traded: true, pnl: Math.round(Number(pnl) * 100) / 100, pnl_buffer: bufOf(d), source: 'deltalytix', updated_at: now });
-        });
-        // Aucun trade récent : on écrit quand même le dernier jour tradé connu (point de départ du Radar).
-        if (lastOld && !rows.some((r) => r.account_id === a.id)) {
-          rows.push({ user_id: user.id, account_id: a.id, day: lastOld[0], traded: true, pnl: Math.round(Number(lastOld[1]) * 100) / 100, pnl_buffer: bufOf(lastOld[0]), source: 'deltalytix', updated_at: now });
-        }
-      });
-      // Pointages écrits seulement si le Radar est activé (le navigateur l'indique ; absent = oui).
-      if (body.radar === false) rows.length = 0;
-      // Journées corrigées à la main (source 'edited') ou importées d'un relevé Tradovate / R|Trader Pro
-      // (source 'tradovate' / 'rithmic'), 23/11/2026 : jamais remplacées par la synchro, c'est le choix du trader.
-      if (rows.length) {
-        const ids = [...new Set(rows.map((r) => r.account_id))];
-        const { data: edited, error: edErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).in('source', ['edited', 'added', 'tradovate', 'rithmic']).gte('day', since);
-        if (!edErr && edited && edited.length) {
-          const skip = new Set(edited.map((e) => e.account_id + '|' + e.day));
-          for (let i = rows.length - 1; i >= 0; i--) if (skip.has(rows[i].account_id + '|' + rows[i].day)) rows.splice(i, 1);
-        }
-      }
-      // Journées Deltalytix disparues (25/11/2026) : un jour écrit par une synchro précédente que Deltalytix
-      // ne renvoie plus (trade supprimé ou rattaché à un autre compte) est retiré, sinon il gonfle le
-      // calendrier P&L. Seulement sur la période lue, pour les comptes trouvés, source 'deltalytix', et
-      // seulement si la lecture des trades est complète (sinon un jour pourrait manquer à tort).
-      if (rows.length && trades.complete && seenDays.size) {
-        const ids = [...seenDays.keys()];
-        const { data: old, error: oldErr } = await db.from('dormancy_logs').select('account_id, day').in('account_id', ids).eq('source', 'deltalytix').gte('day', since);
-        if (!oldErr && old && old.length) {
-          const gone = {};
-          old.forEach((r) => { if (!seenDays.get(r.account_id).has(r.day)) (gone[r.account_id] = gone[r.account_id] || []).push(r.day); });
-          for (const [accId, days] of Object.entries(gone)) {
-            const { error: delErr } = await db.from('dormancy_logs').delete().eq('account_id', accId).eq('source', 'deltalytix').in('day', days);
-            if (delErr) console.error('Deltalytix : nettoyage des journées disparues', delErr.message);
-          }
-        }
-      }
-      for (let i = 0; i < rows.length; i += 500) {
-        let { error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500), { onConflict: 'account_id,day' });
-        // Colonne pnl_buffer absente (migration 20261122 pas jouée) : on écrit sans, la synchro ne casse pas.
-        if (error && /pnl_buffer/.test(error.message || '')) {
-          ({ error } = await db.from('dormancy_logs').upsert(rows.slice(i, i + 500).map(({ pnl_buffer, ...r }) => r), { onConflict: 'account_id,day' }));
-        }
-        if (error) throw new Error(`dormancy_logs : ${error.message}`);
-      }
-      const dltxPlan = await deltalytixPlanOf(token, deadline);
-      await saveState({ last_sync_at: now, last_error: null });
-      return json(200, { matched, funded: mine.length, matchedIds, missingIds, days: rows.length, syncedAt: now, health, stale, connectionsScope, tradesComplete: trades.complete, dltxPlan });
-    }
+    if (action === 'sync') return json(200, await runSync(db, user, token, { radar: body.radar, deadline }));
 
     return json(400, { error: 'Action inconnue' });
   } catch (e) {
@@ -400,4 +409,6 @@ exports.handler = async (event) => {
   }
 };
 
+exports.runSync = runSync;
+exports.guardOwner = guardOwner;
 exports._test = { slimAccount, normAccNum, healthOf, platformMap, recentTradesDaily };

@@ -10620,7 +10620,7 @@ function renderTopbarActions(){
   // Un seul « Importer ▾ » (24/11/2026) pour les 3 sources : synchro Deltalytix, relevé Tradovate /
   // R|Trader Pro, capture ou connexion Deltalytix (accImportItems). Sans autre source que la capture,
   // le bouton ouvre directement l'import.
-  else if(state.route==='accounts') el.innerHTML = (dlx().syncing ? `<span class="btn btn-ghost" aria-live="polite"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>Synchronisation…</span>` : '')
+  else if(state.route==='accounts') el.innerHTML = (dlx().syncing ? `<span class="btn btn-ghost" aria-live="polite"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>${dlx().syncPhase==='broker' ? 'Récupération des trades…' : 'Synchronisation…'}</span>` : '')
     + `<button class="btn btn-outline" id="capture-import-account" ${accImportItems().length > 1 ? 'aria-haspopup="menu" title="Synchro Deltalytix, relevé Tradovate / R|Trader Pro ou capture d’écran"' : 'title="Crée tes comptes en une fois : depuis Deltalytix (connexion sécurisée) ou depuis une capture d’écran de ta plateforme"'}>${icon('download')}${accImportItems().length > 1 ? `Importer${icon('chevDown')}` : 'Importer mes comptes'}</button><button class="btn btn-primary" id="add-account">${icon('plus')}Nouveau compte</button>`;
   else if(state.route==='accounting') el.innerHTML = `
       <button class="btn btn-outline" id="export-accounting">${icon('download')}CSV</button>
@@ -10652,7 +10652,7 @@ function renderTopbarActions(){
   if(document.getElementById('add-account')) document.getElementById('add-account').onclick = ()=>accountFormModal({});
   if(document.getElementById('bulk-add-account')) document.getElementById('bulk-add-account').onclick = ()=>bulkAccountFormModal();
   if(document.getElementById('capture-import-account')) document.getElementById('capture-import-account').onclick = e=>{ const items = accImportItems(); if(items.length > 1) popMenu(e.currentTarget, items, { wide:true }); else captureImportModal(); };
-  el.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
+  el.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxRefresh());
   if(document.getElementById('export-accounting')) document.getElementById('export-accounting').onclick = exportAccountingCSV;
   if(document.getElementById('export-accounting-xlsx')) document.getElementById('export-accounting-xlsx').onclick = exportAccountingExcel;
   if(document.getElementById('export-accounting-pdf')) document.getElementById('export-accounting-pdf').onclick = exportAccountingPDF;
@@ -23778,6 +23778,10 @@ async function loadDlxStatus(){
   d.email = data ? data.account_email : null;
   d.lastSyncAt = data ? data.last_sync_at : null;
   d.lastError = data ? data.last_error : null;
+  // 'broker_scope' (27/11/2026) : la lecture a marché mais la connexion date d'avant la portée
+  // connections:write → pas une erreur, juste « reconnecte pour la synchro Tradovate / Rithmic pilotée ».
+  if(d.lastError === 'broker_scope'){ d.lastError = null; d.needWriteScope = true; dlxSaveCache('writescope', 1); }
+  else if(d.needWriteScope == null) d.needWriteScope = !!dlxLoadCache('writescope');
   if(d.connected && !d.health) d.health = dlxLoadCache('health');
   if(!d.connected) d.health = null;
   return d;
@@ -23829,6 +23833,55 @@ function dlxAgo(iso){
   const h = Math.round(min/60);
   if(h < 24) return `il y a ${h} h`;
   return `le ${fmtDate(String(iso).slice(0,10))}`;
+}
+// Synchro complète pilotée par Contralytix (27/11/2026) : la fonction d'arrière-plan demande à Deltalytix
+// de récupérer les derniers trades Tradovate / Rithmic (POST /connections/{id}/sync), puis lit le résultat.
+// On attend qu'elle ait écrit last_sync_at (max ~4 min), puis la synchro « lecture » habituelle donne la
+// santé des comptes et le résumé. Fonction absente (pas encore déployée) → synchro lecture seule, comme avant.
+const DLX_REFRESH_MAX_MS = 4 * 60 * 1000;
+async function dlxRefresh(){
+  const d = dlx();
+  if(!d.connected || d.syncing) return;
+  const started = Date.now();
+  d.syncing = true; d.syncPhase = 'broker';
+  if(state.route==='radar') renderView();
+  if(state.route==='accounts') renderTopbarActions();
+  let launched = false;
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    const res = await fetch('/.netlify/functions/deltalytix-refresh-background', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + (session ? session.access_token : '') },
+      body: JSON.stringify({ radar: dmEnabled() }),
+    });
+    launched = res.status === 202 || res.status === 200;
+  }catch(e){ launched = false; }
+  if(launched){
+    showToast('Récupération de tes trades Tradovate / Rithmic par Deltalytix… ça peut prendre une à deux minutes.');
+    // Petite marge sur l'horloge (serveur / appareil) : on compare à l'heure de départ moins 5 s.
+    const since = started - 5000;
+    while(Date.now() - started < DLX_REFRESH_MAX_MS){
+      await new Promise(r=>setTimeout(r, 4000));
+      const { data } = await supabaseClient.from('broker_connections')
+        .select('last_sync_at, last_error, updated_at').eq('provider', 'deltalytix').maybeSingle();
+      if(!data) break;                                                    // déconnecté entre-temps
+      const synced = data.last_sync_at && Date.parse(data.last_sync_at) > since;
+      const failed = data.last_error && data.last_error !== 'broker_scope' && data.updated_at && Date.parse(data.updated_at) > since;
+      if(synced || failed){
+        if(synced){
+          // 'broker_scope' est écrit juste après last_sync_at : une relecture courte pour ne pas le manquer.
+          await new Promise(r=>setTimeout(r, 1500));
+          const { data:again } = await supabaseClient.from('broker_connections').select('last_error').eq('provider', 'deltalytix').maybeSingle();
+          const noScope = !!(again && again.last_error === 'broker_scope');
+          d.needWriteScope = noScope; dlxSaveCache('writescope', noScope ? 1 : null);
+          if(noScope) showToast('Pour que Contralytix lance aussi la récupération chez Tradovate / Rithmic, reconnecte Deltalytix une fois (Profil › Connexions).', '', ()=>dlxConnectAndRefresh());
+        }
+        break;
+      }
+    }
+  }
+  d.syncing = false; d.syncPhase = null;
+  await dlxSync();
 }
 async function dlxSync(opts){
   const silent = !!(opts && opts.silent);
@@ -23965,7 +24018,7 @@ async function dlxConnectAndRefresh(){
   if(!r.ok){ showToast(r.error, r.error==='Connexion Deltalytix annulée.' ? '' : 'danger'); return; }
   showToast(dlxEmailMismatch() ? `Deltalytix connecté avec ${dlx().email}, différent de ton e-mail Contralytix : vérifie que c’est bien ton compte (Profil > Connexions).` : 'Deltalytix connecté.', dlxEmailMismatch() ? 'danger' : '');
   render();
-  dlxSync();
+  dlxRefresh();
 }
 function dlxDisconnect(){
   confirmModal('Déconnecter Deltalytix ? L’accès est retiré chez Deltalytix et supprimé de Contralytix ; tes comptes et pointages déjà présents dans Contralytix sont conservés.', async ()=>{
@@ -24033,7 +24086,7 @@ function dlxRadarStripHtml(){
   const errTxt = d.lastError==='token_invalid' ? 'Accès expiré ou retiré : reconnecte Deltalytix.' : (d.lastError ? 'Dernière synchronisation en échec.' : '');
   return dlxStaleHtml() + dlxBreachBannerHtml() + `<div class="panel dlx-strip ${d.lastError?'is-error':''}">
     <span class="dlx-logo sm" aria-hidden="true"></span>
-    <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? 'synchronisation en cours…' : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}</div>
+    <div class="dlx-strip-txt"><strong>Pointage automatique Deltalytix</strong> <span class="text-dim">· ${d.syncing ? (d.syncPhase==='broker' ? 'récupération des trades Tradovate / Rithmic…' : 'synchronisation en cours…') : `dernière mise à jour ${dlxAgo(d.lastSyncAt)}`}</span>${errTxt ? ` <span style="color:var(--danger);">· ${errTxt}</span>` : ''}${!errTxt && d.needWriteScope ? ` <span class="text-dim">· <button type="button" class="co-link" data-dlx-connect>Reconnecte Deltalytix</button> pour que Contralytix lance aussi la récupération Tradovate / Rithmic.</span>` : ''}</div>
     ${d.lastError==='token_invalid'
       ? `<button class="btn btn-outline btn-sm" data-dlx-connect>${icon('link')}Reconnecter</button>`
       : `<button class="btn btn-outline btn-sm" data-dlx-sync ${d.syncing?'disabled':''}>${icon('reset')}Synchroniser</button>`}
@@ -24251,7 +24304,7 @@ function dlxProfilPanelHtml(){
 }
 function dlxBindEvents(){
   document.querySelectorAll('[data-dlx-connect]').forEach(b=>b.onclick=dlxConnectAndRefresh);
-  document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxSync());
+  document.querySelectorAll('[data-dlx-sync]').forEach(b=>b.onclick=()=>dlxRefresh());
   document.querySelectorAll('[data-dlx-upsell]').forEach(b=>b.onclick=()=>openUpgradeModal('Le suivi du solde, du drawdown et de l’objectif'));
   document.querySelectorAll('[data-dlx-disconnect]').forEach(b=>b.onclick=dlxDisconnect);
   document.querySelectorAll('[data-dlx-breach]').forEach(b=>b.onclick=dlxBreachModal);
@@ -24537,7 +24590,7 @@ function dmPointageAllAutoModal(auto, day){
       document.getElementById('dm-all-auto-show').onclick = ()=>dmOpenPointage(day, null, true);
       document.getElementById('dm-all-auto-sync').onclick = async (e)=>{
         e.currentTarget.disabled = true; e.currentTarget.textContent = 'Synchronisation…';
-        closeModal(); await dlxSync();
+        closeModal(); await dlxRefresh();
       };
     }
   });
@@ -25514,7 +25567,7 @@ function gdEndTour(){
 const ACC_MORE = {};
 function accImportItems(){
   const items = [];
-  if(dlx().connected && !dlx().syncing) items.push({ icon:'reset', label:'Synchro Deltalytix', sub:'Dernier trade, comptes breached, plateformes et radar.', run: ()=>dlxSync() });
+  if(dlx().connected && !dlx().syncing) items.push({ icon:'reset', label:'Synchro Deltalytix', sub:'Récupère tes trades Tradovate / Rithmic, puis radar, comptes breached et P&L.', run: ()=>dlxRefresh() });
   if((state.accounts || []).some(a=>isMineAccount(a))) items.push({ icon:'fileText', iconHtml:`<span class="plat-duo">${platLogoHtml('tradovate', 15)}${platLogoHtml('rithmic', 15)}</span>`, label:'Relevé Tradovate / R|Trader Pro', sub:'Tradovate : Account Balance History (+ Cash History). R|Trader Pro : Performance + Trader Dashboard. Crée aussi les comptes manquants.', run: ()=>tdvImportModal() });
   items.push({ icon:'camera', label:'Capture d’écran ou Deltalytix', sub:'Crée tes comptes en une fois : les numéros sont lus pour toi.', run: ()=>captureImportModal() });
   return items;

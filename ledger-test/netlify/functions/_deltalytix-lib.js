@@ -19,7 +19,9 @@ const CLIENT_SECRET = process.env.DELTALYTIX_CLIENT_SECRET || '';
 const KEY_SECRET = process.env.DELTALYTIX_TOKEN_KEY || '';
 const PROVIDER = 'deltalytix';
 // connections:read : date de dernière synchro de chaque connexion broker (alerte « synchro en retard »).
-const SCOPES = process.env.DELTALYTIX_SCOPES || 'profile:read accounts:read trades:read metrics:read connections:read';
+// connections:write (27/11/2026) : lancer la synchro Tradovate / Rithmic chez Deltalytix depuis Contralytix
+// (POST /connections/{id}/sync). Doit être cochée dans l'application OAuth Deltalytix.
+const SCOPES = process.env.DELTALYTIX_SCOPES || 'profile:read accounts:read trades:read metrics:read connections:read connections:write';
 
 function configured() { return !!(CLIENT_ID && CLIENT_SECRET && KEY_SECRET.length >= 16); }
 function redirectUri(event) {
@@ -68,6 +70,27 @@ async function dltx(token, path, deadline) {
   if (!res.ok) throw new DltxError('api_error', `HTTP ${res.status}`);
   return res.json();
 }
+
+// POST sans corps (lancer une synchro de connexion broker). Délai long : la synchro se fait pendant l'appel.
+async function dltxPost(token, path, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 120000);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' }, body: '{}', signal: ctrl.signal });
+  } catch (e) {
+    throw new DltxError(e.name === 'AbortError' ? 'timeout' : 'unreachable');
+  } finally { clearTimeout(timer); }
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 403) throw new DltxError(body && body.error === 'insufficient_scope' ? 'insufficient_scope' : 'token_invalid');
+  if (res.status === 401) throw new DltxError('token_invalid');
+  if (!res.ok) throw new DltxError('api_error', `HTTP ${res.status}${body && body.error ? ' ' + body.error : ''}`);
+  return body;
+}
+
+// Clé interne de la synchro automatique (tâche planifiée → fonction d'arrière-plan), dérivée du secret de
+// chiffrement : aucune variable Netlify en plus. Jamais envoyée au navigateur.
+function cronKey() { return crypto.createHmac('sha256', key()).update('deltalytix-autosync').digest('hex'); }
 
 // ---------- jetons OAuth ----------
 async function tokenRequest(params) {
@@ -142,5 +165,5 @@ async function supabaseUser(db, event) {
 module.exports = {
   otherUserWithEmail,
   BASE_URL, CLIENT_ID, PROVIDER, SCOPES, DltxError,
-  configured, redirectUri, encrypt, decrypt, b64url, dltx, tokenRequest, revokeToken, packTokens, unpackTokens, accessTokenFor, supabaseUser,
+  configured, redirectUri, encrypt, decrypt, b64url, dltx, dltxPost, cronKey, tokenRequest, revokeToken, packTokens, unpackTokens, accessTokenFor, supabaseUser,
 };
