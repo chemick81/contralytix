@@ -1453,6 +1453,11 @@ th.th-sort-active svg{opacity:1;}
 .cat-table tbody tr:hover{background:var(--surface-2);}
 .cat-table tbody tr:last-child td{border-bottom:none;}
 .cat-firm{display:flex;align-items:center;gap:11px;}
+.gs-man .alert-label svg{width:13px;height:13px;vertical-align:-2px;color:var(--accent);}
+.gs-man-snip{white-space:normal;line-height:1.45;}
+.gs-man-snip mark{background:var(--gold-dim);color:var(--gold);border-radius:3px;padding:0 2px;}
+.man-flash{animation:manflash 2.2s ease;border-radius:6px;}
+@keyframes manflash{0%,40%{background:var(--gold-dim);box-shadow:0 0 0 6px var(--gold-dim);}100%{background:transparent;box-shadow:none;}}
 .tk{display:flex;align-items:center;height:34px;background:var(--surface);border:1px solid var(--border);font-size:12px;overflow:hidden;}
 .tk-cat{border-radius:10px;margin-bottom:14px;}
 .tk-landing{margin:0 calc(50% - 50vw);border-width:0 0 1px;}
@@ -1536,13 +1541,20 @@ html{overflow-x:clip;}
 /* Codes d'affiliation (26/11/2026) */
 .aff-strip .panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .aff-disc{margin-left:auto;font-size:11.5px;color:var(--text-faint);}
+.aff-strip-h{width:100%;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:none;border:0;color:inherit;text-align:left;cursor:pointer;font:inherit;}
+.aff-strip:not(.is-open) .aff-strip-h{border-bottom:0;}
+.aff-strip-h:hover .aff-strip-t{color:var(--accent);}
+.aff-strip-n{font-size:11px;font-weight:600;color:var(--text-faint);background:var(--surface-3);border-radius:999px;padding:1px 8px;}
+.aff-strip-t{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-dim);font-weight:500;}
+.aff-strip-t svg{width:14px;height:14px;}
+.aff-n small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .aff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
 .aff-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;}
 .aff-top{display:flex;align-items:center;gap:9px;}
 .aff-n{flex:1;min-width:0;}.aff-n b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.aff-n small{font-size:11px;color:var(--text-dim);}
 .aff-pct{font:700 14px "Space Grotesk",Inter,sans-serif;color:var(--gold);background:var(--gold-dim);border-radius:8px;padding:3px 7px;white-space:nowrap;}
 .aff-code{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px dashed color-mix(in srgb, var(--accent) 45%, transparent);background:var(--accent-dim);border-radius:8px;padding:5px 5px 5px 10px;}
-.aff-code .mono{font-weight:600;color:var(--accent);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.aff-code .mono{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .aff-cp{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:11.5px;font-weight:500;padding:4px 8px;cursor:pointer;flex-shrink:0;}
 .aff-cp svg,.aff-go svg,.aff-pill svg,.aff-hint svg,.aff-fpill svg{width:13px;height:13px;}
 .aff-cp:hover{border-color:var(--accent);color:var(--accent);}
@@ -4173,6 +4185,7 @@ const ICONS = {
   fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
   moreH: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
   filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.5V19l-4 2v-8.5z"/></svg>',
+  chevUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
   chevDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
 };
 function icon(name){ return ICONS[name] || ''; }
@@ -7801,11 +7814,18 @@ function affStripHtml(){
   const live = [...affLive().values()].filter(r=>getFirm(r.propFirmId))
     .sort((a,b)=>getFirm(a.propFirmId).name.localeCompare(getFirm(b.propFirmId).name, 'fr'));
   if(!live.length) return '';
-  return `<section class="panel aff-strip" aria-label="Codes de réduction">
-    <div class="panel-head"><div class="section-title" style="display:flex;align-items:center;gap:8px;">${icon('tag')}Codes de réduction</div><span class="aff-disc">Liens affiliés : Contralytix touche une commission, sans surcoût pour toi.</span></div>
-    <div class="panel-body"><div class="aff-grid">${live.map(r=>affCardHtml(r)).join('')}</div></div>
+  // Replié par défaut (27/11/2026) : le bandeau défilant montre déjà les codes ; détail au clic, choix retenu.
+  let open = false; try{ open = localStorage.getItem('cx_aff_strip_open') === '1'; }catch(e){}
+  return `<section class="panel aff-strip${open ? ' is-open' : ''}" aria-label="Codes de réduction">
+    <button type="button" class="panel-head aff-strip-h" onclick="affStripToggle()" aria-expanded="${open}">
+      <span class="section-title" style="display:flex;align-items:center;gap:8px;">${icon('tag')}Codes de réduction<span class="aff-strip-n">${live.length}</span></span>
+      <span class="aff-disc">Liens affiliés : Contralytix touche une commission, sans surcoût pour toi.</span>
+      <span class="aff-strip-t">${open ? 'Réduire' : 'Voir le détail'}${icon(open ? 'chevUp' : 'chevDown')}</span>
+    </button>
+    ${open ? `<div class="panel-body"><div class="aff-grid">${live.map(r=>affCardHtml(r)).join('')}</div></div>` : ''}
   </section>`;
 }
+function affStripToggle(){ try{ const o = localStorage.getItem('cx_aff_strip_open') === '1'; localStorage.setItem('cx_aff_strip_open', o ? '0' : '1'); }catch(e){} renderView(); }
 function affPillHtml(firmId){
   const r = affFor(firmId);
   if(!r) return '<span class="text-faint">—</span>';
@@ -10485,7 +10505,7 @@ function render(){
           `}
         </div>
         <div class="topbar-actions">
-          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Recherche globale" aria-label="Recherche globale">${icon('search')}</button>${gdHelpBtnHtml()}`}
+          ${(state.route==='sessions' && state.sessionDetailId) ? '' : `<button class="btn btn-ghost btn-sm" id="global-search-btn" title="Rechercher : comptes, traders, prop firms et manuel" aria-label="Rechercher dans les comptes, traders, prop firms et le manuel">${icon('search')}</button>${gdHelpBtnHtml()}`}
           <div class="topbar-actions" id="topbar-actions"></div>
         </div>
       </div>
@@ -29904,6 +29924,61 @@ function generatePayoutReceipt(acc, trader, payout){
   doc.save(`recu_payout_${(trader?trader.pseudo:'trader')}_${payout.date}.pdf`);
 }
 
+/* Recherche dans le manuel depuis la loupe (27/11/2026) : index des chapitres découpés par
+   sous-titre (h3), texte sans HTML, recherche sans accents ni majuscules, tous les mots requis. */
+let __manIdx = null;
+function manNorm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function manIndex(){
+  if(__manIdx) return __manIdx;
+  const strip = h=>String(h).replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<img[^>]*>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;|&rsquo;/g, '’').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim();
+  __manIdx = [];
+  MANUAL_CHAPTERS.forEach(c=>{
+    const parts = String(c.html).split(/<h3[^>]*>/i);
+    parts.forEach((part, i)=>{
+      let head = '', body = part;
+      if(i > 0){ const j = part.search(/<\/h3>/i); head = strip(part.slice(0, j)); body = part.slice(j + 5); }
+      const text = strip(body);
+      if(!text && !head) return;
+      __manIdx.push({ ch:c, head, text, n:manNorm(c.title + ' ' + head + ' ' + text), nh:manNorm(c.title + ' ' + head) });
+    });
+  });
+  return __manIdx;
+}
+function manSearch(q, limit){
+  const words = manNorm(q).split(/\s+/).filter(w=>w.length >= 2);
+  if(!words.length) return [];
+  return manIndex().filter(e=>words.every(w=>e.n.includes(w)))
+    .map(e=>({ e, sc: words.reduce((t, w)=>t + (e.nh.includes(w) ? 3 : 0) + (manNorm(e.text).includes(w) ? 1 : 0), 0) }))
+    .sort((a, b)=>b.sc - a.sc).slice(0, limit || 8).map(x=>x.e);
+}
+function manSnippet(text, q){
+  const words = manNorm(q).split(/\s+/).filter(w=>w.length >= 2);
+  const nt = manNorm(text);
+  let pos = -1; words.forEach(w=>{ const k = nt.indexOf(w); if(k >= 0 && (pos < 0 || k < pos)) pos = k; });
+  const start = Math.max(0, pos - 50), end = Math.min(text.length, (pos < 0 ? 0 : pos) + 110);
+  let snip = escapeHtml((start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : ''));
+  // surligne les mots cherchés (comparaison sans accents, position par position)
+  const plain = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+  const np = manNorm(plain); const marks = [];
+  words.forEach(w=>{ let k = np.indexOf(w); while(k >= 0){ marks.push([k, k + w.length]); k = np.indexOf(w, k + w.length); } });
+  if(marks.length){
+    marks.sort((a, b)=>a[0] - b[0]);
+    let out = '', last = 0;
+    marks.forEach(([a, b])=>{ if(a < last) return; out += escapeHtml(plain.slice(last, a)) + '<mark>' + escapeHtml(plain.slice(a, b)) + '</mark>'; last = b; });
+    snip = out + escapeHtml(plain.slice(last));
+  }
+  return snip;
+}
+function manGoto(chId, head){
+  state.route = 'manuel'; render();
+  setTimeout(()=>{
+    const ch = document.getElementById(chId); if(!ch) return;
+    let target = ch;
+    if(head){ const h = [...ch.querySelectorAll('h3')].find(x=>x.textContent.trim() === head); if(h) target = h; }
+    target.scrollIntoView({ behavior:'smooth', block:'start' });
+    target.classList.add('man-flash'); setTimeout(()=>target.classList.remove('man-flash'), 2200);
+  }, 80);
+}
 /* ============================================================
    RECHERCHE GLOBALE
 ============================================================ */
@@ -29912,7 +29987,7 @@ function globalSearchModal(){
     title: 'Recherche globale',
     wide: true,
     bodyHtml: `
-      <div class="field"><input id="gs-input" type="text" placeholder="Trader, PropFirm, n° de compte…" autocomplete="off"/></div>
+      <div class="field"><input id="gs-input" type="text" placeholder="Trader, PropFirm, n° de compte, ou une question (ex. buffer, import Tradovate)…" autocomplete="off"/></div>
       <div id="gs-results"></div>
     `,
     onMount(){
@@ -29934,7 +30009,8 @@ function globalSearchModal(){
           const sc = (num===q || parts.includes(q)) ? 0 : num.endsWith(q) ? 1 : parts.some(x=>x.startsWith(q)) ? 2 : 3;
           return { a, sc };
         }).sort((x,y)=>x.sc-y.sc).map(x=>x.a).slice(0,20);
-        if(traderHits.length===0 && firmHits.length===0 && accHits.length===0){
+        const manHits = manSearch(q, 8);
+        if(traderHits.length===0 && firmHits.length===0 && accHits.length===0 && manHits.length===0){
           resultsEl.innerHTML = `<div class="empty-sub" style="padding:10px 0;">Aucun résultat.</div>`;
           return;
         }
@@ -29954,7 +30030,12 @@ function globalSearchModal(){
             return `<div class="alert-row" data-gs-account="${a.id}"><div><div class="alert-label">${t?t.pseudo:'—'} · ${f?f.name:'—'}</div><div class="alert-sub">${TYPE_LABELS[a.type]} · N° ${maskAccountNumber(a.accountNumber)}</div></div><span class="alert-goto">${icon('chevRight')}</span></div>`;
           }).join('');
         }
+        if(manHits.length){
+          html += `<div class="acc-field-label" style="margin:12px 0 6px;">Manuel</div>`;
+          html += manHits.map((m, i)=>`<div class="alert-row gs-man" data-gs-man="${i}"><div style="min-width:0;"><div class="alert-label">${icon('book')} ${m.ch.n}. ${escapeHtml(m.ch.title)}${m.head ? ' › ' + escapeHtml(m.head) : ''}</div><div class="alert-sub gs-man-snip">${manSnippet(m.text, q)}</div></div><span class="alert-goto">${icon('chevRight')}</span></div>`).join('');
+        }
         resultsEl.innerHTML = html;
+        resultsEl.querySelectorAll('[data-gs-man]').forEach(el=>el.onclick=()=>{ const m = manHits[Number(el.dataset.gsMan)]; closeModal(); manGoto(m.ch.id, m.head); });
         resultsEl.querySelectorAll('[data-gs-trader]').forEach(el=>el.onclick=()=>{
           closeModal(); state.route='traders'; render();
         });
