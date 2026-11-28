@@ -10440,8 +10440,13 @@ function render(){
   if(!getNav().find(n=>n.id===state.route)) state.route = 'dashboard';
   // Le groupe de menu contenant la page active est toujours ouvert, pour que
   // l'élément actif reste visible même après un rechargement de page.
+  // 28/11/2026 : seulement quand la page change (ou au premier affichage). Avant, chaque render()
+  // rouvrait le groupe de la page courante : impossible de replier « Mon compte » depuis Profil.
   const activeGrp = NAV_GROUPS.find(g=>!g.flat && g.items.includes(navRouteOwner(state.route)));
-  if(activeGrp && !state.navOpenGroups.includes(activeGrp.id)) state.navOpenGroups.push(activeGrp.id);
+  if(state.__navOpenedFor !== state.route){
+    state.__navOpenedFor = state.route;
+    if(activeGrp && !state.navOpenGroups.includes(activeGrp.id)) state.navOpenGroups.push(activeGrp.id);
+  }
   const root = document.getElementById('app-root');
   const ann = state.appSettings && state.appSettings.announcement;
   root.innerHTML = `
